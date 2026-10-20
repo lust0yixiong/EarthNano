@@ -45,7 +45,12 @@ export function checkOutputFiles(
           .slice(1)
           .split('/')
           .map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'))) {
-      if (!value || typeof value !== 'object' || !Object.hasOwn(value, part))
+      if (
+        !value ||
+        typeof value !== 'object' ||
+        (Array.isArray(value) && !/^(0|[1-9][0-9]*)$/.test(part)) ||
+        !Object.hasOwn(value, part)
+      )
         return { ...pinned, status: 'fail', reason: 'missing-value' }
       value = (value as Record<string, unknown>)[part]
     }

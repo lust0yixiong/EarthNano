@@ -158,6 +158,7 @@ export function normalizeOptimizationDomain(value: unknown): OptimizationDomainS
   const name = text(domain.name, 80)
   if (
     !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(name) ||
+    name.endsWith('.') ||
     !Array.isArray(domain.nextTasks) ||
     domain.nextTasks.length > 3
   )

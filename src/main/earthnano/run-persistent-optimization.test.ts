@@ -13,7 +13,10 @@ const f = vi.hoisted(() => ({
   readReviews: vi.fn(),
   executionIds: ['baseline'],
   settle: vi.fn(async () => true),
-  outcome: vi.fn(async () => undefined)
+  outcome: vi.fn(async () => ({
+    artifact: { status: 'unverified', checks: [] },
+    configuration: { status: 'unverified', reasons: ['no-deterministic-checks'] }
+  }))
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
@@ -145,7 +148,47 @@ it('freezes the criteria and input before the method runs and keeps the plan out
   expect(await readFile(join(o.workRoot, 'method-config.json'), 'utf8')).not.toContain(
     'Original criterion'
   )
+  const outcome = JSON.parse(await readFile(join(o.workRoot, 'outcome-t.json'), 'utf8'))
+  expect(outcome.configurationPublication).toBe('not-published')
+  expect(outcome.outcome.configuration.status).toBe('unverified')
 })
+
+it('retains the declared domain order without claiming results when its method fails early', async () => {
+  const o = await options()
+  o.domain = {
+    name: 'rows',
+    nextTasks: [{ prompt: 'Second', files: [], criteria: 'Private next criterion' }]
+  }
+  const progress: unknown[] = []
+  o.onProgress = (value) => progress.push(structuredClone(value))
+  f.method.mockRejectedValueOnce(new Error('Method stopped before completion'))
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toThrow('Method stopped')
+  expect(progress.at(-1)).toMatchObject({
+    stage: 'settled',
+    domain: {
+      name: 'rows',
+      order: ['t-0001', 't-0002'],
+      tasks: [{ taskId: 't-0001' }, { taskId: 't-0002' }],
+      library: { scope: 'experiment', entries: [] }
+    }
+  })
+  expect(progress.at(-1)).not.toHaveProperty('outcome')
+  expect(f.evaluate).not.toHaveBeenCalled()
+  expect(await readFile(join(o.workRoot, 'method-config.json'), 'utf8')).not.toContain(
+    'Private next criterion'
+  )
+})
+
+it.each(['../outside', 'rows.', 'nested/task'])(
+  'rejects nonportable task ID %s before allocation',
+  async (taskId) => {
+    const o = await options()
+    await expect(runPersistentOptimization({ ...o, taskId })).rejects.toThrow('task identifier')
+    await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(f.method).not.toHaveBeenCalled()
+  }
+)
 
 it.each([2_147_483_648, 4_294_967_296, Number.MAX_SAFE_INTEGER])(
   'rejects overflowing overall timeout %s before persistence or execution',

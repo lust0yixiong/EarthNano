@@ -56,3 +56,15 @@ it('rejects changed bytes or ambiguous output versions', () => {
   expect(() => checkOutputFiles([changed], [check])).toThrow('checksum')
   expect(() => checkOutputFiles([file('{}'), file('{}')], [check])).toThrow('Ambiguous')
 })
+it('only traverses canonical JSON array indices and keeps plain object keys valid', () => {
+  const inspect = (pointer: string, expected: number) =>
+    checkOutputFiles(
+      [file('{"items":[1,2,3],"object":{"length":3,"01":2}}')],
+      [{ kind: 'json-value', path: 'result.json', pointer, expected }]
+    )[0]!
+  for (const pointer of ['/items/length', '/items/01', '/items/-', '/items/+1', '/items/3'])
+    expect(inspect(pointer, 3)).toMatchObject({ status: 'fail', reason: 'missing-value' })
+  expect(inspect('/items/0', 1).status).toBe('pass')
+  expect(inspect('/object/length', 3).status).toBe('pass')
+  expect(inspect('/object/01', 2).status).toBe('pass')
+})

@@ -37,7 +37,7 @@ import { HarnessOptimizationBinding, runHarnessProcess } from './harness-optimiz
 import { HarnessDomainBinding } from './harness-domain-binding'
 import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
 import { evaluateResearchOutcome } from './research-verification'
-import { canonicalOutput } from './output-checks'
+import { canonicalOutput, outputDigest } from './output-checks'
 import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
@@ -95,6 +95,8 @@ export async function runPersistentOptimization(
   const semanticCriteria = options.semanticCriteria
   const checks = normalizeOutputChecks(options.checks)
   const domain = normalizeOptimizationDomain(options.domain)
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(options.taskId) || options.taskId.endsWith('.'))
+    throw new Error('Invalid optimization task identifier')
   if (domain && semanticCriteria === undefined)
     throw new Error('Domain optimization requires independent criteria')
   const tasks = domain
@@ -131,7 +133,14 @@ export async function runPersistentOptimization(
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
   let stage: PersistentOptimizationProgress['stage'] = 'optimizing'
   let outcome: ResearchOutcome | undefined
-  let domainSummary: DomainOptimizationSummary | undefined
+  let domainSummary: DomainOptimizationSummary | undefined = domain
+    ? {
+        name: domain.name,
+        order: tasks.map((task) => task.taskId),
+        tasks: tasks.map((task) => ({ taskId: task.taskId })),
+        library: { scope: 'experiment', entries: [], digest: outputDigest([]) }
+      }
+    : undefined
   const publish = (): void => {
     options.onProgress?.({
       optimizationId,
@@ -367,7 +376,7 @@ export async function runPersistentOptimization(
           summary.assessments = taskAssessments
           summary.outcome = taskOutcome
         }
-        if (task === tasks[0]) {
+        if (!domain && task === tasks[0]) {
           assessments = taskAssessments
           outcome = taskOutcome
         }

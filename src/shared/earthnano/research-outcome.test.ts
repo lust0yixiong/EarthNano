@@ -52,6 +52,7 @@ it.each([
 )
 it.each([
   { name: '../outside', nextTasks: [] },
+  { name: 'rows.', nextTasks: [] },
   { name: 'geo', nextTasks: Array(4).fill({ prompt: 'Next', files: [], criteria: 'Check' }) },
   {
     name: 'geo',
