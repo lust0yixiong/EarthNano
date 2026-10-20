@@ -16,6 +16,12 @@ import type {
 import { requestDigest, validateRequest } from './execution-contract'
 import { assertClaudeCandidateText } from '../acp/claude-candidate-preparation'
 import { assertExecutionTimeout } from './execution-timeout'
+import {
+  MAX_HARNESS_FRAME_BYTES,
+  MAX_HARNESS_EVIDENCE_BYTES,
+  MAX_HARNESS_EVIDENCE_FILES,
+  MAX_HARNESS_DIAGNOSTIC_BYTES
+} from './harness-binding-limits'
 
 /** Read exclusively from the original Session and immutable ArtifactVersion owners. */
 export interface PersistentExecutionExport {
@@ -60,18 +66,18 @@ const safePath = (value: unknown): string => {
   return path
 }
 const textFiles = (value: unknown): CandidateTextFile[] => {
-  if (!Array.isArray(value) || value.length > 128) return fail()
+  if (!Array.isArray(value) || value.length > MAX_HARNESS_EVIDENCE_FILES) return fail()
   let bytes = 0
   const names = new Set<string>()
   return value.map((item) => {
     const file = plain(item)
     if (Object.keys(file).sort().join(',') !== 'content,path') return fail()
     const path = safePath(file.path),
-      content = string(file.content)
+      content = string(file.content, MAX_HARNESS_EVIDENCE_BYTES)
     bytes += Buffer.byteLength(content)
     const normalized = path.normalize('NFC').toLowerCase()
     if (
-      bytes > 512_000 ||
+      bytes > MAX_HARNESS_EVIDENCE_BYTES ||
       names.has(normalized) ||
       [...names].some(
         (other) => other.startsWith(normalized + '/') || normalized.startsWith(other + '/')
@@ -270,7 +276,8 @@ export async function runHarnessProcess(options: {
   let pending = Promise.resolve()
   let result: unknown
   let failed = false
-  let receivedBytes = 0
+  let frameBytes = 0
+  let queuedFrames = 0
   let diagnosticBytes = 0
   const seen = new Set<number>()
   let releaseStop!: () => void
@@ -285,20 +292,33 @@ export async function runHarnessProcess(options: {
   }
   const timer = setTimeout(stop, options.timeoutMs)
   options.signal?.addEventListener('abort', stop, { once: true })
-  child.stdout.on('data', (data) => {
-    receivedBytes += data.length
-    if (receivedBytes > 16 * 1024 * 1024) stop()
+  child.stdout.on('data', (data: Buffer) => {
+    // Protocol bytes are bounded per frame, not cumulatively across a legal multi-round run.
+    // Also bound an unterminated frame before readline can accumulate an unlimited line.
+    let offset = 0
+    while (offset < data.length) {
+      const newline = data.indexOf(10, offset)
+      frameBytes += (newline < 0 ? data.length : newline + 1) - offset
+      if (frameBytes > MAX_HARNESS_FRAME_BYTES) return stop()
+      if (newline < 0) break
+      frameBytes = 0
+      offset = newline + 1
+    }
   })
   // Drain diagnostics without storing provider text or arbitrary Python exception data.
   child.stderr.on('data', (data) => {
     diagnosticBytes += data.length
-    if (diagnosticBytes > 1024 * 1024) stop()
+    if (diagnosticBytes > MAX_HARNESS_DIAGNOSTIC_BYTES) stop()
   })
   child.stdin.on('error', stop)
   lines.on('line', (line) => {
+    if (failed) return
+    // The original locked client waits for each response. Bound queued work too, so a peer
+    // cannot evade the per-frame memory bound by flooding many valid lines during an await.
+    if (++queuedFrames > 2) return stop()
     pending = pending
       .then(async () => {
-        if (failed || Buffer.byteLength(line) > 1024 * 1024) return stop()
+        if (failed || Buffer.byteLength(line) + 1 > MAX_HARNESS_FRAME_BYTES) return stop()
         const message = plain(JSON.parse(line))
         if (
           !Number.isSafeInteger(message.id) ||
@@ -317,7 +337,11 @@ export async function runHarnessProcess(options: {
             if (result !== undefined) return stop()
             value = await options.binding.dispatch(string(message.operation, 64), message)
           }
-          if (!failed) child.stdin.write(JSON.stringify({ id: message.id, result: value }) + '\n')
+          if (!failed) {
+            const response = JSON.stringify({ id: message.id, result: value }) + '\n'
+            if (Buffer.byteLength(response) > MAX_HARNESS_FRAME_BYTES) return stop()
+            child.stdin.write(response)
+          }
         } catch (error) {
           const code = (error as { code?: string }).code
           const known = [
@@ -342,6 +366,9 @@ export async function runHarnessProcess(options: {
         }
       })
       .catch(stop)
+      .finally(() => {
+        queuedFrames--
+      })
   })
   try {
     const exitCode = await new Promise<number | null>((resolve, reject) => {

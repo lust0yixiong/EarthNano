@@ -10,6 +10,7 @@ import type { OptimizationSelectionSummary } from '../../shared/earthnano/deskto
 import { canonicalOutput, outputDigest } from './output-checks'
 import { chosenExecution } from './research-verification'
 import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
+import { MAX_HARNESS_EVIDENCE_BYTES, MAX_HARNESS_EVIDENCE_FILES } from './harness-binding-limits'
 
 export interface DomainMethodTask {
   taskId: string
@@ -87,7 +88,7 @@ export async function prepareDomainSummary(options: {
     }
     bytes += Buffer.byteLength(file.content)
   }
-  if (files.length > 128 || bytes > 512000)
+  if (files.length > MAX_HARNESS_EVIDENCE_FILES || bytes > MAX_HARNESS_EVIDENCE_BYTES)
     throw new Error('Library projection exceeds text profile')
   if (entries.length && !files.some((file) => file.path === root + 'INDEX.md'))
     throw new Error('Library entries lack their original index')

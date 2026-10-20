@@ -23,6 +23,7 @@ from .method_execution import Invocation
 from .proposer import Reply
 
 MAX_MESSAGE_BYTES = 32 * 1024 * 1024
+MAX_EVIDENCE_BYTES = MAX_MESSAGE_BYTES // 2
 MAX_FILES = 512
 
 
@@ -54,7 +55,7 @@ def text_files(value: object, *, with_digest: bool = False) -> list[dict]:
         if not isinstance(content, str):
             raise ValueError("Expected UTF-8 text")
         total += len(content.encode("utf-8"))
-        if total > MAX_MESSAGE_BYTES // 2:
+        if total > MAX_EVIDENCE_BYTES:
             raise ValueError("Text files exceed binding limit")
         key = unicodedata.normalize("NFC", path).casefold()
         if any(key == old or key.startswith(old + "/") or old.startswith(key + "/")
@@ -90,7 +91,7 @@ def read_snapshot(root: Path | None) -> list[dict]:
                 opened = os.fstat(stream.fileno())
                 if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
                     raise ValueError("Snapshot file changed while opening")
-                raw = stream.read(MAX_MESSAGE_BYTES // 2 + 1)
+                raw = stream.read(MAX_EVIDENCE_BYTES + 1)
             after = path.lstat()
             if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) != (
                 before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns
@@ -120,7 +121,7 @@ class JsonLineClient:
             try:
                 message = json.dumps({"id": request_id, "operation": operation, **arguments},
                                      ensure_ascii=False, allow_nan=False, separators=(",", ":"))
-                if len(message.encode("utf-8")) > MAX_MESSAGE_BYTES:
+                if len(message.encode("utf-8")) + 1 > MAX_MESSAGE_BYTES:
                     raise ValueError("Oversized local request")
                 self.writer.write(message + "\n")
                 self.writer.flush()

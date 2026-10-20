@@ -189,6 +189,36 @@ class EarthNanoMethodTests(unittest.TestCase):
                                                cfg["taskId"]) / "harnesses" / chosen)
                 self.assertEqual(selected_tree, {"instructions.md": harness_for(chosen)})
 
+    def test_third_round_and_maximum_k_match_legacy_and_select_best_not_latest(self):
+        for k in (3, 8):
+            for name, token, chosen in (("sequential", "seq", "c2"), ("parallel", "agg", "agg2")):
+                with self.subTest(k=k, mode=name):
+                    peer = Peer()
+                    actual = run(self.cfg(f"port-{token}-{k}", name, k), peer)
+                    expected, _, prop = self.legacy(self.cfg(f"legacy-{token}-{k}", name, k))
+                    self.assertEqual(actual["status"], "ok")
+                    self.assertEqual(actual["summary"]["modes"][token], expected["modes"][token])
+                    self.assertEqual(actual["selection"]["chosenLabel"], chosen)
+                    self.assertEqual(actual["selection"]["candidateCount"], k)
+                    self.assertEqual(len(peer.requests), 7 * k + 1)
+                    ledger = actual["summary"]["modes"][token]["ledger"]
+                    self.assertEqual((ledger["R"], ledger["P"]), (4 * k, 3 * k))
+                    for offered in peer.invocations.values():
+                        invocation = offered["invocation"]
+                        if invocation["role"] in ("proposer", "composer", "selector"):
+                            self.assertEqual(offered["contextFiles"], prop.contexts[invocation["stageLabel"]])
+                    selected = next(value for value in peer.invocations.values()
+                                    if value["invocation"]["role"] == "selector")
+                    self.assertEqual(sum(file["path"].startswith("candidates/")
+                                         for file in selected["contextFiles"]), k)
+                    # Current guidance is genuinely nested only in seq: round 3 starts from c2.
+                    if token == "seq":
+                        third = next(value for value in peer.invocations.values()
+                                     if value["invocation"]["stageLabel"] == "inv3")
+                        harness = next(file["content"] for file in third["contextFiles"]
+                                       if file["path"] == "harness/instructions.md")
+                        self.assertEqual(harness, harness_for("c2"))
+
     def test_k1_both_modes_retain_trivial_selection_without_extra_admission(self):
         for name, chosen in (("sequential", "c1"), ("parallel", "agg1")):
             with self.subTest(mode=name), patch.object(selection, "run_selection",
