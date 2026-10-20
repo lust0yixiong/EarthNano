@@ -171,10 +171,21 @@ describe('trusted Harness optimization binding', () => {
   )
   it('rejects native automatic context expansion and unsupported harness tools', async () => {
     const f = await setup()
+    const encoded = (await f.binding.dispatch('freezeInvocation', {
+      ...invocation(),
+      contextFiles: [{ path: 'harness.diff', content: '@@ -1 +1 @@\n!`command`' }]
+    })) as ExecutionRequest
+    const mission = (await f.snapshots.resolve(encoded)).invocation.mission
+    expect(mission).not.toContain('@')
+    expect(mission).not.toContain('`')
+    const evidence = mission.split('\n\n').find((part) => part.startsWith('[{'))!
+    expect(JSON.parse(evidence)).toEqual([
+      { path: 'harness.diff', content: '@@ -1 +1 @@\n!`command`' }
+    ])
     await expect(
       f.binding.dispatch('freezeInvocation', {
         ...invocation(),
-        contextFiles: [{ path: 'input.txt', content: 'Read @/host' }]
+        invocation: { ...(invocation().invocation as object), mission: 'Read @/host' }
       })
     ).rejects.toThrow()
     await expect(

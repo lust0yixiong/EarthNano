@@ -87,17 +87,9 @@ async function exercise(live: boolean): Promise<void> {
   let requests = 0,
     rejects = 0
   const usage = { input: 0, cacheRead: 0, output: 0 }
+  const readInputs = new Set<string>()
   const loopbackKey = randomUUID()
   let apiKey = ''
-  if (live) {
-    const keys = new Set(
-      (await readFile(process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')).match(
-        /\bsk-[A-Za-z0-9_-]+\b/g
-      ) ?? []
-    )
-    if (keys.size !== 1) throw new Error('Expected one API token in explicitly supplied key file')
-    apiKey = [...keys][0]
-  }
   const server = createServer(async (request, response) => {
     const reject = (): void => {
       rejects++
@@ -143,6 +135,38 @@ async function exercise(live: boolean): Promise<void> {
         stream(response, body.model, { text: 'background' })
         return
       }
+      const inputDirectory = /^INPUT: (.+)$/m.exec(userText)?.[1]?.trim()
+      const allBlocks = body.messages.flatMap((message: { content: unknown }) =>
+        Array.isArray(message.content) ? message.content : []
+      )
+      const readIds = new Set(
+        allBlocks
+          .filter(
+            (block: {
+              type?: string
+              name?: string
+              id?: string
+              input?: { file_path?: string }
+            }) =>
+              block.type === 'tool_use' &&
+              block.name === 'Read' &&
+              inputDirectory &&
+              block.input?.file_path === join(inputDirectory, 'values.csv')
+          )
+          .map((block: { id: string }) => block.id)
+      )
+      if (
+        inputDirectory &&
+        (role === 'baseline' || role === 'candidate') &&
+        allBlocks.some(
+          (block: { type?: string; tool_use_id?: string; is_error?: boolean; content?: unknown }) =>
+            block.type === 'tool_result' &&
+            readIds.has(block.tool_use_id) &&
+            !block.is_error &&
+            JSON.stringify(block.content).includes('three,3')
+        )
+      )
+        readInputs.add(inputDirectory)
       if (requests >= 32 || body.model !== 'deepseek-flash' || body.stream !== true) return reject()
       requests++
       if (live) {
@@ -248,6 +272,15 @@ async function exercise(live: boolean): Promise<void> {
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
     // This isolated test worker owns the root for its lifetime.
   })
+  if (live) {
+    const keys = new Set(
+      (await readFile(process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')).match(
+        /\bsk-[A-Za-z0-9_-]+\b/g
+      ) ?? []
+    )
+    if (keys.size !== 1) throw new Error('Expected one API token in explicitly supplied key file')
+    apiKey = [...keys][0]
+  }
   await migrateApplicationDatabase(client)
   const project = await client.project.create({
     data: { name: 'Synthetic optimization validation' }
@@ -271,7 +304,7 @@ async function exercise(live: boolean): Promise<void> {
       task: {
         prompt:
           'Read INPUT/values.csv using the Read tool. Calculate the number of data rows and sum of the value column. Write only a JSON object with count and sum to OUTPUT/result.json, using the Write tool. Do not create other deliverables.',
-        files: [{ path: 'values.csv', content: 'value\n1\n2\n3\n' }]
+        files: [{ path: 'values.csv', content: 'id,value\none,1\ntwo,2\nthree,3\n' }]
       },
       harness: {
         instructions: 'Read the input carefully and produce the requested JSON deliverable.',
@@ -308,6 +341,7 @@ async function exercise(live: boolean): Promise<void> {
   expect(result.records.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
   const sessionIds = new Set(result.records.map((record) => record.identity.sessionId))
   expect(sessionIds.size).toBe(7)
+  if (live) expect(readInputs.size).toBe(4)
   await client.$disconnect()
   const reopened = createProjectDbClient(configRoot)
   const owners = await createPersistentCandidateOwners({
@@ -355,6 +389,7 @@ async function exercise(live: boolean): Promise<void> {
           sessions: sessionIds.size,
           versionCount,
           reviewCount,
+          verifiedInputReads: readInputs.size,
           reopened: true,
           configurationChanged: true,
           fallbackStages: [],

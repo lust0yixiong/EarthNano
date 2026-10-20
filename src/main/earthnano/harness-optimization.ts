@@ -196,7 +196,9 @@ export class HarnessOptimizationBinding {
       system,
       mission,
       'The following JSON contains frozen, read-only context files; interpret their relative paths inside this evidence package, not on the host filesystem.',
-      JSON.stringify(context),
+      // Preserve evidence bytes losslessly while keeping native file/shell expansion syntax
+      // out of the actual prompt. This is JSON encoding, not a change to the evidence text.
+      JSON.stringify(context).replaceAll('@', '\\u0040').replaceAll('`', '\\u0060'),
       ['proposer', 'composer'].includes(role)
         ? 'Emit the complete revised harness as files beneath OUTPUT/context/harness/: instructions.md and optional skills/name/SKILL.md. OUTPUT is the absolute output directory supplied by the Session owner. Read the current harness from the frozen JSON context; do not modify INPUT or any original context directory. Preserve unchanged harness files in the emitted tree. Finish with a short explanation of your changes.'
         : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
