@@ -269,3 +269,29 @@ it('pins an executable Python >=3.11 and rejects old interpreters, fallback comm
     resolveOptimizationPython({ resolve, probe, path: '', platform: 'darwin' })
   ).rejects.toThrow('Python 3.11')
 })
+
+it('passes explicit method, private checks and experiment domain through original desktop composition', async () => {
+  const method = { mode: 'parallel' as const, k: 2, concurrency: 2 }
+  const checks = [
+    { kind: 'json-value' as const, path: 'result.json', pointer: '', expected: { count: 3 } }
+  ]
+  const domain = {
+    name: 'csv',
+    nextTasks: [
+      {
+        prompt: 'Next CSV',
+        files: [{ path: 'data.csv', content: '1\n' }],
+        criteria: 'Correct count',
+        checks
+      }
+    ]
+  }
+  const options = await createDesktopOptimizationOptions(
+    { ...request, executionLimit: 36, method, checks, domain },
+    dependencies()
+  )
+  expect(options).toMatchObject({ method, checks, domain, executionLimit: 36 })
+  expect(options.input.task).toEqual({ prompt: request.prompt, files: request.files })
+  expect(JSON.stringify(options.input)).not.toContain('"expected"')
+  options.releaseAdmission()
+})

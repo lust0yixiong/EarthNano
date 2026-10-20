@@ -364,3 +364,194 @@ it('also discards a snapshot requested while Stop was pending after its acknowle
   })
   expect(container.querySelector('[role=status]')?.textContent).toContain('Cancelled')
 })
+
+it('submits a bounded ordered domain stream with private expected JSON checks, copied files and one Stop', async () => {
+  await render()
+  await input('Acceptance criteria (one per line)', 'Correct count')
+  await input('Domain experiment name (optional)', 'csv-count')
+  await click('Add next task')
+  await input('Next task description 1', 'Count a second data set')
+  await input('Next task criteria 1', 'Second count is correct')
+  const file = new File(['value\n1'], 'values.csv')
+  Object.defineProperty(file, 'text', { value: vi.fn().mockResolvedValue('value\n1') })
+  const fileControl = container.querySelector('input[type=file]')!
+  await act(async () => {
+    Object.defineProperty(fileControl, 'files', { configurable: true, value: [file] })
+    fileControl.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  const checkbox = container.querySelector(
+    '[aria-label="Check expected JSON output"]'
+  ) as HTMLInputElement
+  await act(async () => checkbox.click())
+  await input('Expected JSON value', '{"count":1}')
+  const nextCheckbox = container.querySelector(
+    '[data-testid="next-task-1"] [aria-label="Check expected JSON output"]'
+  ) as HTMLInputElement
+  await act(async () => nextCheckbox.click())
+  const nextExpected = container.querySelector(
+    '[data-testid="next-task-1"] [aria-label="Expected JSON value"]'
+  ) as HTMLTextAreaElement
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+      nextExpected,
+      '2'
+    )
+    nextExpected.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  expect(
+    (
+      container.querySelector(
+        '[aria-label="Shared execution limit (all task assessments and reflections)"]'
+      ) as HTMLInputElement
+    ).value
+  ).toBe('20')
+  await click('Start optimization')
+  expect(api.start).toHaveBeenCalledWith(
+    expect.objectContaining({
+      checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 1 } }],
+      executionLimit: 20,
+      domain: {
+        name: 'csv-count',
+        nextTasks: [
+          {
+            prompt: 'Count a second data set',
+            criteria: 'Second count is correct',
+            files: [{ path: 'values.csv', content: 'value\n1' }],
+            checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: 2 }]
+          }
+        ]
+      }
+    })
+  )
+  await click('Stop optimization')
+  expect(api.stop).toHaveBeenCalledWith({
+    projectId: 'project',
+    sourceSessionId: 'session',
+    runId: 'run'
+  })
+  expect(container.textContent).toContain('Cancelled')
+})
+it('bounds the stream to four tasks and requires valid task, domain and private JSON inputs', async () => {
+  await render()
+  await input('Acceptance criteria (one per line)', 'criterion')
+  for (let index = 1; index <= 3; index++) {
+    await click('Add next task')
+    await input(`Next task description ${index}`, `Task ${index}`)
+    await input(`Next task criteria ${index}`, `Criterion ${index}`)
+  }
+  const add = [...container.querySelectorAll('button')].find(
+    (node) => node.textContent === 'Add next task'
+  )!
+  expect(add.disabled).toBe(true)
+  const start = [...container.querySelectorAll('button')].find(
+    (node) => node.textContent === 'Start optimization'
+  )!
+  expect(start.disabled).toBe(true)
+  await input('Domain experiment name (optional)', 'four-tasks')
+  expect(start.disabled).toBe(false)
+  await input('Recursion parameter (k)', '8')
+  expect(start.disabled).toBe(true)
+  expect(container.textContent).toContain('Reduce recursion or task count')
+  expect(
+    (
+      container.querySelector(
+        '[aria-label="Shared execution limit (all task assessments and reflections)"]'
+      ) as HTMLInputElement
+    ).value
+  ).toBe('128')
+  await input('Recursion parameter (k)', '2')
+  expect(start.disabled).toBe(false)
+  await input('Next task criteria 1', Array(17).fill('criterion').join('\n'))
+  expect(start.disabled).toBe(true)
+  await input('Next task criteria 1', 'criterion')
+  expect(start.disabled).toBe(false)
+  await act(async () =>
+    (
+      container.querySelector('[aria-label="Check expected JSON output"]') as HTMLInputElement
+    ).click()
+  )
+  await input('Expected JSON value', '{invalid')
+  expect(start.disabled).toBe(true)
+  await input('Expected JSON value', '3')
+  expect(start.disabled).toBe(false)
+  await input('Output JSON file', '../outside')
+  expect(start.disabled).toBe(true)
+  expect(api.start).not.toHaveBeenCalled()
+})
+it.each(['blocked', 'unverified'] as const)(
+  'shows lifecycle completion independently from %s configuration admission',
+  async (status) => {
+    vi.mocked(api.latest).mockResolvedValue({
+      ...progress('completed'),
+      outcome: {
+        artifact: { status: status === 'blocked' ? 'failed' : 'unverified', checks: [] },
+        configuration: { status, reasons: ['Independent result reason'] }
+      }
+    })
+    await render()
+    expect(container.textContent).toContain('Completed')
+    expect(container.textContent).toContain(
+      status === 'blocked' ? 'Output checks failed' : 'Output checks unverified'
+    )
+    expect(container.textContent).toContain(
+      status === 'blocked'
+        ? 'Configuration admission blocked'
+        : 'Configuration admission unverified'
+    )
+    expect(container.textContent).not.toContain('Eligible for further configuration validation')
+  }
+)
+it('shows ordered per-task assessments, output checks and fixed experiment experience provenance', async () => {
+  const assessment = {
+    executionId: 'r',
+    targetExecutionId: 'final1',
+    reviewId: 'review1',
+    outcome: 'pass' as const,
+    score: 91,
+    rationale: 'Task evidence matches'
+  }
+  vi.mocked(api.latest).mockResolvedValue({
+    ...progress('completed'),
+    domain: {
+      name: 'csv-count',
+      order: ['task-0001', 'task-0002'],
+      tasks: [
+        {
+          taskId: 'task-0001',
+          assessments: { baseline: { ...assessment, score: 80 }, candidate: assessment },
+          outcome: {
+            artifact: {
+              status: 'passed',
+              checks: [
+                { path: 'result.json', pointer: '/count', status: 'pass', reason: 'matched' }
+              ]
+            },
+            configuration: { status: 'eligible', reasons: [] }
+          },
+          experience: {
+            scope: 'experiment',
+            reflectionExecutionId: 'reflect1',
+            selectedExecutionId: 'final1',
+            selectedHarnessRevisionRef: { id: 'harness1', version: '1', digest: 'sha256:h' },
+            reflectionArtifacts: [{ artifactId: 'experience1', versionId: 'v1', checksum: 'sum' }],
+            libraryDigest: 'sha256:library'
+          }
+        }
+      ],
+      library: { scope: 'experiment', entries: ['task-0001'], digest: 'sha256:library' }
+    }
+  })
+  await render()
+  const results = container.querySelector('[data-testid=domain-results]')!
+  expect(results.textContent).toContain('Task 1 · task-0001')
+  expect(results.textContent).toContain('Task 2 · task-0002')
+  expect(results.textContent).toContain('Task result unavailable')
+  expect(results.textContent).toContain('Score: 80 · Passed')
+  expect(results.textContent).toContain('Score: 91 · Passed')
+  expect(results.textContent).toContain('Output check result.json/count: Expected value matched')
+  expect(results.textContent).toContain('Recorded experiment experience')
+  expect(results.textContent).toContain('Reflection execution: reflect1')
+  expect(results.textContent).toContain('Reflection artifact: experience1 · version v1')
+  expect(results.textContent).toContain('sha256:library')
+  expect(results.textContent).not.toContain('Publish')
+})
