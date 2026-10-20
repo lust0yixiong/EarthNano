@@ -1,5 +1,8 @@
 import { sanitizeAcpModelCallUsage, sanitizeAcpTurnTokenUsage } from '../../shared/acp'
-import { resolveMessageBranchPath } from '../../shared/conversation-graph'
+import {
+  resolveMessageBranchPath,
+  type PersistedMessageNode
+} from '../../shared/conversation-graph'
 import {
   sessionUsageMessages,
   sessionUsageRuns,
@@ -160,9 +163,19 @@ const readTurnUsage = (
       continue
     }
     for (const message of turnAnchorInterval(messages, promptMessageId)) {
-      if (message.role === 'agent' && message.turnUsage !== undefined) {
-        ownersById.set(message.id, message)
-      }
+      if (message.role !== 'agent') continue
+      if (exactAdmission) {
+        const node = message as PersistedMessageNode
+        if (
+          node.agentFrameId !== exactAdmission.rootFrameId ||
+          node.introducedOnBranchId !== exactAdmission.messageBranchId ||
+          node.runtimeSegmentId !== exactAdmission.runtimeSegmentId
+        )
+          continue
+        if (message.turnUsage !== undefined || message.turnUsageUnavailable) {
+          ownersById.set(message.id, message)
+        }
+      } else if (message.turnUsage !== undefined) ownersById.set(message.id, message)
     }
   }
 
@@ -171,6 +184,11 @@ const readTurnUsage = (
   if (ownersById.size !== 1) return undefined
   const owner = ownersById.values().next().value as PersistedChatMessage | undefined
   if (!owner) return undefined
+  if (
+    exactAdmission &&
+    (owner.status !== 'complete' || owner.turnUsageUnavailable || owner.turnUsage === undefined)
+  )
+    return undefined
 
   const usage = sanitizeAcpTurnTokenUsage(owner.turnUsage)
   if (!usage) {
@@ -208,6 +226,17 @@ export const readExecutionTurnUsage = (
     !prompt ||
     prompt.agentFrameId !== graph.rootFrameId ||
     prompt.runtimeSegmentId !== admission.promptRuntimeSegmentId
+  )
+    return undefined
+  const promptSegment = graph.runtimeSegments.find(
+    ({ id }) => id === admission.promptRuntimeSegmentId
+  )
+  const ownerSegment = graph.runtimeSegments.find(({ id }) => id === admission.runtimeSegmentId)
+  if (
+    !promptSegment ||
+    promptSegment.agentFrameId !== graph.rootFrameId ||
+    !ownerSegment ||
+    ownerSegment.agentFrameId !== graph.rootFrameId
   )
     return undefined
 

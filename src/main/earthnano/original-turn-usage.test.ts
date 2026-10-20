@@ -338,6 +338,99 @@ describe('readExecutionTurnUsage', () => {
     ).toEqual({ usage: { inputTokens: 99, cacheTokens: 0, outputTokens: 9 } })
   })
 
+  it('does not transfer a historical owner when the same prompt is admitted on a new runtime segment', () => {
+    const source = admittedGraphSession(
+      [message('prompt', 'user')],
+      [message('historical-answer', 'agent', { turnUsage: usage })]
+    )
+    const graph = source.conversationGraph!
+    const admission = source.runtimeSessionAdmissions![0]!
+    const currentSegmentId = 'runtime-segment-current'
+    graph.runtimeSegments.push({
+      ...graph.runtimeSegments[0]!,
+      id: currentSegmentId,
+      startedAt: 20
+    })
+    admission.runtimeSegmentId = currentSegmentId
+
+    const read = (): ReturnType<typeof readExecutionTurnUsage> =>
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+    expect(read()).toBeUndefined()
+
+    const historicalNode = graph.messages.find(({ id }) => id === 'historical-answer')!
+    const branchId = admission.messageBranchId
+    graph.messages.push({
+      ...historicalNode,
+      id: 'current-answer',
+      parentMessageId: historicalNode.id,
+      introducedOnBranchId: branchId,
+      runtimeSegmentId: currentSegmentId,
+      turnUsage: { inputTokens: 31, cacheTokens: 7, outputTokens: 4 }
+    })
+    graph.branches.find(({ id }) => id === branchId)!.headMessageId = 'current-answer'
+
+    expect(read()).toEqual({ usage: { inputTokens: 31, cacheTokens: 7, outputTokens: 4 } })
+  })
+
+  it('fails closed when admission or owner runtime segment evidence is absent or unknown', () => {
+    const source = admittedGraphSession(
+      [message('prompt', 'user')],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+    const read = (): ReturnType<typeof readExecutionTurnUsage> =>
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+    const graph = source.conversationGraph!
+    const admission = source.runtimeSessionAdmissions![0]!
+    const originalSegment = admission.runtimeSegmentId
+
+    admission.runtimeSegmentId = 'missing-segment'
+    expect(read()).toBeUndefined()
+    admission.runtimeSegmentId = originalSegment
+    graph.messages.find(({ id }) => id === 'answer')!.runtimeSegmentId = undefined
+    expect(read()).toBeUndefined()
+  })
+
+  it('rejects an owner introduced on a different branch or with a nonterminal/unavailable outcome', () => {
+    const source = admittedGraphSession(
+      [message('prompt', 'user')],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+    const graph = source.conversationGraph!
+    const branchId = source.runtimeSessionAdmissions![0]!.messageBranchId
+    const foreignBranchId = 'foreign-branch'
+    graph.branches.push({
+      ...graph.branches[0]!,
+      id: foreignBranchId,
+      parentBranchId: branchId,
+      forkMessageId: 'prompt',
+      headMessageId: 'prompt'
+    })
+    const answer = graph.messages.find(({ id }) => id === 'answer')!
+    const read = (): ReturnType<typeof readExecutionTurnUsage> =>
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+
+    answer.introducedOnBranchId = foreignBranchId
+    expect(read()).toBeUndefined()
+    answer.introducedOnBranchId = branchId
+    answer.status = 'streaming'
+    expect(read()).toBeUndefined()
+    answer.status = 'complete'
+    answer.turnUsageUnavailable = true
+    expect(read()).toBeUndefined()
+  })
+
   it('accepts an application-attributed prompt only through exact root admission', () => {
     const appPrompt = message('prompt', 'user', {
       attribution: {
