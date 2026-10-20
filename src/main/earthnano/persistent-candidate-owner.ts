@@ -40,6 +40,14 @@ import { loadSessionMutationAuthority, SessionRepository } from '../session-pers
 import { RuntimeSessionOwner } from '../session-persistence/runtime-session-owner'
 import { UploadRepository } from '../uploads/repository'
 import type { ClaudeCandidateDriverOptions, ClaudeCandidateOwner } from './claude-candidate-driver'
+import {
+  parseSemanticAssessment,
+  semanticCriteria,
+  semanticDigest,
+  semanticCanonical,
+  type SemanticAssessmentDocument
+} from './semantic-evaluation'
+import { validateRecord, requestDigest } from './execution-contract'
 
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
@@ -66,6 +74,14 @@ export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
   readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
+  commitSemanticReview(input: {
+    target: ExecutionRecord
+    assessment: ExecutionRecord
+    criteria: string
+    criteriaDigest: string
+    document: SemanticAssessmentDocument
+    signal?: AbortSignal
+  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
 }
 type FrozenTurn = {
@@ -678,6 +694,155 @@ export function createPersistentCandidateOwners(
             throw new Error('Pinned Review is unavailable or changed')
           return row
         })
+    },
+    async commitSemanticReview(input): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }> {
+      const { target, assessment, criteria, criteriaDigest, document, signal } = input
+      signal?.throwIfAborted()
+      for (const record of [target, assessment]) {
+        validateRecord(record)
+        if (
+          record.phase !== 'completed' ||
+          record.cleanup !== 'confirmed' ||
+          record.requestDigest !== requestDigest(record.request)
+        )
+          throw new Error('Semantic Review requires completed pinned executions')
+      }
+      if (
+        !['baseline', 'candidate'].includes(target.request.role) ||
+        assessment.request.role !== 'reviewer' ||
+        target.executionId === assessment.executionId ||
+        target.request.projectId !== assessment.request.projectId ||
+        target.request.origin.optimizationId !== assessment.request.origin.optimizationId ||
+        target.request.budgetRef !== assessment.request.budgetRef ||
+        !assessment.configuration.model ||
+        semanticDigest(criteria) !== criteriaDigest
+      )
+        throw new Error('Semantic Review provenance does not match the optimization')
+      const frozen = await pinnedTurn(target)
+      const assessor = await pinnedTurn(assessment)
+      if (
+        !assessor.blocks.some(
+          (block) =>
+            block.kind === 'message' &&
+            block.payload.role === 'user' &&
+            String(block.payload.content).includes(criteriaDigest)
+        )
+      )
+        throw new Error('Criteria digest is not frozen in the assessment turn')
+      const files = await readFiles(target)
+      const assessmentFiles = await readFiles(assessment)
+      if (assessmentFiles.length !== 1 || assessmentFiles[0]!.path !== 'assessment.json')
+        throw new Error('Semantic assessor must publish only the fixed assessment document')
+      const checked = parseSemanticAssessment(assessmentFiles[0]!.content, files, criteria)
+      if (semanticCanonical(checked) !== semanticCanonical(document))
+        throw new Error('Semantic document differs from its committed ArtifactVersion')
+      const criteriaItems = semanticCriteria(criteria)
+      const firstEvidence = checked.checks[0]!.evidence[0]!
+      const anchor =
+        frozen.blocks.find(
+          (block) =>
+            block.kind === 'message' &&
+            Array.isArray(block.payload.artifactIds) &&
+            block.payload.artifactIds.includes(firstEvidence.artifactRef.versionId)
+        ) ??
+        [...frozen.blocks]
+          .reverse()
+          .find((block) => block.kind === 'message' && block.payload.role === 'agent')
+      if (!anchor) throw new Error('Semantic Review target has no turn evidence anchor')
+      const metadata = {
+        kind: 'earthnano-semantic-assessment-provenance',
+        schemaVersion: 1,
+        criteriaText: criteria,
+        criteriaDigest,
+        criteria: criteriaItems,
+        targetExecutionId: target.executionId,
+        targetArtifacts: target.evidence.artifacts,
+        assessmentExecutionId: assessment.executionId,
+        assessmentArtifacts: assessment.evidence.artifacts,
+        assessmentTaskSnapshotRef: assessment.request.taskSnapshotRef,
+        assessmentInvocationRef: assessment.request.invocationRef,
+        model: assessment.configuration.model,
+        assessmentDocumentDigest: semanticDigest(assessmentFiles[0]!.content),
+        document: checked,
+        limitation:
+          'Model semantic judgment grounded in supplied quotes; not deterministic factual proof.'
+      }
+      // Keep the domain's five-Finding limit: one aggregate Finding links the complete frozen
+      // assessment artifact. All per-criterion paths/quotes/refs remain in that version and log.
+      const finding: NewCheck = {
+        status: checked.outcome === 'pass' ? 'pass' : 'fail',
+        claim:
+          'Independent semantic assessment of every frozen criterion; model judgment, not factual proof.',
+        evidence: JSON.stringify({
+          criteriaDigest,
+          score: checked.score,
+          rationale: checked.rationale,
+          assessmentExecutionId: assessment.executionId,
+          assessmentArtifacts: assessment.evidence.artifacts,
+          checks: checked.checks.map((check) => ({
+            criterionId: check.criterionId,
+            status: check.status
+          }))
+        }),
+        artifactVersionId: firstEvidence.artifactRef.versionId,
+        locator: {
+          blockRef: { messageId: anchor.sourceId, blockIndex: anchor.blockIndex },
+          contentHash: anchor.contentHash
+        },
+        sortIndex: 0
+      }
+      let reviewId: string | undefined
+      try {
+        signal?.throwIfAborted()
+        const review = await reviews.createReview({
+          projectId: target.request.projectId,
+          sessionId: target.identity.sessionId!,
+          turnMessageId: target.identity.promptMessageId!,
+          scope: frozen.scope,
+          scopeSnapshot: frozen.blocks,
+          model: assessment.configuration.model,
+          lifecycle: 'running'
+        })
+        reviewId = review.id
+        signal?.throwIfAborted()
+        const committed = await reviews.commitScopedSubmission({
+          mode: 'initial',
+          reviewId,
+          checks: [finding],
+          expectedSourceFindingIds: [],
+          keepFlaggedReviewRunning: false,
+          reviewerLog: [
+            ...assessor.blocks
+              .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
+              .map((block) => ({
+                kind: 'message' as const,
+                text: String(block.payload.content ?? '')
+              })),
+            {
+              kind: 'tool',
+              toolName: 'earthnano.semantic-assessment-binding',
+              title: 'Host-validated fixed-version semantic assessment provenance',
+              rawInput: JSON.stringify(metadata),
+              rawOutput: JSON.stringify({ outcome: checked.outcome }),
+              status: 'ok'
+            }
+          ]
+        })
+        signal?.throwIfAborted()
+        if (committed.lifecycle !== 'complete' || committed.outcome !== checked.outcome)
+          throw new Error('Semantic Review submission did not persist its outcome')
+        return { reviewId: committed.id, outcome: checked.outcome }
+      } catch (error) {
+        if (reviewId)
+          await reviews
+            .updateReview(reviewId, {
+              lifecycle: 'error',
+              outcome: null,
+              errorMessage: 'Semantic assessment could not be completed.'
+            })
+            .catch(() => undefined)
+        throw error
+      }
     },
     async shutdown(): Promise<{ reaped: boolean }> {
       closing = true
