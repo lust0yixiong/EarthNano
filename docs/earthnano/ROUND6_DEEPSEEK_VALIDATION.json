@@ -161,11 +161,7 @@
         "reason": "Both candidates render as the identical single-line JSON object {\"count\": 3, \"sum\": 6}, which matches the source (three data rows: 1, 2, 3, header excluded; sum 6) and the requested shape (only count and sum), so delivery, conformance and fidelity are equal. The deciding criterion is finish/cleanliness: A's file is the exact JSON object and nothing else, the plainest form the instruction (\"write only a JSON object\") asks for. B is identical in visible content, so there is no evidence-based reason to prefer it; the tie resolves toward the plainer artifact, and neither has a defect that eliminates it."
       },
       "desktop": true,
-      "observedStates": [
-        "running",
-        "assessing",
-        "completed"
-      ],
+      "observedStates": ["running", "assessing", "completed"],
       "assessments": {
         "baseline": {
           "executionId": "98c164a7-e951-41a1-8c39-681dfa0eae36",
@@ -252,11 +248,7 @@
         "reason": "Delivery broke the decision: both candidates lack OUTPUT/result.json. Instead each shows a markdown heading \"# result.json\" over JSON text. So \"count\" and \"sum\" never exist as fields in the requested file. Conformance is fine, since the data is exactly {\"count\": 3, \"sum\": 6} with nothing extra, and fidelity matches the source (3 rows 1,2,3 = 6). The two candidates tie on shape, so I chose A by id order. I did not open the workspace files because the provided paths wouldn't resolve, so I relied on the complete frozen context."
       },
       "desktop": true,
-      "observedStates": [
-        "running",
-        "assessing",
-        "completed"
-      ],
+      "observedStates": ["running", "assessing", "completed"],
       "assessments": {
         "baseline": {
           "executionId": "1953139a-2d3b-43d2-ac8f-7ea533603acf",
