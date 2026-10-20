@@ -403,6 +403,51 @@ describe('independent semantic execution', () => {
     expect(f.admissions).toHaveLength(1)
     expect(f.committed).toHaveLength(0)
   })
+  it.each(['resolve', 'reject'] as const)(
+    'holds stop completion until an in-flight semantic Review commit %s settles',
+    async (settlement) => {
+      const f = await setup()
+      const controller = new AbortController()
+      let entered!: () => void
+      const committing = new Promise<void>((resolve) => {
+        entered = resolve
+      })
+      let finish!: () => void
+      f.owners.commitSemanticReview = vi.fn(async (value) => {
+        expect(value.signal?.aborted).toBe(false)
+        entered()
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+        expect(value.signal?.aborted).toBe(true)
+        if (settlement === 'reject') throw new Error('Commit abort-to-error cleanup settled')
+        // Model a binding that has just committed but does not itself throw on abort.
+        return { reviewId: 'late-committed-review', outcome: value.document.outcome }
+      })
+      const pending = evaluateOptimizationSemantics({ ...f.options, signal: controller.signal })
+      let settled = false
+      void pending.then(
+        () => {
+          settled = true
+        },
+        () => {
+          settled = true
+        }
+      )
+      const rejected = expect(pending).rejects.toThrow()
+      await committing
+      controller.abort(new Error('User stopped during Review commit'))
+      // An abort Promise.race would already reject here and let the manager release its lease.
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      expect(settled).toBe(false)
+      expect(f.admissions).toHaveLength(1)
+      finish()
+      await rejected
+      expect(settled).toBe(true)
+      expect(f.admissions).toHaveLength(1)
+      expect(f.owners.commitSemanticReview).toHaveBeenCalledTimes(1)
+    }
+  )
   it('does not let an unresponsive preparatory snapshot block cancellation', async () => {
     const f = await setup()
     vi.spyOn(f.snapshots, 'freeze').mockImplementationOnce(() => new Promise(() => undefined))

@@ -392,17 +392,17 @@ export async function evaluateOptimizationSemantics(options: {
       )
         fail('Assessor output integrity Review failed')
       signal.throwIfAborted()
-      const committed = await abortable(
-        options.owners.commitSemanticReview({
-          target: current,
-          assessment: record,
-          criteria,
-          criteriaDigest,
-          document,
-          signal
-        }),
+      // Review persistence is a side-effecting critical section. Keep the outer owner/lease
+      // alive until commit or its abort-to-error cleanup has actually settled.
+      const committed = await options.owners.commitSemanticReview({
+        target: current,
+        assessment: record,
+        criteria,
+        criteriaDigest,
+        document,
         signal
-      )
+      })
+      signal.throwIfAborted()
       return {
         executionId,
         targetExecutionId: target.executionId,
