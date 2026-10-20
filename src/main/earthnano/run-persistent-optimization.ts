@@ -36,6 +36,14 @@ import {
 export { readPersistentOptimizationResume } from './optimization-resume'
 import { FileExecutionStore } from './execution-store'
 import {
+  persistCandidateOwnerSettlement,
+  assertNoUnadoptedCandidateCompletion
+} from './candidate-settlement-witness'
+export {
+  reconcilePersistentOptimization,
+  type OptimizationReconciliationResult
+} from './optimization-reconciliation'
+import {
   assertExecutionTimeout,
   HARNESS_RPC_TIMEOUT_MARGIN_MS,
   MAX_HARNESS_EXECUTION_TIMEOUT_MS
@@ -255,6 +263,7 @@ export async function runPersistentOptimization(
     previousRecords = Object.values(store.load().records)
     if (options.resume) {
       resumeIndex.validate(previousRecords)
+      assertNoUnadoptedCandidateCompletion(options.workRoot, previousRecords)
       if (
         previousRecords.some(
           (record) =>
@@ -348,7 +357,14 @@ export async function runPersistentOptimization(
       createClaudeCandidateDriver({
         snapshots,
         binding: options.binding,
-        openOwner: owners.openOwner
+        openOwner: owners.openOwner,
+        ownerSettled: async (settlement) => {
+          const original = await core!.get(settlement.executionId)
+          await persistCandidateOwnerSettlement(options.workRoot, {
+            ...settlement,
+            identity: original.identity
+          })
+        }
       }),
       256,
       { concurrency: method.concurrency }

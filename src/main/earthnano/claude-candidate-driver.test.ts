@@ -189,3 +189,50 @@ describe('Claude candidate lifecycle composition', () => {
     expect(openOwner).not.toHaveBeenCalled()
   })
 })
+
+describe('durable original owner settlement boundary', () => {
+  it('persists the exact identity and outcome only after original shutdown confirms all resources', async () => {
+    const f = fixture()
+    let release!: (value: { reaped: boolean }) => void
+    f.owner.shutdown = vi.fn(
+      () =>
+        new Promise<{ reaped: boolean }>((resolve) => {
+          release = resolve
+        })
+    )
+    const ownerSettled = vi.fn(async () => undefined)
+    const pending = createClaudeCandidateDriver({
+      ...f,
+      binding,
+      openOwner: async () => f.owner,
+      ownerSettled
+    }).execute(f.request, f.context)
+    await vi.waitFor(() => expect(f.owner.shutdown).toHaveBeenCalledOnce())
+    expect(ownerSettled).not.toHaveBeenCalled()
+    release({ reaped: true })
+    expect(await pending).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+    expect(ownerSettled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: f.request,
+        executionId: f.context.executionId,
+        outcome: expect.objectContaining({ phase: 'completed', cleanup: 'confirmed' })
+      })
+    )
+  })
+  it('writes no receipt for unknown retirement and fences failed durable persistence', async () => {
+    const f = fixture()
+    const ownerSettled = vi.fn(async () => undefined)
+    f.owner.shutdown = vi.fn(async () => ({ reaped: false }))
+    const options = { ...f, binding, openOwner: async () => f.owner, ownerSettled }
+    expect(await createClaudeCandidateDriver(options).execute(f.request, f.context)).toMatchObject({
+      cleanup: 'unknown'
+    })
+    expect(ownerSettled).not.toHaveBeenCalled()
+    f.owner.shutdown = vi.fn(async () => ({ reaped: true }))
+    ownerSettled.mockRejectedValueOnce(new Error('disk unavailable'))
+    expect(await createClaudeCandidateDriver(options).execute(f.request, f.context)).toMatchObject({
+      phase: 'completed',
+      cleanup: 'unknown'
+    })
+  })
+})

@@ -29,6 +29,12 @@ export interface ClaudeCandidateDriverOptions {
   snapshots: CandidateSnapshotStore
   /** Resolve explicit provider credentials and the pinned executable; never use an active default. */
   binding(agent: ResolvedCandidateSnapshots['agent']): Promise<ClaudeCandidateBinding>
+  /** Host-only durable attestation, invoked only after the original exact owner confirms retirement. */
+  ownerSettled?(input: {
+    request: ExecutionRequest
+    executionId: string
+    outcome: ExecutionOutcome
+  }): Promise<void>
   /** Creates the existing Session/Artifact/Review ownership binding, not another result database.
    * Construction must be process-free. Spawn belongs to preparePlan/prompt after this returns;
    * otherwise an openOwner rejection could lose the only handle capable of cleaning up resources. */
@@ -127,6 +133,12 @@ export function createClaudeCandidateDriver(
         try {
           const cleanup = await owner.shutdown()
           outcome.cleanup = cleanup.reaped === true ? 'confirmed' : 'unknown'
+          if (cleanup.reaped === true)
+            await options.ownerSettled?.({
+              request: structuredClone(request),
+              executionId: context.executionId,
+              outcome: structuredClone(outcome)
+            })
         } catch {
           outcome.cleanup = 'unknown'
         }
