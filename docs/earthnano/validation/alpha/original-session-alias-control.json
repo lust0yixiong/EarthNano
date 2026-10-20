@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "control": "original-first-start-alias-collision",
+  "status": "confirmed",
+  "subjectRef": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "originalPin": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "checkoutHead": "30e5c784b1efc426896bb2af627a5576a0c1bed6",
+  "sources": [
+    {
+      "path": "src/main/acp/session-capability-owner.ts",
+      "originalSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca",
+      "subjectSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca",
+      "checkoutSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca"
+    },
+    {
+      "path": "src/main/notebook/local-rpc-server.ts",
+      "originalSha256": "3fa48425983c7bb6eb866646e4fc7b0d940b5b52a31672ca9772f0561283d424",
+      "subjectSha256": "3fa48425983c7bb6eb866646e4fc7b0d940b5b52a31672ca9772f0561283d424",
+      "checkoutSha256": "3fa48425983c7bb6eb866646e4fc7b0d940b5b52a31672ca9772f0561283d424"
+    }
+  ],
+  "dependencies": "retained checkout modules; only owner/RPC copied byte-exact from subjectRef; original pin hashes separately verified",
+  "runtime": {
+    "node": "v26.0.0"
+  },
+  "aliases": {
+    "firstArtifact": "artifact-session-1792518290450-1",
+    "secondArtifact": "artifact-session-1792518290450-1",
+    "firstNotebook": "notebook-session-1792518290450-1",
+    "secondNotebook": "notebook-session-1792518290450-1"
+  },
+  "observations": {
+    "firstBeforeReplacement": {
+      "status": 200,
+      "body": {
+        "result": {
+          "sessionId": "notebook-session-1792518290450-1",
+          "projectId": "project"
+        }
+      }
+    },
+    "firstAfterReplacement": {
+      "status": 401,
+      "body": {
+        "error": "Invalid notebook RPC token."
+      }
+    },
+    "secondAfterFirstCommit": {
+      "status": 200,
+      "body": {
+        "result": {
+          "sessionId": "canonical-first",
+          "projectId": "project"
+        }
+      }
+    },
+    "secondAfterOwnCommit": {
+      "status": 200,
+      "body": {
+        "result": {
+          "sessionId": "canonical-first",
+          "projectId": "project"
+        }
+      }
+    }
+  },
+  "counterfactuals": {
+    "sameOwnerSameMillisecond": [
+      {
+        "status": 200,
+        "body": {
+          "result": {
+            "sessionId": "shared-owner-first",
+            "projectId": "project"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "result": {
+            "sessionId": "shared-owner-second",
+            "projectId": "project"
+          }
+        }
+      }
+    ],
+    "independentOwnersStableIds": [
+      {
+        "status": 200,
+        "body": {
+          "result": {
+            "sessionId": "stable-first",
+            "projectId": "project"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "result": {
+            "sessionId": "stable-second",
+            "projectId": "project"
+          }
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "No full upstream dependency rebuild",
+    "Notebook service only records authenticated state routing; no kernel or real Artifact publication",
+    "No original token/secret is printed",
+    "No live API/model/Core/remote dispatch"
+  ]
+}
