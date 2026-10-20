@@ -50,7 +50,7 @@ const fixture = (): {
         cancelPrompt: vi.fn(async () => undefined),
         withSessionAvailable: async (_project, _session, action) => action()
       },
-      plan: {
+      preparePlan: async () => ({
         kind: 'prepared',
         projectId: 'demo',
         prompt: {
@@ -68,7 +68,7 @@ const fixture = (): {
           // Only shutdown is authoritative for process cleanup in this composition.
           resourceCleanup: { confirmed: true, evidence: 'prompt stopped' }
         })
-      },
+      }),
       shutdown: vi.fn(async () => ({ reaped: true }))
     }
   }

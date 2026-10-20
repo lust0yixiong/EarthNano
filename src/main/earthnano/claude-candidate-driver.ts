@@ -18,7 +18,8 @@ import type { ExecutionContext, ExecutionDriver, ExecutionOutcome } from './exec
 
 export interface ClaudeCandidateOwner {
   agent: Pick<TaskAgentPort, 'prompt' | 'cancelPrompt' | 'withSessionAvailable'>
-  plan: PreparedAcpExecution
+  /** Creates the real Session after its resource owner handle is retained by this driver. */
+  preparePlan(): Promise<PreparedAcpExecution>
   /** Original runtime/resource owner must confirm physical retirement, including failed startup. */
   shutdown(): Promise<{ reaped: boolean }>
 }
@@ -28,7 +29,7 @@ export interface ClaudeCandidateDriverOptions {
   /** Resolve explicit provider credentials and the pinned executable; never use an active default. */
   binding(agent: ResolvedCandidateSnapshots['agent']): Promise<ClaudeCandidateBinding>
   /** Creates the existing Session/Artifact/Review ownership binding, not another result database.
-   * Construction must be process-free. Spawn belongs to agent.prompt/admission, after this returns;
+   * Construction must be process-free. Spawn belongs to preparePlan/prompt after this returns;
    * otherwise an openOwner rejection could lose the only handle capable of cleaning up resources. */
   openOwner(input: {
     prepared: PreparedClaudeCandidate
@@ -77,11 +78,13 @@ export function createClaudeCandidateDriver(options: ClaudeCandidateDriverOption
           context
         })
         context.signal.throwIfAborted()
+        const plan = await owner.preparePlan()
+        context.signal.throwIfAborted()
         const driver = createAcpExecutionDriver({
           agent: owner.agent,
           resolver: {
             resolve: async () => ({
-              ...owner!.plan,
+              ...plan,
               configuration: prepared!.configuration
             })
           }
