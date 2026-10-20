@@ -1,0 +1,225 @@
+{
+  "round": 10,
+  "baseCommit": "7c08c9b7eb1b3fcc167b23acdab85d4c110df8b2",
+  "status": "passed",
+  "scope": "Original fixed-input Python Notebook task through ordinary Send and Harness2 baseline/candidates on one ExecutionCore; not certification of all tools, scientific domains or release platforms",
+  "multiAgent": {
+    "primary": "contract, review and merge, source authorization/freezing, desktop composition, integration, DeepSeek and PR",
+    "platform": "gpt-6.1-sol / high: original ACP/Notebook/input/permission/producer owners and native regression; read-only failure diagnosis",
+    "method": "gpt-6.1-sol / high: frozen scientific profiles, original Harness2 role boundaries, semantic reviewer boundary and cross-review",
+    "integratedCommits": [
+      "dc7a90aa4",
+      "f2a22aff9",
+      "01e57e694",
+      "af2af93f3",
+      "311ce646a",
+      "42ab0b3a0",
+      "a0ba9e0ca"
+    ]
+  },
+  "mergedPriorPullRequests": [7, 1, 8, 9, 10, 11],
+  "mergeReviewFixes": {
+    "1": "dbe43f74d: updated pinned-action regression expectation",
+    "10": "0b904e7e55bf80db3e2ec9cf2ff6707e226648e5: exact pre-admission physical retirement evidence, with unchanged durable admissions and active-sibling/unknown safeguards",
+    "reviewValidation": {
+      "ciAndDependencies": 163,
+      "preAdmissionLifecycle": 273
+    },
+    "githubActionsEnabled": false
+  },
+  "upstreams": {
+    "pinsUnchanged": true,
+    "harness2CoreFilesChangedThisRound": 0,
+    "changedVendorFiles": [
+      "harness2/earthnano.py",
+      "harness2/earthnano_domain.py",
+      "tests/test_earthnano_domain.py",
+      "tests/test_earthnano_method.py"
+    ],
+    "note": "Prior integration seams in core are retained; this round changes only private entry/profile transport and tests, not original algorithms."
+  },
+  "checks": {
+    "coreAndOriginalWorkflowRegression": {
+      "passed": 1664,
+      "skipped": 1,
+      "files": 73,
+      "log": "/tmp/earthnano-round10-regression-final.log",
+      "note": "Real Python stop/reopen case is separately enabled in notebookPolicyOriginalRegression; overlapping groups below are not summed."
+    },
+    "originalNotebookInputBindingAndPrompt": {
+      "passed": 90,
+      "files": 5,
+      "log": "/tmp/earthnano-round10-original-notebook.log"
+    },
+    "nativeOriginalSessionCandidateAndDomain": {
+      "passed": 28,
+      "skipped": 6,
+      "files": 3,
+      "log": "/tmp/earthnano-round10-native-regression.log",
+      "note": "Paid cases default to opt-in; actual paid desktop acceptance is separately executed below."
+    },
+    "nativeScientificCandidate": {
+      "passed": 1,
+      "files": 1,
+      "log": "/tmp/earthnano-round10-scientific-native.log",
+      "scope": "Original native Claude/MCP/Python/Artifact/Core path, exact old source version despite a newer head, changed checksum/runtime version/disabled runtime rejected with zero additional model requests"
+    },
+    "nativeResearchAndReviewerArchitecture": {
+      "passed": 9,
+      "files": 2,
+      "log": "/tmp/earthnano-round10-original-research.log"
+    },
+    "i18nAndOriginalOutcomeGate": {
+      "passed": 786,
+      "files": 2,
+      "i18nTests": 777,
+      "outcomeTests": 9,
+      "log": "/tmp/earthnano-round10-i18n-outcome.log"
+    },
+    "pythonHarness2": {
+      "passed": 55,
+      "command": "PYTHONPATH=vendor/harness2 python3 -B -m unittest discover -s vendor/harness2/tests",
+      "log": "/tmp/earthnano-round10-python.log"
+    },
+    "desktopOffline": {
+      "passed": 1,
+      "report": "ROUND10_OFFLINE_DESKTOP.json",
+      "log": "/tmp/earthnano-round10-offline-diagnostic.log",
+      "budget": {
+        "limit": 20,
+        "admitted": 17,
+        "completed": 17,
+        "active": 0
+      },
+      "simulatedApiRequests": 56
+    },
+    "desktopDeepSeek": {
+      "passed": 1,
+      "report": "ROUND10_DEEPSEEK.json",
+      "log": "/tmp/earthnano-round10-live-accepted.log"
+    },
+    "typecheckNode": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round10-types-node-final.log"
+    },
+    "typecheckWeb": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round10-types-web.log"
+    },
+    "backendBuild": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round10-backend-hardened.log"
+    },
+    "electronBuild": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round10-electron-hardened.log"
+    },
+    "lint": {
+      "status": "passed",
+      "files": 37,
+      "maxWarnings": 0,
+      "log": "/tmp/earthnano-round10-eslint-all.log"
+    },
+    "notebookPolicyOriginalRegression": {
+      "passed": 958,
+      "skipped": 2749,
+      "files": 4,
+      "log": "/tmp/earthnano-round10-notebook-policy-final.log",
+      "command": "EARTHNANO_RESEARCH_PYTHON=/opt/homebrew/opt/python@3.12/bin/python3.12 node node_modules/vitest/vitest.mjs run src/main/notebook/host-binding-permit.test.ts src/main/notebook/runtime-service.test.ts src/main/notebook/runtime-service.rpc-retirement.test.ts src/main/notebook/code-risk-admission.test.ts --project default --maxWorkers=2",
+      "note": "New host permission/binding cases and actual Python stop/reopen explicitly enabled; original optional risk Python/R matrix environment flags are not enabled, so those skipped cases are not counted as passed."
+    },
+    "format": {
+      "status": "passed",
+      "files": 55,
+      "log": "/tmp/earthnano-round10-format-final.log"
+    },
+    "credentialScan": {
+      "status": "passed",
+      "files": 59,
+      "scope": "All authored files, working diff, new commit patches and round10 validation logs checked against the authorized key without printing it"
+    },
+    "diffCheck": {
+      "status": "passed"
+    },
+    "backendRuntime": {
+      "version": "v22.23.3",
+      "source": "existing application Node runtime; no automatic installation"
+    }
+  },
+  "live": {
+    "runtime": {
+      "electron": "43.4.0",
+      "claude": "2.1.232",
+      "nodeRunner": "v26.0.0",
+      "model": "deepseek-flash",
+      "backend": "native Claude Code"
+    },
+    "ordinaryScientificExecutions": 1,
+    "scientificBaselineExecutions": 2,
+    "scientificCandidateExecutions": 6,
+    "optimization": {
+      "limit": 24,
+      "admitted": 20,
+      "completed": 20,
+      "active": 0
+    },
+    "apiRequests": 131,
+    "nativeTitleRequests": 1,
+    "usageAsReturned": {
+      "input": 409691,
+      "cacheRead": 2263936,
+      "output": 51448
+    },
+    "selection": {
+      "chosenLabel": "agg2",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Tie on every criterion: DELIVERY and CONFORMANCE both hold — exactly keys `count`, `sum`, `mean`, numeric, no extras; the JSON is well-formed with no placeholders. INTERNAL CONSISTENCY holds (12.0/3 = 4.0). FIDELITY is only partly checkable, since the source section gives the CSV's metadata but not its values, so the 12.0 sum is unverified by the evidence; the 25-byte size is consistent with three single-digit values. The files are byte-identical, so no defect separates them. A is chosen arbitrarily as the earlier of the two; B is the runner-up and costs nothing beyond being the identical duplicate."
+    },
+    "assessments": {
+      "baseline": {
+        "score": 90,
+        "outcome": "pass"
+      },
+      "candidate": {
+        "score": 90,
+        "outcome": "pass"
+      }
+    },
+    "artifact": "passed",
+    "configuration": "eligible-not-published",
+    "sameTaskAndEnvironmentSnapshots": true,
+    "sourceVersionsPreserved": true,
+    "originalNotebookProducersVerified": true,
+    "privateNotebookPreviewReopenedWithoutRestart": true,
+    "sameCoreAndNoDuplicateCandidateJournalVerified": true,
+    "reopenedWithoutPaidReplay": true,
+    "improvementDemonstrated": false,
+    "billingCost": "not-calculated",
+    "earlierFailedAttempts": "ROUND10_LIVE_ATTEMPTS.json",
+    "totalActualApiRequestsThisRound": 364
+  },
+  "observedFailures": [
+    {
+      "kind": "pre-prompt baseline preparation",
+      "observations": "One offline concurrent baseline created its SDK Session but had no prompt-start/Notebook/provider call. Later standalone acceptance passed. Root cause remains unproven; no automatic replay or weakened completion assertion.",
+      "followUp": "Preserve original promptError before postcondition readResult can mask it; diagnose admission/preflight before implementing safe resume."
+    },
+    {
+      "kind": "live acceptance assumptions",
+      "evidence": "ROUND10_LIVE_ATTEMPTS.json",
+      "note": "First attempt failed a same-cell assumption; second failed unconditional eligible. Both failures and all 233 API requests are retained; final run completes structural/restart checks and accepts original conservative blocked policy when appropriate."
+    }
+  ],
+  "limitations": [
+    "Explicit supported original user message with 1-10 immutable managed inputs and enabled local Python; special message context, scientific domain successors, R, remote Compute and binary candidate reports are not integrated by this profile. Ordinary upstream capabilities and existing text/domain optimization remain.",
+    "Method report export remains bounded UTF8 (64 files, 1MiB each, 4MiB total); managed input staging uses original version leases instead of old inline text limits.",
+    "Original external Python provenance is partial: fixed source attachment, real computation and producer are verified, not complete file-access or environment/dependency proof.",
+    "Independent semantic reviewer sees fixed result bytes and source metadata, not raw managed CSV bytes; numeric correctness comes from independent fixed expected-value checks. Same-model isolated semantic scores are not factual proof.",
+    "Baseline/candidate scores are tied90/90 in final run; earlier92/85 was correctly blocked. No optimization gain demonstrated and eligible is not published.",
+    "Original core algorithms and runmark/Library source retained; safe platform experiment resume, cross-task validation, global experience and reversible configuration publication remain follow-up.",
+    "POSIX/native Claude candidate profile only; native configuration load lacks independent full attestation; directory isolation is not claimed as a complete OS sandbox.",
+    "Electron43.4.0 cache used; declared43.7.5 dependency unchanged. Signed/cross-platform releases, dedicated EarthNano CI, budget in currency/tokens and candidate Session grouping remain pending."
+  ]
+}

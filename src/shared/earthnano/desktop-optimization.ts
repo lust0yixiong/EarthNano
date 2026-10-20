@@ -1,3 +1,5 @@
+import type { NotebookOptimizationSource } from './notebook-source'
+import type { FrozenNotebookInput, FrozenNotebookRuntime } from './notebook-profile'
 import type { OptimizationMethodOptions } from './optimization-method'
 import type { OptimizationArtifactInput } from './optimization-input'
 import type {
@@ -16,6 +18,8 @@ export interface StartDesktopOptimization {
   files: Array<{ path: string; content: string }>
   /** Same fixed source versions are shared by explicit domain tasks. Main resolves the bytes. */
   inputArtifacts?: OptimizationArtifactInput[]
+  /** Re-execute the original fixed-input scientific task with its original Notebook runtime. */
+  notebook?: NotebookOptimizationSource
   criteria: string
   /** Shared admission budget including both independent assessments. */
   executionLimit: number
@@ -72,6 +76,11 @@ export interface OptimizationProgress {
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
   /** Verified source versions frozen at admission, retained on reopen without rerunning. */
   inputArtifacts?: OptimizationArtifactInput[]
+  notebook?: {
+    source: NotebookOptimizationSource
+    inputs: FrozenNotebookInput[]
+    runtime: FrozenNotebookRuntime
+  }
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
   error?: string

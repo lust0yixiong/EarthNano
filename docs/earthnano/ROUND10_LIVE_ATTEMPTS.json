@@ -1,0 +1,149 @@
+{
+  "round": 10,
+  "earlierAttempts": [
+    {
+      "status": "failed",
+      "acceptancePassed": false,
+      "reason": "Workflow completed; acceptance wrongly required computation cell and publishing producer to be the same cell.",
+      "budget": {
+        "limit": 20,
+        "admitted": 20,
+        "completed": 20,
+        "active": 0
+      },
+      "provider": {
+        "requests": 119,
+        "rejected": 0,
+        "unsupportedTokenCountRequests": 0,
+        "rejectedRoutes": {},
+        "healthRequests": 20,
+        "nativeTitleRequests": 1,
+        "roles": {
+          "ordinary": 6,
+          "baseline": 10,
+          "proposer": 49,
+          "candidate": 32,
+          "composer": 13,
+          "selector": 3,
+          "reviewer": 6
+        },
+        "toolNames": [
+          "mcp__open-science-notebook__list_notebook_runtimes",
+          "mcp__open-science-notebook__notebook_bind_runtime",
+          "mcp__open-science-notebook__notebook_execute",
+          "mcp__open-science-artifacts__write_artifact_file",
+          "Read",
+          "Write",
+          "Edit",
+          "Skill"
+        ],
+        "usage": {
+          "input": 417059,
+          "cacheRead": 1837056,
+          "output": 48292
+        }
+      },
+      "configuration": {
+        "status": "eligible",
+        "reasons": [],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:adaabd55aded75817b2e89d281eb363e0f1584bdfb9acf5fb5f4b62ad2814748",
+          "version": "1",
+          "digest": "sha256:adaabd55aded75817b2e89d281eb363e0f1584bdfb9acf5fb5f4b62ad2814748"
+        }
+      },
+      "assessments": {
+        "baseline": {
+          "executionId": "6fe97f81-85b9-46bb-ab6a-43f27ac3dbbf",
+          "targetExecutionId": "01a797b4-56d1-45ee-a5a6-b26ecc08edcd",
+          "reviewId": "cmvgoiybc0013xjm35gw8m76h",
+          "outcome": "flagged",
+          "score": 52,
+          "rationale": "The only published target artifact, research-results.json (version ce426a5a-52ec-4e8d-9d5d-10bf900713d0, checksum 606157f1...), contains {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. These three numbers are fully self-consistent: sum/count = 12.0/3 = 4.0, matching the reported mean. However, criterion c1 requires the values to be computed from the fixed source observations, and that cannot be verified from the supplied evidence. task.json lists the managed input measurements.csv with sizeBytes 25 and checksum 2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740, but no CSV content was supplied in the evidence bundle (task.json has an empty files array and is not a target artifact). Consequently there is no way to confirm that the source file contains exactly 3 observations summing to 12.0; the artifact reports plausible, internally coherent numbers, but the linkage to the source data is unverifiable. The work product also does not include any visible computation trace (e.g., the Python csv/statistics script or its output), so the required provenance of the computation cannot be inspected. Given that the downstream arithmetic is consistent and the required numeric keys (count, sum, mean) are present and correctly typed, the artifact is credible but not demonstrated to derive from the fixed source observations. Criterion c1 is therefore marked warn rather than pass."
+        },
+        "candidate": {
+          "executionId": "4e12f97f-f5a9-419f-88b0-2f07d2d29959",
+          "targetExecutionId": "8ffabe19-f391-43b6-a42a-418754aa36ca",
+          "reviewId": "cmvgoj3nz0017xjm32cvu0ygz",
+          "outcome": "pass",
+          "score": 95,
+          "rationale": "The only target artifact, research-results.json (artifactId 6bbd17d3-c5c1-4bac-a0e0-4c1757e677da, versionId 30299b44-275a-42f2-bc5e-49712732be7d), contains {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. The task requires count, sum and arithmetic mean computed from measurements.csv (sourceManagedInput d605fcf9-8f2b-4ee1-a163-76ddb7d308bc, 25 bytes). The artifact's sole content is exactly these three numeric keys. The reported values are internally consistent: 12.0 / 3 = 4.0, and count 3 is a plausible row count for a 25-byte CSV. However, the source CSV content itself is not supplied in artifacts.json, so the sum of 12.0 and count of 3 cannot be independently verified against the raw observations; consistency is checked only against the artifact's own arithmetic. Minor limitation: no evidence of the computation method (Python csv/statistics) is visible in the published artifact, so only the output values, not the process, are assessable. No extra artifacts were produced (artifacts.json contains exactly one entry). Criterion c1 therefore passes on the available evidence."
+        }
+      }
+    },
+    {
+      "status": "failed",
+      "acceptancePassed": false,
+      "reason": "Workflow and deterministic checks passed; gate correctly blocked a semantic score regression (92 to 85), while the test wrongly required eligible.",
+      "budget": {
+        "limit": 24,
+        "admitted": 17,
+        "completed": 17,
+        "active": 0
+      },
+      "provider": {
+        "requests": 114,
+        "rejected": 0,
+        "unsupportedTokenCountRequests": 0,
+        "rejectedRoutes": {},
+        "healthRequests": 17,
+        "nativeTitleRequests": 1,
+        "roles": {
+          "ordinary": 6,
+          "baseline": 10,
+          "proposer": 31,
+          "candidate": 29,
+          "composer": 9,
+          "selector": 23,
+          "reviewer": 6
+        },
+        "toolNames": [
+          "mcp__open-science-notebook__list_notebook_runtimes",
+          "mcp__open-science-notebook__notebook_bind_runtime",
+          "mcp__open-science-notebook__notebook_execute",
+          "mcp__open-science-artifacts__write_artifact_file",
+          "mcp__open-science-notebook__notebook_state",
+          "Read",
+          "Write",
+          "Edit",
+          "Skill"
+        ],
+        "usage": {
+          "input": 342863,
+          "cacheRead": 1640576,
+          "output": 36482
+        }
+      },
+      "configuration": {
+        "status": "blocked",
+        "reasons": ["score-regression"],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:2def0c27b5a6dc4bef049dbaccfd30cb16839fcd34cad63f2f456321fd8f65e1",
+          "version": "1",
+          "digest": "sha256:2def0c27b5a6dc4bef049dbaccfd30cb16839fcd34cad63f2f456321fd8f65e1"
+        }
+      },
+      "assessments": {
+        "baseline": {
+          "executionId": "0226a70b-3095-46b5-aab9-5ed124d1f990",
+          "targetExecutionId": "3a6132e3-bbdf-4838-b134-50e7e16fb283",
+          "reviewId": "cmvgp7a3c000xxjsvfiq0uu1i",
+          "outcome": "pass",
+          "score": 92,
+          "rationale": "The single target artifact research-results.json contains numeric keys count=3, sum=12.0, and mean=4.0. The source task fixes measurements.csv (25 bytes) as the only managed input, with no inline file content supplied beyond its checksum, so the observed values cannot be independently re-derived from the evidence pack. The internal arithmetic is consistent (12.0 / 3 = 4.0), and the values are plausible for a small CSV whose total payload is 25 bytes. No extra artifacts were published. The requirement is met on the supplied evidence, subject to the limitation that the raw CSV contents are not visible to the reviewer."
+        },
+        "candidate": {
+          "executionId": "f4f04eec-a8db-4771-9661-00d33d623bf2",
+          "targetExecutionId": "7c399c98-6ef4-404a-a8ad-f1f2f0a2f44c",
+          "reviewId": "cmvgp7f9h0011xjsv3syq65si",
+          "outcome": "pass",
+          "score": 85,
+          "rationale": "The task (prompt) requires analyzing the uploaded measurements.csv (25 bytes) and publishing research-results.json with numeric keys count, sum and mean. The only supplied artifact, research-results.json (artifactId 961986b2-4d57-4348-a0d2-9c05dd103036, versionId ad0f099c-67ca-4c32-85cd-81eaf2a9ed16), contains {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. All three required keys are present as JSON numbers, and the values are internally consistent: sum/count = 12.0/3 = 4.0 equals the reported mean. The evidence bundle does not include the contents of measurements.csv (only its size and checksum), so I cannot independently verify that there are 3 rows summing to 12.0 against the source data; the correspondence to the fixed source observations is therefore an inference from internal consistency rather than a verified fact. No extra artifacts were published, consistent with the instruction not to create extra artifacts. The criterion is satisfied on the supplied evidence, with the residual limitation that the source CSV bytes were unavailable for direct recomputation."
+        }
+      }
+    }
+  ],
+  "finalReport": "ROUND10_DEEPSEEK.json",
+  "totalActualApiRequests": 364,
+  "note": "Earlier attempts are failed acceptance, not additional successful evidence. Final run completes remaining structural and restart assertions; no production scoring or admission rule was relaxed."
+}

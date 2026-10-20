@@ -36,6 +36,7 @@ const render = async (sessionId = 'session', artifacts?: PersistedArtifact[]): P
         projectId="project"
         sessionId={sessionId}
         initialPrompt={`Task ${sessionId}`}
+        sourcePromptMessageId="source-prompt"
         artifacts={artifacts}
         api={api}
       />
@@ -682,4 +683,26 @@ it('explains admission reasons in user-facing language and safely handles newer 
     'future-internal-reason'
   ])
     expect(container.textContent).not.toContain(code)
+})
+
+it('repeats the original Notebook task by source message identity and disables task editing', async () => {
+  await render()
+  const checkbox = [...container.querySelectorAll('label')]
+    .find((node) => node.textContent?.includes('Repeat this task with Notebook Python'))!
+    .querySelector('input')!
+  await act(async () => checkbox.click())
+  expect(
+    (container.querySelector('[aria-label="Task description"]') as HTMLTextAreaElement).disabled
+  ).toBe(true)
+  expect(container.querySelector('[aria-label="Text input files"]')).toBeNull()
+  await input('Acceptance criteria (one per line)', 'Recalculate from fixed source CSV')
+  await click('Start optimization')
+  expect(api.start).toHaveBeenCalledWith(
+    expect.objectContaining({
+      notebook: { promptMessageId: 'source-prompt' },
+      prompt: 'Task session',
+      files: []
+    })
+  )
+  expect(vi.mocked(api.start).mock.calls[0][0].inputArtifacts).toBeUndefined()
 })

@@ -1617,6 +1617,9 @@ const ConversationPanel = ({
               projectId={activeSession.projectId}
               sessionId={activeSession.id}
               artifacts={activeSession.artifacts}
+              sourcePromptMessageId={
+                activeSession.messages.filter((message) => message.role === 'user').at(-1)?.id
+              }
               initialPrompt={
                 activeSession.messages.filter((message) => message.role === 'user').at(-1)
                   ?.content ?? ''

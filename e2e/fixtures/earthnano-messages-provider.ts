@@ -92,7 +92,10 @@ const nested = (value: unknown, key: string): unknown => {
 
 /** Only model choices are substituted offline. Live mode forwards the same native Claude requests
  * to the explicitly authorized provider; no scientific tool or persistence response is fabricated. */
-export async function createEarthnanoMessagesProvider(live: boolean): Promise<{
+export async function createEarthnanoMessagesProvider(
+  live: boolean,
+  scientificOptimization = false
+): Promise<{
   url: string
   token: string
   stats: {
@@ -181,7 +184,12 @@ export async function createEarthnanoMessagesProvider(live: boolean): Promise<{
         chunks.push(Buffer.from(chunk))
       }
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Body
-      if (body.model !== 'deepseek-flash' || !body.stream || ++stats.requests > 120) return reject()
+      if (
+        body.model !== 'deepseek-flash' ||
+        !body.stream ||
+        ++stats.requests > (scientificOptimization ? 160 : 120)
+      )
+        return reject()
       const userText = body.messages
         .filter((message) => message.role === 'user')
         .map((message) =>
@@ -265,7 +273,10 @@ export async function createEarthnanoMessagesProvider(live: boolean): Promise<{
       }
       const write = (path: string, content: string): void =>
         emit(response, body.model, { name: 'Write', input: { file_path: path, content } })
-      if (role === 'ordinary') {
+      if (
+        role === 'ordinary' ||
+        (scientificOptimization && ['baseline', 'candidate'].includes(role))
+      ) {
         if (nativeTitle) {
           emit(response, body.model, { text: 'Measurements analysis' })
           return
@@ -278,7 +289,11 @@ export async function createEarthnanoMessagesProvider(live: boolean): Promise<{
           emit(response, body.model, { name: tool.name, input })
         }
         if (!called('list_notebook_runtimes')) return call('list_notebook_runtimes', {})
-        if (!called('notebook_bind_runtime')) {
+        if (
+          role === 'ordinary' &&
+          !called('notebook_bind_runtime') &&
+          body.tools?.some((tool) => tool.name.endsWith('notebook_bind_runtime'))
+        ) {
           const runtimes = nested(
             blocks.filter((block) => block.type === 'tool_result'),
             'runtimes'
@@ -342,12 +357,17 @@ export async function createEarthnanoMessagesProvider(live: boolean): Promise<{
       if (role === 'proposer' || role === 'composer')
         return write(
           join(output, 'context/harness/instructions.md'),
-          `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
+          scientificOptimization
+            ? `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+            : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
       if (role === 'reviewer') {
         const artifacts = JSON.parse(await readFile(join(input, 'evidence/artifacts.json'), 'utf8'))
         const plan = JSON.parse(await readFile(join(input, 'evidence/criteria.json'), 'utf8'))
-        const file = artifacts.find((file: { path: string }) => file.path === 'result.json')
+        const file = artifacts.find(
+          (file: { path: string }) =>
+            file.path === (scientificOptimization ? 'research-results.json' : 'result.json')
+        )
         const value = JSON.parse(file.content),
           pass = value.count === 3 && value.sum === 12 && value.mean === 4
         return write(
