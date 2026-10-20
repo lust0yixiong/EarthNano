@@ -368,20 +368,20 @@ export async function createEarthnanoMessagesProvider(
       const input = /^INPUT: (.+)$/m.exec(userText)?.[1]?.trim(),
         output = /^OUTPUT: (.+)$/m.exec(userText)?.[1]?.trim()
       if (!input || !output) return reject()
-      if (blocks.some((block) => block.type === 'tool_use' && block.name === 'Write')) {
+      // Original Harness selection consumes the committed reply. Exercise that contract without
+      // a second model-written selection file; the original Session/Artifact owner retains it.
+      if (role === 'selector') {
         emit(response, body.model, {
-          text:
-            role === 'selector'
-              ? '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
-              : 'Completed the requested work.'
+          text: '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
         })
         return
       }
-      if (role === 'selector')
-        return write(
-          join(output, 'selection.md'),
-          '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
-        )
+      if (blocks.some((block) => block.type === 'tool_use' && block.name === 'Write')) {
+        emit(response, body.model, {
+          text: 'Completed the requested work.'
+        })
+        return
+      }
       if (role === 'proposer' || role === 'composer')
         return write(
           join(output, 'context/harness/instructions.md'),

@@ -679,8 +679,25 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     if (executionRoot) {
       try {
         for (const runId of await readdir(executionRoot)) {
-          const journal = await readFile(join(executionRoot, runId, 'execution', 'execution.json'))
-          await writeFile(testInfo.outputPath(`final-journal-${runId}.json`), journal)
+          const privateRoot = join(executionRoot, runId, 'execution')
+          try {
+            const journal = await readFile(join(privateRoot, 'execution.json'))
+            await writeFile(testInfo.outputPath(`final-journal-${runId}.json`), journal)
+          } catch {
+            // Preparation can fail before the first Core journal is created.
+          }
+          // Keep only known host diagnostics and immutable routing; candidate output trees can
+          // contain arbitrary model files and are not part of this diagnostic projection.
+          for (const name of ['failure-diagnostics.jsonl', 'resume.json', 'request-tasks.json']) {
+            try {
+              await writeFile(
+                testInfo.outputPath(`final-private-${runId}-${name}`),
+                await readFile(join(privateRoot, name))
+              )
+            } catch {
+              // Older or pre-admission attempts may not have each optional host record.
+            }
+          }
         }
       } catch {
         // The optimization directory does not exist if ordinary Send fails first.

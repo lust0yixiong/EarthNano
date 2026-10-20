@@ -8,7 +8,7 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 融合项目及应用名称统一为 **EarthNano**。OpenScience 与 Harness² 仅在说明上游来源、模块能力和兼容标识时使用。
 最新模块与验收边界见[第十轮](docs/earthnano/ROUND10.md)，源码试用方式见[当前基线](docs/earthnano/BASELINE.md)。
 
-`0.1.0-alpha.1` 正在集成验收，尚未发布。第十轮的通过记录不代表当前 Alpha 改动已经验收：本批离线停止/续跑链已通过，两次真实 DeepSeek 尝试仍按失败保留，跨平台安装包验证正在进行。完整范围和原始证据见 [Alpha 集成记录](docs/earthnano/ALPHA_INTEGRATION.md) 与[完成契约](docs/earthnano/ALPHA_CONTRACT.md)。
+`0.1.0-alpha.1` 正在集成验收，尚未发布。第十轮的通过记录不代表当前 Alpha 改动已经验收：本批离线停止/续跑链已通过，本批真实 DeepSeek 尝试仍按失败保留，跨平台安装包验证正在进行。完整范围和原始证据见 [Alpha 集成记录](docs/earthnano/ALPHA_INTEGRATION.md) 与[完成契约](docs/earthnano/ALPHA_CONTRACT.md)。
 
 - [当前基线、启动方式与验证范围](docs/earthnano/BASELINE.md)
 - [实施计划与当前状态](docs/earthnano/PLAN.md)
