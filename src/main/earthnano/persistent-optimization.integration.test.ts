@@ -8,6 +8,9 @@ import { randomUUID } from 'node:crypto'
 import { expect, it, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: true } }))
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
+import { DesktopOptimizationManager } from './desktop-optimization-manager'
+import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import { ReviewRepository } from '../reviewer/repository'
 import { runPersistentOptimization } from './run-persistent-optimization'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { FileExecutionStore } from './execution-store'
@@ -75,7 +78,7 @@ const stream = (
   )
 }
 
-async function exercise(live: boolean): Promise<void> {
+async function exercise(live: boolean, desktop = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-persistent-loop-'))
   const dataRoot = join(root, 'data'),
     configRoot = join(root, 'config')
@@ -167,7 +170,12 @@ async function exercise(live: boolean): Promise<void> {
         )
       )
         readInputs.add(inputDirectory)
-      if (requests >= 32 || body.model !== 'deepseek-flash' || body.stream !== true) return reject()
+      if (
+        requests >= (desktop ? 48 : 32) ||
+        body.model !== 'deepseek-flash' ||
+        body.stream !== true
+      )
+        return reject()
       requests++
       if (live) {
         const controller = new AbortController()
@@ -239,6 +247,40 @@ async function exercise(live: boolean): Promise<void> {
           })
           return
         }
+        if (role === 'reviewer') {
+          const artifacts = JSON.parse(
+            await readFile(join(inputDirectory!, 'evidence/artifacts.json'), 'utf8')
+          )
+          const criteria = JSON.parse(
+            await readFile(join(inputDirectory!, 'evidence/criteria.json'), 'utf8')
+          )
+          const file = artifacts[0]
+          stream(response, body.model, {
+            name: 'Write',
+            input: {
+              file_path: join(output, 'assessment.json'),
+              content: JSON.stringify({
+                schemaVersion: 1,
+                score: 100,
+                outcome: 'pass',
+                rationale:
+                  'The JSON has count 3 and sum 6, matching independent recomputation from input rows.',
+                checks: criteria.criteria.map((criterion: { id: string }) => ({
+                  criterionId: criterion.id,
+                  status: 'pass',
+                  evidence: [
+                    {
+                      path: file.path,
+                      artifactRef: file.artifactRef,
+                      quote: file.content.trim()
+                    }
+                  ]
+                }))
+              })
+            }
+          })
+          return
+        }
         const editing = role === 'proposer' || role === 'composer'
         stream(response, body.model, {
           name: 'Write',
@@ -291,7 +333,7 @@ async function exercise(live: boolean): Promise<void> {
     `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
   )
   const ownerOptions = { dataRoot, configRoot, getClient: async () => client }
-  const result = await runPersistentOptimization({
+  const runOptions: PersistentOptimizationOptions = {
     projectId: project.id,
     taskId: 'synthetic-csv',
     workRoot: join(root, 'run'),
@@ -331,8 +373,84 @@ async function exercise(live: boolean): Promise<void> {
         apiEndpoints: ['messages']
       }
     })
-  })
-  expect(result.records).toHaveLength(7)
+  }
+  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
+  let desktopRunId: string | undefined
+  const observedStates = new Set<string>()
+  const criteria =
+    'The result reports the correct number of data rows, excluding the header.\nThe result reports the correct arithmetic sum of the value column.'
+  if (desktop) {
+    const sourceSessionId = randomUUID()
+    await client.session.create({
+      data: {
+        id: sourceSessionId,
+        number: 1,
+        projectId: project.id,
+        title: 'Desktop source task',
+        status: 'idle',
+        presentedStatus: 'idle',
+        createdAtMs: BigInt(Date.now()),
+        updatedAtMs: BigInt(Date.now())
+      }
+    })
+    const managerOptions = {
+      root: join(root, 'desktop'),
+      validateSession: async (projectId: string, sessionId: string) => {
+        const session = await client.session.findFirst({
+          where: { id: sessionId, projectId, deletedAtMs: null, archivedAtMs: null }
+        })
+        if (!session) throw new Error('Source Session unavailable')
+      },
+      createOptions: async () => runOptions,
+      run: async (options: PersistentOptimizationOptions) => {
+        result = await runPersistentOptimization(options)
+        return result
+      }
+    }
+    const manager = new DesktopOptimizationManager(managerOptions)
+    onTestFinished(async () => {
+      await manager.shutdown()
+    })
+    const initial = await manager.start({
+      projectId: project.id,
+      sourceSessionId,
+      requestKey: 'desktop-synthetic',
+      prompt: runOptions.input.task.prompt,
+      files: runOptions.input.task.files,
+      criteria,
+      executionLimit: 10
+    })
+    desktopRunId = initial.runId
+    await vi.waitFor(
+      async () => {
+        const progress = await manager.get({
+          projectId: project.id,
+          sourceSessionId,
+          runId: initial.runId
+        })
+        observedStates.add(progress.state)
+        expect(['failed', 'interrupted', 'cancelled']).not.toContain(progress.state)
+        expect(progress.state).toBe('completed')
+        expect(progress.budget).toEqual({ limit: 10, admitted: 9, completed: 9, active: 0 })
+        expect(progress.assessments?.baseline.reviewId).toBeTruthy()
+        expect(progress.assessments?.candidate.reviewId).toBeTruthy()
+      },
+      { timeout: 480_000, interval: 200 }
+    )
+    expect(observedStates.has('assessing')).toBe(true)
+    expect(await manager.shutdown()).toEqual({ reaped: true })
+    const restarted = new DesktopOptimizationManager({
+      ...managerOptions,
+      run: async () => {
+        throw new Error('Desktop restart must not replay')
+      }
+    })
+    expect((await restarted.latest({ projectId: project.id, sourceSessionId }))?.state).toBe(
+      'completed'
+    )
+    await restarted.shutdown()
+  } else result = await runPersistentOptimization(runOptions)
+  expect(result.records).toHaveLength(desktop ? 9 : 7)
   expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(1)
   expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3)
   expect(result.records.filter((record) => record.request.role === 'proposer')).toHaveLength(2)
@@ -340,7 +458,7 @@ async function exercise(live: boolean): Promise<void> {
   expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
   expect(result.records.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
   const sessionIds = new Set(result.records.map((record) => record.identity.sessionId))
-  expect(sessionIds.size).toBe(7)
+  expect(sessionIds.size).toBe(desktop ? 9 : 7)
   if (live) expect(readInputs.size).toBe(4)
   await client.$disconnect()
   const reopened = createProjectDbClient(configRoot)
@@ -348,7 +466,11 @@ async function exercise(live: boolean): Promise<void> {
     ...ownerOptions,
     getClient: async () => reopened
   })
-  const journal = new FileExecutionStore(join(root, 'run/execution.json'))
+  const journal = new FileExecutionStore(
+    desktop
+      ? join(root, 'desktop', desktopRunId!, 'execution/execution.json')
+      : join(root, 'run/execution.json')
+  )
   const core = new ExecutionCore(journal, {
     execute: async () => {
       throw new Error('Reopening must not launch any execution')
@@ -370,6 +492,26 @@ async function exercise(live: boolean): Promise<void> {
         expect(
           JSON.parse(exported.files.find((file) => file.path === 'result.json')!.content)
         ).toEqual({ count: 3, sum: 6 })
+    }
+    if (desktop) {
+      expect(result.assessments).toBeTruthy()
+      const repository = new ReviewRepository(async () => reopened, {
+        snapshotStorageRoot: dataRoot
+      })
+      for (const assessment of Object.values(result.assessments!)) {
+        const target = result.records.find(
+          (record) => record.executionId === assessment.targetExecutionId
+        )!
+        const rows = await repository.getReviewsForProjectSession(
+          project.id,
+          target.identity.sessionId!
+        )
+        const semantic = rows.find((review) => review.id === assessment.reviewId)!
+        expect(semantic.lifecycle).toBe('complete')
+        expect(semantic.checks.length).toBe(1)
+        expect(assessment.score).toBeGreaterThanOrEqual(0)
+        reviewCount++
+      }
     }
   } finally {
     core.dispose()
@@ -393,10 +535,22 @@ async function exercise(live: boolean): Promise<void> {
           reopened: true,
           configurationChanged: true,
           fallbackStages: [],
+          ...(desktop
+            ? {
+                desktop: true,
+                observedStates: [...observedStates],
+                assessments: result.assessments,
+                sharedBudget: { limit: 10, admitted: 9 }
+              }
+            : {}),
           requests,
           rejects,
           usage,
-          testOverrides: { thinking: 'disabled', maxOutputTokens: 1536, requestLimit: 32 },
+          testOverrides: {
+            thinking: 'disabled',
+            maxOutputTokens: 1536,
+            requestLimit: desktop ? 48 : 32
+          },
           limitations: [
             'Deterministic integrity/JSON review, not semantic scientific assessment',
             'k1 trivial selection; no LLM selector',
@@ -423,5 +577,20 @@ it.skipIf(
 )(
   'validates the persisted original Harness method with explicitly authorized DeepSeek',
   () => exercise(true),
+  480_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'runs desktop admission, progress and shared budget with independently persisted semantic reviews',
+  () => exercise(false, true),
+  480_000
+)
+it.skipIf(
+  process.platform === 'win32' ||
+    process.env.EARTHNANO_LIVE_DEEPSEEK !== '1' ||
+    !process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE
+)(
+  'validates desktop optimization and independent semantic review with authorized DeepSeek',
+  () => exercise(true, true),
   480_000
 )

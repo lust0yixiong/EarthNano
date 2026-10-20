@@ -25,6 +25,8 @@ import { runPersistentOptimization } from './run-persistent-optimization'
 
 export interface DesktopOptimizationManagerOptions {
   root: string
+  /** Resolve the current data root only after acquiring its lifetime writer lease. */
+  executionRoot?: () => string
   validateSession(projectId: string, sessionId: string): Promise<void>
   createOptions(request: StartDesktopOptimization): Promise<
     PersistentOptimizationOptions & {
@@ -263,10 +265,15 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     let prepared:
       Awaited<ReturnType<DesktopOptimizationManagerOptions['createOptions']>> | undefined
     let last: PersistentOptimizationProgress | undefined
+    let workRoot: string | undefined
     try {
       controller.signal.throwIfAborted()
       prepared = await this.options.createOptions(request)
       controller.signal.throwIfAborted()
+      const executionRoot = this.options.executionRoot?.() ?? this.options.root
+      if (!isAbsolute(executionRoot)) throw new Error('Execution root must be absolute')
+      mkdirSync(join(executionRoot, saved.progress.runId), { recursive: true, mode: 0o700 })
+      workRoot = join(executionRoot, saved.progress.runId, 'execution')
       saved.progress.state = 'running'
       this.persist(saved)
       const projectProgress = (progress: PersistentOptimizationProgress): void => {
@@ -297,7 +304,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         ...prepared,
         projectId: request.projectId,
         taskId: saved.progress.runId,
-        workRoot: join(this.options.root, saved.progress.runId, 'execution'),
+        workRoot,
         executionLimit: request.executionLimit,
         semanticCriteria: request.criteria,
         signal: controller.signal,
@@ -314,9 +321,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       saved.progress.stage = saved.progress.state
     } catch {
       const unknownCleanup =
-        existsSync(
-          join(this.options.root, saved.progress.runId, 'execution/execution.json.lock')
-        ) ||
+        (workRoot ? existsSync(join(workRoot, 'execution.json.lock')) : false) ||
         (last?.records.some((record) => record.cleanup !== 'confirmed') ?? false)
       saved.progress.state = unknownCleanup
         ? 'interrupted'
