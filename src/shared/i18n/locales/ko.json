@@ -7349,6 +7349,7 @@
     "Selecting": "선택 중",
     "Sequential": "순차",
     "Parallel": "병렬",
+    "Compare both optimization modes": "두 최적화 모드 비교",
     "Optimization mode": "최적화 모드",
     "Concurrent executions": "동시 실행 수",
     "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "첫 시도에는 평가를 포함하여 {{minimum}}회 실행이 필요하며 재시도에도 같은 한도가 적용됩니다.",

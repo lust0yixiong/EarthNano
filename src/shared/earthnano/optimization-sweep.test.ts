@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  type OptimizationSweepOptions,
   minimumSweepExecutions,
   assertSweepExecutionLimit,
   normalizeOptimizationCatalog,
   normalizeOptimizationSweep
 } from './optimization-sweep'
 
-const options = () => ({
+const options = (): OptimizationSweepOptions => ({
   modes: ['sequential', 'parallel'],
   k: 2,
   concurrency: 4,

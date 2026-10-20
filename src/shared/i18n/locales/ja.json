@@ -7351,6 +7351,7 @@
     "Selecting": "選択中",
     "Sequential": "逐次",
     "Parallel": "並列",
+    "Compare both optimization modes": "両方の最適化モードを比較",
     "Optimization mode": "最適化モード",
     "Concurrent executions": "同時実行数",
     "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "初回試行には評価を含め {{minimum}} 回の実行が必要です。再試行にも同じ上限が適用されます。",

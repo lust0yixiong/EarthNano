@@ -7681,6 +7681,7 @@
     "Selecting": "Sélection",
     "Sequential": "Séquentiel",
     "Parallel": "Parallèle",
+    "Compare both optimization modes": "Comparer les deux modes d’optimisation",
     "Optimization mode": "Mode d’optimisation",
     "Concurrent executions": "Exécutions simultanées",
     "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "Les premières tentatives nécessitent {{minimum}} exécutions, évaluations comprises ; les nouvelles tentatives utilisent la même limite.",

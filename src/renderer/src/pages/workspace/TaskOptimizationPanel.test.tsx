@@ -66,6 +66,7 @@ beforeEach(() => {
   root = createRoot(container)
   api = {
     start: vi.fn().mockResolvedValue(progress()),
+    startSweep: vi.fn().mockResolvedValue(progress()),
     get: vi.fn().mockResolvedValue(progress()),
     latest: vi.fn().mockResolvedValue(null),
     stop: vi.fn().mockResolvedValue(progress('cancelled')),
@@ -746,4 +747,99 @@ it('repeats the original Notebook task by source message identity and disables t
     })
   )
   expect(vi.mocked(api.start).mock.calls[0][0].inputArtifacts).toBeUndefined()
+})
+
+it('submits one explicit dual-mode Notebook catalog with a shared budget and source identity', async () => {
+  await render()
+  const repeat = [...container.querySelectorAll('label')]
+    .find((node) => node.textContent?.includes('Repeat this task with Notebook Python'))!
+    .querySelector('input')!
+  await act(async () => repeat.click())
+  await input('Acceptance criteria (one per line)', 'Verify original fixed observations')
+  const both = container.querySelector(
+    '[aria-label="Compare both optimization modes"]'
+  ) as HTMLInputElement
+  await act(async () => both.click())
+  const limit = container.querySelector(
+    '[aria-label="Shared execution limit (all task assessments and reflections)"]'
+  ) as HTMLInputElement
+  expect(Number(limit.value)).toBe(18)
+  expect(limit.max).toBe('512')
+  expect(
+    (container.querySelector('[aria-label="Optimization mode"]') as HTMLSelectElement).disabled
+  ).toBe(true)
+  await click('Start optimization')
+  expect(api.start).not.toHaveBeenCalled()
+  expect(api.startSweep).toHaveBeenCalledExactlyOnceWith({
+    projectId: 'project',
+    sourceSessionId: 'session',
+    requestKey: expect.any(String),
+    executionLimit: 18,
+    sweep: {
+      modes: ['parallel', 'sequential'],
+      k: 1,
+      concurrency: 1,
+      stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+    },
+    catalog: [
+      {
+        taskId: 'task-0001',
+        domain: 'research',
+        sourceSessionId: 'session',
+        source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+        criteria: 'Verify original fixed observations',
+        checks: undefined
+      }
+    ]
+  })
+})
+
+it('reuses the original result views for both persisted modes and preserves separate outcomes', async () => {
+  const outcome = {
+    artifact: { status: 'passed' as const, checks: [] },
+    configuration: { status: 'eligible' as const, reasons: [] }
+  }
+  vi.mocked(api.latest).mockResolvedValue({
+    ...progress('completed'),
+    sweep: {
+      planDigest: 'sha256:plan',
+      order: [{ domain: 'research', taskIds: ['task'] }],
+      modes: ['parallel', 'sequential'],
+      domains: [
+        {
+          mode: 'parallel',
+          summary: {
+            name: 'research',
+            order: ['task'],
+            tasks: [{ taskId: 'task', outcome }],
+            library: { scope: 'experiment', entries: [], digest: 'sha256:a' }
+          }
+        },
+        {
+          mode: 'sequential',
+          summary: {
+            name: 'research',
+            order: ['task'],
+            tasks: [
+              {
+                taskId: 'task',
+                outcome: {
+                  ...outcome,
+                  configuration: { status: 'blocked', reasons: ['score-regression'] }
+                }
+              }
+            ],
+            library: { scope: 'experiment', entries: [], digest: 'sha256:s' }
+          }
+        }
+      ]
+    }
+  })
+  await render()
+  const results = [...container.querySelectorAll('[data-testid="domain-results"]')]
+  expect(results).toHaveLength(2)
+  expect(results[0].textContent).toContain('Parallel')
+  expect(results[1].textContent).toContain('Sequential')
+  expect(results[0].textContent).toContain('Output checks passed')
+  expect(results[1].textContent).toContain('The candidate scored below the baseline.')
 })

@@ -79,6 +79,18 @@ export function sweepTasks(value: ResolvedOptimizationSweep): ResolvedSweepTask[
         canonicalOutput(normalizeOptimizationArtifactInputs(source.source.inputArtifacts))
     )
       throw new Error('Sweep text task cannot acquire Notebook authority')
+    if (source.source.kind === 'text') {
+      const versionPaths = new Set(task.inputArtifacts?.map((ref) => ref.path) ?? [])
+      const order = (files: readonly { path: string; content: string }[]): unknown =>
+        [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+      if (
+        task.input.task.files.length !== source.source.files.length + versionPaths.size ||
+        canonicalOutput(
+          order(task.input.task.files.filter((file) => !versionPaths.has(file.path)))
+        ) !== canonicalOutput(order(source.source.files))
+      )
+        throw new Error('Sweep text input differs from its own requested source')
+    }
     for (const ref of task.inputArtifacts ?? []) {
       const file = task.input.task.files.find((file) => file.path === ref.path)
       if (!file || createHash('sha256').update(file.content, 'utf8').digest('hex') !== ref.checksum)

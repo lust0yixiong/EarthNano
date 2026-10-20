@@ -952,12 +952,13 @@ it.each([false, true])(
 it('dispatches optimization through the real desktop inventory while rejecting web callers and unexpected fields', async () => {
   const start = vi.fn().mockResolvedValue({ runId: 'synthetic' })
   const resume = vi.fn().mockResolvedValue({ runId: 'synthetic', state: 'queued' })
+  const startSweep = vi.fn().mockResolvedValue({ runId: 'sweep' })
   const deps = dependencies()
   const composition = createApplicationCommandComposition({
     ...deps,
     host: {
       ...deps.host,
-      optimization: { start, get: vi.fn(), latest: vi.fn(), stop: vi.fn(), resume }
+      optimization: { start, startSweep, get: vi.fn(), latest: vi.fn(), stop: vi.fn(), resume }
     }
   })
   const request = {
@@ -970,6 +971,7 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     executionLimit: 12
   }
   for (const channel of [
+    'optimization:startSweep',
     'optimization:start',
     'optimization:get',
     'optimization:latest',
@@ -997,6 +999,39 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     })
   ).resolves.toEqual({ runId: 'synthetic' })
   expect(start).toHaveBeenCalledWith(request)
+  const sweep = {
+    projectId: 'p',
+    sourceSessionId: 's',
+    requestKey: 'sweep',
+    executionLimit: 18,
+    sweep: {
+      modes: ['parallel', 'sequential'],
+      k: 1,
+      concurrency: 1,
+      stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+    },
+    catalog: [
+      {
+        taskId: 'task',
+        domain: 'research',
+        sourceSessionId: 's',
+        source: { kind: 'notebook', promptMessageId: 'prompt' },
+        criteria: 'Check source observations'
+      }
+    ]
+  }
+  await expect(
+    composition.desktop.invoke('optimization:startSweep', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [sweep]
+    })
+  ).resolves.toEqual({ runId: 'sweep' })
+  expect(startSweep).toHaveBeenCalledWith(sweep)
+  await expect(
+    composition.desktop.invoke('optimization:startSweep', { ...invocation(), args: [sweep] })
+  ).rejects.toThrow()
+
   const runKey = { projectId: 'p', sourceSessionId: 's', runId: 'synthetic' }
   await expect(
     composition.desktop.invoke('optimization:resume', {

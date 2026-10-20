@@ -306,6 +306,11 @@ const reviewerCommands = Object.freeze({
 })
 
 const optimizationCommands = Object.freeze({
+  startSweep: defineApplicationCommand<
+    'optimization:startSweep',
+    readonly [request: Parameters<DesktopOptimizationApi['startSweep']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['startSweep']>>
+  >('optimization:startSweep'),
   start: defineApplicationCommand<
     'optimization:start',
     readonly [request: Parameters<DesktopOptimizationApi['start']>[0]],
@@ -978,6 +983,11 @@ const registerHostApplicationCommands = (
       }
     })
     scope.registerGroup(hostApplicationCommandGroups[15], {
+      'optimization:startSweep': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'startSweep', args[0])
+      },
       'optimization:start': ({ callerContext, args }) => {
         requireDesktopCaller(callerContext)
         if (!dependencies.optimization) throw new Error('Optimization is unavailable')

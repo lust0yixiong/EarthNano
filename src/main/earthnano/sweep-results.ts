@@ -16,6 +16,14 @@ export interface SweepMethodResult {
   planDigest: string
   bindingDigest: string
   sweep: {
+    n_domains: number
+    domains: Array<{
+      domain: string
+      n_tasks: number
+      done: number
+      failed: number
+      tasks: Array<{ task: string; status: string }>
+    }>
     domain_order: string[]
     k: number
     modes: string[]
@@ -82,6 +90,36 @@ export async function prepareSweepSummary(options: {
     result.libraries.length !== plan.domains.length * plan.options.modes.length
   )
     throw new Error('Invalid original sweep projection')
+  if (
+    result.sweep.n_domains !== plan.domains.length ||
+    !Array.isArray(result.sweep.domains) ||
+    result.sweep.domains.length !== plan.domains.length
+  )
+    throw new Error('Original sweep domain inventory changed')
+  for (const { domain, taskIds } of plan.domains) {
+    const rows = result.sweep.domains.filter((entry) => entry.domain === domain)
+    const row = rows[0]
+    if (
+      rows.length !== 1 ||
+      !row ||
+      !Array.isArray(row.tasks) ||
+      row.n_tasks !== taskIds.length ||
+      !same(
+        row.tasks.map((task) => task.task),
+        taskIds
+      ) ||
+      row.done !== row.tasks.filter((task) => ['ok', 'skipped'].includes(task.status)).length ||
+      row.failed !== taskIds.length - row.done
+    )
+      throw new Error('Original sweep task order or completion changed')
+    for (const task of row.tasks) {
+      const projection = result.tasks.find((entry) => entry.taskId === task.task)
+      if (!projection || projection.status !== (task.status === 'skipped' ? 'ok' : task.status))
+        throw new Error('Sweep task status differs from original scheduler')
+    }
+  }
+  if ((result.status === 'ok') !== result.sweep.domains.every((row) => row.failed === 0))
+    throw new Error('Sweep aggregate status differs from original scheduler')
   for (const identity of selected) {
     const rows = result.tasks.filter(
       (row) => row.taskId === identity.taskId && row.domain === identity.domain

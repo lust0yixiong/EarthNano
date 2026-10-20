@@ -33,6 +33,11 @@ import {
   normalizeOptimizationArtifactInputs,
   type OptimizationArtifactInput
 } from '../../../../shared/earthnano/optimization-input'
+import {
+  MAX_SWEEP_EXECUTIONS,
+  minimumSweepExecutions,
+  type OptimizationSweepOptions
+} from '../../../../shared/earthnano/optimization-sweep'
 
 type Props = {
   projectId: string
@@ -73,6 +78,7 @@ function OptimizationSessionPanel({
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState(initialPrompt)
   const [notebookMode, setNotebookMode] = useState(false)
+  const [bothModes, setBothModes] = useState(false)
   const [criteria, setCriteria] = useState('')
   const [files, setFiles] = useState<Array<{ path: string; content: string }>>([])
   const [selectedVersions, setSelectedVersions] = useState<string[]>([])
@@ -132,7 +138,16 @@ function OptimizationSessionPanel({
           }))
         }
       : undefined
-  const minimum = minimumResearchExecutions(method, domainDraft)
+  const sweepOptions = (value = method): OptimizationSweepOptions => ({
+    modes: ['parallel', 'sequential'],
+    k: value.k,
+    concurrency: value.concurrency,
+    stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  })
+  const maximum = bothModes ? MAX_SWEEP_EXECUTIONS : MAX_OPTIMIZATION_EXECUTIONS
+  const minimum = bothModes
+    ? minimumSweepExecutions(sweepOptions(), 1 + (domainDraft?.nextTasks.length ?? 0))
+    : minimumResearchExecutions(method, domainDraft)
   const researchInputs = (): {
     checks: ReturnType<typeof draftOutputChecks>
     domain: ReturnType<typeof normalizeOptimizationDomain>
@@ -247,7 +262,7 @@ function OptimizationSessionPanel({
     requestKey.current ??= crypto.randomUUID()
     try {
       const research = researchInputs()
-      const result = await api.start({
+      const ordinary = {
         projectId,
         sourceSessionId: sessionId,
         requestKey: requestKey.current,
@@ -262,7 +277,47 @@ function OptimizationSessionPanel({
         method,
         ...(research.checks === undefined ? {} : { checks: research.checks }),
         ...(research.domain === undefined ? {} : { domain: research.domain })
-      })
+      }
+      const result = bothModes
+        ? await api.startSweep({
+            projectId,
+            sourceSessionId: sessionId,
+            requestKey: requestKey.current,
+            executionLimit: limit,
+            sweep: sweepOptions(),
+            catalog: [
+              {
+                taskId: 'task-0001',
+                domain: research.domain?.name ?? 'research',
+                sourceSessionId: sessionId,
+                criteria,
+                checks: research.checks,
+                source:
+                  notebookMode && sourcePromptMessageId
+                    ? { kind: 'notebook', promptMessageId: sourcePromptMessageId }
+                    : {
+                        kind: 'text',
+                        prompt,
+                        files,
+                        ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {})
+                      }
+              },
+              ...(research.domain?.nextTasks ?? []).map((task, index) => ({
+                taskId: `task-${String(index + 2).padStart(4, '0')}`,
+                domain: research.domain!.name,
+                sourceSessionId: sessionId,
+                source: {
+                  kind: 'text' as const,
+                  prompt: task.prompt,
+                  files: task.files,
+                  ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {})
+                },
+                criteria: task.criteria,
+                checks: task.checks
+              }))
+            ]
+          })
+        : await api.start(ordinary)
       if (alive.current) {
         actionRevision.current += 1
         setProgress(result)
@@ -386,7 +441,7 @@ function OptimizationSessionPanel({
     Number.isInteger(limit) &&
     lines.every((line) => line.length <= 2000) &&
     limit >= minimum &&
-    limit <= MAX_OPTIMIZATION_EXECUTIONS
+    limit <= maximum
   const inputClass =
     'w-full rounded border border-border bg-bg-10 p-2 text-sm text-text-100 disabled:opacity-60'
   return (
@@ -432,11 +487,21 @@ function OptimizationSessionPanel({
                 onOpenReview={onOpenReview}
               />
             )}
-            {progress.domain && (
-              <div className="space-y-2" data-testid="domain-results">
-                <p>{t('Domain experiment: {{name}}', { name: progress.domain.name })}</p>
-                {progress.domain.order.map((taskId, index) => {
-                  const task = progress.domain!.tasks.find((entry) => entry.taskId === taskId)
+            {(progress.sweep
+              ? progress.sweep.domains.map(({ mode, summary }) => ({ mode, summary }))
+              : progress.domain
+                ? [{ mode: undefined, summary: progress.domain }]
+                : []
+            ).map(({ mode, summary: domainSummary }) => (
+              <div
+                className="space-y-2"
+                data-testid="domain-results"
+                key={`${mode ?? 'single'}:${domainSummary.name}`}
+              >
+                <p>{t('Domain experiment: {{name}}', { name: domainSummary.name })}</p>
+                {mode && <p>{mode === 'parallel' ? t('Parallel') : t('Sequential')}</p>}
+                {domainSummary.order.map((taskId, index) => {
+                  const task = domainSummary.tasks.find((entry) => entry.taskId === taskId)
                   return (
                     <section key={taskId} className="space-y-2 rounded border border-border p-2">
                       <p className="font-medium">
@@ -484,7 +549,7 @@ function OptimizationSessionPanel({
                   )
                 })}
               </div>
-            )}
+            ))}
             {progress.selection && (
               <div>
                 <p>
@@ -783,17 +848,19 @@ function OptimizationSessionPanel({
                 setNextTasks(next)
                 setLimit((value) =>
                   Math.min(
-                    MAX_OPTIMIZATION_EXECUTIONS,
+                    maximum,
                     Math.max(
                       value,
-                      minimumResearchExecutions(method, {
-                        name: domainName,
-                        nextTasks: next.map((task) => ({
-                          prompt: task.prompt,
-                          criteria: task.criteria,
-                          files
-                        }))
-                      })
+                      bothModes
+                        ? minimumSweepExecutions(sweepOptions(), 1 + next.length)
+                        : minimumResearchExecutions(method, {
+                            name: domainName,
+                            nextTasks: next.map((task) => ({
+                              prompt: task.prompt,
+                              criteria: task.criteria,
+                              files
+                            }))
+                          })
                     )
                   )
                 )
@@ -815,7 +882,7 @@ function OptimizationSessionPanel({
             aria-label={t('Optimization mode')}
             className={inputClass}
             value={method.mode}
-            disabled={active || busy}
+            disabled={active || busy || bothModes}
             onChange={(event) => {
               setMethod({
                 ...method,
@@ -827,6 +894,29 @@ function OptimizationSessionPanel({
             <option value="sequential">{t('Sequential')}</option>
             <option value="parallel">{t('Parallel')}</option>
           </select>
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            aria-label={t('Compare both optimization modes')}
+            checked={bothModes}
+            disabled={active || busy}
+            onChange={(event) => {
+              const enabled = event.target.checked
+              setBothModes(enabled)
+              const required = enabled
+                ? minimumSweepExecutions(sweepOptions(), 1 + (domainDraft?.nextTasks.length ?? 0))
+                : minimumResearchExecutions(method, domainDraft)
+              setLimit((value) =>
+                Math.min(
+                  enabled ? MAX_SWEEP_EXECUTIONS : MAX_OPTIMIZATION_EXECUTIONS,
+                  Math.max(value, required)
+                )
+              )
+              requestKey.current = null
+            }}
+          />
+          {t('Compare both optimization modes')}
         </label>
         <label className="block">
           {t('Recursion parameter (k)')}
@@ -846,8 +936,16 @@ function OptimizationSessionPanel({
                 setMethod(next)
                 setLimit((value) =>
                   Math.min(
-                    MAX_OPTIMIZATION_EXECUTIONS,
-                    Math.max(value, minimumResearchExecutions(next, domainDraft))
+                    maximum,
+                    Math.max(
+                      value,
+                      bothModes
+                        ? minimumSweepExecutions(
+                            sweepOptions(next),
+                            1 + (domainDraft?.nextTasks.length ?? 0)
+                          )
+                        : minimumResearchExecutions(next, domainDraft)
+                    )
                   )
                 )
                 requestKey.current = null
@@ -882,19 +980,19 @@ function OptimizationSessionPanel({
           )}
         </p>
         <label className="block">
-          {domainDraft
+          {domainDraft || bothModes
             ? t('Shared execution limit (all task assessments and reflections)')
             : t('Execution limit (includes two assessments)')}
           <input
             aria-label={
-              domainDraft
+              domainDraft || bothModes
                 ? t('Shared execution limit (all task assessments and reflections)')
                 : t('Execution limit (includes two assessments)')
             }
             className={inputClass}
             type="number"
             min={minimum}
-            max={MAX_OPTIMIZATION_EXECUTIONS}
+            max={maximum}
             step={1}
             value={limit}
             disabled={active || busy}
@@ -904,10 +1002,10 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
-        {minimum > MAX_OPTIMIZATION_EXECUTIONS && (
+        {minimum > maximum && (
           <p role="alert" className="text-xs text-text-400">
             {t('Reduce recursion or task count to stay within {{limit}} shared executions.', {
-              limit: MAX_OPTIMIZATION_EXECUTIONS
+              limit: maximum
             })}
           </p>
         )}

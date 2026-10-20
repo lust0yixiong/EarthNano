@@ -7351,6 +7351,7 @@
     "Selecting": "選擇中",
     "Sequential": "循序",
     "Parallel": "並行",
+    "Compare both optimization modes": "比較兩種最佳化模式",
     "Optimization mode": "最佳化模式",
     "Concurrent executions": "並行執行數",
     "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "首次嘗試需要 {{minimum}} 次執行（含評估）；重試共用同一限額。",

@@ -16,6 +16,7 @@ import { createEarthnanoMessagesProvider } from './fixtures/earthnano-messages-p
 
 const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
 const resumeAcceptance = process.env.EARTHNANO_E2E_RESUME === '1'
+const sweepAcceptance = process.env.EARTHNANO_E2E_SWEEP === '1'
 const optimizationExecutions = live || resumeAcceptance ? 24 : 20
 const verifyOriginalUsage = (record: ExecutionRecord, session: PersistedChatSession): void => {
   expect(record.usage.status).toBe('known')
@@ -253,10 +254,19 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       .getByLabel('Expected JSON value', { exact: true })
       .fill('{"count":3,"sum":12,"mean":4}')
     await panel.getByLabel('Optimization mode', { exact: true }).selectOption('parallel')
-    await panel.getByLabel('Recursion parameter (k)', { exact: true }).fill('2')
+    await panel
+      .getByLabel('Recursion parameter (k)', { exact: true })
+      .fill(sweepAcceptance ? '1' : '2')
+    if (sweepAcceptance)
+      await panel.getByLabel('Compare both optimization modes', { exact: true }).check()
     await panel.getByLabel('Concurrent executions', { exact: true }).fill('2')
     await panel
-      .getByLabel('Execution limit (includes two assessments)', { exact: true })
+      .getByLabel(
+        sweepAcceptance
+          ? 'Shared execution limit (all task assessments and reflections)'
+          : 'Execution limit (includes two assessments)',
+        { exact: true }
+      )
       .fill(String(optimizationExecutions))
     await panel.getByRole('button', { name: 'Start optimization', exact: true }).click()
     console.info('Scientific workflow: optimization submitted')
@@ -337,6 +347,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       optimizationState: completed.state,
       ...(resumeEvidence ? { resume: resumeEvidence } : {}),
       live,
+      profile: sweepAcceptance ? 'original-sweep-v2' : 'single-v1',
       progress: completed,
       sourceArtifact: {
         artifactId: artifact.artifactId,
@@ -373,6 +384,96 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     }
     expect(completed.error).toBeUndefined()
     expect(completed.state).toBe('completed')
+    const modeSummaries = completed.sweep?.domains.map(({ mode, summary }) => ({
+      mode,
+      task: summary.tasks[0]!
+    }))
+    const primarySummary = sweepAcceptance ? modeSummaries![0]!.task : completed
+    const assessments = primarySummary.assessments!
+    const outcome = primarySummary.outcome!
+    const frozenSweep = sweepAcceptance
+      ? JSON.parse(
+          await readFile(
+            join(
+              dataRoot,
+              'earthnano',
+              'desktop-runs',
+              completed.runId,
+              'execution',
+              'resume.json'
+            ),
+            'utf8'
+          )
+        ).identity.sweep
+      : undefined
+    const notebook = sweepAcceptance
+      ? {
+          source: { promptMessageId: frozenSweep.tasks[0].sourcePromptMessageId },
+          inputs: frozenSweep.tasks[0].input.task.managedInputs,
+          runtime: frozenSweep.tasks[0].input.environment.notebook.runtime
+        }
+      : completed.notebook!
+    if (sweepAcceptance) {
+      expect(completed.sweep?.modes).toEqual(['parallel', 'sequential'])
+      expect(completed.sweep?.order).toEqual([{ domain: 'research', taskIds: ['task-0001'] }])
+      expect(modeSummaries).toHaveLength(2)
+      expect(
+        new Set(modeSummaries!.map(({ task }) => task.assessments!.baseline.executionId)).size
+      ).toBe(1)
+      expect(
+        new Set(modeSummaries!.map(({ task }) => task.assessments!.candidate.executionId)).size
+      ).toBe(2)
+      expect(
+        Object.values(methodJournal.records).filter(
+          (record) => record.request.role === 'baseline' && record.phase === 'completed'
+        )
+      ).toHaveLength(1)
+      expect(
+        Object.values(methodJournal.records).filter(
+          (record) => record.request.role === 'reviewer' && record.phase === 'completed'
+        )
+      ).toHaveLength(3)
+      expect(frozenSweep.plan.bindingIdentity.modes).toEqual(['agg', 'seq'])
+      const routing = JSON.parse(
+        await readFile(
+          join(
+            dataRoot,
+            'earthnano',
+            'desktop-runs',
+            completed.runId,
+            'execution',
+            'request-tasks.json'
+          ),
+          'utf8'
+        )
+      )
+      expect(routing.schemaVersion).toBe(2)
+      for (const { mode, task } of modeSummaries!) {
+        expect(task.selection).toMatchObject({ trivial: true, candidateCount: 1 })
+        expect(task.outcome?.artifact.status).toBe('passed')
+        expect(task.assessments!.baseline.outcome).toBe('pass')
+        expect(task.assessments!.candidate.outcome).toBe('pass')
+        if (task.experience) {
+          const record = methodJournal.records[task.experience.reflectionExecutionId]!
+          expect(routing.entries[record.requestKey].scope).toBe(
+            frozenSweep.plan.bindingIdentity.modeScopes[mode === 'parallel' ? 'agg' : 'seq']
+          )
+        }
+      }
+      report = {
+        ...report,
+        sweep: {
+          sharedBaseline: true,
+          sharedBaselineAssessment: true,
+          separateModeAssessments: true,
+          originalRunSweep: true,
+          namespaceVersion: 2,
+          summaries: modeSummaries
+        }
+      }
+    }
+    expect(completed.error).toBeUndefined()
+    expect(completed.state).toBe('completed')
     const usageSessions = (await readSessionsForDiagnostics!()) as PersistedChatSession[]
     const completedRecords = Object.values(methodJournal.records).filter(
       (record) => record.phase === 'completed'
@@ -406,14 +507,15 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         scope: 'Original root logical-prompt provider facts; incomplete cancellation usage excluded'
       }
     }
-    expect(completed.selection).toMatchObject({ trivial: false, candidateCount: 2 })
-    expect(completed.outcome?.artifact.status).toBe('passed')
+    if (!sweepAcceptance)
+      expect(completed.selection).toMatchObject({ trivial: false, candidateCount: 2 })
+    expect(outcome?.artifact.status).toBe('passed')
     // Integration acceptance must not require the live model to improve its configuration.
     // A real score regression must retain the original blocked decision, not be rerolled away.
-    expect(completed.assessments?.baseline.outcome).toBe('pass')
-    expect(completed.assessments?.candidate.outcome).toBe('pass')
-    const regressed = completed.assessments!.candidate.score < completed.assessments!.baseline.score
-    expect(completed.outcome?.configuration).toMatchObject({
+    expect(assessments?.baseline.outcome).toBe('pass')
+    expect(assessments?.candidate.outcome).toBe('pass')
+    const regressed = assessments.candidate.score < assessments.baseline.score
+    expect(outcome?.configuration).toMatchObject({
       status: regressed ? 'blocked' : 'eligible',
       reasons: regressed ? ['score-regression'] : []
     })
@@ -442,7 +544,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         (message) => message.role === 'user' && message.content === prompt
       )!.id
     })
-    expect(completed.notebook).toMatchObject({
+    expect(notebook).toMatchObject({
       source: {
         promptMessageId: source.messages.find(
           (message) => message.role === 'user' && message.content === prompt
@@ -509,7 +611,8 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       })
       sourceEvidence.push(evidence)
     }
-    expect(sourceEvidence).toHaveLength(2)
+    expect(sourceEvidence).toHaveLength(sweepAcceptance ? 3 : 2)
+    for (const evidence of sourceEvidence) expect(evidence).toEqual(sourceEvidence[0])
     expect(sourceEvidence[0]).toEqual(sourceEvidence[1])
     report = { ...report, identicalOriginalSourceEvidence: sourceEvidence[0] }
     const stoppedJournal = resumeAcceptance
@@ -656,7 +759,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     // Inherited candidate scopes must not be charged or journaled again by ordinary Send.
     expect((await readOrdinary()).flatMap((state) => Object.values(state.records))).toHaveLength(1)
     const candidate = completed.executions.find(
-      (execution) => execution.executionId === completed.assessments!.candidate.targetExecutionId
+      (execution) => execution.executionId === assessments.candidate.targetExecutionId
     )!
     const reviews = await page.evaluate((request) => window.api.reviewer.getForSession(request), {
       projectId,
@@ -665,7 +768,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     expect(
       reviews.some(
         (review) =>
-          review.id === completed.assessments!.candidate.reviewId &&
+          review.id === assessments.candidate.reviewId &&
           review.lifecycle === 'complete' &&
           review.outcome === 'pass'
       )
@@ -678,15 +781,15 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
           'desktop-runs',
           completed.runId,
           'execution',
-          'notebook-task.json'
+          sweepAcceptance ? 'sweep-sources.json' : 'notebook-task.json'
         ),
         'utf8'
       )
     )
-    expect(manifest).toMatchObject({
-      projectId,
+    expect(sweepAcceptance ? manifest.tasks[0] : manifest).toMatchObject({
+      ...(sweepAcceptance ? { taskId: 'task-0001', domain: 'research' } : { projectId }),
       sourceSessionId: source.id,
-      task: { prompt, managedInputs: completed.notebook!.inputs }
+      task: { prompt, managedInputs: notebook.inputs }
     })
     const settledPanel = page.getByTestId('task-optimization-panel')
     if (resumeAcceptance) {

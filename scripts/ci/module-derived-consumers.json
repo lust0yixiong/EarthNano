@@ -33,7 +33,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "acp_session_policy": [
@@ -70,7 +72,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_content_contracts": [
@@ -118,7 +122,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts"
     ],
@@ -167,7 +173,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_publication_request": [
@@ -202,7 +210,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_reproducibility_contract": [
@@ -237,7 +247,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/components/global-search/search-loading.test.tsx",
@@ -355,7 +367,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_storage_validation": [
@@ -403,7 +417,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts"
     ],
@@ -447,7 +463,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -520,7 +538,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "compute_skill_contract": [
@@ -559,7 +579,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "connector_url_admission": [
@@ -589,7 +611,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "delegation_execution_contracts": [
@@ -625,7 +649,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "desktop_composition": [
@@ -681,7 +707,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/main/update/create-strategy.test.ts",
@@ -729,7 +757,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -810,7 +840,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts"
     ],
@@ -847,7 +879,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "framework_process_launch": [
@@ -883,7 +917,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_bounded_io": [
@@ -922,7 +958,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_command_runtime": [
@@ -956,7 +994,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_credential_identity": [
@@ -986,7 +1026,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_file_publisher": [
@@ -1021,7 +1063,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_http_transport": [
@@ -1057,7 +1101,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_installation": [
@@ -1094,7 +1140,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_process_runtime": [
@@ -1130,7 +1178,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_rpc_transport": [
@@ -1166,7 +1216,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_runtime_lifecycle": [
@@ -1203,7 +1255,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/windows-update-handoff.test.ts"
     ],
@@ -1242,7 +1296,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/windows-update-handoff.test.ts"
     ],
@@ -1283,7 +1339,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/windows-update-handoff.test.ts"
     ],
@@ -1319,7 +1377,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/electron-updater-provider-regressions.test.ts",
       "src/main/update/electron-updater-strategy.test.ts"
@@ -1361,7 +1421,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/electron-updater-provider-regressions.test.ts",
       "src/main/update/electron-updater-strategy.test.ts",
@@ -1399,7 +1461,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "immutable_input_authority": [
@@ -1438,7 +1502,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "ipc_surfaces": [
@@ -1501,7 +1567,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_agents": [
@@ -1534,7 +1602,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_archive": [
@@ -1570,7 +1640,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_background_result_delivery": [
@@ -1603,7 +1675,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_cli_install": [
@@ -1644,7 +1718,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_delegation": [
@@ -1679,7 +1755,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_diagnostics": [
@@ -1718,7 +1796,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_literature": [
@@ -1751,7 +1831,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_local_fs": [
@@ -1787,7 +1869,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_managed_file_versions": [
@@ -1837,7 +1921,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_memory": [
@@ -1870,7 +1956,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_notifications": [
@@ -1901,7 +1989,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/reviewer/correction-context.test.ts",
       "src/main/reviewer/correction.test.ts",
       "src/main/reviewer/fix-loop.test.ts",
@@ -1949,7 +2039,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_remote_access": [
@@ -1988,7 +2080,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_session_replay": [
@@ -2021,7 +2115,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_side_chat": [
@@ -2055,7 +2151,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_storage": [
@@ -2091,7 +2189,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_tasks": [
@@ -2124,7 +2224,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/reviewer/correction-context.test.ts",
       "src/main/reviewer/correction.test.ts",
       "src/main/reviewer/fix-loop.test.ts",
@@ -2187,7 +2289,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "native_credential_identity": [
@@ -2217,7 +2321,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "native_file_publisher": [
@@ -2252,7 +2358,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "native_process_tree": [
@@ -2288,7 +2396,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_analysis": [
@@ -2328,7 +2438,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -2405,7 +2517,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_application": [
@@ -2438,7 +2552,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_code_risk": [
@@ -2471,7 +2587,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_environment_provisioning": [
@@ -2504,7 +2622,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_evidence": [
@@ -2535,7 +2655,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_execution": [
@@ -2568,7 +2690,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_execution_model": [
@@ -2616,7 +2740,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_host_inference": [
@@ -2649,7 +2775,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_input_materialization": [
@@ -2697,7 +2825,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_network_sandbox": [
@@ -2734,7 +2864,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_repository": [
@@ -2782,7 +2914,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_reproduction": [
@@ -2819,7 +2953,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_syntax": [
@@ -2867,7 +3003,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "package_journal_catalog": [
@@ -2906,7 +3044,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/literature/CitationStylesView.test.tsx",
@@ -2960,7 +3100,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/main/update/windows-update-handoff.test.ts",
@@ -3010,7 +3152,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/literature/CitationStylesView.test.tsx",
@@ -3066,7 +3210,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/main/update/windows-update-handoff.test.ts",
@@ -3122,7 +3268,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/literature/CitationStylesView.test.tsx",
@@ -3244,7 +3392,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "pdf_annotations": [
@@ -3292,7 +3442,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx"
@@ -3333,7 +3485,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -3405,7 +3559,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "pdf_preview_runtime": [
@@ -3442,7 +3598,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/components/global-search/search-loading.test.tsx",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -3552,7 +3710,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -3604,7 +3764,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "project_files_view": [
@@ -3637,7 +3799,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/reviewer/correction-context.test.ts",
       "src/main/reviewer/orchestrator-drive.test.ts",
       "src/main/reviewer/orchestrator-prompt.test.ts",
@@ -3677,7 +3841,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "provider_transport": [
@@ -3713,7 +3879,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "providers_package": [
@@ -3769,7 +3937,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/main/update/deb-gate-recovery.test.ts",
@@ -4112,7 +4282,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -4190,7 +4362,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "resilient_download": [
@@ -4226,7 +4400,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/update/windows-update-handoff.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -4302,7 +4478,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "reviewer_orchestrator": [
@@ -4350,7 +4528,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "reviewer_repository": [
@@ -4385,7 +4565,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "reviewer_tool_contracts": [
@@ -4517,7 +4699,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "session_plan_delivery": [
@@ -4552,7 +4736,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "session_renderer": [
@@ -4599,7 +4785,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "settings_extension_presentation": [
@@ -4645,7 +4833,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "settings_presentation_primitives": [
@@ -4685,7 +4875,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "settings_provider_resolution": [
@@ -4724,7 +4916,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "settings_record_contracts": [
@@ -4754,7 +4948,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/literature/pdf-translation/api-target.test.ts",
       "src/main/literature/pdf-translation/text-generation.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
@@ -4786,7 +4982,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/settings/workflows/local-shell.test.ts"
     ],
@@ -4817,7 +5015,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "settings_service_facade": [
@@ -4850,7 +5050,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "shared_fuzzy_match": [
@@ -4886,7 +5088,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx"
@@ -4921,7 +5125,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "skill_activation_policy": [
@@ -4951,7 +5157,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "skill_marketplace": [
@@ -4999,7 +5207,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/main/session-package/literature-source.test.ts",
       "src/main/update/windows-update-handoff.test.ts",
@@ -5061,7 +5271,9 @@
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "specialist_package": [
@@ -5096,7 +5308,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts",
       "src/renderer/src/components/global-search/search-loading.test.tsx",
       "src/renderer/src/lib/literature-renderer-host.test.ts",
@@ -5179,7 +5393,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "storage_state": [
@@ -5227,7 +5443,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "upload_file_transport": [
@@ -5274,7 +5492,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "upload_repository": [
@@ -5322,7 +5542,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/semantic-source-evidence.test.ts",
       "src/main/earthnano/session-execution-host.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "user_skills_repository": [
@@ -5355,7 +5577,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "web_renderer_bridge": [
@@ -5583,7 +5807,9 @@
       "src/main/earthnano/reviewer-execution-owner.test.ts",
       "src/main/earthnano/run-persistent-optimization.test.ts",
       "src/main/earthnano/semantic-evaluation.test.ts",
+      "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
+      "src/main/earthnano/sweep-results.test.ts",
       "src/main/notebook/host-binding-permit.test.ts"
     ]
   }

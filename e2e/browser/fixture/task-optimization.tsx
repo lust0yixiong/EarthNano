@@ -8,16 +8,18 @@ import type {
   OptimizationProgress,
   StartDesktopOptimization
 } from '../../../src/shared/earthnano/desktop-optimization'
+import type { StartDesktopSweep } from '../../../src/shared/earthnano/optimization-sweep'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../src/shared/web-event-connection'
 const params = new URLSearchParams(location.search)
 const calls: {
   start: StartDesktopOptimization[]
+  sweeps: StartDesktopSweep[]
   get: number
   stop: number
   latest: string[]
   sessions: string[]
   reviews: string[]
-} = { start: [], get: 0, stop: 0, latest: [], sessions: [], reviews: [] }
+} = { start: [], sweeps: [], get: 0, stop: 0, latest: [], sessions: [], reviews: [] }
 Object.assign(window, { optimizationFixture: calls })
 if (params.has('web')) document.documentElement.setAttribute(WEB_EVENT_SURFACE_ATTRIBUTE, 'true')
 const progress = (state: OptimizationProgress['state'] = 'running'): OptimizationProgress => ({
@@ -28,7 +30,7 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
   stage: 'baseline',
   ...(calls.start.at(-1)?.method ? { method: calls.start.at(-1)!.method } : {}),
   budget: {
-    limit: calls.start.at(-1)?.executionLimit ?? 12,
+    limit: calls.sweeps.at(-1)?.executionLimit ?? calls.start.at(-1)?.executionLimit ?? 12,
     admitted: state === 'completed' ? 9 : 2,
     completed: state === 'completed' ? 9 : 1,
     active: state === 'completed' ? 0 : 1
@@ -130,6 +132,11 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
     : {})
 })
 const api: DesktopOptimizationApi = {
+  startSweep: async (request) => {
+    calls.sweeps.push(request)
+    if (params.has('error')) throw new Error('synthetic-secret')
+    return progress()
+  },
   start: async (request) => {
     calls.start.push(request)
     if (params.has('error')) throw new Error('synthetic-secret')
