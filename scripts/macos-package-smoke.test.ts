@@ -122,8 +122,8 @@ describe('macOS package smoke', () => {
     const root = await mkdtemp(join(tmpdir(), 'open-science-macos-ambiguous-'))
     roots.push(root)
     await Promise.all([
-      writeFile(join(root, 'one.dmg'), ''),
-      writeFile(join(root, 'two.dmg'), ''),
+      writeFile(join(root, 'aipoch-open-science-0.12.0-mac-arm64.dmg'), ''),
+      writeFile(join(root, 'aipoch-open-science-0.12.0-mac-x64.dmg'), ''),
       mkdir(join(root, 'One.app')),
       mkdir(join(root, 'Two.app'))
     ])
@@ -189,6 +189,10 @@ describe('macOS package smoke', () => {
       mkdir(join(processTreeNative, '..'), { recursive: true })
     ])
     await Promise.all([
+      writeFile(
+        join(appBundle, 'Contents', 'Info.plist'),
+        `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.aipoch.open-science</string><key>CFBundleName</key><string>Open-Science</string><key>CFBundleDisplayName</key><string>Open-Science</string><key>CFBundleExecutable</key><string>Open-Science</string></dict></plist>`
+      ),
       writeFile(join(executableDirectory, 'Open-Science'), ''),
       writeFile(join(resources, 'app.asar'), ''),
       writeFile(join(resources, 'micromamba'), ''),

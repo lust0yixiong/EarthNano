@@ -1,3 +1,12 @@
+import {
+  assertPackagedLicenses,
+  configurePackageSmokeIdentity,
+  loadPackageSmokeIdentity,
+  packageSmokeIdentity,
+  packageArtifactPattern,
+  packageArtifactVersion,
+  validateWindowsVersionInfo
+} from './package-smoke-identity.mjs'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 import { spawn } from 'node:child_process'
@@ -48,7 +57,6 @@ const TERMINATION_TIMEOUT_MS = 10_000
 const MCP_REQUEST_TIMEOUT_MS = 30_000
 const SMOKE_ROOT_PREFIX = 'open-science-installer-smoke-'
 const APP_GUID = 'a65c5229-0b29-5716-a0fe-d8755e62f3ca'
-const APP_DISPLAY_NAME = 'Open-Science'
 const RPC_SMOKE_ROOT_PREFIX = 'open-science-rpc-smoke-'
 const UPGRADE_SENTINEL_PREFIX = 'installer-smoke-upgrade-sentinel-'
 const UPGRADE_SENTINEL_CONTENT = 'previous-version-profile-preserved\n'
@@ -89,7 +97,7 @@ const pathExists = async (path) => {
 const findSetupInstaller = async (directory) => {
   const entries = await readdir(directory, { withFileTypes: true })
   const candidates = entries
-    .filter((entry) => entry.isFile() && /-win-x64-setup\.exe$/i.test(entry.name))
+    .filter((entry) => entry.isFile() && packageArtifactPattern('win', 'exe').test(entry.name))
     .map((entry) => join(directory, entry.name))
 
   if (candidates.length !== 1) {
@@ -101,9 +109,7 @@ const findSetupInstaller = async (directory) => {
 }
 
 const installerVersion = (installer) => {
-  const match = basename(installer).match(/^aipoch-open-science-(.+)-win-x64-setup\.exe$/i)
-  if (!match) throw new Error(`Cannot derive the app version from installer: ${installer}`)
-  return match[1]
+  return packageArtifactVersion(installer, 'win', 'exe')
 }
 
 const buildSmokePlan = ({ currentInstaller, previousInstaller }) => [
@@ -204,7 +210,7 @@ const readPackagedAppConfigRoot = async (
   { auth, legacyConfigRoots = [], readToken = readFile } = {}
 ) => {
   if (
-    bootstrap.appName !== 'Open-Science' ||
+    bootstrap.appName !== packageSmokeIdentity().productName ||
     bootstrap.appVersion !== expectedVersion ||
     bootstrap.platform !== 'win32'
   ) {
@@ -435,7 +441,7 @@ const waitForShutdownExit = (
   })
 
 const packagedResourcePaths = (installDirectory, { includeWslPreview = true } = {}) => [
-  join(installDirectory, APP_EXECUTABLE),
+  join(installDirectory, packageSmokeIdentity().windowsExecutable),
   join(installDirectory, 'resources', 'app.asar'),
   join(installDirectory, 'resources', 'micromamba.exe'),
   ...(includeWslPreview
@@ -457,7 +463,7 @@ const packagedMcpRuntime = async (installDirectory, env) => {
   const entries = await readdir(resources)
   if (!entries.includes('backend')) {
     return {
-      executable: join(installDirectory, APP_EXECUTABLE),
+      executable: join(installDirectory, packageSmokeIdentity().windowsExecutable),
       entryPath: join(resources, 'app.asar', 'out', 'main', 'index.js'),
       env: { ...env, ELECTRON_RUN_AS_NODE: '1' }
     }
@@ -989,7 +995,7 @@ const launchAndProbe = async ({
   onSqliteVersion,
   exerciseNotebookRuntime = false
 }) => {
-  const executable = join(installDirectory, APP_EXECUTABLE)
+  const executable = join(installDirectory, packageSmokeIdentity().windowsExecutable)
 
   const child = spawn(executable, ['--open-science-headless', '--serve=0'], {
     env,
@@ -1075,7 +1081,7 @@ const assertWsl2RestartCleanupBlocked = ({ becameHealthy, output }) => {
 
 const launchAndCaptureBlockedStartup = async ({ installDirectory, env, description }) => {
   const child = spawn(
-    join(installDirectory, APP_EXECUTABLE),
+    join(installDirectory, packageSmokeIdentity().windowsExecutable),
     ['--open-science-headless', '--serve=0'],
     { env, windowsHide: true }
   )
@@ -1140,7 +1146,7 @@ const launchForProcessLock = async ({
   env,
   legacyConfigRoots
 }) => {
-  const executable = join(installDirectory, APP_EXECUTABLE)
+  const executable = join(installDirectory, packageSmokeIdentity().windowsExecutable)
   const child = spawn(executable, ['--open-science-headless', '--serve=0'], {
     env,
     windowsHide: true
@@ -1202,6 +1208,35 @@ const installApplication = async (installer, installDirectory, env, run = runPro
   }
 }
 
+const assertInstalledWindowsIdentity = async ({
+  installDirectory,
+  env,
+  expectedVersion,
+  run = runProcess
+}) => {
+  const metadata = await run(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-Command',
+      '$info = (Get-Item -LiteralPath $env:OPEN_SCIENCE_SMOKE_EXECUTABLE).VersionInfo; @{FileDescription=$info.FileDescription; ProductName=$info.ProductName; ProductVersion=$info.ProductVersion} | ConvertTo-Json -Compress'
+    ],
+    {
+      env: {
+        ...env,
+        OPEN_SCIENCE_SMOKE_EXECUTABLE: join(
+          installDirectory,
+          packageSmokeIdentity().windowsExecutable
+        )
+      }
+    }
+  )
+  validateWindowsVersionInfo(JSON.parse(metadata.stdout), {
+    ...packageSmokeIdentity(),
+    version: expectedVersion ?? packageSmokeIdentity().version
+  })
+}
+
 const installAndProbe = async ({
   installer,
   installDirectory,
@@ -1219,6 +1254,12 @@ const installAndProbe = async ({
   if (!reuseInstallation) {
     await installApplication(installer, installDirectory, env)
   }
+  await assertPackagedLicenses(join(installDirectory, 'resources'))
+  await assertInstalledWindowsIdentity({
+    installDirectory,
+    env,
+    expectedVersion: installerVersion(installer)
+  })
   await assertPackagedResources(installDirectory, {
     certifyWslPreview: phase === 'current' || phase === 'restart'
   })
@@ -1263,6 +1304,12 @@ const installOverRunningApp = async ({
     throw error
   }
 
+  await assertPackagedLicenses(join(installDirectory, 'resources'))
+  await assertInstalledWindowsIdentity({
+    installDirectory,
+    env,
+    expectedVersion: installerVersion(installer)
+  })
   await assertPackagedResources(installDirectory, {
     certifyWslPreview: phase === 'current' || phase === 'restart'
   })
@@ -1420,7 +1467,9 @@ const drillOrphanedUninstallerLock = async ({ installer, installDirectory, env }
     await terminateProcessTree(lock.child)
   }
 
-  const appInstalled = await pathExists(join(installDirectory, APP_EXECUTABLE))
+  const appInstalled = await pathExists(
+    join(installDirectory, packageSmokeIdentity().windowsExecutable)
+  )
   if (installResult.code !== 0) {
     if (appInstalled) {
       throw new Error('Installer failed after partially extracting the new application.')
@@ -1622,7 +1671,7 @@ const cleanupOwnedSmokeRegistrations = async (root, expectedVersion, { run = run
     )
     const installLocation = registryValue(uninstallOutput, 'InstallLocation')
     const ownedStaleRegistration =
-      registryValue(uninstallOutput, 'DisplayName') === APP_DISPLAY_NAME &&
+      registryValue(uninstallOutput, 'DisplayName') === packageSmokeIdentity().productName &&
       registryValue(uninstallOutput, 'DisplayVersion') === expectedVersion &&
       (!installLocation || isOwnedSmokePath(root, installLocation)) &&
       isOwnedSmokePath(root, uninstallTarget) &&
@@ -1680,8 +1729,11 @@ const runOrphanedUninstallerLockSmoke = async (installer) => {
 
 const main = async () => {
   if (process.platform !== 'win32') throw new Error('Windows installer smoke requires Windows.')
+  configurePackageSmokeIdentity(await loadPackageSmokeIdentity())
   const options = parseArguments(process.argv.slice(2))
   const currentInstaller = await findSetupInstaller(options.installerDirectory)
+  if (installerVersion(currentInstaller) !== packageSmokeIdentity().version)
+    throw new Error('Installer version differs from source metadata')
   if (options.scenario === ORPHANED_UNINSTALLER_LOCK_SCENARIO) {
     await runOrphanedUninstallerLockSmoke(currentInstaller)
     return
@@ -1892,6 +1944,7 @@ if (invokedAsScript) {
 }
 
 export {
+  assertInstalledWindowsIdentity,
   authenticatePackagedAppEndpoint,
   assertDatabaseDowngradeBlocked,
   assertWsl2RestartCleanupBlocked,

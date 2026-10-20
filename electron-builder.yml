@@ -165,9 +165,8 @@ mac:
       mimeType: application/x-open-science-session
       role: Viewer
       rank: Default
-  # Use the transparent EarthNano mark for both the app and installer volume.
-  # The upstream Icon Composer catalog adds an opaque background and is no longer selected.
-  icon: build/icon.icns
+  # Compile the original Icon Composer catalog on Xcode-equipped CI; retain its ICNS fallback.
+  icon: build/icon.icon
   darkModeSupport: true
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
   # Minimum macOS to run the app (written to Info.plist LSMinimumSystemVersion). macOS 12 (Monterey)

@@ -2,6 +2,7 @@
 
 // Run on a disposable Linux certification runner before installing the real application.
 // Use the built package's actual FPM control scripts, not merely the source templates.
+import { loadPackageSmokeIdentity, ORIGINAL_SMOKE_IDENTITY } from './package-smoke-identity.mjs'
 import { execFileSync } from 'node:child_process'
 import { chmod, mkdir, mkdtemp, lstat, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,11 +12,20 @@ import { pathToFileURL } from 'node:url'
 const run = (command, args) =>
   execFileSync(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 const command = '/usr/bin/open-science'
-const appRoot = '/opt/Open-Science'
-const legacyTarget = `${appRoot}/open-science`
-const cliTarget = `${appRoot}/resources/open-science-cli`
+export const debianSmokePaths = (identity = ORIGINAL_SMOKE_IDENTITY) => {
+  const appRoot = '/opt/' + identity.productName
+  const legacyRoot = '/opt/' + ORIGINAL_SMOKE_IDENTITY.productName
+  return {
+    appRoot,
+    legacyRoot,
+    legacyTarget: legacyRoot + '/' + ORIGINAL_SMOKE_IDENTITY.linuxExecutable,
+    cliTarget: appRoot + '/resources/open-science-cli'
+  }
+}
 
 const main = async (deb) => {
+  const identity = await loadPackageSmokeIdentity()
+  const { appRoot, legacyRoot, legacyTarget, cliTarget } = debianSmokePaths(identity)
   if (process.platform !== 'linux' || process.getuid() !== 0) {
     throw new Error('Debian lifecycle certification requires root on a disposable Linux runner.')
   }
@@ -30,7 +40,7 @@ const main = async (deb) => {
   if (status === 'installed') {
     throw new Error('Run Debian lifecycle certification before installing Open-Science.')
   }
-  for (const path of [command, appRoot]) {
+  for (const path of new Set([command, appRoot, legacyRoot])) {
     if (
       await lstat(path).then(
         () => true,
@@ -53,7 +63,8 @@ const main = async (deb) => {
     const fixture = async (version, legacy) => {
       const tree = join(root, version)
       await mkdir(join(tree, 'DEBIAN'), { recursive: true })
-      await mkdir(join(tree, 'opt/Open-Science/resources'), { recursive: true })
+      const installRoot = (legacy ? legacyRoot : appRoot).slice(1)
+      await mkdir(join(tree, installRoot, 'resources'), { recursive: true })
       await writeFile(
         join(tree, 'DEBIAN/control'),
         `Package: open-science\nVersion: ${version}\nArchitecture: all\nMaintainer: AIPOCH\nDescription: Debian CLI lifecycle certification fixture\n`
@@ -76,7 +87,7 @@ const main = async (deb) => {
         await chmod(path, 0o755)
       }
       for (const file of ['open-science', 'resources/open-science-cli', 'chrome-sandbox']) {
-        await writeFile(join(tree, 'opt/Open-Science', file), '#!/bin/sh\nexit 0\n', {
+        await writeFile(join(tree, installRoot, file), '#!/bin/sh\nexit 0\n', {
           mode: 0o755
         })
       }
