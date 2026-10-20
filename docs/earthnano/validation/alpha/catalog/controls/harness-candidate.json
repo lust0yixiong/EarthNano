@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "pins": {
+    "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+    "tree": "edc756a4d03a2826a248115482084a176e60e751"
+  },
+  "source": {
+    "kind": "candidate",
+    "commit": "ff663a4c37eb6652809f4cead3d07842efd50c0e",
+    "tree": "144881b66694ca594559dd0981d9bb2ea5554be1",
+    "scope": "vendor/harness2",
+    "digest": "b8b48ff359ac7057702efe85578cab56cdd5da8e204b136d476d3e444b4514f1",
+    "licenseDigest": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "executable": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+  "arch": "arm64",
+  "platform": "darwin",
+  "collectionErrors": [],
+  "testsRun": 72,
+  "tests": [
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_budget_and_timeout_stop_before_fallback_or_next_candidate",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_no_legacy_launcher_or_independent_judge_is_used",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_original_seq_k1_has_seven_admissions_and_real_changed_tree",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_partial_pipe_response_obeys_timeout",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_real_stdio_entrypoint_uses_original_method_and_protocol_only_stdout",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_result_projection_rejects_checksum_paths_and_uncommitted_refs",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_snapshot_rejects_links_and_does_not_emit_path_refs",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_strict_text_profile_rejects_executable_and_native_unsupported_policy",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_binding.EarthNanoBindingTests.test_transport_stops_on_eof_wrong_id_error_and_malformed_response",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_domain_and_mode_and_experiment_roots_never_share_library",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_domain_library_and_complete_contexts_match_original_legacy_mechanism",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_four_task_reference_order_retains_only_preceding_original_library_entries",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_grader_text_in_reflection_cannot_enter_next_task_or_exported_library",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_k2_domain_keeps_original_anonymous_selector_before_each_reflection",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_managed_scientific_tasks_reject_domain_mixing_before_work",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_no_entry_or_malformed_reflection_does_not_fabricate_library",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_ordinary_failed_reflection_is_recorded_without_claiming_complete_reflection",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_original_two_task_domain_transfers_reflection_in_both_modes",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_real_stdio_both_modes_preserve_task_routing_and_library_transfer",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_shared_budget_and_reflection_stop_prevent_next_task",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_single_task_entry_keeps_no_library_or_reflection",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_domain.DomainTests.test_validation_rejects_invalid_domain_order_and_fields_before_work_allocation",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_both_k2_modes_through_real_stdio_process",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_both_modes_match_legacy_recursion_evidence_and_real_selector",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_grader_verdict_in_source_never_reaches_proposer_or_selector",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_k1_both_modes_retain_trivial_selection_without_extra_admission",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_malformed_choice_keeps_original_finals_fallback_and_status",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_managed_scientific_task_preserves_prompt_and_exact_source_metadata",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_overlapping_stop_and_budget_rejection_never_become_selector_fallback",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_strict_method_validation_before_work_allocation",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method.EarthNanoMethodTests.test_third_round_and_maximum_k_match_legacy_and_select_best_not_latest",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method_reply.MethodReplyTests.test_exact_empty_reply_remains_empty_and_does_not_become_a_harness",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method_reply.MethodReplyTests.test_file_only_harvest_preserves_empty_narrative_without_filler",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method_reply.MethodReplyTests.test_original_selector_accepts_committed_reply_without_model_file_transcription",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_method_reply.MethodReplyTests.test_reply_artifact_does_not_become_harvest_and_original_retry_or_fallback_is_preserved",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_resume.ResumeTests.test_changed_original_result_bytes_stop_before_any_paid_replay",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_resume.ResumeTests.test_notebook_parallel_resume_preserves_metadata_evidence_across_canonical_config_keys",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_resume.ResumeTests.test_original_domain_resume_restores_library_and_order_without_new_admission",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_resume.ResumeTests.test_partial_completed_stages_are_reused_in_both_original_modes",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_bad_descriptor_plan_payload_and_metadata_are_rejected_before_workspace_or_port",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_explicit_resume_reuses_completed_original_stages_and_libraries_without_new_admissions",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_library_and_original_stream_match_pinned_original_run_sweep",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_managed_metadata_stays_task_local_and_no_entry_does_not_fabricate_library",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_seed_filters_caps_and_workers_use_original_stream_without_unselected_payloads",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep.SweepTests.test_two_domains_two_modes_k2_use_one_original_sweep_with_shared_bases_and_scoped_reflections",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep_binding_v2.SweepBindingV2OriginalControls.test_actual_original_both_modes_share_only_one_set_of_baselines",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_sweep_binding_v2.SweepBindingV2OriginalControls.test_pinned_original_namespace_rejects_foreign_mode",
+      "status": "passed"
+    },
+    {
+      "id": "test_earthnano_usage_contract.UsageContractTests.test_shared_usage_fixtures",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_batch_baseline_partial_failure_preserves_individual_outcomes",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_both_paths_all_roles_and_method_semantics",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_cancelled_interrupted_and_unknown_cleanup_records_stop",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_context_and_selection_readers_cannot_swallow_control_stop",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_control_stops_escape_every_role_and_latch_next_admission",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_failed_selector_is_not_judged_and_does_not_reflect",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_get_response_loss_requests_cancel_and_stops_admissions",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_incomplete_record_is_not_a_successful_proposal",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_invalid_factory_request_stops_without_admission",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_legacy_native_batch_still_uses_one_batch_call",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_no_entry_stays_out_of_library",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_port_does_not_resume_legacy_summary_or_use_legacy_calls",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_proposer_legacy_backend_control_stop_is_not_transport_retry",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_request_and_record_identity_mismatch_are_rejected",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_submit_response_loss_does_not_retry_or_fallback",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_sweep_propagates_stop_instead_of_aggregating_failure",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_transport_and_validation_retries_have_distinct_linked_executions",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_unknown_usage_survives_reply_mapping_in_authoritative_record",
+      "status": "passed"
+    },
+    {
+      "id": "test_execution_seam.ExecutionSeamTests.test_wait_deadline_requests_cancel_without_claiming_cleanup",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_complete_evidence_and_library_prefix",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_failed_selection_is_never_judged",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_invalid_proposal_retries_with_feedback_and_accumulates_cost",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_no_entry_stays_out_of_library_on_resume",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_recursion_budget_and_resume",
+      "status": "passed"
+    }
+  ]
+}

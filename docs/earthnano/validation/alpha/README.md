@@ -130,3 +130,9 @@ Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/3946459
 | `ci-sweep-account-plan-annotations.json`    | `7f755c7b6906256c87f396c463ee0db865c8ae5564f57ec4915c288ca57b1625` |
 | `ci-sweep-account-windows-annotations.json` | `7f755c7b6906256c87f396c463ee0db865c8ae5564f57ec4915c288ca57b1625` |
 | `ci-sweep-account-plan-job.json`            | `3bf60a04a03984604ee3e736150e9b1aa01367191e6374a6acb226173ae90180` |
+
+## Catalog 与两来源 Notebook 验收
+
+见 [本轮范围与所有尝试](../../ALPHA_CATALOG.md)。`catalog/manifest.json` 记录 105 份原始文件的压缩前/存储 SHA-256，涵盖三次浏览器、三次原生离线、首次 DeepSeek、原源码控制及最终检查；gzip 解压后为原字节。`catalog/source-and-checks.json` 另存固定源码/四构建入口相同的对照与最终检查范围。原始失败的 JSON、Session/journal 与日志保留，未挑选付费高分重跑。
+
+首次 DeepSeek 两来源双模式 k1 通过：40/48 核心接纳、210 本地/209 上游请求，零拒绝、1 上游取消、用量不完整1项。生产覆盖38/40；API/美元未知。两来源同任务/固定版本/实际 Notebook producer/6个独立评审、停止/重开零重放通过。单任务 k2 的本轮原生验证为离线；更广 Alpha 与平台打包未因此完成。

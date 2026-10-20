@@ -53,6 +53,10 @@ Electron43.7.5、Claude Code2.1.232、Python3.12.13；NodeRunner26.0.0 是测试
 原始记录及 SHA 见 `validation/alpha/README.md`。
 同样分数、通过工具调用或代码退出状态均不证明优化收益或普遍科研正确性；eligible 仅供继续验证，未发布配置。
 
+## 后续 catalog 验收
+
+以上为本轮固定历史证据。后续 [ALPHA_CATALOG](ALPHA_CATALOG.md) 已将所有新建单/双模式统一为 startSweep，接通跨 Session 来源、完整桌面 stream 控制、只读原预览和启动摘要绑定，并经两来源双 mode k1 DeepSeek 验收。下方“UI/多来源待补”描述的是本轮当时范围，不代表最新状态。其余 Alpha 未完成项继续保留。
+
 ## 上游对照与尚未覆盖
 
 - Hosted PR14 的 Ubuntu candidate3/4 在 npm-ci 下载原 onnxruntime-node1.24.3 时 ETIMEDOUT/ENETUNREACH，未进入 pretest/typecheck/tests。锁定依赖与 OpenScience9e18 完全一致，不据此改源码、跳过下载或把任务记成通过。专用 CI 现固定 Host Node24.22.0，并保留严格 image 比较；跨平台最终比较及原生包仍待真实 CI。新 PR15 run39464594843 又在 runner 分配前被 GitHub 账户付款/支出限额阻止，未运行任何步骤；原始 API 返回已保存。

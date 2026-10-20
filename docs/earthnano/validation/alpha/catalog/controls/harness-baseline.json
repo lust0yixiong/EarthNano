@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "pins": {
+    "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+    "tree": "edc756a4d03a2826a248115482084a176e60e751"
+  },
+  "source": {
+    "kind": "baseline",
+    "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+    "tree": "edc756a4d03a2826a248115482084a176e60e751",
+    "scope": ".",
+    "digest": "37201c75f77453f75149411993c093cb85a00fed88a7b049fda79f596a8d87b1",
+    "licenseDigest": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "executable": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+  "arch": "arm64",
+  "platform": "darwin",
+  "collectionErrors": [],
+  "testsRun": 5,
+  "tests": [
+    {
+      "id": "test_workflow.WorkflowTests.test_complete_evidence_and_library_prefix",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_failed_selection_is_never_judged",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_invalid_proposal_retries_with_feedback_and_accumulates_cost",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_no_entry_stays_out_of_library_on_resume",
+      "status": "passed"
+    },
+    {
+      "id": "test_workflow.WorkflowTests.test_recursion_budget_and_resume",
+      "status": "passed"
+    }
+  ]
+}

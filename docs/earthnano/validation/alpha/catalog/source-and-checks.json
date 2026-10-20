@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "buildSource": {
+    "head": "a13ccfd44f2fc223c1434a7dbb0b05e4b4450c63",
+    "dirty": false
+  },
+  "liveTestSource": {
+    "head": "bedb1da41bae64a7a2a36d801640d54bf75bbe1b",
+    "dirty": false
+  },
+  "bundlesIdentical": true,
+  "entrypointSha256": {
+    "out/backend/index.cjs": "19f76a895d9576f5dd5511a14213b6ec244e46c235e5e164ad9b2d917698767e",
+    "out/main/index.js": "70afc4f0a60c8df78520bec914a2ba3c916ec51c5e0205b8c0d3cbfab000a3e8",
+    "out/preload/index.js": "faa11dc315b6c08ecc626859ef5927ebbe90a0e3b9a3572077ee55775995d016",
+    "out/renderer/index.html": "dcd73754ac5d240b32dada29924457924bf4fcb648b375e2722a19d88c5476df"
+  },
+  "productionAndE2eSourceByteIdentical": true,
+  "comparedSourceScopes": [
+    "src",
+    "packages",
+    "resources",
+    "build",
+    "contracts",
+    "vendor/harness2/harness2",
+    "e2e"
+  ],
+  "harnessTreeUnchangedSincePythonReceipt": true,
+  "finalChecks": {
+    "nodeTypecheck": {
+      "exit": 0,
+      "log": "logs/final-types-node.log.gz"
+    },
+    "webTypecheck": {
+      "exit": 0,
+      "log": "logs/final-types-web.log.gz"
+    },
+    "eslint": {
+      "exit": 0,
+      "files": 35,
+      "log": "logs/final-lint.log.gz"
+    },
+    "consumerCheck": {
+      "exit": 0,
+      "log": "logs/final-consumer-check.log.gz"
+    }
+  }
+}
