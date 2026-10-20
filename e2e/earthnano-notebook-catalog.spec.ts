@@ -195,7 +195,7 @@ test('runs two independent Notebook sources through one original sweep and resum
     await extra.getByLabel('Source chat', { exact: true }).selectOption(sources[0].session.id)
     await extra.getByLabel('Source task', { exact: true }).selectOption(sources[0].promptMessageId)
     await extra
-      .getByLabel('Acceptance criteria (one per line)', { exact: true })
+      .getByLabel('Next task criteria 1', { exact: true })
       .fill('The published numeric report matches this task’s fixed source observations.')
     await extra.getByLabel('Check expected JSON output', { exact: true }).check()
     await extra.getByLabel('Output JSON file', { exact: true }).fill('research-results.json')

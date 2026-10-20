@@ -261,7 +261,12 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       await panel.getByLabel('Compare both optimization modes', { exact: true }).check()
     await panel.getByLabel('Concurrent executions', { exact: true }).fill('2')
     await panel
-      .getByLabel('Shared execution limit (all task assessments and reflections)', { exact: true })
+      .getByLabel(
+        dualModeAcceptance
+          ? 'Shared execution limit (all task assessments and reflections)'
+          : 'Execution limit (includes two assessments)',
+        { exact: true }
+      )
       .fill(String(optimizationExecutions))
     const callsBeforePreview = provider.stats.requests
     await panel.getByRole('button', { name: 'Preview task stream', exact: true }).click()
