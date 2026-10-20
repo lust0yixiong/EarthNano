@@ -25,45 +25,59 @@ class ExecutionPort(Protocol):
     def events(self, execution_id: str, after_sequence: int = 0) -> Iterator[ExecutionEvent]: ...
 
 
+def _check(item, rule):
+    if "$ref" in rule:
+        return _check(item, SCHEMA["definitions"][rule["$ref"].rsplit("/", 1)[1]])
+    kind = rule["type"]
+    if kind == "object":
+        if not isinstance(item, dict):
+            raise ValueError("Expected object")
+        if set(rule["required"]) - item.keys() or item.keys() - rule["properties"].keys():
+            raise ValueError("Missing or unknown fields")
+        for key, child in item.items():
+            _check(child, rule["properties"][key])
+    elif kind == "string":
+        if not isinstance(item, str) or len(item) < rule.get("minLength", 0):
+            raise ValueError("Expected string")
+        item.encode("utf-8")  # Reject lone surrogates, as the TypeScript authority does.
+        if "pattern" in rule and not re.fullmatch(rule["pattern"], item):
+            raise ValueError("Invalid string format")
+    elif kind == "integer":
+        if type(item) is not int or not rule.get("minimum", -9007199254740991) <= item <= rule.get("maximum", 9007199254740991):
+            raise ValueError("Expected bounded integer")
+    elif kind == "boolean":
+        if type(item) is not bool:
+            raise ValueError("Expected boolean")
+    elif kind == "array":
+        if not isinstance(item, list):
+            raise ValueError("Expected array")
+        for child in item:
+            _check(child, rule["items"])
+    else:
+        raise ValueError(f"Unsupported schema type: {kind}")
+    if "const" in rule and item != rule["const"]:
+        raise ValueError("Invalid constant")
+    if "enum" in rule and item not in rule["enum"]:
+        raise ValueError("Invalid enum")
+
+
 def validate_request(value: object) -> ExecutionRequest:
-    def check(item, rule):
-        if "$ref" in rule:
-            return check(item, SCHEMA["definitions"][rule["$ref"].rsplit("/", 1)[1]])
-        kind = rule["type"]
-        if kind == "object":
-            if not isinstance(item, dict):
-                raise ValueError("Expected object")
-            if set(rule["required"]) - item.keys() or item.keys() - rule["properties"].keys():
-                raise ValueError("Missing or unknown fields")
-            for key, child in item.items():
-                check(child, rule["properties"][key])
-        elif kind == "string":
-            if not isinstance(item, str) or len(item) < rule.get("minLength", 0):
-                raise ValueError("Expected string")
-            item.encode("utf-8")  # Reject lone surrogates, as the TypeScript authority does.
-            if "pattern" in rule and not re.fullmatch(rule["pattern"], item):
-                raise ValueError("Invalid string format")
-        elif kind == "integer":
-            if type(item) is not int or not rule.get("minimum", -9007199254740991) <= item <= rule.get("maximum", 9007199254740991):
-                raise ValueError("Expected bounded integer")
-        elif kind == "boolean":
-            if type(item) is not bool:
-                raise ValueError("Expected boolean")
-        elif kind == "array":
-            if not isinstance(item, list):
-                raise ValueError("Expected array")
-            for child in item:
-                check(child, rule["items"])
-        else:
-            raise ValueError(f"Unsupported schema type: {kind}")
-        if "const" in rule and item != rule["const"]:
-            raise ValueError("Invalid constant")
-        if "enum" in rule and item not in rule["enum"]:
-            raise ValueError("Invalid enum")
-    check(value, SCHEMA)
+    _check(value, SCHEMA)
     origin = value["origin"]
     if origin["kind"] == "optimization" and not (origin.get("optimizationId") and origin.get("stageId")):
         raise ValueError("Optimization requires optimizationId and stageId")
+    return value
+
+
+def validate_record(value: object) -> ExecutionRecord:
+    """Validate every returned field against the same schema, before any method decision."""
+    _check(value, SCHEMA["definitions"]["ExecutionRecord"])
+    validate_request(value["request"])
+    return value
+
+
+def validate_handle(value: object) -> ExecutionHandle:
+    _check(value, SCHEMA["definitions"]["ExecutionHandle"])
     return value
 
 
