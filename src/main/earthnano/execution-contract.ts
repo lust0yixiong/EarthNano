@@ -5,8 +5,19 @@ import type { ExecutionRequest } from '../../shared/earthnano/execution-types'
 
 const validator = new Ajv({ allErrors: true }).compile(schema)
 const recordValidator = new Ajv({ allErrors: true }).compile({
-  ...schema, $ref: '#/definitions/ExecutionRecord'
+  ...schema,
+  $ref: '#/definitions/ExecutionRecord'
 })
+const eventValidator = new Ajv({ allErrors: true }).compile({
+  ...schema,
+  $ref: '#/definitions/ExecutionEvent'
+})
+
+export function validateEvent(value: unknown): void {
+  if (!eventValidator(value)) {
+    throw new ExecutionContractError('invalid-event', JSON.stringify(eventValidator.errors))
+  }
+}
 
 export function validateRecord(value: unknown): void {
   if (!recordValidator(value)) {
@@ -33,12 +44,18 @@ export function validateRequest(value: unknown): asserts value is ExecutionReque
     request.origin.kind === 'optimization' &&
     (!request.origin.optimizationId || !request.origin.stageId)
   ) {
-    throw new ExecutionContractError('invalid-request', 'Optimization requires optimizationId and stageId')
+    throw new ExecutionContractError(
+      'invalid-request',
+      'Optimization requires optimizationId and stageId'
+    )
   }
   // The wire format uses Unicode scalar strings, safe integers and ASCII property names.
   // In particular reject lone UTF-16 surrogates rather than hashing replacement characters.
   const visit = (input: unknown): void => {
-    if (typeof input === 'string' && /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(input)) {
+    if (
+      typeof input === 'string' &&
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(input)
+    ) {
       throw new ExecutionContractError('invalid-request', 'Invalid Unicode string')
     }
     if (input && typeof input === 'object') Object.values(input).forEach(visit)
@@ -51,9 +68,12 @@ export function requestDigest(request: ExecutionRequest): string {
   const canonical = (value: unknown): unknown =>
     value && typeof value === 'object' && !Array.isArray(value)
       ? Object.fromEntries(
-          Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          Object.entries(value)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
             .map(([key, child]) => [key, canonical(child)])
         )
       : value
-  return `sha256:${createHash('sha256').update(JSON.stringify(canonical(request))).digest('hex')}`
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(canonical(request)))
+    .digest('hex')}`
 }

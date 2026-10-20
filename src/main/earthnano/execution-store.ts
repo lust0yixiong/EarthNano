@@ -1,4 +1,14 @@
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync
+} from 'node:fs'
 import { dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { emptyExecutionState, type ExecutionState, type ExecutionStore } from './execution-core'
@@ -39,11 +49,17 @@ export class FileExecutionStore implements ExecutionStore {
       try {
         writeFileSync(fd, JSON.stringify(state))
         fsyncSync(fd)
-      } finally { closeSync(fd) }
+      } finally {
+        closeSync(fd)
+      }
       renameSync(temp, this.filename)
       // fsync the directory on supported POSIX hosts. This local implementation targets those hosts.
       const directory = openSync(dirname(this.filename), 'r')
-      try { fsyncSync(directory) } finally { closeSync(directory) }
+      try {
+        fsyncSync(directory)
+      } finally {
+        closeSync(directory)
+      }
     } finally {
       if (existsSync(temp)) unlinkSync(temp)
     }
@@ -54,5 +70,7 @@ export class FileExecutionStore implements ExecutionStore {
       this.closed = true
     }
   }
-  private assertOpen(): void { if (this.closed) throw new Error('Execution store closed') }
+  private assertOpen(): void {
+    if (this.closed) throw new Error('Execution store closed')
+  }
 }
