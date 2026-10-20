@@ -1,3 +1,5 @@
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import { execFileSync } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -66,6 +68,7 @@ const setup = async (
   snapshots: CandidateSnapshotStore
   core: ExecutionCore
   exportValue: PersistentExecutionExport
+  readState(): ReturnType<typeof emptyExecutionState>
 }> => {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-harness-binding-'))
   roots.push(root)
@@ -121,7 +124,7 @@ const setup = async (
     timeoutMs: 2000,
     exportResult: async (record) => ({ ...exportValue, executionId: record.executionId })
   })
-  return { root, binding, snapshots, core, exportValue }
+  return { root, binding, snapshots, core, exportValue, readState: () => structuredClone(state) }
 }
 
 describe('trusted Harness optimization binding', () => {
@@ -410,7 +413,7 @@ describe('trusted Harness optimization binding', () => {
 })
 
 describe('host-fixed scientific Harness capabilities', () => {
-  const scientific = (): CandidateSnapshotInput => ({
+  const scientific = (language: NotebookLanguage = 'python'): CandidateSnapshotInput => ({
     ...input,
     task: {
       prompt: 'Compute the original CSV mean in Notebook.',
@@ -428,47 +431,61 @@ describe('host-fixed scientific Harness capabilities', () => {
         }
       ]
     },
-    harness: { ...input.harness, tools: 'notebook-python' },
+    harness: { ...input.harness, tools: notebookToolsForLanguage(language) },
     environment: {
       isolation: 'directory-process',
       network: 'provider-and-notebook-policy',
       notebook: {
         runtime: {
-          language: 'python',
-          runtimeId: '/original/python',
-          interpreterPath: '/original/python',
+          language,
+          runtimeId: `/original/${language}`,
+          interpreterPath: `/original/${language}`,
           source: 'external',
           provenance: 'user-own'
         }
       }
     }
   })
-  it('retains one fixed task/runtime and the scientific profile through candidate harness edits', async () => {
-    const source = scientific(),
-      f = await setup(source)
-    const baseline = (await f.binding.dispatch(
+  it.each(['python', 'r'] as const)(
+    'retains the fixed %s task/runtime through candidate harness edits',
+    async (language) => {
+      const source = scientific(language),
+        f = await setup(source)
+      const baseline = (await f.binding.dispatch(
+        'freezeInvocation',
+        invocation('baseline')
+      )) as ExecutionRequest
+      const candidate = (await f.binding.dispatch('freezeInvocation', {
+        ...invocation('candidate'),
+        harnessFiles: [{ path: 'instructions.md', content: 'Revised guidance' }],
+        // Untrusted local fields cannot replace the host capabilities or sources.
+        environment: { notebook: { runtime: { runtimeId: '/attacker/python' } } },
+        task: { managedInputs: [] },
+        tools: 'arbitrary-shell'
+      })) as ExecutionRequest
+      const resolved = await f.snapshots.resolve(candidate)
+      expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
+      expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
+      expect(resolved.harness).toMatchObject({
+        tools: notebookToolsForLanguage(language),
+        instructions: 'Revised guidance'
+      })
+      expect(resolved.environment).toEqual(source.environment)
+      expect(resolved.task).toEqual(source.task)
+      expect(resolved.invocation.mission).toContain(
+        'Publish task deliverables using the original Artifact tools'
+      )
+    }
+  )
+  it('preserves the pre-R Python invocation receipt exactly', async () => {
+    const f = await setup(scientific())
+    const request = (await f.binding.dispatch(
       'freezeInvocation',
       invocation('baseline')
     )) as ExecutionRequest
-    const candidate = (await f.binding.dispatch('freezeInvocation', {
-      ...invocation('candidate'),
-      harnessFiles: [{ path: 'instructions.md', content: 'Revised guidance' }],
-      // Untrusted local fields cannot replace the host capabilities or sources.
-      environment: { notebook: { runtime: { runtimeId: '/attacker/python' } } },
-      task: { managedInputs: [] },
-      tools: 'arbitrary-shell'
-    })) as ExecutionRequest
-    const resolved = await f.snapshots.resolve(candidate)
-    expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
-    expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
-    expect(resolved.harness).toMatchObject({
-      tools: 'notebook-python',
-      instructions: 'Revised guidance'
-    })
-    expect(resolved.environment).toEqual(source.environment)
-    expect(resolved.task).toEqual(source.task)
-    expect(resolved.invocation.mission).toContain(
-      'Publish task deliverables using the original Artifact tools'
+    // Receipt captured on da658402e before the method lane changes (see retained red log).
+    expect(request.invocationRef?.digest).toBe(
+      'sha256:6dce830906359faf48bf62a40c8e2405f1bb5551c262d0147f58530c4f32695f'
     )
   })
   it('refuses completed scientific replay when source version, byte digest or input order really changes', async () => {
@@ -535,6 +552,70 @@ describe('host-fixed scientific Harness capabilities', () => {
       )) as ExecutionRequest
     ).toEqual(original)
   })
+  it('reopens only the exact completed R stage and refuses changed language or runtime without another admission', async () => {
+    const originalInput = scientific('r'),
+      f = await setup(originalInput)
+    const original = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const record = await f.core.get(handle.executionId)
+    const { outputDigest } = await import('./output-checks')
+    const resumed = (source: CandidateSnapshotInput): HarnessOptimizationBinding =>
+      new HarnessOptimizationBinding({
+        core: f.core,
+        snapshots: f.snapshots,
+        input: source,
+        projectId: 'project',
+        optimizationId: original.origin.optimizationId!,
+        taskId: 't1',
+        budgetRef: original.budgetRef,
+        timeoutMs: original.timeoutMs,
+        resumeRecords: [record],
+        resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+        exportResult: async (entry) => ({ ...f.exportValue, executionId: entry.executionId })
+      })
+    const exact = resumed(structuredClone(originalInput))
+    expect(await exact.dispatch('freezeInvocation', invocation('baseline'))).toEqual(original)
+    expect(
+      ((await exact.dispatch('submit', { request: original })) as ExecutionHandle).executionId
+    ).toBe(handle.executionId)
+    for (const source of [
+      scientific('python'),
+      {
+        ...originalInput,
+        environment: {
+          ...originalInput.environment,
+          notebook: {
+            runtime: {
+              ...originalInput.environment.notebook!.runtime,
+              runtimeId: '/other/r',
+              interpreterPath: '/other/r'
+            }
+          }
+        }
+      }
+    ])
+      await expect(
+        resumed(source).dispatch('freezeInvocation', invocation('baseline'))
+      ).rejects.toThrow('identity changed')
+    const wrong = {
+      ...originalInput,
+      environment: {
+        ...originalInput.environment,
+        notebook: {
+          runtime: { ...originalInput.environment.notebook!.runtime, language: 'python' as const }
+        }
+      }
+    }
+    await expect(
+      resumed(wrong).dispatch('freezeInvocation', invocation('baseline'))
+    ).rejects.toThrow('language mismatch')
+    expect(f.binding.executionIds).toEqual([handle.executionId])
+    expect(Object.values(f.readState().budgets)[0]!.admitted).toBe(1)
+  })
   it('rejects a foreign source Project before freezing or admitting scientific work', async () => {
     const source = scientific()
     Object.assign(source.task.managedInputs![0]!, { sourceProjectId: 'another-project' })
@@ -544,24 +625,25 @@ describe('host-fixed scientific Harness capabilities', () => {
     expect(freeze).not.toHaveBeenCalled()
     expect(f.binding.executionIds).toEqual([])
   })
-  it.each(['proposer', 'composer', 'selector', 'reflection'])(
-    'keeps %s textual despite the scientific source profile',
-    async (role) => {
-      const source = scientific(),
-        f = await setup(source)
-      const request = (await f.binding.dispatch(
-        'freezeInvocation',
-        invocation(role)
-      )) as ExecutionRequest
-      const resolved = await f.snapshots.resolve(request)
-      expect(resolved.harness.tools).toBe('workspace-only')
-      expect(resolved.environment).toEqual(input.environment)
-      expect(resolved.task).toEqual(source.task)
-      expect(resolved.invocation.mission).not.toContain(
-        'Publish task deliverables using the original Artifact tools'
-      )
-    }
-  )
+  it.each(
+    (['python', 'r'] as const).flatMap((language) =>
+      ['proposer', 'composer', 'selector', 'reflection'].map((role) => ({ language, role }))
+    )
+  )('keeps $role textual despite the $language source profile', async ({ language, role }) => {
+    const source = scientific(language),
+      f = await setup(source)
+    const request = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(request)
+    expect(resolved.harness.tools).toBe('workspace-only')
+    expect(resolved.environment).toEqual(input.environment)
+    expect(resolved.task).toEqual(source.task)
+    expect(resolved.invocation.mission).not.toContain(
+      'Publish task deliverables using the original Artifact tools'
+    )
+  })
 })
 
 it('reuses only the exact completed original stage and refuses changed task or role context before replay', async () => {

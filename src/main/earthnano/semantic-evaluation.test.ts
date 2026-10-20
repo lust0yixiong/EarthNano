@@ -1,3 +1,4 @@
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 import { createHash, randomUUID } from 'node:crypto'
 import { chmod, lstat, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -79,7 +80,11 @@ type Fixture = {
   setFault(value: FixtureFault): void
   options: Parameters<typeof evaluateOptimizationSemantics>[0]
 }
-async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<Fixture> {
+async function setup(
+  limit = 9,
+  baselineCount = 1,
+  scientific: false | true | 'r' = false
+): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-semantic-unit-'))
   roots.push(root)
   const snapshots = await createCandidateSnapshotStore({
@@ -118,15 +123,18 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
           }
         ]
       },
-      harness: { ...input.harness, tools: 'notebook-python' },
+      harness: {
+        ...input.harness,
+        tools: notebookToolsForLanguage(scientific === 'r' ? 'r' : 'python')
+      },
       environment: {
         isolation: 'directory-process',
         network: 'provider-and-notebook-policy',
         notebook: {
           runtime: {
-            language: 'python',
-            runtimeId: '/original/python',
-            interpreterPath: '/original/python',
+            language: scientific === 'r' ? 'r' : 'python',
+            runtimeId: scientific === 'r' ? '/original/r' : '/original/python',
+            interpreterPath: scientific === 'r' ? '/original/r' : '/original/python',
             source: 'external',
             provenance: 'user-own'
           }
@@ -590,23 +598,30 @@ it('assesses scientific outputs as fixed textual evidence without Notebook or ma
   }
 })
 
-it('supplies the identical complete source content only to independent scientific assessments', async () => {
-  const f = await setup(9, 1, true)
-  await evaluateOptimizationSemantics(f.options)
-  const evidence = f.reviewerInputs.map((reviewer) =>
-    JSON.parse(reviewer.task.files.find((item) => item.path === 'evidence/sources.json')!.content)
-  )
-  expect(evidence[0]).toEqual(evidence[1])
-  expect(evidence[0].inputs[0].content).toBe('value\n1\n2\n3\n')
-  expect(f.committed.every((entry) => entry.sourceEvidence?.digest === evidence[0].digest)).toBe(
-    true
-  )
-  expect(
-    f.reviewerInputs.every(
-      (reviewer) => !reviewer.task.managedInputs && reviewer.harness.tools === 'workspace-only'
+it.each([true, 'r'] as const)(
+  'supplies identical original sources only to workspace-only assessors for profile %s',
+  async (language) => {
+    const f = await setup(9, 1, language)
+    await evaluateOptimizationSemantics(f.options)
+    const evidence = f.reviewerInputs.map((reviewer) =>
+      JSON.parse(reviewer.task.files.find((item) => item.path === 'evidence/sources.json')!.content)
     )
-  ).toBe(true)
-})
+    expect(evidence[0]).toEqual(evidence[1])
+    expect(evidence[0].inputs[0].content).toBe('value\n1\n2\n3\n')
+    expect(f.committed.every((entry) => entry.sourceEvidence?.digest === evidence[0].digest)).toBe(
+      true
+    )
+    expect(
+      f.reviewerInputs.every(
+        (reviewer) =>
+          !reviewer.task.managedInputs &&
+          reviewer.harness.tools === 'workspace-only' &&
+          !reviewer.environment.notebook &&
+          reviewer.environment.network === 'provider-only'
+      )
+    ).toBe(true)
+  }
+)
 
 it('rejects changed source evidence before admitting either independent assessment', async () => {
   const f = await setup(9, 1, true)

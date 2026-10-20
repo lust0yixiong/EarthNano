@@ -1,3 +1,4 @@
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { createHash, randomUUID } from 'node:crypto'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
 import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
@@ -325,7 +326,7 @@ export async function evaluateOptimizationSemantics(options: {
       fail('Assessment task differs from the frozen optimization task')
   }
   const sourceEvidence =
-    input.harness.tools === 'notebook-python'
+    notebookLanguageForTools(input.harness.tools) !== undefined
       ? await options.owners.readSemanticSourceEvidence({
           target: baselines[0]!,
           snapshots: options.snapshots,

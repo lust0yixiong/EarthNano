@@ -158,3 +158,53 @@ describe('resolved sweep task/source identity', () => {
     expect(() => sweepTasks(value)).toThrow()
   })
 })
+
+it('retains per-task Python/R profiles and refuses a source language, runtime or tools crossover', async () => {
+  const value = await fixture(true)
+  const source = value.request.catalog.find((task) => task.taskId === 'a')!
+  if (source.source.kind !== 'notebook') throw new Error('expected Notebook fixture')
+  source.source.language = 'r'
+  const task = value.tasks.find((task) => task.taskId === 'a')!
+  task.input = { ...task.input, harness: { ...task.input.harness, tools: 'notebook-r' } }
+  task.input = {
+    ...task.input,
+    environment: {
+      ...task.input.environment,
+      notebook: { runtime: { ...task.input.environment.notebook!.runtime, language: 'r' } }
+    }
+  }
+  expect(
+    sweepTasks(value).map((task) => [
+      task.taskId,
+      task.input.harness.tools,
+      task.input.environment.notebook!.runtime.language
+    ])
+  ).toEqual([
+    ['a', 'notebook-r', 'r'],
+    ['b', 'notebook-python', 'python']
+  ])
+  for (const change of ['source', 'tools', 'runtime']) {
+    const bad = structuredClone(value),
+      current = bad.tasks.find((task) => task.taskId === 'a')!
+    if (change === 'source') {
+      const original = bad.request.catalog.find((task) => task.taskId === 'a')!
+      if (original.source.kind === 'notebook') delete original.source.language
+    }
+    if (change === 'tools')
+      current.input = {
+        ...current.input,
+        harness: { ...current.input.harness, tools: 'notebook-python' }
+      }
+    if (change === 'runtime')
+      current.input = {
+        ...current.input,
+        environment: {
+          ...current.input.environment,
+          notebook: {
+            runtime: { ...current.input.environment.notebook!.runtime, language: 'python' }
+          }
+        }
+      }
+    expect(() => sweepTasks(bad)).toThrow('original fixed task and runtime')
+  }
+})

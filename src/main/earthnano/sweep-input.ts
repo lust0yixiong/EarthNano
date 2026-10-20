@@ -1,3 +1,4 @@
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { createHash } from 'node:crypto'
 import {
   normalizeOptimizationCatalog,
@@ -62,9 +63,11 @@ export function sweepTasks(value: ResolvedOptimizationSweep): ResolvedSweepTask[
     if (source.source.kind === 'notebook') {
       if (
         task.sourcePromptMessageId !== source.source.promptMessageId ||
-        task.input.harness.tools !== 'notebook-python' ||
+        notebookLanguageForTools(task.input.harness.tools) !==
+          (source.source.language ?? 'python') ||
         !task.input.task.managedInputs?.length ||
         !task.input.environment.notebook ||
+        task.input.environment.notebook.runtime.language !== (source.source.language ?? 'python') ||
         task.input.task.files.length ||
         task.inputArtifacts?.length
       )

@@ -589,3 +589,283 @@ it('preserves an older private manifest and refuses changed method source before
   expect(f.method).not.toHaveBeenCalled()
   expect(f.evaluate).not.toHaveBeenCalled()
 })
+
+const scientificInput = (
+  o: PersistentSingleOptimizationOptions
+): PersistentSingleOptimizationOptions['input'] => ({
+  ...o.input,
+  task: {
+    prompt: 'Original R input task',
+    files: [],
+    managedInputs: [
+      {
+        sourceKind: 'upload-version',
+        sourceProjectId: 'p',
+        sourceSessionId: 'source',
+        sourceFileId: 'file',
+        inputFileVersionId: 'old-version',
+        filename: 'observations.csv',
+        sizeBytes: 1,
+        checksum: 'a'.repeat(64)
+      }
+    ]
+  },
+  harness: { ...o.input.harness, tools: 'notebook-r' },
+  environment: {
+    isolation: 'directory-process',
+    network: 'provider-and-notebook-policy',
+    notebook: {
+      runtime: {
+        language: 'r',
+        runtimeId: '/original/r',
+        interpreterPath: '/original/r',
+        source: 'external',
+        provenance: 'user-own',
+        version: '4.4.3'
+      }
+    }
+  }
+})
+it.each(['message', 'owner'] as const)(
+  'rejects missing original R %s authority before opening a Core or method',
+  async (missing) => {
+    const o = await options()
+    await expect(
+      runPersistentOptimization({
+        ...o,
+        input: scientificInput(o),
+        sourceSessionId: 'source',
+        ...(missing === 'message' ? {} : { sourcePromptMessageId: 'original' }),
+        ownerOptions: {
+          ...o.ownerOptions,
+          ...(missing === 'owner'
+            ? {}
+            : { notebook: {} as NonNullable<typeof o.ownerOptions.notebook> })
+        }
+      })
+    ).rejects.toThrow(
+      missing === 'message'
+        ? 'source message identity missing'
+        : 'original fixed-input task and runtime owner'
+    )
+    expect(f.core).not.toHaveBeenCalled()
+    expect(f.method).not.toHaveBeenCalled()
+    await expect(access(o.workRoot)).rejects.toThrow()
+  }
+)
+it('pins R in the private manifest and original Notebook projection while passing only language-free task facts to original Python', async () => {
+  const o = await options(),
+    input = scientificInput(o)
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.method.mockImplementationOnce(async ({ args }: { args: string[] }) => {
+    const manifest = JSON.parse(await readFile(join(o.workRoot, 'resume.json'), 'utf8'))
+    expect(manifest.identity.input.environment.notebook.runtime).toEqual(
+      input.environment.notebook!.runtime
+    )
+    expect(manifest.identity.input.harness.tools).toBe('notebook-r')
+    const projection = JSON.parse(await readFile(join(o.workRoot, 'notebook-task.json'), 'utf8'))
+    expect(projection.environment.notebook.runtime.language).toBe('r')
+    expect(projection.sourcePromptMessageId).toBe('original')
+    const config = JSON.parse(await readFile(args.at(-1)!, 'utf8'))
+    expect(config.task).toEqual(input.task)
+    execFileSync(
+      process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+      [
+        '-B',
+        '-c',
+        'import json,sys; from harness2.earthnano import validate_config; validate_config(json.load(sys.stdin))'
+      ],
+      {
+        cwd: o.harnessRoot,
+        input: JSON.stringify(config),
+        env: { PATH: process.env.PATH, PYTHONPATH: o.harnessRoot, PYTHONDONTWRITEBYTECODE: '1' }
+      }
+    )
+    expect(config).not.toHaveProperty('environment')
+    expect(config).not.toHaveProperty('runtime')
+    expect(JSON.stringify(config)).not.toContain(o.semanticCriteria)
+    throw new Error('R_TRANSPORT_VALIDATED_NO_DISPATCH')
+  })
+  await expect(
+    runPersistentOptimization({
+      ...o,
+      input,
+      sourceSessionId: 'source',
+      sourcePromptMessageId: 'original',
+      ownerOptions: {
+        ...o.ownerOptions,
+        notebook: {} as NonNullable<typeof o.ownerOptions.notebook>
+      }
+    })
+  ).rejects.toThrow('R_TRANSPORT_VALIDATED_NO_DISPATCH')
+  const manifestBytes = await readFile(join(o.workRoot, 'resume.json'), 'utf8')
+  f.core.mockClear()
+  f.method.mockClear()
+  const pythonInput = {
+    ...input,
+    harness: { ...input.harness, tools: 'notebook-python' as const },
+    environment: {
+      ...input.environment,
+      notebook: {
+        runtime: {
+          ...input.environment.notebook!.runtime,
+          language: 'python' as const,
+          runtimeId: '/original/python',
+          interpreterPath: '/original/python'
+        }
+      }
+    }
+  }
+  await expect(
+    runPersistentOptimization({
+      ...o,
+      input: pythonInput,
+      sourceSessionId: 'source',
+      sourcePromptMessageId: 'original',
+      resume: true,
+      ownerOptions: {
+        ...o.ownerOptions,
+        notebook: {} as NonNullable<typeof o.ownerOptions.notebook>
+      }
+    })
+  ).rejects.toThrow('identity changed; paid replay refused')
+  expect(f.core).not.toHaveBeenCalled()
+  expect(f.method).not.toHaveBeenCalled()
+  expect(await readFile(join(o.workRoot, 'resume.json'), 'utf8')).toBe(manifestBytes)
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
+
+it('transports a mixed R/Python catalog through the same original sweep config without exposing runtimes or assessment facts to Python', async () => {
+  const o = await options(),
+    rInput = scientificInput(o)
+  const python = execFileSync(
+    process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+    ['-c', 'import sys;print(sys.executable)'],
+    { encoding: 'utf8' }
+  ).trim()
+  const specs = (['r', 'python'] as const).map((language, index) => {
+    const taskId = `task-${index}`,
+      sourceSessionId = `source-${index}`
+    const input: typeof rInput = {
+      ...rInput,
+      task: {
+        ...rInput.task,
+        prompt: `Original task ${index}`,
+        managedInputs: rInput.task.managedInputs!.map((entry) => ({
+          ...entry,
+          sourceSessionId,
+          sourceFileId: `file-${index}`,
+          inputFileVersionId: `version-${index}`
+        }))
+      },
+      harness: { ...rInput.harness, tools: language === 'r' ? 'notebook-r' : 'notebook-python' },
+      environment: {
+        ...rInput.environment,
+        notebook: {
+          runtime: {
+            ...rInput.environment.notebook!.runtime,
+            language,
+            runtimeId: `/original/${language}`,
+            interpreterPath: `/original/${language}`
+          }
+        }
+      }
+    }
+    return {
+      taskId,
+      domain: taskId,
+      sourceSessionId,
+      sourcePromptMessageId: `prompt-${index}`,
+      input,
+      criteria: `Private criteria ${index}`
+    }
+  })
+  const request: import('../../shared/earthnano/optimization-sweep').StartDesktopSweep = {
+    projectId: o.projectId,
+    sourceSessionId: 'navigation',
+    requestKey: 'mixed',
+    executionLimit: 40,
+    catalog: specs.map((task) => ({
+      taskId: task.taskId,
+      domain: task.domain,
+      sourceSessionId: task.sourceSessionId,
+      source: {
+        kind: 'notebook',
+        promptMessageId: task.sourcePromptMessageId,
+        language: task.input.environment.notebook!.runtime.language
+      },
+      criteria: task.criteria
+    })),
+    sweep: {
+      modes: ['parallel', 'sequential'],
+      k: 1,
+      concurrency: 2,
+      stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 2 }
+    }
+  }
+  const plan = await previewOptimizationSweep({
+    catalog: request.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+    options: request.sweep,
+    python,
+    harnessRoot: o.harnessRoot
+  })
+  const ordered = plan.domains
+    .flatMap((domain) => domain.taskIds)
+    .map((taskId) => specs.find((task) => task.taskId === taskId)!)
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.method.mockImplementationOnce(async ({ args }: { args: string[] }) => {
+    const encoded = await readFile(args.at(-1)!, 'utf8'),
+      config = JSON.parse(encoded)
+    execFileSync(
+      python,
+      [
+        '-B',
+        '-c',
+        'import json,sys;from harness2.earthnano_sweep import validate_config;validate_config(json.load(sys.stdin))'
+      ],
+      {
+        cwd: o.harnessRoot,
+        input: encoded,
+        env: { PATH: process.env.PATH, PYTHONPATH: o.harnessRoot, PYTHONDONTWRITEBYTECODE: '1' }
+      }
+    )
+    expect(config.tasks).toEqual(
+      ordered.map((task) => ({ taskId: task.taskId, task: task.input.task }))
+    )
+    expect(encoded).not.toContain('Private criteria')
+    expect(encoded).not.toContain('/original/')
+    const manifest = JSON.parse(await readFile(join(o.workRoot, 'resume.json'), 'utf8'))
+    expect(
+      manifest.identity.sweep.tasks.map(
+        (task: { input: typeof rInput }) => task.input.environment.notebook!.runtime.language
+      )
+    ).toEqual(['r', 'python'])
+    const projection = JSON.parse(await readFile(join(o.workRoot, 'sweep-sources.json'), 'utf8'))
+    expect(
+      projection.tasks.map(
+        (task: { environment: typeof rInput.environment }) =>
+          task.environment.notebook!.runtime.language
+      )
+    ).toEqual(ordered.map((task) => task.input.environment.notebook!.runtime.language))
+    throw new Error('MIXED_PRIVATE_TRANSPORT_VALIDATED_NO_DISPATCH')
+  })
+  await expect(
+    runPersistentOptimization({
+      projectId: o.projectId,
+      taskId: o.taskId,
+      sourceSessionId: 'navigation',
+      workRoot: o.workRoot,
+      harnessRoot: o.harnessRoot,
+      python,
+      timeoutMs: 10_000,
+      executionLimit: 40,
+      binding: o.binding,
+      ownerOptions: {
+        ...o.ownerOptions,
+        notebook: {} as NonNullable<typeof o.ownerOptions.notebook>
+      },
+      sweep: { plan, tasks: specs, request }
+    })
+  ).rejects.toThrow('MIXED_PRIVATE_TRANSPORT_VALIDATED_NO_DISPATCH')
+  expect(f.evaluate).not.toHaveBeenCalled()
+})

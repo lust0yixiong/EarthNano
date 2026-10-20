@@ -391,3 +391,128 @@ describe('domain task execution ownership', () => {
     expect(f.binding.executionIds).toEqual([])
   })
 })
+
+it('uses one Core and independent frozen Python/R task profiles across original mode scopes and cached reopen', async () => {
+  const f = await setup()
+  const identity = createHarnessBindingV2Identity({ k: 1, seed: 0, modes: ['agg', 'seq'] })
+  const routing = new Map<string, { slot: string; scope: string }>()
+  const options = f.tasks.map((task, index) => {
+    const language = index === 0 ? ('python' as const) : ('r' as const)
+    return {
+      ...task,
+      bindingIdentity: identity,
+      input: {
+        ...task.input,
+        task: {
+          prompt: `Original ${task.taskId}`,
+          files: [],
+          managedInputs: [
+            {
+              sourceKind: 'upload-version' as const,
+              sourceProjectId: 'project',
+              sourceSessionId: `source-${task.taskId}`,
+              sourceFileId: `file-${task.taskId}`,
+              inputFileVersionId: `version-${task.taskId}`,
+              filename: 'same-name.csv',
+              sizeBytes: 1,
+              checksum: (index ? 'b' : 'a').repeat(64)
+            }
+          ]
+        },
+        harness: {
+          ...task.input.harness,
+          tools: index === 0 ? ('notebook-python' as const) : ('notebook-r' as const)
+        },
+        environment: {
+          isolation: 'directory-process' as const,
+          network: 'provider-and-notebook-policy' as const,
+          notebook: {
+            runtime: {
+              language,
+              runtimeId: `/original/${language}`,
+              interpreterPath: `/original/${language}`,
+              source: 'external' as const,
+              provenance: 'user-own' as const
+            }
+          }
+        }
+      },
+      onFreeze: (request: ExecutionRequest, slot: string, scope?: string): void => {
+        routing.set(request.requestKey, { slot, scope: scope! })
+      }
+    }
+  })
+  f.binding = new HarnessDomainBinding(options)
+  const requests: ExecutionRequest[] = []
+  const offered = (taskId: string, role: string, scope: string): Record<string, unknown> => ({
+    ...invocation(taskId),
+    invocation: {
+      ...(invocation(taskId).invocation as Record<string, unknown>),
+      role,
+      scope,
+      harvest: null
+    }
+  })
+  for (const task of options) {
+    let fixed: ExecutionRequest | undefined
+    for (const [role, scope] of [
+      ['baseline', identity.baseScope],
+      ['candidate', identity.modeScopes.agg!],
+      ['candidate', identity.modeScopes.seq!],
+      ['reflection', identity.modeScopes.seq!]
+    ]) {
+      const request = (await f.binding.dispatch(
+        'freezeInvocation',
+        offered(task.taskId, role!, scope!)
+      )) as ExecutionRequest
+      const resolved = await f.snapshots.resolve(request)
+      expect(resolved.task).toEqual(task.input.task)
+      if (role === 'reflection') {
+        expect(resolved.harness.tools).toBe('workspace-only')
+        expect(resolved.environment).toEqual(input.environment)
+      } else {
+        expect(resolved.harness.tools).toBe(task.input.harness.tools)
+        expect(resolved.environment).toEqual(task.input.environment)
+        if (fixed) {
+          expect(request.taskSnapshotRef).toEqual(fixed.taskSnapshotRef)
+          expect(request.environmentSpecRef).toEqual(fixed.environmentSpecRef)
+        }
+        fixed = request
+      }
+      requests.push(request)
+      const handle = await submit(f, request)
+      await complete(f, handle.executionId)
+    }
+  }
+  expect(requests[0]!.taskSnapshotRef).not.toEqual(requests[4]!.taskSnapshotRef)
+  expect(requests[0]!.environmentSpecRef).not.toEqual(requests[4]!.environmentSpecRef)
+  const records = Object.values(f.readState().records)
+  f.binding = new HarnessDomainBinding(
+    options.map((task) => ({
+      ...task,
+      resumeRecords: records.filter(
+        (record) =>
+          record.request.taskSnapshotRef.digest ===
+          requests[task.taskId === 'task-0001' ? 0 : 4]!.taskSnapshotRef.digest
+      ),
+      resumeSlot: (key: string): string | undefined => routing.get(key)?.slot,
+      resumeScope: (key: string): string | undefined => routing.get(key)?.scope
+    }))
+  )
+  for (const task of options)
+    for (const [role, scope] of [
+      ['baseline', identity.baseScope],
+      ['candidate', identity.modeScopes.agg!],
+      ['candidate', identity.modeScopes.seq!],
+      ['reflection', identity.modeScopes.seq!]
+    ]) {
+      const restored = (await f.binding.dispatch(
+        'freezeInvocation',
+        offered(task.taskId, role!, scope!)
+      )) as ExecutionRequest
+      expect(requests).toContainEqual(restored)
+      await submit(f, restored)
+    }
+  expect(f.execute).toHaveBeenCalledTimes(8)
+  expect(Object.values(f.readState().budgets)[0]!.admitted).toBe(8)
+})

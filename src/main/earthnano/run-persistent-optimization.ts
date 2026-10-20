@@ -1,3 +1,4 @@
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
@@ -197,7 +198,7 @@ export async function runPersistentOptimization(
   const semanticCriteria = options.semanticCriteria
   const checks = normalizeOutputChecks(options.checks)
   const domain = normalizeOptimizationDomain(options.domain)
-  const scientific = input.harness.tools === 'notebook-python'
+  const scientific = notebookLanguageForTools(input.harness.tools) !== undefined
   if (
     !sweep &&
     scientific &&
@@ -262,7 +263,9 @@ export async function runPersistentOptimization(
   const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
   if (sweep) {
     if (
-      sweep.tasks.some((task) => task.input.harness.tools === 'notebook-python') &&
+      sweep.tasks.some(
+        (task) => notebookLanguageForTools(task.input.harness.tools) !== undefined
+      ) &&
       !options.ownerOptions.notebook
     )
       throw new Error('Sweep Notebook tasks require the original runtime owner')
