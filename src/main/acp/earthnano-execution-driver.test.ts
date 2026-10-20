@@ -412,6 +412,49 @@ describe('opt-in ACP ExecutionCore adapter', () => {
     expect(result.evidence.artifacts).toEqual([])
   })
 
+  it('preserves original pre-admission rejection when owner postconditions cannot read a result', async () => {
+    const s = setup()
+    s.runtime.sendPromptObserved.mockRejectedValue(new Error('Original ACP initialization failed'))
+    vi.mocked(s.plan.readResult).mockRejectedValue(
+      new Error('No original runtime admission evidence')
+    )
+    const h = await s.core.submit(request())
+    const result = await finished(s.core, h.executionId)
+    expect(result.error).toEqual({
+      code: 'prompt-rejected-before-admission',
+      message:
+        'Original ACP initialization failed\nOwner result unavailable: No original runtime admission evidence'
+    })
+    expect(result.phase).toBe('failed')
+    expect(result.cleanup).toBe('unknown')
+    expect(result.evidence.status).toBe('unavailable')
+    expect(result.evidence.artifacts).toEqual([])
+    expect(s.plan.admit).not.toHaveBeenCalled()
+    await expect(s.core.submit(request('next'))).rejects.toMatchObject({
+      code: 'cleanup-unconfirmed'
+    })
+  })
+
+  it('retains an admitted prompt failure when its result owner also fails', async () => {
+    const s = setup()
+    s.runtime.sendPromptObserved.mockImplementation(async (_request, _accepted, admitted) => {
+      await admitted?.()
+      throw new Error('Original provider failed after admission')
+    })
+    vi.mocked(s.plan.readResult).mockRejectedValue(
+      new Error('Original result commit is unreadable')
+    )
+    const h = await s.core.submit(request())
+    const result = await finished(s.core, h.executionId)
+    expect(result.error).toEqual({
+      code: 'prompt-failed-result-unavailable',
+      message:
+        'Original provider failed after admission\nOwner result unavailable: Original result commit is unreadable'
+    })
+    expect(result.cleanup).toBe('unknown')
+    expect(result.evidence.artifacts).toEqual([])
+  })
+
   it('keeps the cancellation signal live for result/Review owners after the provider stopped', async () => {
     const s = setup()
     const commit = deferred()

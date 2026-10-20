@@ -7,6 +7,9 @@ import { join } from 'node:path'
 import { expect, it, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: true } }))
 import { initDataRoot } from '../storage-root'
+import { AcpRuntime } from '../acp/runtime'
+import { composeAcpRuntimeBaseOwners } from '../acp/runtime-base-composition'
+import { composeAcpRuntimeSessionOwners } from '../acp/runtime-session-composition'
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { ReviewRepository } from '../reviewer/repository'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
@@ -83,6 +86,7 @@ it
   .skipIf(process.platform === 'win32')
   .each([
     'original',
+    'pre-admission-rejection',
     'six-outputs-and-skills',
     'uppercase-invalid-json',
     'submission-failure',
@@ -105,7 +109,23 @@ it
     let owners = createPersistentCandidateOwners({
       dataRoot: root,
       configRoot,
-      getClient: async () => client
+      getClient: async () => client,
+      ...(scenario === 'pre-admission-rejection'
+        ? {
+            runtimeFactory: (options) => {
+              const base = composeAcpRuntimeBaseOwners(options)
+              const runtime = new AcpRuntime(
+                options,
+                base,
+                composeAcpRuntimeSessionOwners(options, base)
+              )
+              vi.spyOn(runtime, 'sendPrompt').mockRejectedValue(
+                new Error('Original ACP pre-admission rejection')
+              )
+              return runtime
+            }
+          }
+        : {})
     })
     let disposeCore = (): void => undefined
     const reflectionScenario = scenario.startsWith('reflection-')
@@ -142,6 +162,7 @@ it
         ? [{ path: 'reflection-reply.md', content: finalReply }]
         : [])
     ]
+    let taskProviderRequests = 0
     const server = createServer(async (req, response) => {
       if (!req.url?.startsWith('/v1/messages')) {
         response.writeHead(404)
@@ -155,6 +176,8 @@ it
         send(response, body, { text: 'background' }, 'background')
         return
       }
+      // Original native startup can make a background request; it is not this task's prompt.
+      taskProviderRequests++
       const messages = JSON.stringify(body.messages)
       const output = /OUTPUT: ([^\n"\\]+)/.exec(messages)?.[1]
       if (!output) throw new Error('Missing explicit output location')
@@ -293,6 +316,26 @@ it
       { timeout: 60000, interval: 50 }
     )
     const record = await core.get(handle.executionId)
+    if (scenario === 'pre-admission-rejection') {
+      expect(record).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed',
+        error: {
+          code: 'prompt-rejected-before-admission',
+          message: expect.stringContaining('Original ACP pre-admission rejection')
+        },
+        evidence: { status: 'unavailable', artifacts: [] }
+      })
+      expect(record.error!.message).toContain('No original runtime admission evidence')
+      expect(
+        state.events[record.executionId]!.some((event) => event.type === 'session-admitted')
+      ).toBe(false)
+      expect(record.identity.runtimeExecutionId).toBeUndefined()
+      expect(taskProviderRequests).toBe(0)
+      expect(await client.artifactVersion.count()).toBe(0)
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
     if (scenario === 'reflection-reserved-collision') {
       expect(record, JSON.stringify(record)).toMatchObject({
         phase: 'failed',
@@ -533,6 +576,11 @@ it
           ]
         })
         expect(JSON.parse(log.rawOutput)).toEqual(metadata.results)
+        const countBeforeReuse = await client.review.count()
+        expect(
+          await owners.commitDeterministicReview!({ target: record, checks: originalChecks })
+        ).toEqual(committed)
+        expect(await client.review.count()).toBe(countBeforeReuse)
         expect(checked.scope.artifactVersionIds).toContain(file.artifactRef.versionId)
         expect(await owners.readReviews(record)).toEqual([integrity])
       }

@@ -853,6 +853,27 @@ async function exercise(
           target.identity.sessionId!
         )
         const semantic = rows.find((review) => review.id === assessment.reviewId)!
+        const binding = semantic.reviewerLog.find(
+          (entry) =>
+            entry.kind === 'tool' && entry.toolName === 'earthnano.semantic-assessment-binding'
+        )
+        if (!binding || binding.kind !== 'tool' || !binding.rawInput)
+          throw new Error('Missing original semantic provenance')
+        const metadata = JSON.parse(binding.rawInput)
+        const assessor = result.records.find(
+          (record) => record.executionId === metadata.assessmentExecutionId
+        )!
+        const countBeforeReuse = await reopened.review.count()
+        expect(
+          await owners.commitSemanticReview({
+            target,
+            assessment: assessor,
+            criteria: metadata.criteriaText,
+            criteriaDigest: metadata.criteriaDigest,
+            document: metadata.document
+          })
+        ).toEqual({ reviewId: semantic.id, outcome: semantic.outcome })
+        expect(await reopened.review.count()).toBe(countBeforeReuse)
         expect(semantic.lifecycle).toBe('complete')
         expect(semantic.checks.length).toBe(1)
         expect(assessment.score).toBeGreaterThanOrEqual(0)

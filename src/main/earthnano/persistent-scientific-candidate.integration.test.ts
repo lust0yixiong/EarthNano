@@ -311,6 +311,14 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     expect(
       await client.uploadFile.count({ where: { sessionId: record.identity.sessionId! } })
     ).toBe(0)
+    const sourceEvidence = await owners.readSemanticSourceEvidence({ target: record, snapshots })
+    expect(sourceEvidence.inputs).toHaveLength(1)
+    expect(sourceEvidence.inputs[0].status).toBe('available')
+    expect(sourceEvidence.inputs[0].input.inputFileVersionId).toBe(managedInput.inputFileVersionId)
+    expect(sourceEvidence.inputs[0]).toMatchObject({
+      status: 'available',
+      content
+    })
     expect((await owners.readReviews(record))[0].outcome).toBe('pass')
     const calls = provider.stats.requests
     expect(await owners.shutdown()).toEqual({ reaped: true })
@@ -320,6 +328,9 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       getClient: async () => client,
       notebook: { service: notebook, rpc, mcpEntryPath }
     })
+    expect(await owners.readSemanticSourceEvidence({ target: record, snapshots })).toEqual(
+      sourceEvidence
+    )
     expect((await owners.exportResult(record)).files).toEqual(result.files)
     expect(provider.stats.requests).toBe(calls)
 

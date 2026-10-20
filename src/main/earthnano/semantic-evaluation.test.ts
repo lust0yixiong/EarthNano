@@ -277,6 +277,19 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
   })
   const committed: Array<Parameters<PersistentCandidateOwners['commitSemanticReview']>[0]> = []
   const owners = {
+    readSemanticSourceEvidence: vi.fn(async () => ({
+      schemaVersion: 1,
+      profile: 'bounded-utf8-v1',
+      inputs: [
+        {
+          input: input.task.managedInputs?.[0],
+          status: 'available',
+          content: 'value\n1\n2\n3\n',
+          digest: semanticDigest('value\n1\n2\n3\n')
+        }
+      ],
+      digest: semanticDigest('fixed-source-manifest')
+    })),
     exportResult: vi.fn(async (record: ExecutionRecord) => {
       const value = structuredClone(results.get(record.executionId)!)
       if (fault === 'tamper' && record.request.role !== 'reviewer')
@@ -575,4 +588,34 @@ it('assesses scientific outputs as fixed textual evidence without Notebook or ma
       reviewer.task.files.find((entry) => entry.path === 'evidence/task.json')?.content
     ).toContain('old-version')
   }
+})
+
+it('supplies the identical complete source content only to independent scientific assessments', async () => {
+  const f = await setup(9, 1, true)
+  await evaluateOptimizationSemantics(f.options)
+  const evidence = f.reviewerInputs.map((reviewer) =>
+    JSON.parse(reviewer.task.files.find((item) => item.path === 'evidence/sources.json')!.content)
+  )
+  expect(evidence[0]).toEqual(evidence[1])
+  expect(evidence[0].inputs[0].content).toBe('value\n1\n2\n3\n')
+  expect(f.committed.every((entry) => entry.sourceEvidence?.digest === evidence[0].digest)).toBe(
+    true
+  )
+  expect(
+    f.reviewerInputs.every(
+      (reviewer) => !reviewer.task.managedInputs && reviewer.harness.tools === 'workspace-only'
+    )
+  ).toBe(true)
+})
+
+it('rejects changed source evidence before admitting either independent assessment', async () => {
+  const f = await setup(9, 1, true)
+  vi.mocked(f.owners.readSemanticSourceEvidence).mockImplementationOnce(async () => ({
+    schemaVersion: 1,
+    profile: 'bounded-utf8-v1',
+    inputs: [],
+    digest: semanticDigest('different')
+  }))
+  await expect(evaluateOptimizationSemantics(f.options)).rejects.toThrow('source evidence differs')
+  expect(f.admissions).toHaveLength(0)
 })

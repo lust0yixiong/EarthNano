@@ -229,7 +229,15 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
       return {
         phase: 'failed',
         cleanup: 'unknown',
-        error: { code: 'owner-result-unavailable', message: message(error) }
+        error:
+          promptError !== undefined
+            ? {
+                code: admitted
+                  ? 'prompt-failed-result-unavailable'
+                  : 'prompt-rejected-before-admission',
+                message: `${message(promptError)}\nOwner result unavailable: ${message(error)}`
+              }
+            : { code: 'owner-result-unavailable', message: message(error) }
       }
     } finally {
       releaseCancellation?.()

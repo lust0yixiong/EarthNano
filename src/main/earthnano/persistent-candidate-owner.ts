@@ -1,3 +1,5 @@
+import { readSemanticSourceVersions, type SemanticSourceEvidence } from './semantic-source-evidence'
+import type { CandidateSnapshotStore } from './candidate-snapshot'
 import { createAcpNotebookBinding } from '../acp/notebook-binding'
 import { ConversationPermissionGrantStore } from '../acp/permission-broker'
 import type { NotebookRuntimeService } from '../notebook/runtime-service'
@@ -97,6 +99,11 @@ export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
   readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
+  readSemanticSourceEvidence(input: {
+    target: ExecutionRecord
+    snapshots: CandidateSnapshotStore
+    signal?: AbortSignal
+  }): Promise<SemanticSourceEvidence>
   commitDeterministicReview?(input: {
     target: ExecutionRecord
     checks: OutputCheckSpec[]
@@ -108,6 +115,8 @@ export interface PersistentCandidateOwners {
     criteria: string
     criteriaDigest: string
     document: SemanticAssessmentDocument
+    sourceEvidence?: SemanticSourceEvidence
+    snapshots?: CandidateSnapshotStore
     signal?: AbortSignal
   }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
@@ -312,6 +321,30 @@ export function createPersistentCandidateOwners(
     }
     return files
   }
+  const readSemanticSourceEvidence: PersistentCandidateOwners['readSemanticSourceEvidence'] =
+    async (input) => {
+      const target = structuredClone(input.target)
+      const { snapshots, signal } = input
+      signal?.throwIfAborted()
+      validateRecord(target)
+      if (
+        !['baseline', 'candidate'].includes(target.request.role) ||
+        target.phase !== 'completed' ||
+        target.cleanup !== 'confirmed' ||
+        target.requestDigest !== requestDigest(target.request)
+      )
+        throw new Error('Semantic sources require a completed original scientific target')
+      await pinnedTurn(target)
+      const frozen = await snapshots.resolve(target.request)
+      if (frozen.harness.tools !== 'notebook-python')
+        throw new Error('Target has no host-frozen scientific profile')
+      return readSemanticSourceVersions({
+        versions,
+        projectId: target.request.projectId,
+        inputs: normalizeFrozenNotebookInputs(frozen.task.managedInputs),
+        signal
+      })
+    }
   const openOwner: ClaudeCandidateDriverOptions['openOwner'] = async ({
     prepared,
     materialized,
@@ -919,6 +952,7 @@ export function createPersistentCandidateOwners(
   }
   return {
     openOwner,
+    readSemanticSourceEvidence,
     async exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult> {
       const frozen = await pinnedTurn(record)
       const scientificRef = record.evidence.references.find((ref) =>
@@ -990,6 +1024,33 @@ export function createPersistentCandidateOwners(
         checks: frozenChecks,
         results
       }
+      const expectedOutcome = results.every((result) => result.status === 'pass')
+        ? 'pass'
+        : 'flagged'
+      const existing = await reviews.getReviewsForProjectSession(
+        target.request.projectId,
+        target.identity.sessionId!
+      )
+      for (const review of existing) {
+        if (
+          review.lifecycle !== 'complete' ||
+          review.outcome !== expectedOutcome ||
+          review.turnMessageId !== target.identity.promptMessageId ||
+          canonical(review.scope) !== canonical(frozen.scope)
+        )
+          continue
+        if (
+          review.reviewerLog.some((entry) => {
+            if (entry.kind !== 'tool' || entry.toolName !== 'earthnano.output-checks') return false
+            try {
+              return canonical(JSON.parse(entry.rawInput ?? '')) === canonical(metadata)
+            } catch {
+              return false
+            }
+          })
+        )
+          return { reviewId: review.id, outcome: expectedOutcome }
+      }
       let reviewId: string | undefined
       try {
         signal?.throwIfAborted()
@@ -1056,7 +1117,16 @@ export function createPersistentCandidateOwners(
       }
     },
     async commitSemanticReview(input): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }> {
-      const { target, assessment, criteria, criteriaDigest, document, signal } = input
+      const { target, assessment, criteria, criteriaDigest, document, sourceEvidence } =
+        structuredClone({
+          target: input.target,
+          assessment: input.assessment,
+          criteria: input.criteria,
+          criteriaDigest: input.criteriaDigest,
+          document: input.document,
+          sourceEvidence: input.sourceEvidence
+        })
+      const { signal, snapshots } = input
       signal?.throwIfAborted()
       for (const record of [target, assessment]) {
         validateRecord(record)
@@ -1089,6 +1159,29 @@ export function createPersistentCandidateOwners(
         )
       )
         throw new Error('Criteria digest is not frozen in the assessment turn')
+      const scientific = target.evidence.references.some((ref) =>
+        ref.id.startsWith('notebook-scientific:')
+      )
+      if (scientific && (!sourceEvidence || !snapshots))
+        throw new Error('Scientific semantic Review requires frozen source evidence')
+      if (sourceEvidence) {
+        if (!snapshots) throw new Error('Source evidence TaskSnapshot authority unavailable')
+        const verified = await readSemanticSourceEvidence({
+          target,
+          snapshots: snapshots,
+          signal
+        })
+        if (
+          canonical(verified) !== canonical(sourceEvidence) ||
+          !assessor.blocks.some(
+            (block) =>
+              block.kind === 'message' &&
+              block.payload.role === 'user' &&
+              String(block.payload.content).includes(verified.digest)
+          )
+        )
+          throw new Error('Semantic source evidence differs from the frozen assessment turn')
+      }
       const files = await readFiles(target)
       const assessmentFiles = await readFiles(assessment)
       if (assessmentFiles.length !== 1 || assessmentFiles[0]!.path !== 'assessment.json')
@@ -1115,6 +1208,7 @@ export function createPersistentCandidateOwners(
         criteriaText: criteria,
         criteriaDigest,
         criteria: criteriaItems,
+        ...(sourceEvidence ? { sourceEvidence: sourceEvidence } : {}),
         targetExecutionId: target.executionId,
         targetArtifacts: target.evidence.artifacts,
         assessmentExecutionId: assessment.executionId,
@@ -1126,6 +1220,31 @@ export function createPersistentCandidateOwners(
         document: checked,
         limitation:
           'Model semantic judgment grounded in supplied quotes; not deterministic factual proof.'
+      }
+      const existing = await reviews.getReviewsForProjectSession(
+        target.request.projectId,
+        target.identity.sessionId!
+      )
+      for (const review of existing) {
+        if (
+          review.lifecycle !== 'complete' ||
+          review.outcome !== checked.outcome ||
+          review.turnMessageId !== target.identity.promptMessageId ||
+          canonical(review.scope) !== canonical(frozen.scope)
+        )
+          continue
+        if (
+          review.reviewerLog?.some((entry) => {
+            if (entry.kind !== 'tool' || entry.toolName !== 'earthnano.semantic-assessment-binding')
+              return false
+            try {
+              return canonical(JSON.parse(entry.rawInput ?? '')) === canonical(metadata)
+            } catch {
+              return false
+            }
+          })
+        )
+          return { reviewId: review.id, outcome: checked.outcome }
       }
       // Keep the domain's five-Finding limit: one aggregate Finding links the complete frozen
       // assessment artifact. All per-criterion paths/quotes/refs remain in that version and log.
