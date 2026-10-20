@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from . import tree as harness_tree
+from .execution_contract import ExecutionStopped
 from .spec import BenchmarkAdapter, RunView
 
 
@@ -223,6 +224,8 @@ def _write_rollout(dest: Path, r: RunView, adapter, trunc: int, names_only: bool
         (dest / "rollouts" / f"{r.label}.md").write_text(
             adapter.trajectory(r.run_dir, obs_trunc=trunc), encoding="utf-8"
         )
+    except ExecutionStopped:
+        raise
     except Exception as exc:
         (dest / "rollouts" / f"{r.label}.md").write_text(
             f"(trajectory unavailable: {type(exc).__name__}: {exc})", encoding="utf-8"
@@ -240,6 +243,8 @@ def _write_rollout(dest: Path, r: RunView, adapter, trunc: int, names_only: bool
         if not names_only:
             try:
                 text = adapter.deliverable_text(r.run_dir) or "(no deliverable produced)"
+            except ExecutionStopped:
+                raise
             except Exception as exc:
                 text = f"(deliverable unavailable: {type(exc).__name__}: {exc})"
             (dest / "deliverables" / f"{r.label}.md").write_text(text, encoding="utf-8")
@@ -328,6 +333,8 @@ def _write_pool(
                     else adapter.deliverable_text(roll.run_dir) or "(nothing produced)"
                 )
                 (d / "produced.md").write_text(produced, encoding="utf-8")
+            except ExecutionStopped:
+                raise
             except Exception as exc:
                 (d / "rollout.md").write_text(f"(unavailable: {exc})", encoding="utf-8")
         got.append(label)
@@ -344,6 +351,8 @@ def _listing(adapter, run_dir: Path) -> list[str]:
         ]
     try:
         return [str(x) for x in (fn(run_dir) or [])]
+    except ExecutionStopped:
+        raise
     except Exception as exc:
         return [f"(listing unavailable: {type(exc).__name__}: {exc})"]
 

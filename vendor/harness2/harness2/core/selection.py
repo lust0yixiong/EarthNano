@@ -27,6 +27,8 @@ from typing import Callable, Sequence, TypeVar
 
 from . import context
 from . import prompts as P
+from .execution_contract import ExecutionStopped
+from .method_execution import LEGACY, MethodExecution
 from .proposer import Proposer, ProposerError
 from .spec import BenchmarkAdapter, BenchPrompts, RunView, resolve_prompts
 
@@ -123,6 +125,8 @@ def _render_pool(
             continue
         try:
             rendered = adapter.deliverable_text(rv.run_dir) or ""
+        except ExecutionStopped:
+            raise
         except Exception as exc:
             sel.dropped.append(f"{lbl} (render failed: {type(exc).__name__}: {exc})"[:200])
             continue
@@ -137,6 +141,8 @@ def _render_pool(
                 continue
             try:
                 body = adapter.trajectory(rv.run_dir, obs_trunc=adapter.spec.obs_trunc)
+            except ExecutionStopped:
+                raise
             except Exception as exc:
                 sel.dropped.append(f"{lbl} (trajectory failed: {type(exc).__name__}: {exc})"[:200])
                 continue
@@ -275,6 +281,8 @@ def run_selection(
     prop: Proposer,
     work_dir: Path,
     pool_kind: str = "mixed",
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> Selection:
     """Pick one output. A selector failure falls back to a delivered base and never raises;
     an adapter bug does raise, because it is a bug and not a selection outcome.
@@ -330,7 +338,10 @@ def run_selection(
     context.assert_no_grader_verdicts(root)
 
     try:
-        reply = prop.call(mission, root, f"select.{mode}{k}")
+        reply = execution.call(
+            prop, mission, root, f"select.{mode}{k}",
+            role="selector", task_id=task_id, scope=scope,
+        )
         sel.usd += reply.cost_usd
         m = _CHOICE.search(reply.text)
         if not m:
@@ -343,6 +354,8 @@ def run_selection(
         sel.chosen_id = anon
         sel.chosen_label = sel.id_map[anon]
         sel.ok = True
+    except ExecutionStopped:
+        raise
     except (ProposerError, ValueError) as exc:
         if isinstance(exc, ProposerError):
             sel.usd += exc.cost_usd
@@ -408,6 +421,8 @@ def reflect_adoption(
     prop: Proposer,
     work_dir: Path,
     decisions: dict[str, str] | None = None,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> dict:
     """Learn from harness edits, decisions, trajectories, and deliverables after adoption."""
     chosen = candidates.get(sel.chosen_label)
@@ -444,7 +459,8 @@ def reflect_adoption(
     context.assert_no_leak_paths(root, adapter.spec.leak_globs)
     context.assert_no_grader_verdicts(root)
     experience = _distil(
-        task_id, sel, candidates, adapter=adapter, prop=prop, root=root, layout=evidence.layout
+        task_id, sel, candidates, adapter=adapter, prop=prop, root=root, layout=evidence.layout,
+        execution=execution, scope=scope,
     )
     sel.experience = experience
     _persist(sel, Path(work_dir) / "selection" / f"{sel.mode}{sel.k}", str(chosen.run_dir))
@@ -461,6 +477,8 @@ def _distil(
     root: Path,
     bp: BenchPrompts | None = None,
     layout: str = "",
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> dict:
     """Extract a supported lesson from the complete task-local improvement record."""
     mission = "\n\n".join(
@@ -479,7 +497,12 @@ def _distil(
     shutil.copytree(root, exp_root, ignore=shutil.ignore_patterns("selection.json"))
     context.assert_no_grader_verdicts(exp_root)
     try:
-        reply = prop.call(mission, exp_root, f"experience.{sel.mode}{sel.k}")
+        reply = execution.call(
+            prop, mission, exp_root, f"experience.{sel.mode}{sel.k}",
+            role="reflection", task_id=task_id, scope=scope,
+        )
+    except ExecutionStopped:
+        raise
     except ProposerError as exc:
         sel.usd += exc.cost_usd
         return {}

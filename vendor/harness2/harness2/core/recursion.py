@@ -29,7 +29,9 @@ from typing import Callable, Sequence
 from .. import config
 from . import context, prompts
 from . import tree as harness_tree
+from .execution_contract import ExecutionStopped
 from .ledger import Ledger
+from .method_execution import LEGACY, MethodExecution
 from .proposer import Proposer, ProposerError
 from .spec import BenchmarkAdapter, RunView, resolve_prompts
 
@@ -147,6 +149,8 @@ def _run_stage(
     library_dir: Path | None,
     pool: Sequence[tuple[str, Path, RunView | None]] = (),
     decisions: dict[str, str] | None = None,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> Stage:
     """Build evidence, propose an edit, and retry an invalid proposal once."""
     surface = adapter.substrate.surface()
@@ -163,6 +167,8 @@ def _run_stage(
             decisions=decisions,
         )
         mission = context.mission(tree, job=job)
+    except ExecutionStopped:
+        raise
     except Exception as exc:
         return Stage(
             label=label,
@@ -177,9 +183,11 @@ def _run_stage(
     spent_usd = 0.0
     spent_calls = 0
     all_cached = True
+    previous_execution_id = ""
     for attempt in range(1, STAGE_ATTEMPTS + 1):
         try:
-            reply = prop.call(
+            reply = execution.call(
+                prop,
                 mission
                 + (
                     f"\n\n# YOUR PREVIOUS ATTEMPT WAS REJECTED\n\n{err}\n\n"
@@ -191,7 +199,14 @@ def _run_stage(
                 f"{label}.a{attempt}",
                 harvest="context/harness",
                 max_attempts=TRANSPORT_ATTEMPTS,
+                role="composer" if dim in ("AGG", "COMPOSE") else "proposer",
+                task_id=task_id,
+                scope=scope,
+                stage_label=label,
+                retry_of_execution_id=previous_execution_id,
             )
+        except ExecutionStopped:
+            raise
         except ProposerError as exc:
             err = str(exc)
             spent_calls += exc.attempts or TRANSPORT_ATTEMPTS
@@ -199,6 +214,7 @@ def _run_stage(
             all_cached = False
             break
         spent_usd += reply.cost_usd
+        previous_execution_id = reply.execution_id
         spent_calls += 0 if reply.cached else max(1, reply.attempts)
         all_cached = all_cached and reply.cached
 
@@ -267,6 +283,8 @@ def _roll(
     work_dir: Path,
     *,
     record: bool = True,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> RunView:
     """Materialise a harness and roll it once. A dead rollout is recorded, never raised."""
     hdir = None
@@ -276,7 +294,7 @@ def _roll(
         )
     run_id = run_id_of(label)
     try:
-        rd = adapter.execute(task_id, hdir, run_id)
+        rd = execution.rollout(adapter, task_id, hdir, run_id, label=label, scope=scope)
         exists = Path(rd).exists()
         rv = RunView(
             label=label,
@@ -286,6 +304,8 @@ def _roll(
             delivered=exists and adapter.delivered(rd),
             error="" if exists else "adapter returned a missing run directory",
         )
+    except ExecutionStopped:
+        raise
     except Exception as exc:
         rv = RunView(
             label=label,
@@ -309,6 +329,8 @@ def _roll_many(
     work_dir: Path,
     *,
     width: int,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> dict[str, RunView]:
     """Roll independent harnesses concurrently, then record them in the caller's order.
 
@@ -322,14 +344,16 @@ def _roll_many(
     if n == 1:
         for label, tree in items:
             out[label] = _roll(
-                adapter, ledger, task_id, label, tree, run_id_of, work_dir, record=True
+                adapter, ledger, task_id, label, tree, run_id_of, work_dir, record=True,
+                execution=execution, scope=scope,
             )
         return out
     with ThreadPoolExecutor(max_workers=n) as pool:
         got = list(
             pool.map(
                 lambda it: _roll(
-                    adapter, ledger, task_id, it[0], it[1], run_id_of, work_dir, record=False
+                    adapter, ledger, task_id, it[0], it[1], run_id_of, work_dir, record=False,
+                    execution=execution, scope=scope,
                 ),
                 items,
             )
@@ -353,6 +377,8 @@ def run_parallel(
     library_dir: Path | None = None,
     propose_workers: int = PHASE_WIDTH,
     rollout_workers: int = PHASE_WIDTH,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> ModeResult:
     """WIDTH: 2k iid candidates from shared evidence, then k INDEPENDENT compositions."""
     surface = adapter.substrate.surface()
@@ -381,6 +407,8 @@ def run_parallel(
                     rollouts=base,
                     harness_dir=base_dir,
                     library_dir=library_dir,
+                    execution=execution,
+                    scope=scope,
                 ),
                 specs,
             )
@@ -398,6 +426,8 @@ def run_parallel(
             run_id_of,
             work_dir,
             width=rollout_workers,
+            execution=execution,
+            scope=scope,
         )
     )
 
@@ -421,6 +451,8 @@ def run_parallel(
                     rollouts=base,
                     harness_dir=base_dir,
                     library_dir=library_dir,
+                    execution=execution,
+                    scope=scope,
                     pool=pool_ev,
                     decisions={stage.label: stage.notes or stage.error for stage in stages},
                 ),
@@ -441,6 +473,8 @@ def run_parallel(
             run_id_of,
             work_dir,
             width=rollout_workers,
+            execution=execution,
+            scope=scope,
         )
     )
 
@@ -462,6 +496,8 @@ def run_sequential(
     library_dir: Path | None = None,
     propose_workers: int = 2,
     rollout_workers: int = PHASE_WIDTH,
+    execution: MethodExecution = LEGACY,
+    scope: str = "",
 ) -> ModeResult:
     """DEPTH: k nested passes over the same shared base evidence."""
     surface = adapter.substrate.surface()
@@ -503,6 +539,8 @@ def run_sequential(
                         rollouts=base,
                         harness_dir=current_dir,
                         library_dir=library_dir,
+                        execution=execution,
+                        scope=scope,
                         pool=list(history),
                         decisions={
                             stage.label: stage.notes or stage.error for stage in result.stages
@@ -524,6 +562,8 @@ def run_sequential(
                 run_id_of,
                 work_dir,
                 width=rollout_workers,
+                execution=execution,
+                scope=scope,
             )
         )
 
@@ -550,13 +590,18 @@ def run_sequential(
             rollouts=base,
             harness_dir=current_dir,
             library_dir=library_dir,
+            execution=execution,
+            scope=scope,
             pool=round_pool,
             decisions={stage.label: stage.notes or stage.error for stage in result.stages},
         )
         _record_sessions(ledger, [comp])
         result.stages.append(comp)
         result.trees[ck] = comp.tree
-        result.rollouts[ck] = _roll(adapter, ledger, task_id, ck, comp.tree, run_id_of, work_dir)
+        result.rollouts[ck] = _roll(
+            adapter, ledger, task_id, ck, comp.tree, run_id_of, work_dir,
+            execution=execution, scope=scope,
+        )
 
         history = round_pool + [(ck, work_dir / "harnesses" / ck, result.rollouts[ck])]
         current_harness = comp.tree
