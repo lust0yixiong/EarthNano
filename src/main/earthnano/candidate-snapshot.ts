@@ -241,11 +241,23 @@ const directory = async (path: string): Promise<{ path: string; assert(): Promis
 }
 
 const readRegular = async (path: string): Promise<string> => {
+  // O_NOFOLLOW is not provided on every supported platform. Keep an explicit no-link check too.
+  const observed = await lstat(path)
+  if (!observed.isFile() || observed.isSymbolicLink() || observed.nlink !== 1)
+    throw new Error('Candidate object is not a singly linked regular file')
   const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
   try {
     const stat = await handle.stat()
-    if (!stat.isFile() || stat.nlink !== 1)
+    if (
+      !stat.isFile() ||
+      stat.nlink !== 1 ||
+      stat.dev !== observed.dev ||
+      stat.ino !== observed.ino
+    )
       throw new Error('Candidate object is not a singly linked regular file')
+    const current = await lstat(path)
+    if (current.isSymbolicLink() || current.dev !== stat.dev || current.ino !== stat.ino)
+      throw new Error('Candidate object identity changed while reading')
     const bytes = await handle.readFile()
     const content = bytes.toString('utf8')
     if (!Buffer.from(content, 'utf8').equals(bytes))
