@@ -322,6 +322,54 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     })
     expect((await owners.exportResult(record)).files).toEqual(result.files)
     expect(provider.stats.requests).toBe(calls)
+
+    const frozen = await snapshots.resolve(request)
+    for (const scenario of ['tampered-source', 'changed-runtime', 'disabled-runtime'] as const) {
+      if (scenario === 'disabled-runtime')
+        await settings.setEnvironmentEnabled(
+          'python',
+          frozen.environment.notebook!.runtime.runtimeId,
+          false
+        )
+      const rejectedRefs = await snapshots.freeze({
+        task:
+          scenario === 'tampered-source'
+            ? { ...frozen.task, managedInputs: [{ ...managedInput, checksum: 'f'.repeat(64) }] }
+            : frozen.task,
+        harness: frozen.harness,
+        agent: frozen.agent,
+        environment:
+          scenario === 'changed-runtime'
+            ? {
+                ...frozen.environment,
+                notebook: {
+                  runtime: { ...frozen.environment.notebook!.runtime, version: '0.0.0-unavailable' }
+                }
+              }
+            : frozen.environment
+      })
+      const rejectedInvocation = await snapshots.freezeInvocation({
+        taskSnapshotRef: rejectedRefs.taskSnapshotRef,
+        harnessRevisionRef: rejectedRefs.harnessRevisionRef,
+        mission: frozen.invocation.mission
+      })
+      const rejection: ExecutionRequest = {
+        ...request,
+        ...rejectedRefs,
+        invocationRef: rejectedInvocation,
+        requestKey: scenario,
+        budgetRef: scenario
+      }
+      core.configureBudget(projectId, scenario, 1)
+      const beforeReject = provider.stats.requests
+      const rejectedHandle = await core.submit(rejection)
+      expect(await core.waitForTerminal(rejectedHandle.executionId)).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed',
+        error: { code: 'candidate-preparation-failed' }
+      })
+      expect(provider.stats.requests).toBe(beforeReject)
+    }
   },
   120_000
 )
