@@ -6,13 +6,17 @@ const f = vi.hoisted(() => ({
   method: vi.fn(),
   evaluate: vi.fn(),
   shutdown: vi.fn(),
-  dispose: vi.fn()
+  dispose: vi.fn(),
+  core: vi.fn()
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
 vi.mock('./execution-core', async (original) => ({
   ...(await original<typeof import('./execution-core')>()),
   ExecutionCore: class {
+    constructor(...args: unknown[]) {
+      f.core(...args)
+    }
     configureBudget = vi.fn()
     get = async (): Promise<unknown> => ({ phase: 'completed', cleanup: 'confirmed' })
     dispose = f.dispose
@@ -186,4 +190,37 @@ it('retains supported maximum and default deadlines without overflowing the Pyth
     MAX_HARNESS_EXECUTION_TIMEOUT_MS + HARNESS_RPC_TIMEOUT_MARGIN_MS
   )
   expect(maxConfig.rpcTimeoutMs).toBe(3_600_000)
+})
+
+it.each(['sequential', 'parallel'] as const)(
+  'forwards %s k=2 unchanged into private upstream config and bounded core',
+  async (mode) => {
+    const o = await options()
+    o.method = { mode, k: 2, concurrency: 3 }
+    f.method.mockImplementation(async () => {
+      // Caller mutation after admission cannot change the frozen method.
+      o.method = { mode: 'sequential', k: 1, concurrency: 1 }
+      return { status: 'ok' }
+    })
+    f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+    f.shutdown.mockResolvedValue({ reaped: true })
+    await runPersistentOptimization(o)
+    const config = JSON.parse(await readFile(join(o.workRoot, 'method-config.json'), 'utf8'))
+    expect(config.method).toEqual({ mode, k: 2, concurrency: 3 })
+    const plan = JSON.parse(await readFile(join(o.workRoot, 'assessment-plan.json'), 'utf8'))
+    expect(plan.baselineStageId).toBe('base1')
+    expect(f.core.mock.calls[0].slice(2)).toEqual([256, { concurrency: 3 }])
+  }
+)
+it('rejects invalid method or excessive budget before allocating any run resources', async () => {
+  const o = await options()
+  await expect(runPersistentOptimization({ ...o, executionLimit: 129 })).rejects.toThrow(
+    'Invalid optimization limits'
+  )
+  await expect(
+    runPersistentOptimization({ ...o, method: { mode: 'parallel', k: 9, concurrency: 1 } })
+  ).rejects.toThrow('Invalid optimization method')
+  await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+  expect(f.method).not.toHaveBeenCalled()
+  expect(f.core).not.toHaveBeenCalled()
 })

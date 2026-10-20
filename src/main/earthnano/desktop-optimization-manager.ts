@@ -21,6 +21,11 @@ import type {
   PersistentOptimizationOptions,
   PersistentOptimizationProgress
 } from './run-persistent-optimization'
+import {
+  normalizeOptimizationMethod,
+  minimumOptimizationExecutions,
+  MAX_OPTIMIZATION_EXECUTIONS
+} from '../../shared/earthnano/optimization-method'
 import { runPersistentOptimization } from './run-persistent-optimization'
 
 export interface DesktopOptimizationManagerOptions {
@@ -59,6 +64,7 @@ const safeFile = (value: unknown): value is string =>
   !value.includes('\0') &&
   value.split('/').every((part) => /^[A-Za-z0-9_. -]+$/.test(part) && part !== '.' && part !== '..')
 const validate = (request: StartDesktopOptimization): void => {
+  const method = normalizeOptimizationMethod(request?.method)
   const criteriaLines =
     typeof request?.criteria === 'string'
       ? request.criteria
@@ -81,8 +87,8 @@ const validate = (request: StartDesktopOptimization): void => {
     criteriaLines.length > 16 ||
     criteriaLines.some((line) => line.length > 2000) ||
     !Number.isSafeInteger(request.executionLimit) ||
-    request.executionLimit < 9 ||
-    request.executionLimit > 20 ||
+    request.executionLimit < minimumOptimizationExecutions(method) ||
+    request.executionLimit > MAX_OPTIMIZATION_EXECUTIONS ||
     !Array.isArray(request.files) ||
     request.files.length > 32
   )
@@ -163,7 +169,10 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
             prompt: captured.prompt,
             files: captured.files.map((file) => ({ path: file.path, content: file.content })),
             criteria: captured.criteria,
-            executionLimit: captured.executionLimit
+            executionLimit: captured.executionLimit,
+            ...(captured.method === undefined
+              ? {}
+              : { method: normalizeOptimizationMethod(captured.method) })
           })
         )
         .digest('hex')
@@ -194,6 +203,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
           runId,
           projectId: captured.projectId,
           sourceSessionId: captured.sourceSessionId,
+          method: normalizeOptimizationMethod(captured.method),
           state: 'queued',
           stage: 'queued',
           updatedAt: Date.now(),
@@ -307,6 +317,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         saved.progress.executions = records.map((record) => ({
           executionId: record.executionId,
           role: record.request.role,
+          ...(record.request.origin?.kind === 'optimization'
+            ? { stageId: record.request.origin.stageId }
+            : {}),
           phase: record.phase,
           ...(record.identity.sessionId ? { sessionId: record.identity.sessionId } : {})
         }))
@@ -322,7 +335,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
             ? 'stopping'
             : (records.findLast(
                 (r) => !['completed', 'failed', 'cancelled', 'interrupted'].includes(r.phase)
-              )?.request.role ?? progress.stage)
+              )?.request.origin?.stageId ?? progress.stage)
         this.persist(saved)
       }
       const result = await (this.options.run ?? runPersistentOptimization)({
@@ -331,6 +344,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         taskId: saved.progress.runId,
         workRoot,
         executionLimit: request.executionLimit,
+        method: normalizeOptimizationMethod(request.method),
         semanticCriteria: request.criteria,
         signal: controller.signal,
         onProgress: projectProgress
@@ -340,6 +354,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         stage: 'settled',
         records: result.records
       })
+      const methodResult = result.methodResult as { selection?: OptimizationProgress['selection'] }
+      if (methodResult?.selection)
+        saved.progress.selection = structuredClone(methodResult.selection)
       if (!result.assessments) throw new Error('Independent assessments missing')
       saved.progress.assessments = result.assessments
       saved.progress.state = controller.signal.aborted ? 'cancelled' : 'completed'

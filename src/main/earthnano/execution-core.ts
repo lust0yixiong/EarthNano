@@ -123,13 +123,24 @@ export class ExecutionCore implements ExecutionPort {
   private controllers = new Map<string, AbortController>()
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
   private disposed = false
+  private readonly concurrency: number
+  private drainScheduled = false
 
   constructor(
     private readonly store: ExecutionStore,
     private readonly driver: ExecutionDriver,
-    private readonly eventLimit = 256
+    private readonly eventLimit = 256,
+    options: { concurrency?: number } = {}
   ) {
     if (!Number.isSafeInteger(eventLimit) || eventLimit < 1) throw new Error('Invalid event limit')
+    if (
+      options.concurrency !== undefined &&
+      (!Number.isSafeInteger(options.concurrency) ||
+        options.concurrency < 1 ||
+        options.concurrency > 4)
+    )
+      throw new Error('Invalid execution concurrency')
+    this.concurrency = options.concurrency ?? Infinity
     this.state = clone(store.load())
     validateState(this.state)
     // Recovery is called only after the caller has acquired exclusive store/runtime ownership.
@@ -226,11 +237,7 @@ export class ExecutionCore implements ExecutionPort {
       this.append(state, record, { type: 'phase', phase: 'queued' })
     })
     // A durable handle is observable before any provider work begins.
-    setImmediate(() => {
-      if (!this.disposed && this.state.records[record.executionId].phase === 'queued') {
-        void this.drive(record.executionId)
-      }
-    })
+    this.scheduleDrain()
     return this.handle(record)
   }
 
@@ -343,6 +350,24 @@ export class ExecutionCore implements ExecutionPort {
   private active(id: string): boolean {
     return !this.disposed && !terminal(this.require(id).phase)
   }
+  private scheduleDrain(): void {
+    if (this.disposed || this.drainScheduled) return
+    this.drainScheduled = true
+    setImmediate(() => {
+      this.drainScheduled = false
+      if (this.disposed) return
+      // Cleanup uncertainty fences the owner, including admissions already waiting in its queue.
+      if (Object.values(this.state.records).some((record) => record.cleanup === 'unknown')) return
+      for (const record of Object.values(this.state.records)) {
+        if (
+          this.controllers.size >= this.concurrency ||
+          Object.values(this.state.records).some((entry) => entry.cleanup === 'unknown')
+        )
+          break
+        if (this.require(record.executionId).phase === 'queued') void this.drive(record.executionId)
+      }
+    })
+  }
   private async drive(id: string): Promise<void> {
     const controller = new AbortController()
     this.controllers.set(id, controller)
@@ -417,7 +442,10 @@ export class ExecutionCore implements ExecutionPort {
     } finally {
       clearTimeout(this.timers.get(id))
       this.timers.delete(id)
-      this.controllers.delete(id)
+      // A terminal record with unknown cleanup still occupies capacity. A late success cannot
+      // reconcile a timeout: that requires explicit owner-level reconciliation.
+      if (!this.disposed && this.require(id).cleanup === 'confirmed') this.controllers.delete(id)
+      this.scheduleDrain()
     }
   }
   private finish(

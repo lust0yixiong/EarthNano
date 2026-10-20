@@ -7340,6 +7340,19 @@
     "Proposing": "제안 중",
     "Flagged": "확인 필요",
     "Stopping": "중지 중",
-    "Working": "처리 중"
+    "Working": "처리 중",
+    "Selecting": "선택 중",
+    "Sequential": "순차",
+    "Parallel": "병렬",
+    "Optimization mode": "최적화 모드",
+    "Concurrent executions": "동시 실행 수",
+    "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "첫 시도에는 평가를 포함하여 {{minimum}}회 실행이 필요하며 재시도에도 같은 한도가 적용됩니다.",
+    "Method: {{mode}} · k={{k}} · concurrency={{concurrency}}": "방식: {{mode}} · k={{k}} · 동시 실행 수={{concurrency}}",
+    "Trivial selection": "단순 선택",
+    "Selector comparison": "선택기 비교",
+    "Selection fallback": "대체 선택",
+    "Stage: {{stage}}": "단계: {{stage}}",
+    "Selected {{label}} from {{candidateCount}} candidates": "후보 {{candidateCount}}개 중 {{label}} 선택",
+    "Recursion parameter (k)": "재귀 매개변수 (k)"
   }
 }

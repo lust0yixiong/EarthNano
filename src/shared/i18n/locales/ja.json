@@ -7342,6 +7342,19 @@
     "Proposing": "提案中",
     "Flagged": "要確認",
     "Stopping": "停止中",
-    "Working": "処理中"
+    "Working": "処理中",
+    "Selecting": "選択中",
+    "Sequential": "逐次",
+    "Parallel": "並列",
+    "Optimization mode": "最適化モード",
+    "Concurrent executions": "同時実行数",
+    "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "初回試行には評価を含め {{minimum}} 回の実行が必要です。再試行にも同じ上限が適用されます。",
+    "Method: {{mode}} · k={{k}} · concurrency={{concurrency}}": "方式：{{mode}} · k={{k}} · 同時実行数={{concurrency}}",
+    "Trivial selection": "自明な選択",
+    "Selector comparison": "セレクターによる比較",
+    "Selection fallback": "代替選択",
+    "Stage: {{stage}}": "ステージ：{{stage}}",
+    "Selected {{label}} from {{candidateCount}} candidates": "{{candidateCount}} 個の候補から {{label}} を選択",
+    "Recursion parameter (k)": "再帰パラメーター (k)"
   }
 }

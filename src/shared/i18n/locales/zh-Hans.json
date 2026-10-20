@@ -7342,6 +7342,19 @@
     "Proposing": "提案中",
     "Flagged": "需关注",
     "Stopping": "正在停止",
-    "Working": "处理中"
+    "Working": "处理中",
+    "Selecting": "选择中",
+    "Sequential": "顺序",
+    "Parallel": "并行",
+    "Optimization mode": "优化模式",
+    "Concurrent executions": "并发执行数",
+    "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "首次尝试需要 {{minimum}} 次执行（含评估）；重试共用同一限额。",
+    "Method: {{mode}} · k={{k}} · concurrency={{concurrency}}": "方法：{{mode}} · k={{k}} · 并发数={{concurrency}}",
+    "Trivial selection": "直接选择",
+    "Selector comparison": "选择器比较",
+    "Selection fallback": "回退选择",
+    "Stage: {{stage}}": "阶段：{{stage}}",
+    "Selected {{label}} from {{candidateCount}} candidates": "从 {{candidateCount}} 个候选中选择了 {{label}}",
+    "Recursion parameter (k)": "递归参数 (k)"
   }
 }

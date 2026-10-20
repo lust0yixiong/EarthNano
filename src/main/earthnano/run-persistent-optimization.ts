@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import {
+  normalizeOptimizationMethod,
+  MAX_OPTIMIZATION_EXECUTIONS,
+  type OptimizationMethodOptions
+} from '../../shared/earthnano/optimization-method'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
 import {
@@ -43,6 +48,7 @@ export interface PersistentOptimizationOptions {
   python?: string
   ownerOptions: PersistentCandidateOwnersOptions
   binding: ClaudeCandidateDriverOptions['binding']
+  method?: OptimizationMethodOptions
   executionLimit?: number
   executionTimeoutMs?: number
   /** Overall execution deadline, including independent assessments; cleanup is always awaited. */
@@ -66,6 +72,7 @@ export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
 ): Promise<PersistentOptimizationResult> {
   options.signal?.throwIfAborted()
+  const method = normalizeOptimizationMethod(options.method)
   const input = structuredClone(options.input)
   const semanticCriteria = options.semanticCriteria
   if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
@@ -75,6 +82,7 @@ export async function runPersistentOptimization(
   const executionTimeoutMs = options.executionTimeoutMs ?? 120_000
   const timeoutMs = options.timeoutMs ?? 600_000
   if (
+    limit > MAX_OPTIMIZATION_EXECUTIONS ||
     ![limit, executionTimeoutMs, timeoutMs].every(
       (value) => Number.isSafeInteger(value) && value > 0
     )
@@ -103,6 +111,7 @@ export async function runPersistentOptimization(
         join(options.workRoot, 'assessment-plan.json'),
         JSON.stringify({
           schemaVersion: 1,
+          ...(method.k > 1 ? { baselineStageId: 'base1' } : {}),
           criteria: semanticCriteria,
           criteriaDigest: semanticDigest(semanticCriteria)
         }),
@@ -125,7 +134,9 @@ export async function runPersistentOptimization(
         snapshots,
         binding: options.binding,
         openOwner: owners.openOwner
-      })
+      }),
+      256,
+      { concurrency: method.concurrency }
     )
     core.configureBudget(options.projectId, optimizationId, limit)
     binding = new HarnessOptimizationBinding({
@@ -141,6 +152,7 @@ export async function runPersistentOptimization(
     })
     const config = {
       configVersion: 1,
+      method,
       taskId: options.taskId,
       task: input.task,
       baseHarnessFiles: [
