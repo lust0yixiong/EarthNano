@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-20",
+  "validatedSourceCommit": "0d34a28ad8b6139b3ef9f545407782229ed03f2f",
+  "baseCommit": "a0363969ed64acf5ea046c3aa859db733431f145",
+  "platform": "Darwin arm64",
+  "node": "v26.0.0",
+  "scope": "Original Harness single-mode recursion/selection and desktop controls; not full scientific or release acceptance",
+  "upstreamReuse": {
+    "harnessCoreFilesChangedThisRound": 0,
+    "reused": [
+      "schedule.mode_token",
+      "schedule.Namespace",
+      "schedule.run_task",
+      "recursion.run_mode",
+      "recursion.run_sequential",
+      "recursion.run_parallel",
+      "selection.selection_pool",
+      "selection.trivial_selection",
+      "selection.run_selection",
+      "OpenScience Session/ArtifactVersion/Review and Claude/ACP owners"
+    ],
+    "inheritedSeamModificationsRemain": true
+  },
+  "vitest": [
+    {
+      "name": "default",
+      "files": 12,
+      "passed": 965,
+      "failed": 0,
+      "command": "node node_modules/vitest/vitest.mjs run src/main/earthnano src/shared/earthnano src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx src/renderer/src/i18n/resources.test.ts --project default --maxWorkers=2"
+    },
+    {
+      "name": "native-persistence",
+      "files": 1,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 4,
+      "command": "node node_modules/vitest/vitest.mjs run src/main/earthnano/persistent-optimization.integration.test.ts --project process --maxWorkers=1",
+      "scope": [
+        "k1 legacy behavior",
+        "sequential k2",
+        "parallel k2",
+        "anonymous original selector",
+        "predeclared base1 assessment",
+        "reopen original SQLite/Session/versions/Review",
+        "single and concurrent native cancellation",
+        "ordinary failed proposer charged then upstream retry"
+      ]
+    }
+  ],
+  "python": {
+    "passed": 40,
+    "failed": 0,
+    "suites": {
+      "test_earthnano*.py": 16,
+      "test_workflow.py": 5,
+      "test_execution_seam.py": 19
+    },
+    "cwd": "vendor/harness2",
+    "commandTemplate": "python3 -B -m unittest discover -s tests -p <suite>"
+  },
+  "browser": {
+    "passed": 6,
+    "failed": 0,
+    "channel": "installed Chrome",
+    "command": "node node_modules/@playwright/test/cli.js test --config <temporary Chrome override of e2e/playwright.browser.config.ts> e2e/browser/task-optimization.spec.ts",
+    "scope": "Typed mock API; both options and selector display, 1100/390px, start/poll/stop, navigation/session reset, safe errors and Web hiding"
+  },
+  "electron": {
+    "passed": 1,
+    "failed": 0,
+    "command": "OPEN_SCIENCE_E2E_ISOLATE_HOME=1 node node_modules/@playwright/test/cli.js test e2e/task-optimization-desktop.spec.ts --workers=1",
+    "scope": "Offline real desktop command/preload dispatch and unsupported route rejection at zero admissions; same final UI/IPC, before final driver-settlement-only patch",
+    "paidSuccessPathClickedInElectron": false
+  },
+  "checks": [
+    "Node TypeScript passed",
+    "Web TypeScript passed",
+    "ESLint on all changed TS/TSX passed",
+    "Prettier on all changed TS/TSX passed",
+    "Shared execution contract generator --check passed",
+    "Final Node backend + 3 worker build passed",
+    "Electron/renderer build passed before settlement-only patch",
+    "git diff --check passed",
+    "No credential matches in changed source files"
+  ],
+  "environment": {
+    "finalValidationLocation": "Local temporary archive outside Synology Drive; source matches validatedSourceCommit",
+    "dependencies": "Fresh npm ci --ignore-scripts --prefer-offline from original lockfile, original patch-package patches, local build:packages; no dependency version or repository lockfile changes",
+    "prisma": "v6.19.3 client regenerated in the temporary checkout with native-only generator metadata and existing native engine binaries. Original datamodel fingerprint matches after excluding generator metadata; repository schema unchanged. Standard multi-platform generate was stopped while fetching unused platform engines.",
+    "initialFailures": [
+      "Missing bundled Playwright Chromium; rerun used installed Chrome",
+      "Selector fixture incorrectly expected context/ prefix in serialized relative paths; corrected",
+      "Terminal budget count includes failed attempts; fixture corrected",
+      "Actual concurrent-stop race fixed by bounded driver settlement before journal check/dispose",
+      "Cloud filesystem stalls and short reads caused pre-test import failures in picomatch/Ajv/Prisma/locales; checks moved to local temporary archive; these attempts are not counted as test passes"
+    ]
+  },
+  "liveProviderEvidence": "ROUND6_DEEPSEEK_VALIDATION.json",
+  "limitations": [
+    "No full npm test or complete original research-flow acceptance",
+    "No Library/reflection/domain stream/automatic optimization enabled",
+    "Ordinary Send not yet migrated to the common execution core",
+    "Completed attempts must still pass integrity Review even if upstream recovers from invalid text proposals",
+    "Count budget is not provider request/token/currency cap",
+    "k1 and k2 execution verified; higher k admission bounds tested, not live high-k workload capacity",
+    "Directory/process isolation is not an OS sandbox",
+    "Darwin arm64 only; no signed installer or cross-platform validation",
+    "GitHub Actions remains disabled",
+    "Small synthetic task does not prove scientific or cross-task quality improvement"
+  ],
+  "validatedImplementationCommit": "76903e56db131d5a71439122e1af4fd58be9ef2a",
+  "sourceNote": "Implementation checks target 76903e56; subsequent commit adds test-report diagnostics only; final formatting and documentation do not change execution behavior.",
+  "liveProviderSummary": {
+    "attempts": 3,
+    "passed": 2,
+    "failed": 1,
+    "sequential": {
+      "executions": 18,
+      "baselineScore": 96,
+      "candidateScore": 100
+    },
+    "parallel": {
+      "executions": 17,
+      "baselineScore": 100,
+      "candidateScore": 100
+    },
+    "note": "First sequential failure retained; no grading requirement was waived."
+  }
+}

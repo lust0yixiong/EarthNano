@@ -16,6 +16,7 @@ DeepSeek 样例通过生产 manager 的集成测试运行；真实 Electron 验�
 - [第三轮 Claude Code 配置与候选隔离](docs/earthnano/ROUND3.md)
 - [第四轮持久化与真实优化闭环](docs/earthnano/ROUND4.md)
 - [第五轮桌面入口与独立语义评估](docs/earthnano/ROUND5.md)
+- [第六轮原递归模式、多候选选择与并发控制](docs/earthnano/ROUND6.md)
 - [共享类型、schema 与契约测试](contracts/execution/README.md)
 - [上游来源、固定提交和许可证](UPSTREAMS.json)
 - [Harness² 固定基线与集成源码](vendor/harness2/)

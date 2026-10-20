@@ -26,6 +26,8 @@ The original method chooses phase ordering and candidates. Platform execution ca
 drivers, reserves budget on durable admission, and keeps queued work cancellable. An unknown
 cleanup outcome fences further execution instead of releasing capacity to another candidate.
 Neither cancellation nor budget exhaustion may become an ordinary method fallback.
+Process retirement is followed by bounded driver settlement before checking terminal journal
+facts. Settlement timeout never infers cleanup or releases the writer lock.
 
 Stage identifiers are projected from the existing ExecutionRequest origin. The Python result
 keeps existing status/summary/records/chosenArtifacts/configurationChanged/fallbackStages and

@@ -334,7 +334,8 @@ async function exercise(
   })
   onTestFinished(async () => {
     if (live && desktop && !liveReportWritten && process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT) {
-      let records: Array<{ role: string; phase: string; cleanup: string; artifactCount: number }> = []
+      let records: Array<{ role: string; phase: string; cleanup: string; artifactCount: number }> =
+        []
       if (desktopRunDirectory)
         try {
           const journal = JSON.parse(
