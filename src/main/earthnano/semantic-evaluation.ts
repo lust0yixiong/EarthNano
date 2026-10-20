@@ -298,7 +298,10 @@ export async function evaluateOptimizationSemantics(options: {
   )
   if (baselines.length !== 1 || candidates.length !== 1)
     fail('Assessment requires one baseline and an unambiguous chosen final version')
-  const originalRefs = await options.snapshots.freeze(input)
+  const preparationSignal = options.signal
+    ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs)])
+    : AbortSignal.timeout(options.timeoutMs)
+  const originalRefs = await abortable(options.snapshots.freeze(input), preparationSignal)
   for (const target of [baselines[0]!, candidates[0]!]) {
     complete(target)
     if (!same(target.request.taskSnapshotRef, originalRefs.taskSnapshotRef))
@@ -338,7 +341,7 @@ export async function evaluateOptimizationSemantics(options: {
         environment: input.environment
       }
       const refs = await abortable(options.snapshots.freeze(reviewInput), signal)
-      const mission = `EarthNano execution role: reviewer. Assess only the frozen evidence. Criteria digest: ${criteriaDigest}. Every criterion c1..cN must occur exactly once; each check needs at least one exact target artifactRef, path, and nonempty quote that exists in that file. outcome is pass exactly when every check passes, otherwise flagged. Scores are integers 0..100. Do not output markdown or extra fields. Use this JSON schema: ${encodeEvidence(semanticAssessmentSchema)}`
+      const mission = `EarthNano execution role: reviewer. Assess only the frozen evidence. checks.evidence may cite ONLY entries of INPUT/evidence/artifacts.json: copy path and the complete artifactRef verbatim from the SAME array entry. The quote must be an exact contiguous short substring of that entry's content; do not quote JSON container syntax or escaped serialization instead. INPUT/evidence/task.json and INPUT/evidence/criteria.json provide source facts and requirements for reasoning, but are NOT target artifacts and MUST NOT appear in checks.evidence.path or be combined with a target artifactRef. Explain source comparisons in rationale instead. Artifact path values are logical identifiers inside the JSON array, not host files or files in your working directory; do not try to Read them from disk. Their full content is already supplied in artifacts.json. Criteria digest: ${criteriaDigest}. Every criterion c1..cN must occur exactly once; each check needs at least one exact target artifactRef, path, and nonempty quote that exists in that file. outcome is pass exactly when every check passes, otherwise flagged. Scores are integers 0..100. Do not output markdown or extra fields. Use this JSON schema: ${encodeEvidence(semanticAssessmentSchema)}`
       const invocationRef = await abortable(
         options.snapshots.freezeInvocation({
           taskSnapshotRef: refs.taskSnapshotRef,
