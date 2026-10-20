@@ -1,0 +1,21 @@
+import type { DesktopOptimizationApi } from '../earthnano/desktop-optimization'
+import { callable, ELECTRON } from './definition'
+
+export const contracts = {
+  'optimization.start': callable<DesktopOptimizationApi['start']>()('optimization', [
+    'optimization:start',
+    ELECTRON
+  ]),
+  'optimization.get': callable<DesktopOptimizationApi['get']>()('optimization', [
+    'optimization:get',
+    ELECTRON
+  ]),
+  'optimization.latest': callable<DesktopOptimizationApi['latest']>()('optimization', [
+    'optimization:latest',
+    ELECTRON
+  ]),
+  'optimization.stop': callable<DesktopOptimizationApi['stop']>()('optimization', [
+    'optimization:stop',
+    ELECTRON
+  ])
+} as const

@@ -39,6 +39,7 @@ vi.mock('electron', () => ({
 
 // The subset of the bridge these tests exercise. Args are unknown — forwarding, not shape, is asserted.
 type PreloadApi = {
+  optimization: import('../shared/earthnano/desktop-optimization').DesktopOptimizationApi
   saveSessionArtifacts: (request: unknown) => unknown
   saveProjectArtifacts: (request: unknown) => unknown
   getRuntimeVersions: () => { electron: string; chrome: string; node: string }
@@ -476,6 +477,10 @@ describe('preload bridge — public surface inventory', () => {
       'officePreview.onState',
       'officePreview.open',
       'officePreview.reportState',
+      'optimization.get',
+      'optimization.latest',
+      'optimization.start',
+      'optimization.stop',
       'packagePresentation.cancelTransfer',
       'packagePresentation.getState',
       'packagePresentation.onStateChanged',
@@ -1901,5 +1906,31 @@ describe('preload bridge — sessions + agent-framework IPC channels', () => {
       transferId: request.transferId
     })
     expect(invokeMock).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('desktop optimization preload protocol', () => {
+  it('forwards start/get/latest/stop over desktop-only typed channels', async () => {
+    const input = {
+      projectId: 'p',
+      sourceSessionId: 's',
+      requestKey: 'r',
+      prompt: 'Synthetic task',
+      files: [],
+      criteria: 'Valid JSON',
+      executionLimit: 9
+    }
+    await api.optimization.start(input)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:start', input)
+    const key = { projectId: 'p', sourceSessionId: 's', runId: 'run' }
+    await api.optimization.get(key)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:get', key)
+    await api.optimization.latest({ projectId: 'p', sourceSessionId: 's' })
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:latest', {
+      projectId: 'p',
+      sourceSessionId: 's'
+    })
+    await api.optimization.stop(key)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:stop', key)
   })
 })

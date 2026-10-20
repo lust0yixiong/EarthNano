@@ -32,6 +32,7 @@ import { composeNotebookSurfaces } from './composition/notebook-surfaces'
 import { composeNotifications } from './composition/notifications'
 import { composeProjectLifecycle, composeProjectRecovery } from './composition/project-lifecycle'
 import { composeResearchCatalog } from './composition/research-catalog'
+import { registerDesktopOptimizationComposition } from './composition/desktop-optimization'
 import { registerReviewerComposition } from './composition/reviewer'
 import { composeSessionAuthority } from './composition/session-authority'
 import { composeSessionFoundation } from './composition/session-foundation'
@@ -766,6 +767,14 @@ export const createApplicationModules = async (
     runtimeShutdownOwner: handoff.reviewerModelRuntimeShutdown,
     declareElectronAdapter
   })
+  if (!headless)
+    await registerDesktopOptimizationComposition(modules, {
+      settings: settingsBootstrap.settingsService,
+      archive: projectLifecycle.archiveCoordinator,
+      sessions: sessionAuthority.sessionPersistenceCoordinator,
+      lifecycle: handoff.optimizationRuntimeShutdown,
+      declareElectronAdapter
+    })
   sessionAuthority.reviewerCommandOwnerRef.current = reviewerCommandOwner
   const commandDependencies = composeCommandDependencies({
     localeOwner,
@@ -907,7 +916,8 @@ export const createApplicationModules = async (
       sessionPackageSurfaces.browserPackageImport.active ||
       sessionPackageSurfaces.sessionPackageDesktop.hasActiveTransfer(),
     hasActiveReviewerWork: () =>
-      handoff.reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false,
+      (handoff.reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false) ||
+      (handoff.optimizationRuntimeShutdown.current?.hasActiveWork() ?? false),
     getActiveSettingsInstallId: () => settingsBootstrap.settingsService.getActiveInstallId(),
     holdSettingsInstallAdmission: () => settingsBootstrap.settingsService.holdInstallAdmission(),
     prepareForQuit: async () => {

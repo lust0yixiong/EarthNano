@@ -33,6 +33,7 @@ import {
   type InstallReadiness
 } from '../update/strategy'
 import { type ReviewerRuntimeShutdownOwner } from './reviewer'
+import type { DesktopOptimizationLifecycle } from './desktop-optimization'
 
 export async function composeHandoff({
   declareElectronAdapter,
@@ -73,6 +74,7 @@ export async function composeHandoff({
   loadSessionSummaries?: () => Promise<readonly { id: string; projectId: string; title: string }[]>
   modules: ApplicationModuleBuilder
 }): Promise<{
+  optimizationRuntimeShutdown: { current: DesktopOptimizationLifecycle | undefined }
   reviewerModelRuntimeShutdown: { current: ReviewerRuntimeShutdownOwner | undefined }
   shutdownCoordinator: BackendShutdownCoordinator
   durableDataRootHandoffGate: (
@@ -89,25 +91,31 @@ export async function composeHandoff({
   const reviewerModelRuntimeShutdown: { current: ReviewerRuntimeShutdownOwner | undefined } = {
     current: undefined
   }
+  const optimizationRuntimeShutdown: { current: DesktopOptimizationLifecycle | undefined } = {
+    current: undefined
+  }
   const shutdownCoordinator = new BackendShutdownCoordinator({
     runtime: {
       shutdownForQuit: async () => {
-        const [main, reviewer] = await Promise.all([
+        const [main, reviewer, optimization] = await Promise.all([
           runtime.shutdownForQuit(),
           reviewerModelRuntimeShutdown.current
             ? reviewerModelRuntimeShutdown.current.shutdown()
-            : Promise.resolve({ reaped: true })
+            : Promise.resolve({ reaped: true }),
+          optimizationRuntimeShutdown.current?.shutdown() ?? Promise.resolve({ reaped: true })
         ])
-        return { reaped: main.reaped && reviewer.reaped }
+        return { reaped: main.reaped && reviewer.reaped && optimization.reaped }
       },
       shutdownForUpdateGate: async () => {
-        const [main, reviewer] = await Promise.all([
+        const [main, reviewer, optimization] = await Promise.all([
           runtime.shutdownForUpdateGate(),
           reviewerModelRuntimeShutdown.current
             ? reviewerModelRuntimeShutdown.current.shutdownForUpdateGate()
-            : Promise.resolve({ reaped: true })
+            : Promise.resolve({ reaped: true }),
+          optimizationRuntimeShutdown.current?.prepareForUpdateGate() ??
+            Promise.resolve({ reaped: true })
         ])
-        return { reaped: main.reaped && reviewer.reaped }
+        return { reaped: main.reaped && reviewer.reaped && optimization.reaped }
       }
     },
     notebook: notebookLifecycle,
@@ -132,7 +140,11 @@ export async function composeHandoff({
       delegated: { getActiveDelegatedSessions },
       notebook: notebookLifecycle
     }).map((session) => session.kind)
-    if (reviewerModelRuntimeShutdown.current?.hasActiveWork()) blockers.push('reviewer')
+    if (
+      reviewerModelRuntimeShutdown.current?.hasActiveWork() ||
+      optimizationRuntimeShutdown.current?.hasActiveWork()
+    )
+      blockers.push('reviewer')
     if (settingsService.hasActiveInstall()) blockers.push('settings-install')
     return blockers
   }
@@ -164,6 +176,7 @@ export async function composeHandoff({
   // quit the running app to install.
   let releaseSettingsInstallAdmission: (() => void) | undefined
   const abortUpdateHandoff = (): void => {
+    optimizationRuntimeShutdown.current?.releaseUpdateGate()
     packageHandoffHeld.current = false
     const releaseAdmission = releaseSettingsInstallAdmission
     releaseSettingsInstallAdmission = undefined
@@ -248,6 +261,7 @@ export async function composeHandoff({
     stopUpdateScheduler = startUpdateScheduler(updateStrategy)
   })
   return {
+    optimizationRuntimeShutdown,
     reviewerModelRuntimeShutdown,
     shutdownCoordinator,
     durableDataRootHandoffGate,
@@ -272,6 +286,7 @@ export function composeStorageHandoff({
   runtime,
   sideChatRuntime,
   reviewerModelRuntimeShutdown,
+  optimizationRuntimeShutdown = { current: undefined },
   durableDataRootHandoffGate,
   notifyRendererDurabilityAborted
 }: {
@@ -287,6 +302,7 @@ export function composeStorageHandoff({
   notebookLifecycle: ReturnType<typeof withReproducibilityNotebookLifecycle>
   runtime: ReturnType<typeof createAcpRuntime>
   sideChatRuntime: SideChatRuntimeOwner
+  optimizationRuntimeShutdown: { current: DesktopOptimizationLifecycle | undefined }
   reviewerModelRuntimeShutdown: { current: ReviewerRuntimeShutdownOwner | undefined }
   durableDataRootHandoffGate: (
     target: RendererSessionPersistenceTarget,
@@ -300,6 +316,7 @@ export function composeStorageHandoff({
     const releaseAdmission = releaseDataRootInstallAdmission
     releaseDataRootInstallAdmission = undefined
     releaseAdmission?.()
+    optimizationRuntimeShutdown.current?.releaseUpdateGate()
   }
 
   const storageCommandOwner = createStorageCommandOwner({
@@ -309,7 +326,9 @@ export function composeStorageHandoff({
     getActivePromptSessions: () => runtime.getActivePromptSessions(),
     getActiveSideChatSessions,
     getActiveDelegatedSessions,
-    hasActiveReviewerWork: () => reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false,
+    hasActiveReviewerWork: () =>
+      (reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false) ||
+      (optimizationRuntimeShutdown.current?.hasActiveWork() ?? false),
     settingsService,
     micromambaRunner,
     acknowledgeWebRendererFlush: webSessionPersistenceFlush.acknowledge,
@@ -350,7 +369,9 @@ export function composeStorageHandoff({
         getActivePromptSessions: () => runtime.getActivePromptSessions(),
         getActiveSideChatSessions,
         getActiveDelegatedSessions,
-        hasActiveReviewerWork: () => reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false,
+        hasActiveReviewerWork: () =>
+          (reviewerModelRuntimeShutdown.current?.hasActiveWork() ?? false) ||
+          (optimizationRuntimeShutdown.current?.hasActiveWork() ?? false),
         settingsService
       },
       storageCommandOwner

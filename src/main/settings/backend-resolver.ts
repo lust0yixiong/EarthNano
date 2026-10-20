@@ -240,7 +240,10 @@ export class AgentBackendResolver {
   // Direct, tool-less features need the same admitted provider/model as an Agent session, but do
   // not need a framework process. Resolve the provider through the existing runtime projection so
   // credentials and vendor endpoints are still derived in one main-process-only seam.
-  async resolveExplicitDirectProvider(target: ExplicitAgentBackendTarget): Promise<{
+  async resolveExplicitDirectProvider(
+    target: ExplicitAgentBackendTarget,
+    constraints: { customMessagesOnly?: boolean } = {}
+  ): Promise<{
     providerId: string
     provider: ResolvedProvider
     reasoningEffortProfile: ReasoningEffortProfile
@@ -248,6 +251,13 @@ export class AgentBackendResolver {
     const selection = await this.selection.resolveExplicitTarget(target)
     const stored = selection.settings.providers.find(({ id }) => id === selection.providerId)
     if (!stored) throw new Error(NO_ACTIVE_PROVIDER_MESSAGE)
+    if (
+      constraints.customMessagesOnly &&
+      (target.frameworkId !== 'claude-code' ||
+        stored.type !== 'custom' ||
+        (stored.apiEndpoints && !stored.apiEndpoints.includes('messages')))
+    )
+      throw new Error('Isolated Claude execution requires an explicit custom messages provider')
     const runtime = this.providers.resolveRuntimeTarget(
       stored,
       selection.modelSelection,

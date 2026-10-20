@@ -22,6 +22,7 @@ import * as permissions from './renderer-contracts/permissions'
 import * as projects from './renderer-contracts/projects'
 import * as remoteAccess from './renderer-contracts/remote-access'
 import * as reviewer from './renderer-contracts/reviewer'
+import * as optimization from './renderer-contracts/optimization'
 import * as runtime from './renderer-contracts/runtime'
 import * as settingsConnectors from './renderer-contracts/settings-connectors'
 import * as settingsModels from './renderer-contracts/settings-models'
@@ -61,6 +62,7 @@ export const RENDERER_API_CONTRACT = composeRendererApiContract(
   projects.projectsCreateContracts,
   remoteAccess.contracts,
   reviewer.contracts,
+  optimization.contracts,
   runtime.runtimeDescribeUsageContracts,
   files.saveBlobFileContracts,
   conversation.sessionsDeleteSessionContracts,

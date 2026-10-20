@@ -38,6 +38,7 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   # Installed local packages are already copied through their node_modules runtime entry points.
   - '!packages{,/**/*}'
+  - '!vendor{,/**/*}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   # Business dependencies live in the ordinary Node backend. The Electron host only runs
   # desktop integration; retaining these here duplicates the backend's native/PDF/AI payload.
@@ -67,6 +68,9 @@ asarUnpack:
 # The micromamba binary is added per-platform below (mac/win/linux extraResources), not here, so
 # the two extraResources lists don't collide.
 extraResources:
+  - from: vendor/harness2
+    to: earthnano/harness2
+    filter: ['harness2/**/*.py', 'harness2/**/*.json', 'LICENSE*', 'README*']
   - from: out/desktop-backend
     to: backend
   # electron-builder excludes a source root's node_modules even for extraResources.
