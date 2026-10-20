@@ -629,7 +629,36 @@ def _build_surface_texts() -> dict[str, _SurfaceText]:
             _surface_part(_SURFACE_CODEX, "# HOW TO MAKE A CHANGE"),
         ]
     )
+    claude_text = """# EDITABLE HARNESS SURFACE
+
+This platform profile supports only instructions.md and skills/<name>/SKILL.md.
+Skill directory names use lowercase letters, digits and hyphens. A Skill starts with exactly
+two frontmatter fields: name matching its directory and a plain description. No other
+frontmatter fields, scripts, hooks, plugins, subagents, settings, dynamic shell expansion or
+file mention syntax are supported. Every Skill is named in instructions.md using the native
+Skill name earthnano-candidate:<name>. Keep instructions.md nonempty and under 32000 characters.
+
+# HOW TO MAKE A CHANGE
+
+The binding supplies the current context/harness and all evidence as frozen text. Follow its
+explicit input/output mapping. Return the COMPLETE updated tree under the designated output
+context/harness directory, including unchanged files. Never edit evidence or source files.
+Preserve the research task outside the harness; do not memorize its answer in instructions.
+Reply with <notes> explaining which trajectory moments support each change. KEEP_BASE means
+return the complete existing tree unchanged, with an explanation. The binding collects only
+committed text files under context/harness; the final message is decision notes, not the tree.
+"""
     return {
+        "claude-text": _SurfaceText(
+            surface_md=claude_text,
+            inv="Improve invariant working procedure: reading, checking and completing the "
+                "requested {deliverable}. Use only plain instructions and text Skills. "
+                "Ground each change in the supplied trajectories.\n\n{levers}",
+            dom="Improve reusable practitioner guidance for this {domain}: source interpretation "
+                "and verification of the requested {deliverable}. Use plain text Skills, name "
+                "each Skill in instructions.md, and ground each change in the evidence.\n\n{levers}",
+            tts_surface=claude_text,
+        ),
         "opencode": _SurfaceText(
             surface_md=_SURFACE_OPENCODE,
             inv=_INV_TEMPLATE.replace(
