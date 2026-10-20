@@ -136,8 +136,8 @@ jobs:
           cmp "$RUNNER_TEMP/harness-original/LICENSE" vendor/harness2/LICENSE
       - name: Execute original and integrated tests with identical Python
         run: |
-          python scripts/ci/earthnano-harness.py "$RUNNER_TEMP/harness-original" test-results/harness-baseline.json
-          python scripts/ci/earthnano-harness.py vendor/harness2 test-results/harness-candidate.json
+          python scripts/ci/earthnano-harness.py "$RUNNER_TEMP/harness-original" test-results/harness-baseline.json --kind baseline
+          python scripts/ci/earthnano-harness.py vendor/harness2 test-results/harness-candidate.json --kind candidate
           node scripts/ci/earthnano-harness-compare.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()

@@ -3,7 +3,7 @@ import { closeSync, createReadStream, openSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { cp, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const OPEN_SCIENCE_PIN = '9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5'
@@ -32,19 +32,50 @@ export function exactElectronVersion(lock, installed, binaryOutput, status = 0) 
     )
   return expected
 }
-export function normalizeVitest(report, root) {
-  if (!Array.isArray(report.testResults) || !report.testResults.length)
+export function normalizeVitest(report, root, platform = process.platform) {
+  if (!report || !Array.isArray(report.testResults) || !report.testResults.length)
     throw new Error('No test suite report; validation unavailable')
+  const counters = [
+    'numTotalTests',
+    'numPassedTests',
+    'numFailedTests',
+    'numPendingTests',
+    'numTodoTests',
+    'numTotalTestSuites',
+    'numPassedTestSuites',
+    'numFailedTestSuites',
+    'numPendingTestSuites'
+  ]
+  if (
+    counters.some((key) => !Number.isSafeInteger(report[key]) || report[key] < 0) ||
+    typeof report.success !== 'boolean' ||
+    report.wasInterrupted === true ||
+    (report.numRuntimeErrorTestSuites !== undefined && report.numRuntimeErrorTestSuites !== 0) ||
+    ['unhandledErrors', 'errors'].some(
+      (key) => report[key] !== undefined && (!Array.isArray(report[key]) || report[key].length)
+    )
+  )
+    throw new Error('Malformed or global/runtime Vitest failure')
   const tests = [],
     duplicates = new Map()
   for (const suite of report.testResults) {
-    const path = relative(root, suite.name).replaceAll('\\', '/')
+    if (!suite || typeof suite.name !== 'string') throw new Error('Malformed Vitest suite')
+    const path = (platform === 'win32' ? win32.relative : relative)(root, suite.name).replaceAll(
+      '\\',
+      '/'
+    )
     if (
       !path ||
       path.startsWith('../') ||
+      isAbsolute(path) ||
+      win32.isAbsolute(path) ||
+      (suite.message !== undefined && suite.message !== '') ||
+      !['passed', 'failed'].includes(suite.status) ||
       !Array.isArray(suite.assertionResults) ||
       (suite.status === 'failed' &&
-        !suite.assertionResults.some((entry) => entry.status === 'failed'))
+        !suite.assertionResults.some((entry) => entry.status === 'failed')) ||
+      (suite.status === 'passed' &&
+        suite.assertionResults.some((entry) => entry.status === 'failed'))
     )
       throw new Error(`Test collection/runtime failure: ${path || suite.name}`)
     for (const assertion of suite.assertionResults) {
@@ -67,9 +98,53 @@ export function normalizeVitest(report, root) {
       })
     }
   }
-  if (!tests.length || tests.length !== report.numTotalTests)
+  const count = (status) => tests.filter((test) => status.includes(test.status)).length
+  if (
+    !tests.length ||
+    report.numTotalTestSuites < report.testResults.length ||
+    tests.length !== report.numTotalTests ||
+    count(['passed']) !== report.numPassedTests ||
+    count(['failed']) !== report.numFailedTests ||
+    count(['pending', 'skipped', 'disabled']) !== report.numPendingTests ||
+    count(['todo']) !== report.numTodoTests ||
+    report.numTotalTestSuites !==
+      report.numPassedTestSuites + report.numFailedTestSuites + report.numPendingTestSuites ||
+    report.success !== (report.numFailedTests === 0 && report.numFailedTestSuites === 0) ||
+    (!report.success && report.numFailedTests === 0)
+  )
     throw new Error('Incomplete Vitest assertion inventory')
   return tests
+}
+export function validateSourceExecution(report, runtime) {
+  const names = ['npm-ci', 'pretest', 'typecheck', 'tests']
+  if (
+    !Array.isArray(report.stages) ||
+    report.stages.length !== names.length ||
+    report.stages.some(
+      (stage, index) =>
+        !stage ||
+        stage.name !== names[index] ||
+        !Number.isSafeInteger(stage.status) ||
+        stage.status < 0 ||
+        stage.status > 255 ||
+        stage.signal !== null ||
+        (stage.error !== undefined && stage.error !== null)
+    ) ||
+    report.stages[0].status !== 0
+  )
+    throw new Error('Missing, interrupted or malformed source stages')
+  if (
+    !runtime ||
+    runtime.schemaVersion !== 1 ||
+    !Array.isArray(runtime.unhandledErrors) ||
+    runtime.unhandledErrors.length ||
+    !['passed', 'failed'].includes(runtime.reason)
+  )
+    throw new Error('Missing or global/runtime Vitest failure')
+  const failed = report.tests.some((test) => test.status === 'failed')
+  const stage = report.stages.at(-1)
+  if (stage.status !== (failed ? 1 : 0) || runtime.reason !== (failed ? 'failed' : 'passed'))
+    throw new Error('Test process outcome is not explained by assertion inventory')
 }
 export function compareInventories(baseline, candidate) {
   // These five names changed only with the user-requested product/artwork replacement. Preserve
@@ -218,6 +293,7 @@ export async function sourceShard({ root, kind, shard, total, out }) {
     image: `${process.env.ImageOS ?? 'local'}:${process.env.ImageVersion ?? 'unknown'}`,
     lockDigest: digest(await readFile(join(selected, 'package-lock.json'))),
     source: run('git', ['rev-parse', 'HEAD'], selected).stdout.trim(),
+    testRoot: selected,
     stages: [],
     profile: process.platform === 'win32' ? 'original-windows-full' : 'original-full',
     exclusions: [
@@ -234,6 +310,7 @@ export async function sourceShard({ root, kind, shard, total, out }) {
     OPEN_SCIENCE_CI_EXCLUDED_PACKAGE_ROOTS: '[]',
     OPEN_SCIENCE_CI_SELECTED_PACKAGE_ROOTS: '[]'
   }
+  env.EARTHNANO_CI_RUNTIME_REPORT = join(out, 'runtime.json')
   // Never inherit opt-in credentials or model-test toggles from the caller's machine.
   for (const name of Object.keys(env))
     if (/(^|_)LIVE($|_)|API_KEY|KEY_FILE/u.test(name)) delete env[name]
@@ -281,9 +358,11 @@ export async function sourceShard({ root, kind, shard, total, out }) {
       '--testTimeout=30000',
       '--hookTimeout=60000',
       '--reporter=json',
+      `--reporter=${fileURLToPath(new URL('./earthnano-runtime-reporter.mjs', import.meta.url))}`,
       `--outputFile=${join(out, 'vitest.json')}`
     ])
     metadata.tests = normalizeVitest(await json(join(out, 'vitest.json')), selected)
+    validateSourceExecution(metadata, await json(join(out, 'runtime.json')))
   } catch (error) {
     metadata.unavailable = error.message
   }
@@ -296,7 +375,37 @@ export async function compareReports(root, out) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
       if (entry.isDirectory()) await walk(path)
-      else if (entry.name === 'source-report.json') reports.push(await json(path))
+      else if (entry.name === 'source-report.json') {
+        const report = await json(path)
+        if (
+          !report ||
+          report.schemaVersion !== 1 ||
+          typeof report.testRoot !== 'string' ||
+          !report.testRoot ||
+          !(report.platform === 'win32' ? win32.isAbsolute : isAbsolute)(report.testRoot) ||
+          !['darwin', 'linux', 'win32'].includes(report.platform) ||
+          !['baseline', 'candidate'].includes(report.kind) ||
+          ['node', 'arch', 'electron', 'image'].some(
+            (key) => typeof report[key] !== 'string' || !report[key]
+          ) ||
+          report.profile !==
+            (report.platform === 'win32' ? 'original-windows-full' : 'original-full') ||
+          !/^[a-f0-9]{64}$/u.test(report.lockDigest) ||
+          report.pins?.openScience !== OPEN_SCIENCE_PIN ||
+          report.pins?.harness !== HARNESS_PIN ||
+          report.pins?.harnessTree !== HARNESS_TREE
+        )
+          throw new Error('Malformed source report identity')
+        const rawTests = normalizeVitest(
+          await json(join(directory, 'vitest.json')),
+          report.testRoot,
+          report.platform
+        )
+        if (JSON.stringify(rawTests) !== JSON.stringify(report.tests))
+          throw new Error('Source inventory differs from original raw report')
+        validateSourceExecution(report, await json(join(directory, 'runtime.json')))
+        reports.push(report)
+      }
     }
   }
   await walk(root)
@@ -313,6 +422,9 @@ export async function compareReports(root, out) {
         selected.some(
           (report) =>
             report.total !== expectedTotal ||
+            !Number.isSafeInteger(report.shard) ||
+            report.shard < 1 ||
+            report.shard > expectedTotal ||
             report.unavailable ||
             !Array.isArray(report.tests) ||
             !report.tests.length
@@ -324,6 +436,12 @@ export async function compareReports(root, out) {
     }
     const baseline = sets.baseline,
       candidate = sets.candidate
+    if (
+      [baseline, candidate].some(
+        (reports) => new Set(reports.map((report) => report.lockDigest)).size !== 1
+      )
+    )
+      throw new Error('Source lockfile identity differs between shards')
     if (
       [...baseline, ...candidate].some(
         (report) =>

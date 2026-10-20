@@ -28,6 +28,17 @@ Installation, collection, timeout, missing-artifact and runtime failures block c
 than being treated as passing baseline failures. Raw logs are opened before each child command;
 interrupted stages retain a running marker and fail the complete-inventory gate.
 
+The pinned Vitest JSON reporter does not include global unhandled errors and can report
+`success: true` for passing assertions even when the process exits 1. Both source versions now
+use the same reviewed, read-only companion reporter to retain the original run-end reason and
+unhandled errors in `runtime.json`. Comparison requires that raw sidecar and the unmodified raw
+`vitest.json`, checks the projected inventory against those bytes, and rejects global/collection/
+hook errors, dishonest success/counters, missing stages, process signals/errors, nonterminal
+stages, and missing/out-of-range shard coverage. Only exit 1 fully represented by ordinary failed
+assertions, with no global errors, is available for the original failure classification. Older
+artifacts without the required sidecar are unavailable evidence and must be rerun. No raw
+original report is rewritten to make it pass.
+
 Five exact branding assertion names have reviewed one-to-one mappings: the product display name,
 the packaged default icon, and the 16/20/24px frame test for each of the three app ICO files.
 These names changed with the requested EarthNano artwork/product replacement. Raw inventories
@@ -38,6 +49,12 @@ fail the gate. No other test-name matching, fuzzy identity or removed-test waive
 The Harness job fetches exact original commit `1cfe254e8d25b15f37048c3730134686abe60335`, checks
 its tree `edc756a4d03a2826a248115482084a176e60e751`, checks the retained original license, and runs
 original unittest discovery against original and integrated source with the same interpreter.
+The report records actual Git commit/tree, source/test byte digest, exact interpreter executable,
+architecture, license digest and reviewed upstream pins. Baseline collection must start from the
+clean original pinned checkout; candidate collection must use the clean retained vendor path.
+Import/discovery `_FailedTest` and class/module setup/teardown holder errors retain their original
+raw failure records but make the report unavailable. Matching loader errors, empty discovery,
+missing provenance and mismatched environments cannot become comparable assertion failures.
 No model packages or API credentials are installed. Its comparison includes the existing
 EarthNano execution/method/domain equivalence tests; it is offline algorithm evidence, not a
 model-quality assessment.
@@ -102,7 +119,8 @@ node scripts/ci/earthnano-source.mjs compare --reports downloaded-source-artifac
 node scripts/ci/earthnano-source.mjs pins
 node scripts/ci/earthnano-source.mjs electron
 node scripts/ci/earthnano-source.mjs manifest --out test-results/native-evidence
-python scripts/ci/earthnano-harness.py /path/to/exact/harness/source /tmp/harness-report.json
+python scripts/ci/earthnano-harness.py /path/to/exact/original/checkout /tmp/harness-report.json --kind baseline
+python scripts/ci/earthnano-harness.py vendor/harness2 /tmp/harness-candidate.json --kind candidate
 ```
 
 Artifacts retain full Vitest JSON assertion inventories, per-stage logs/source manifests,
