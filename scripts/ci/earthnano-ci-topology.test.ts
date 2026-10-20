@@ -149,14 +149,15 @@ describe('EarthNano runtime dependency split', () => {
       expect(Object.keys(shared.on)).toEqual(['workflow_call'])
       expect(shared.permissions).toEqual({ contents: 'read' })
       expect(Object.keys(shared.jobs)).toEqual([kind])
-      // Original d4b20667d inventories plus the single reviewed Python input change:
-      // literal 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset).
-      // Keep the complete new hash AND restore only that input to prove all other steps
+      // Original d4b20667d inventories plus the reviewed exact Python and Node inputs:
+      // Python 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset);
+      // floating Node 24 → one exact version file (runner caches resolved different patches).
+      // Keep the complete new hash AND restore only these inputs to prove all other steps
       // still match d4. No pin, condition, command, environment or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
-          ? '9c710bb6dea916d0e6d92236d1448248ae2efafbe262adf652c6dc2806afc207'
-          : 'ce027e4bfd00597f19507e5a897929d98c23015cefdc89f7bce30dcddcce9087'
+          ? '46e765f74fe2bcaa5741a0b8dec64043f674978ca324f164558ddeaebc644b82'
+          : '6d1b89192db29d9f2177ddc787c4766e9587258a103295c48bc66908b344e33b'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
@@ -164,6 +165,15 @@ describe('EarthNano runtime dependency split', () => {
       expect(python[0].uses).toBe('actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c')
       expect(python[0].with).toEqual({ 'python-version-file': '.github/earthnano-python-version' })
       python[0].with = { 'python-version': '3.12.13' }
+      const node = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-node@'))
+      expect(node).toHaveLength(1)
+      expect(node[0].uses).toBe('actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1')
+      expect(node[0].with).toEqual({
+        'node-version-file': '.github/earthnano-node-version',
+        cache: 'npm'
+      })
+      node[0].with = { 'node-version': 24, cache: 'npm' }
+
       expect(digest(originalSteps)).toBe(
         kind === 'source'
           ? 'de9ac67cde4f371c609984cd10c4152428fee6018dc230ed70e210c59a9c59a1'
@@ -185,6 +195,74 @@ describe('EarthNano runtime dependency split', () => {
       CSC_IDENTITY_AUTO_DISCOVERY: 'false',
       MACOSX_DEPLOYMENT_TARGET: '12.0'
     })
+  })
+
+  it('retains the actual floating-Node failure evidence without treating an unavailable install as a test result', () => {
+    const observed = JSON.parse(
+      readFileSync('scripts/ci/fixtures/earthnano-node-drift.json', 'utf8')
+    )
+    expect(observed.runId).toBe(39456512139)
+    expect(observed.baseline.node).toBe('v24.21.0')
+    expect(observed.candidate.node).toBe('v24.22.0')
+    expect(observed.baseline.image).not.toBe(observed.candidate.image)
+    expect(observed.baseline).toMatchObject({
+      stage: 'tests',
+      status: 0,
+      passed: 18953,
+      skipped: 295,
+      failed: 0
+    })
+    expect(observed.candidate).toMatchObject({
+      stage: 'npm-ci',
+      status: 1,
+      testsStarted: false,
+      unavailable: 'Dependency installation unavailable'
+    })
+    expect(observed.candidate).not.toHaveProperty('passed')
+    expect(observed.candidate).not.toHaveProperty('failed')
+  })
+  it('pins the same exact host Node across original source/native, Windows runtime and report helpers', () => {
+    expect(readFileSync('.github/earthnano-node-version', 'utf8')).toBe('24.22.0\n')
+    const selected = [
+      readWorkflow('source').jobs.source,
+      readWorkflow('native').jobs.native,
+      workflow.jobs.windows_runtime,
+      workflow.jobs.comparison,
+      workflow.jobs.harness
+    ]
+    for (const job of selected) {
+      const node = job.steps!.filter((step) => step.uses?.startsWith('actions/setup-node@'))
+      expect(node).toHaveLength(1)
+      expect(node[0].uses).toBe('actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1')
+      expect(node[0].with).toEqual({
+        'node-version-file': '.github/earthnano-node-version',
+        ...('cache' in node[0].with! ? { cache: 'npm' } : {})
+      })
+      expect(
+        job.steps!.findIndex((step) => step.uses?.startsWith('actions/checkout@'))
+      ).toBeLessThan(job.steps!.indexOf(node[0]))
+    }
+    const steps = workflow.jobs.windows_runtime.steps!
+    expect(steps.findIndex((step) => step.uses?.startsWith('actions/setup-node@'))).toBeLessThan(
+      steps.findIndex((step) => step.uses === './.github/actions/windows-notebook-runtime')
+    )
+    // The patched AppContainer binary has its own original source pin; changing the host tool
+    // must not change the compiled Notebook runtime or its integrity/catalog inputs.
+    const bundled = JSON.parse(
+      readFileSync('packages/notebook-network-sandbox/vendor/windows-runtime/sources.json', 'utf8')
+    )
+    expect(bundled.node).toEqual({
+      version: '24.21.0',
+      url: 'https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz',
+      sha256: 'a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc'
+    })
+    const original = spawnSync(
+      'git',
+      ['show', '9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5:.github/workflows/native-components.yml'],
+      { encoding: 'utf8' }
+    )
+    expect(original.status, original.stderr).toBe(0)
+    expect(readFileSync('.github/workflows/native-components.yml', 'utf8')).toBe(original.stdout)
   })
   it('extends only the cold-build budget and keeps source/native test deadlines', () => {
     expect(workflow.jobs.windows_runtime['timeout-minutes']).toBe(150)

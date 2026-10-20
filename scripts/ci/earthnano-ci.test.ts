@@ -331,6 +331,11 @@ describe('EarthNano original-baseline gates', () => {
     ).toHaveLength(1)
     await writeFile(file, JSON.stringify({ ...value, electron: '43.4.0' }))
     await expect(compareReports(reports, out)).rejects.toThrow('Unmatched baseline environment')
+    // A canonical setup input prevents drift; it never makes differing actual environments valid.
+    for (const extra of [{ node: 'v24.22.0' }, { image: 'ubuntu24:20261018.339.1' }]) {
+      await writeFile(file, JSON.stringify({ ...value, ...extra }))
+      await expect(compareReports(reports, out)).rejects.toThrow('Unmatched baseline environment')
+    }
     await rm(file)
     await expect(compareReports(reports, out)).rejects.toThrow('Missing/unavailable')
   })
