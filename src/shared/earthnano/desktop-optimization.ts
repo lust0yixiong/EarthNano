@@ -1,3 +1,4 @@
+import type { StartDesktopSweep, OptimizationSweepSummary } from './optimization-sweep'
 import type { NotebookOptimizationSource } from './notebook-source'
 import type { FrozenNotebookInput, FrozenNotebookRuntime } from './notebook-profile'
 import type { OptimizationMethodOptions } from './optimization-method'
@@ -86,6 +87,7 @@ export interface OptimizationProgress {
   }
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
+  sweep?: OptimizationSweepSummary
   error?: string
   /** Explicit resume can be requested; main revalidates original snapshots and owners first. */
   resumeAvailable?: boolean
@@ -93,6 +95,7 @@ export interface OptimizationProgress {
 }
 export interface DesktopOptimizationApi {
   start(request: StartDesktopOptimization): Promise<OptimizationProgress>
+  startSweep(request: StartDesktopSweep): Promise<OptimizationProgress>
   get(request: OptimizationRunKey): Promise<OptimizationProgress>
   latest(
     request: Pick<OptimizationRunKey, 'projectId' | 'sourceSessionId'>

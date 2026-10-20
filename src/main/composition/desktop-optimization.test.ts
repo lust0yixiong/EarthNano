@@ -2,6 +2,9 @@ import { mkdtemp, rm, writeFile, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import { resolve } from 'node:path'
+import type { StartDesktopSweep } from '../../shared/earthnano/optimization-sweep'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { ManagedFileReadLease } from '../managed-file-versions/read-port'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -48,6 +51,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
     prepareForUpdateGate = async (): Promise<{ reaped: boolean }> => ({ reaped: true })
     releaseUpdateGate = (): void => undefined
     start = vi.fn()
+    startSweep = vi.fn()
     get = vi.fn()
     latest = vi.fn()
     stop = vi.fn()
@@ -56,6 +60,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
 }))
 import {
   createDesktopOptimizationOptions,
+  createDesktopSweepOptions,
   resolveOptimizationPython,
   registerDesktopOptimizationComposition
 } from './desktop-optimization'
@@ -528,4 +533,127 @@ it('freezes the same original scientific task, exact upload and enabled Python w
   await expect(
     createDesktopOptimizationOptions(sourceRequest, { ...sourceDeps, signal: AbortSignal.abort() })
   ).rejects.toThrow()
+})
+
+const catalogRequest = (): StartDesktopSweep => ({
+  projectId: 'p',
+  sourceSessionId: 's',
+  requestKey: 'sweep-key',
+  executionLimit: 40,
+  catalog: ['a', 'b', 'unselected'].map((id) => ({
+    taskId: id,
+    domain: 'csv',
+    sourceSessionId: `source-${id}`,
+    source: { kind: 'text', prompt: `Original ${id}`, files: [{ path: `${id}.txt`, content: id }] },
+    criteria: `Check ${id}`
+  })),
+  sweep: {
+    modes: ['parallel', 'sequential'],
+    k: 1,
+    concurrency: 2,
+    stream: { seed: null, onlyDomains: [], onlyTasks: ['a', 'b'], maxTasks: null, workers: 1 }
+  }
+})
+const catalogDependencies = (): ReturnType<typeof dependencies> & {
+  loadSession: ReturnType<
+    typeof vi.fn<(projectId: string, sessionId: string) => Promise<PersistedChatSession>>
+  >
+} => {
+  const deps = dependencies()
+  deps.harnessRoot = resolve('vendor/harness2')
+  deps.admitSessionWork.mockImplementation(() => vi.fn())
+  deps.resolvePython.mockResolvedValue(
+    execFileSync(
+      process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+      ['-c', 'import sys; print(sys.executable)'],
+      { encoding: 'utf8' }
+    ).trim()
+  )
+  return {
+    ...deps,
+    loadSession: vi.fn(
+      async (projectId: string, id: string) =>
+        ({ projectId, id, messages: [] }) as unknown as PersistedChatSession
+    )
+  }
+}
+it('uses original sweep preview, authorizes only selected independent sources and keeps every admission until cleanup', async () => {
+  const deps = catalogDependencies()
+  const options = await createDesktopSweepOptions(catalogRequest(), deps)
+  expect(options.sweep.plan.domains).toEqual([{ domain: 'csv', taskIds: ['a', 'b'] }])
+  expect(deps.validateSession.mock.calls).toEqual([
+    ['p', 's'],
+    ['p', 'source-a'],
+    ['p', 'source-b']
+  ])
+  expect(deps.loadSession.mock.calls).toEqual([
+    ['p', 'source-a'],
+    ['p', 'source-b']
+  ])
+  expect(
+    options.sweep.tasks.map((t) => [t.taskId, t.sourceSessionId, t.input.task.prompt])
+  ).toEqual([
+    ['a', 'source-a', 'Original a'],
+    ['b', 'source-b', 'Original b']
+  ])
+  expect(options.sweep.tasks[0].input.agent).toEqual(options.sweep.tasks[1].input.agent)
+  expect(options).not.toHaveProperty('input')
+  expect(options).not.toHaveProperty('semanticCriteria')
+  expect(JSON.stringify(options.sweep)).not.toContain('synthetic-private-key')
+  expect(mocks.releaseWriter).not.toHaveBeenCalled()
+  for (const result of deps.admitSessionWork.mock.results)
+    expect(result.value).not.toHaveBeenCalled()
+  options.releaseAdmission()
+  options.releaseAdmission()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  for (const result of deps.admitSessionWork.mock.results)
+    expect(result.value).toHaveBeenCalledOnce()
+})
+it('validates excluded catalog sources before provider capture or admission', async () => {
+  const deps = catalogDependencies(),
+    request = catalogRequest()
+  request.catalog[2].source = {
+    kind: 'text',
+    prompt: 'Excluded',
+    files: [{ path: '../escape', content: 'invalid' }]
+  }
+  await expect(createDesktopSweepOptions(request, deps)).rejects.toThrow()
+  expect(deps.admitSessionWork).not.toHaveBeenCalled()
+  expect(deps.settings.captureActiveExplicitAgentBackendTarget).not.toHaveBeenCalled()
+})
+it('enforces total selected-task execution budget before any source freeze', async () => {
+  const deps = catalogDependencies()
+  await expect(
+    createDesktopSweepOptions({ ...catalogRequest(), executionLimit: 1 }, deps)
+  ).rejects.toThrow()
+  expect(deps.loadSession).not.toHaveBeenCalled()
+  expect(deps.admitSessionWork).toHaveBeenCalledTimes(1)
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+})
+it('releases all selected source admissions on freeze rejection without starting any owner', async () => {
+  const deps = catalogDependencies()
+  deps.loadSession.mockImplementation(async (projectId, id) => {
+    if (id === 'source-b') throw new Error('Original source unavailable')
+    return { projectId, id, messages: [] } as unknown as PersistedChatSession
+  })
+  await expect(createDesktopSweepOptions(catalogRequest(), deps)).rejects.toThrow(
+    'Original source unavailable'
+  )
+  expect(deps.admitSessionWork).toHaveBeenCalledTimes(3)
+  for (const result of deps.admitSessionWork.mock.results)
+    expect(result.value).toHaveBeenCalledOnce()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+})
+
+it('releases every source and the data-root lease even when one original admission release fails', async () => {
+  const deps = catalogDependencies()
+  const options = await createDesktopSweepOptions(catalogRequest(), deps)
+  deps.admitSessionWork.mock.results[1].value.mockImplementation(() => {
+    throw new Error('Admission release failed')
+  })
+  expect(() => options.releaseAdmission()).toThrow('Admission release failed')
+  for (const result of deps.admitSessionWork.mock.results)
+    expect(result.value).toHaveBeenCalledOnce()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
 })

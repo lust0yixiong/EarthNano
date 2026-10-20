@@ -1,3 +1,6 @@
+import { normalizeDesktopSweep } from './desktop-sweep-validation'
+import type { StartDesktopSweep } from '../../shared/earthnano/optimization-sweep'
+import { canonicalOutput } from './output-checks'
 import { createHash, randomUUID } from 'node:crypto'
 import {
   existsSync,
@@ -41,6 +44,14 @@ import type { PersistentOptimizationResume } from './optimization-resume'
 import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 
+type DesktopRequest = StartDesktopOptimization | StartDesktopSweep
+const isSweepRequest = (request: DesktopRequest): request is StartDesktopSweep =>
+  'catalog' in request
+const validateRequest = (request: DesktopRequest): void => {
+  if (isSweepRequest(request)) normalizeDesktopSweep(request)
+  else validate(request)
+}
+
 export interface DesktopOptimizationManagerOptions {
   root: string
   /** Resolve the current data root only after acquiring its lifetime writer lease. */
@@ -56,6 +67,10 @@ export interface DesktopOptimizationManagerOptions {
       releaseAdmission?: () => void | Promise<void>
     }
   >
+  createSweepOptions?(
+    request: StartDesktopSweep,
+    signal?: AbortSignal
+  ): Promise<PersistentOptimizationOptions & { releaseAdmission?: () => void | Promise<void> }>
   /** Test seam only. Production always uses the original persisted method composition. */
   run?: typeof runPersistentOptimization
 }
@@ -63,6 +78,7 @@ export interface DesktopOptimizationManagerOptions {
 export class DesktopOptimizationSetupError extends Error {}
 
 interface SavedRun {
+  kind?: 'sweep-v2'
   digest: string
   requestKey: string
   progress: OptimizationProgress
@@ -202,6 +218,11 @@ const desktopRequestDigest = (request: StartDesktopOptimization): string =>
     )
     .digest('hex')
 
+const sweepRequestDigest = (request: StartDesktopSweep): string =>
+  createHash('sha256')
+    .update(canonicalOutput({ schemaVersion: 2, request }))
+    .digest('hex')
+
 /** Desktop authority: one explicit user action starts one bounded method. Status is a projection
  * of the shared execution journal; restarting this owner never submits old work again. */
 export class DesktopOptimizationManager implements DesktopOptimizationApi {
@@ -224,7 +245,8 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         !safeId(entry.progress.projectId) ||
         !safeId(entry.progress.sourceSessionId) ||
         !safeId(entry.requestKey) ||
-        !entry.digest
+        !entry.digest ||
+        (entry.kind !== undefined && entry.kind !== 'sweep-v2')
       )
         throw new Error('Invalid persisted desktop optimization')
       if (!terminal(entry.progress.state)) {
@@ -245,13 +267,27 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     )
   }
 
-  start(request: StartDesktopOptimization): Promise<OptimizationProgress> {
-    const captured = structuredClone(request)
+  async start(request: StartDesktopOptimization): Promise<OptimizationProgress> {
+    return this.startRequest(request, false)
+  }
+  async startSweep(request: StartDesktopSweep): Promise<OptimizationProgress> {
+    return this.startRequest(request, true)
+  }
+  private startRequest(request: DesktopRequest, sweep: boolean): Promise<OptimizationProgress> {
+    const original = structuredClone(request)
     const result = this.admission.then(async () => {
-      validate(captured)
+      let captured: DesktopRequest
+      if (sweep) captured = normalizeDesktopSweep(original)
+      else {
+        if (isSweepRequest(original)) throw new Error('Invalid optimization profile')
+        validate(original as StartDesktopOptimization)
+        captured = original as StartDesktopOptimization
+      }
       await this.options.validateSession(captured.projectId, captured.sourceSessionId)
       if (this.closing || this.updateGate) throw new Error('Optimization admission is closed')
-      const digest = desktopRequestDigest(captured)
+      const digest = isSweepRequest(captured)
+        ? sweepRequestDigest(captured)
+        : desktopRequestDigest(captured)
       const prior = [...this.saved.values()].find(
         (entry) =>
           entry.progress.projectId === captured.projectId &&
@@ -273,13 +309,16 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       const runId = randomUUID()
       mkdirSync(join(this.options.root, runId), { mode: 0o700 })
       const saved: SavedRun = {
+        ...(sweep ? { kind: 'sweep-v2' as const } : {}),
         digest,
         requestKey: captured.requestKey,
         progress: {
           runId,
           projectId: captured.projectId,
           sourceSessionId: captured.sourceSessionId,
-          method: normalizeOptimizationMethod(captured.method),
+          ...(!isSweepRequest(captured)
+            ? { method: normalizeOptimizationMethod(captured.method) }
+            : {}),
           state: 'queued',
           stage: 'queued',
           updatedAt: Date.now(),
@@ -346,7 +385,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       )
         throw new Error('This project has active or unreconciled optimization work')
       const original = this.resumeRequest(saved, data.manifest)
-      validate(original)
+      validateRequest(original)
       saved.progress.state = 'queued'
       saved.progress.stage = 'queued'
       delete saved.progress.error
@@ -411,7 +450,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
 
   private async execute(
     saved: SavedRun,
-    request: StartDesktopOptimization,
+    request: DesktopRequest,
     controller: AbortController,
     resume = false
   ): Promise<void> {
@@ -421,12 +460,18 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     let workRoot: string | undefined
     try {
       controller.signal.throwIfAborted()
-      prepared = await this.options.createOptions(request, controller.signal)
+      if (isSweepRequest(request)) {
+        if (!this.options.createSweepOptions)
+          throw new DesktopOptimizationSetupError('Sweep optimization is unavailable.')
+        prepared = await this.options.createSweepOptions(request, controller.signal)
+      } else prepared = await this.options.createOptions(request, controller.signal)
       controller.signal.throwIfAborted()
       if (!resume && prepared.inputArtifacts)
         saved.progress.inputArtifacts = structuredClone(prepared.inputArtifacts)
       if (
         !resume &&
+        !isSweepRequest(request) &&
+        !prepared.sweep &&
         request.notebook &&
         prepared.input.task.managedInputs &&
         prepared.input.environment.notebook
@@ -450,6 +495,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         }
         if (research.outcome) saved.progress.outcome = structuredClone(research.outcome)
         if (research.domain) saved.progress.domain = structuredClone(research.domain)
+        if (progress.sweep) saved.progress.sweep = structuredClone(progress.sweep)
         const records = progress.records
         saved.progress.usage = summarizeExecutionUsage(records)
         saved.progress.executions = records.map((record) => ({
@@ -476,22 +522,35 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
               )?.request.origin?.stageId ?? progress.stage)
         this.persist(saved)
       }
-      const result = await (this.options.run ?? runPersistentOptimization)({
-        ...prepared,
+      const common = {
         ...(resume ? { resume: true as const } : {}),
         projectId: request.projectId,
         taskId: saved.progress.runId,
         workRoot,
         executionLimit: request.executionLimit,
-        method: normalizeOptimizationMethod(request.method),
-        ...(request.checks === undefined ? {} : { checks: normalizeOutputChecks(request.checks) }),
-        ...(request.domain === undefined
-          ? {}
-          : { domain: prepared.domain ?? normalizeOptimizationDomain(request.domain) }),
-        semanticCriteria: request.criteria,
         signal: controller.signal,
         onProgress: projectProgress
-      })
+      }
+      let execution: PersistentOptimizationOptions
+      if (prepared.sweep) {
+        if (!isSweepRequest(request)) throw new Error('Prepared optimization profile mismatch')
+        execution = { ...prepared, ...common }
+      } else {
+        if (isSweepRequest(request)) throw new Error('Prepared optimization profile mismatch')
+        execution = {
+          ...prepared,
+          ...common,
+          method: normalizeOptimizationMethod(request.method),
+          ...(request.checks === undefined
+            ? {}
+            : { checks: normalizeOutputChecks(request.checks) }),
+          ...(request.domain === undefined
+            ? {}
+            : { domain: prepared.domain ?? normalizeOptimizationDomain(request.domain) }),
+          semanticCriteria: request.criteria
+        }
+      }
+      const result = await (this.options.run ?? runPersistentOptimization)(execution)
       projectProgress({
         optimizationId: result.optimizationId,
         stage: 'settled',
@@ -506,7 +565,8 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       }
       if (research.outcome) saved.progress.outcome = structuredClone(research.outcome)
       if (research.domain) saved.progress.domain = structuredClone(research.domain)
-      if (!result.assessments && !research.domain)
+      if (result.sweep) saved.progress.sweep = structuredClone(result.sweep)
+      if (!result.assessments && !research.domain && !result.sweep)
         throw new Error('Independent assessments missing')
       if (result.assessments) saved.progress.assessments = result.assessments
       saved.progress.state = controller.signal.aborted ? 'cancelled' : 'completed'
@@ -574,10 +634,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       throw new Error('Moving execution roots require an original lifetime lease')
     return readDesktopOptimizationResume(join(this.options.root, saved.progress.runId, 'execution'))
   }
-  private resumeRequest(
-    saved: SavedRun,
-    manifest: PersistentOptimizationResume
-  ): StartDesktopOptimization {
+  private resumeRequest(saved: SavedRun, manifest: PersistentOptimizationResume): DesktopRequest {
     const identity = manifest.identity
     if (
       identity.projectId !== saved.progress.projectId ||
@@ -586,6 +643,20 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       identity.executionLimit !== saved.progress.budget.limit
     )
       throw new Error('Original experiment identity differs from its desktop projection')
+    if (identity.sweep) {
+      const request = normalizeDesktopSweep(identity.sweep.request)
+      if (
+        request.projectId !== identity.projectId ||
+        request.sourceSessionId !== identity.sourceSessionId ||
+        request.executionLimit !== identity.executionLimit ||
+        request.requestKey !== saved.requestKey ||
+        saved.kind !== 'sweep-v2' ||
+        sweepRequestDigest(request) !== saved.digest
+      )
+        throw new Error('Original sweep request differs from its desktop projection')
+      return request
+    }
+    if (saved.kind === 'sweep-v2') throw new Error('Original sweep identity unavailable')
     const artifactPaths = new Set(identity.inputArtifacts?.map((entry) => entry.path) ?? [])
     const rawFiles = (
       files: readonly { path: string; content: string }[]
@@ -627,7 +698,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       try {
         const data = await this.resumeData(saved)
         if (this.canResume(saved, data)) {
-          validate(this.resumeRequest(saved, data.manifest))
+          validateRequest(this.resumeRequest(saved, data.manifest))
           progress.resumeAvailable = true
         }
       } catch {

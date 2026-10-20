@@ -12,7 +12,11 @@ import {
   DesktopOptimizationSetupError,
   readDesktopOptimizationResume
 } from '../earthnano/desktop-optimization-manager'
-import type { PersistentOptimizationOptions } from '../earthnano/run-persistent-optimization'
+import type {
+  PersistentOptimizationOptions,
+  PersistentSingleOptimizationOptions,
+  PersistentSweepOptimizationOptions
+} from '../earthnano/run-persistent-optimization'
 import type { SettingsService } from '../settings/service'
 import { createDefaultDetectDeps } from '../settings/claude-detect'
 import { isSupportedClaudeCliVersion } from '../../shared/claude-runtime'
@@ -42,6 +46,14 @@ import { resolveOptimizationArtifactInputs } from '../earthnano/optimization-inp
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 import type { PersistedChatSession } from '../../shared/session-persistence'
+import {
+  assertSweepExecutionLimit,
+  type StartDesktopSweep
+} from '../../shared/earthnano/optimization-sweep'
+import { normalizeDesktopSweep } from '../earthnano/desktop-sweep-validation'
+import { previewOptimizationSweep } from '../earthnano/sweep-plan'
+import { resolveDesktopSweepTask } from '../earthnano/desktop-sweep-sources'
+import type { ResolvedSweepTask } from '../earthnano/sweep-contract'
 
 const providerRevision = (
   providerId: string,
@@ -110,64 +122,105 @@ export async function resolveOptimizationPython(
   )
 }
 
+export interface DesktopOptimizationDependencies {
+  settings: Pick<
+    SettingsService,
+    | 'captureActiveExplicitAgentBackendTarget'
+    | 'resolveIsolatedClaudeProvider'
+    | 'resolveIsolatedClaudeExecutable'
+  >
+  validateSession(projectId: string, sessionId: string): Promise<void>
+  admitSessionWork(projectId: string, sessionId: string): () => void
+  harnessRoot: string
+  resolvePython?: () => Promise<string>
+  probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
+  loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
+  versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
+  notebook?: PersistentCandidateNotebookOptions
+  sessionPersistence?: PersistentCandidateOwnersOptions['sessionPersistence']
+  signal?: AbortSignal
+  /** Pure original task_stream preview; injected only by host tests. */
+  previewSweep?: typeof previewOptimizationSweep
+}
+
+interface DesktopOptimizationRuntime {
+  python: string
+  agent: import('../earthnano/candidate-snapshot').CandidateSnapshotInput['agent']
+  binding: PersistentOptimizationOptions['binding']
+}
+async function captureDesktopOptimizationRuntime(
+  dependencies: DesktopOptimizationDependencies
+): Promise<DesktopOptimizationRuntime> {
+  const target = await dependencies.settings.captureActiveExplicitAgentBackendTarget()
+  if (process.platform === 'win32' || target.frameworkId !== 'claude-code')
+    throw new DesktopOptimizationSetupError(
+      'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
+    )
+  const selected = await dependencies.settings.resolveIsolatedClaudeProvider(target)
+  const provider = selected.provider
+  if (
+    provider.type !== 'custom' ||
+    !provider.apiEndpoints?.includes('messages') ||
+    !provider.model ||
+    !provider.key ||
+    !provider.baseUrl
+  )
+    throw new DesktopOptimizationSetupError(
+      'Optimization requires an explicit custom messages provider. Check the selected model and runtime settings.'
+    )
+  const executablePath = await dependencies.settings.resolveIsolatedClaudeExecutable()
+  const runtimeVersion = await (
+    dependencies.probeClaudeVersion ?? createDefaultDetectDeps().getVersion
+  )(executablePath)
+  if (!runtimeVersion || !isSupportedClaudeCliVersion(runtimeVersion))
+    throw new DesktopOptimizationSetupError(
+      'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
+    )
+  await access(dependencies.harnessRoot)
+  const python = await (dependencies.resolvePython ?? resolveOptimizationPython)()
+  if (!isAbsolute(python))
+    throw new DesktopOptimizationSetupError(
+      'Optimization requires an absolute Python 3.11 executable. Check the selected model and runtime settings.'
+    )
+  const providerRef = providerRevision(selected.providerId, provider)
+  return {
+    python,
+    agent: { backend: 'claude-code', model: provider.model, providerRef, runtimeVersion },
+    binding: async (agent) => {
+      const current = await dependencies.settings.resolveIsolatedClaudeProvider(target)
+      if (
+        current.providerId !== selected.providerId ||
+        current.provider.type !== 'custom' ||
+        current.provider.model !== agent.model ||
+        current.provider.baseUrl !== provider.baseUrl ||
+        providerRevision(current.providerId, current.provider) !== providerRef ||
+        !current.provider.apiEndpoints?.includes('messages') ||
+        agent.providerRef !== providerRef ||
+        agent.runtimeVersion !== runtimeVersion
+      )
+        throw new Error('Optimization provider changed')
+      return {
+        executablePath,
+        runtimeVersion,
+        providerRef,
+        provider: current.provider
+      }
+    }
+  }
+}
+
 /** Uses explicit current identity and the existing key resolver without provisioning host Claude settings. */
 export async function createDesktopOptimizationOptions(
   request: StartDesktopOptimization,
-  dependencies: {
-    settings: Pick<
-      SettingsService,
-      | 'captureActiveExplicitAgentBackendTarget'
-      | 'resolveIsolatedClaudeProvider'
-      | 'resolveIsolatedClaudeExecutable'
-    >
-    validateSession(projectId: string, sessionId: string): Promise<void>
-    admitSessionWork(projectId: string, sessionId: string): () => void
-    harnessRoot: string
-    resolvePython?: () => Promise<string>
-    probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
-    loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
-    versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
-    notebook?: PersistentCandidateNotebookOptions
-    sessionPersistence?: PersistentCandidateOwnersOptions['sessionPersistence']
-    signal?: AbortSignal
-  }
-): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
+  dependencies: DesktopOptimizationDependencies
+): Promise<PersistentSingleOptimizationOptions & { releaseAdmission(): void }> {
   const releaseWriter = acquireDataRootWriter()
   let releaseSession: (() => void) | undefined
   try {
     releaseSession = dependencies.admitSessionWork(request.projectId, request.sourceSessionId)
     await dependencies.validateSession(request.projectId, request.sourceSessionId)
-    const target = await dependencies.settings.captureActiveExplicitAgentBackendTarget()
-    if (process.platform === 'win32' || target.frameworkId !== 'claude-code')
-      throw new DesktopOptimizationSetupError(
-        'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
-      )
-    const selected = await dependencies.settings.resolveIsolatedClaudeProvider(target)
-    const provider = selected.provider
-    if (
-      provider.type !== 'custom' ||
-      !provider.apiEndpoints?.includes('messages') ||
-      !provider.model ||
-      !provider.key ||
-      !provider.baseUrl
-    )
-      throw new DesktopOptimizationSetupError(
-        'Optimization requires an explicit custom messages provider. Check the selected model and runtime settings.'
-      )
-    const executablePath = await dependencies.settings.resolveIsolatedClaudeExecutable()
-    const runtimeVersion = await (
-      dependencies.probeClaudeVersion ?? createDefaultDetectDeps().getVersion
-    )(executablePath)
-    if (!runtimeVersion || !isSupportedClaudeCliVersion(runtimeVersion))
-      throw new DesktopOptimizationSetupError(
-        'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
-      )
-    await access(dependencies.harnessRoot)
-    const python = await (dependencies.resolvePython ?? resolveOptimizationPython)()
-    if (!isAbsolute(python))
-      throw new DesktopOptimizationSetupError(
-        'Optimization requires an absolute Python 3.11 executable. Check the selected model and runtime settings.'
-      )
+    const runtime = await captureDesktopOptimizationRuntime(dependencies)
+    const { python } = runtime
     const dataRoot = resolveDataRoot(),
       configRoot = resolveConfigRoot()
     dependencies.signal?.throwIfAborted()
@@ -259,9 +312,6 @@ export async function createDesktopOptimizationOptions(
     // Do not release the original data-root writer on one rejection while sibling version leases
     // are still reading. At most three successor tasks are frozen under this same owner.
     for (const task of domain?.nextTasks ?? []) task.files = await resolveFiles(task.files)
-    // The provider row ID alone is mutable. Pin effective non-secret routing so a changed URL
-    // after an app restart cannot reuse baselines from a different endpoint under the same row ID.
-    const providerRef = providerRevision(selected.providerId, provider)
     let released = false
     const releaseAdmission = (): void => {
       if (released) return
@@ -304,43 +354,128 @@ export async function createDesktopOptimizationOptions(
           skills: [],
           tools: scientific ? 'notebook-python' : 'workspace-only'
         },
-        agent: {
-          backend: 'claude-code',
-          model: provider.model,
-          providerRef,
-          runtimeVersion
-        },
+        agent: runtime.agent,
         environment: {
           isolation: 'directory-process',
           network: scientific ? 'provider-and-notebook-policy' : 'provider-only',
           ...(scientific ? { notebook: { runtime: scientific.runtime } } : {})
         }
       },
-      binding: async (agent) => {
-        const current = await dependencies.settings.resolveIsolatedClaudeProvider(target)
-        if (
-          current.providerId !== selected.providerId ||
-          current.provider.type !== 'custom' ||
-          current.provider.model !== agent.model ||
-          current.provider.baseUrl !== provider.baseUrl ||
-          providerRevision(current.providerId, current.provider) !== providerRef ||
-          !current.provider.apiEndpoints?.includes('messages') ||
-          agent.providerRef !== providerRef ||
-          agent.runtimeVersion !== runtimeVersion
-        )
-          throw new Error('Optimization provider changed')
-        return {
-          executablePath,
-          runtimeVersion,
-          providerRef,
-          provider: current.provider
-        }
-      },
+      binding: runtime.binding,
       releaseAdmission
     }
   } catch (error) {
     releaseSession?.()
     releaseWriter()
+    throw error
+  }
+}
+
+/** One explicit sweep, original shared provider and independently authorized selected sources. */
+export async function createDesktopSweepOptions(
+  value: StartDesktopSweep,
+  dependencies: DesktopOptimizationDependencies
+): Promise<PersistentSweepOptimizationOptions & { releaseAdmission(): void }> {
+  const request = normalizeDesktopSweep(value)
+  const releaseWriter = acquireDataRootWriter()
+  const releases = new Map<string, () => void>()
+  let released = false
+  const releaseAdmission = (): void => {
+    if (released) return
+    released = true
+    let failure: unknown
+    for (const release of [...releases.values()].reverse()) {
+      try {
+        release()
+      } catch (error) {
+        failure ??= error
+      }
+    }
+    try {
+      releaseWriter()
+    } catch (error) {
+      failure ??= error
+    }
+    if (failure) throw failure
+  }
+  const authorize = async (sessionId: string): Promise<void> => {
+    if (!releases.has(sessionId))
+      releases.set(sessionId, dependencies.admitSessionWork(request.projectId, sessionId))
+    await dependencies.validateSession(request.projectId, sessionId)
+    dependencies.signal?.throwIfAborted()
+  }
+  try {
+    await authorize(request.sourceSessionId)
+    const runtime = await captureDesktopOptimizationRuntime(dependencies)
+    const plan = await (dependencies.previewSweep ?? previewOptimizationSweep)({
+      catalog: request.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+      options: request.sweep,
+      python: runtime.python,
+      harnessRoot: dependencies.harnessRoot,
+      signal: dependencies.signal
+    })
+    const ids = plan.domains.flatMap((domain) => domain.taskIds)
+    assertSweepExecutionLimit(request.sweep, ids.length, request.executionLimit)
+    const selected = ids.map((id) => {
+      const task = request.catalog.find((task) => task.taskId === id)
+      if (!task) throw new Error('Original sweep selected an unknown catalog task')
+      return task
+    })
+    for (const sourceId of [...new Set(selected.map((task) => task.sourceSessionId))].sort())
+      await authorize(sourceId)
+    if (!dependencies.loadSession) throw new Error('Original source Session reader unavailable')
+    const dataRoot = resolveDataRoot(),
+      configRoot = resolveConfigRoot()
+    const versions =
+      dependencies.versions ??
+      new ManagedFileVersionService({
+        storageRoot: dataRoot,
+        getClient: () => getProjectDbClient(configRoot)
+      })
+    const tasks: ResolvedSweepTask[] = []
+    for (const task of selected)
+      tasks.push(
+        await resolveDesktopSweepTask({
+          projectId: request.projectId,
+          task,
+          agent: runtime.agent,
+          harness: {
+            instructions:
+              'Read the frozen task inputs carefully. Follow the task requirements, verify the deliverables and write the requested files under OUTPUT.',
+            skills: []
+          },
+          loadSession: dependencies.loadSession,
+          versions,
+          notebook: dependencies.notebook,
+          signal: dependencies.signal
+        })
+      )
+    dependencies.signal?.throwIfAborted()
+    return {
+      projectId: request.projectId,
+      sourceSessionId: request.sourceSessionId,
+      taskId: `desktop-sweep-${randomUUID()}`,
+      workRoot: join(dataRoot, 'earthnano', 'runs', randomUUID()),
+      harnessRoot: dependencies.harnessRoot,
+      python: runtime.python,
+      executionLimit: request.executionLimit,
+      sweep: { plan, tasks, request },
+      ownerOptions: {
+        dataRoot,
+        configRoot,
+        getClient: () => getProjectDbClient(configRoot),
+        ...(dependencies.sessionPersistence
+          ? { sessionPersistence: dependencies.sessionPersistence }
+          : {}),
+        ...(tasks.some((task) => task.input.harness.tools === 'notebook-python')
+          ? { notebook: dependencies.notebook }
+          : {})
+      },
+      binding: runtime.binding,
+      releaseAdmission
+    }
+  } catch (error) {
+    releaseAdmission()
     throw error
   }
 }
@@ -374,6 +509,26 @@ export async function registerDesktopOptimizationComposition(
   const manager = await modules.add({}, () => {
     let manager: DesktopOptimizationApi & DesktopOptimizationLifecycle
     try {
+      const dependencies = (signal?: AbortSignal): DesktopOptimizationDependencies => ({
+        settings: options.settings,
+        notebook: options.notebook,
+        sessionPersistence: {
+          repository: options.sessionRepository,
+          coordinator: options.sessions
+        },
+        signal,
+        validateSession,
+        admitSessionWork: (projectId, sessionId) =>
+          options.archive.admitSessionWork(projectId, sessionId, true),
+        loadSession: async (projectId, sessionId) => {
+          const session = await options.sessions.readSessionSnapshot(projectId, sessionId)
+          if (!session) throw new Error('Original Session unavailable')
+          return session
+        },
+        harnessRoot: runtimeMetadata().packaged
+          ? join(runtimeMetadata().resourcesPath, 'earthnano', 'harness2')
+          : join(runtimeMetadata().applicationPath, 'vendor', 'harness2')
+      })
       manager = new DesktopOptimizationManager({
         root: join(resolveConfigRoot(), 'earthnano-desktop'),
         executionRoot: () => join(resolveDataRoot(), 'earthnano', 'desktop-runs'),
@@ -389,26 +544,9 @@ export async function registerDesktopOptimizationComposition(
         },
         validateSession,
         createOptions: (request, signal) =>
-          createDesktopOptimizationOptions(request, {
-            settings: options.settings,
-            notebook: options.notebook,
-            sessionPersistence: {
-              repository: options.sessionRepository,
-              coordinator: options.sessions
-            },
-            signal,
-            validateSession,
-            admitSessionWork: (projectId, sessionId) =>
-              options.archive.admitSessionWork(projectId, sessionId, true),
-            loadSession: async (projectId, sessionId) => {
-              const session = await options.sessions.readSessionSnapshot(projectId, sessionId)
-              if (!session) throw new Error('Original Session unavailable')
-              return session
-            },
-            harnessRoot: runtimeMetadata().packaged
-              ? join(runtimeMetadata().resourcesPath, 'earthnano', 'harness2')
-              : join(runtimeMetadata().applicationPath, 'vendor', 'harness2')
-          })
+          createDesktopOptimizationOptions(request, dependencies(signal)),
+        createSweepOptions: (request, signal) =>
+          createDesktopSweepOptions(request, dependencies(signal))
       })
     } catch {
       const unavailable = async (): Promise<never> => {
@@ -416,6 +554,7 @@ export async function registerDesktopOptimizationComposition(
       }
       manager = {
         start: unavailable,
+        startSweep: unavailable,
         get: unavailable,
         latest: unavailable,
         stop: unavailable,

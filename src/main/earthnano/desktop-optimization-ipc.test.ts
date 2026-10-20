@@ -33,6 +33,7 @@ let api: DesktopOptimizationApi
 beforeEach(() => {
   handlers.clear()
   api = {
+    startSweep: vi.fn().mockResolvedValue({ state: 'queued' }),
     start: vi.fn().mockResolvedValue({ state: 'queued' }),
     get: vi.fn().mockResolvedValue({ state: 'running' }),
     latest: vi.fn().mockResolvedValue(null),
@@ -184,4 +185,57 @@ it.each([
     invokeDesktopOptimization(api, 'start', { ...request, ...options })
   ).rejects.toThrow()
   expect(api.start).not.toHaveBeenCalled()
+})
+
+const sweep = {
+  projectId: 'p',
+  sourceSessionId: 's',
+  requestKey: 'r',
+  executionLimit: 40,
+  catalog: [
+    {
+      taskId: 'a',
+      domain: 'csv',
+      sourceSessionId: 'own-source',
+      source: { kind: 'notebook', promptMessageId: 'original-prompt' },
+      criteria: 'Verify original data'
+    }
+  ],
+  sweep: {
+    modes: ['parallel', 'sequential'],
+    k: 1,
+    concurrency: 2,
+    stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+it('forwards typed startSweep with independent task sources through the same desktop-only caller boundary', async () => {
+  await handlers.get('optimization:startSweep')!(event(), sweep)
+  expect(api.startSweep).toHaveBeenCalledWith(sweep)
+  expect(api.start).not.toHaveBeenCalled()
+  await expect(
+    handlers.get('optimization:startSweep')!(
+      { ...event(), senderFrame: {} } as IpcMainInvokeEvent,
+      sweep
+    )
+  ).rejects.toThrow('Optimization request could not be completed')
+  expect(api.startSweep).toHaveBeenCalledOnce()
+})
+it('rejects malformed excluded source authority and masks raw sweep setup errors', async () => {
+  for (const source of [
+    { kind: 'notebook', promptMessageId: 'original-prompt', runtime: '/private/python' },
+    { kind: 'text', prompt: 'Task', files: [{ path: '../outside', content: 'x' }] }
+  ]) {
+    await expect(
+      invokeDesktopOptimization(api, 'startSweep', {
+        ...sweep,
+        catalog: [{ ...sweep.catalog[0], source }],
+        sweep: { ...sweep.sweep, stream: { ...sweep.sweep.stream, onlyTasks: ['unrelated'] } }
+      })
+    ).rejects.toThrow('Optimization request could not be completed')
+  }
+  expect(api.startSweep).not.toHaveBeenCalled()
+  vi.mocked(api.startSweep).mockRejectedValue(new Error('credential=synthetic-private-key'))
+  await expect(invokeDesktopOptimization(api, 'startSweep', sweep)).rejects.toThrow(
+    'Optimization request could not be completed. Check the selected model and runtime settings.'
+  )
 })

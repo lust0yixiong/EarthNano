@@ -481,6 +481,7 @@ describe('preload bridge — public surface inventory', () => {
       'optimization.latest',
       'optimization.resume',
       'optimization.start',
+      'optimization.startSweep',
       'optimization.stop',
       'packagePresentation.cancelTransfer',
       'packagePresentation.getState',
@@ -1924,6 +1925,30 @@ describe('desktop optimization preload protocol', () => {
     }
     await api.optimization.start(input)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:start', input)
+    const sweep = {
+      projectId: 'p',
+      sourceSessionId: 's',
+      requestKey: 'sweep',
+      executionLimit: 40,
+      catalog: [
+        {
+          taskId: 'a',
+          domain: 'csv',
+          sourceSessionId: 'independent-source',
+          source: { kind: 'notebook' as const, promptMessageId: 'original' },
+          criteria: 'Verify'
+        }
+      ],
+      sweep: {
+        modes: ['parallel' as const, 'sequential' as const],
+        k: 1,
+        concurrency: 2,
+        stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+      }
+    }
+    await api.optimization.startSweep(sweep)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:startSweep', sweep)
+
     const key = { projectId: 'p', sourceSessionId: 's', runId: 'run' }
     await api.optimization.get(key)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:get', key)
