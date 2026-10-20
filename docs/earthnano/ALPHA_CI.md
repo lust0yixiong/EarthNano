@@ -145,3 +145,5 @@ Python 3.12.13. The actual shared Electron executable reports **43.7.5** through
 this lane did not install or mutate shared dependencies. Local Command Line Tools do not provide
 actool. No macOS/Linux/Windows hosted native packaging result, signing result, or full source
 comparison is claimed by these preparation checks. Those remain required external execution.
+
+Current matched local inventory after the reply-persistence and diagnostic fixes: exact Git-pinned original Harness **5 passed**, integrated source at `5812df666` **63 passed**, no failures or skips, with the same Python3.12.13 executable, source/tree provenance and license digest checked by the new runner. Raw reports and comparison are under `validation/alpha/`. These replace the earlier5/55 preparation count for the current source; they do not replace hosted source/native package checks.

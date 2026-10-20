@@ -20,18 +20,18 @@
 
 ## 本机验证和未通过项
 
-| 验证                                            | 当前证据                                                                                                                                       |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 桌面控制、IPC/preload、组件及八语言             | 六文件 956 项通过。真实路由漏注册 resume 已修复，并新增真实 command composition 分发与越权/替换预算拒绝检查。                                  |
-| 版本、原更新 helpers/manifest、八语言及命令路由 | 五文件 857 项通过；保留原 Nightly 哈希不可排序规则，新增编号 Alpha/Beta/RC 比较。                                                              |
-| CI、原 metadata smoke、builder/icon/版本配置    | 五文件 56 项通过。恢复原 Icon Composer 选择，白底配置和旧 ICNS 格式均保留检查。                                                                |
-| 恢复、Core/store、driver 和真实进程资源凭证     | 七文件 82 项通过，包含真实 writer 和子进程关闭后的中断窗口；仍需整体验收。                                                                     |
-| 类型与接口生成物                                | Node/Web 类型检查和派生接口检查通过；不是完整科研 E2E 的替代。                                                                                 |
-| 本机 Harness 上游对照                           | 同一 Python 3.12.13：固定原树 5 项、当时集成 55 项均通过，无跳过；新增恢复实现另有专项验证，最终 CI 将重新执行全量。                           |
-| 图标/原生环境                                   | 本机已核对实际 Electron 43.7.5；没有完整 Xcode/actool，不能声明本机完成 catalog 编译。                                                         |
-| 完整桌面 Notebook 停止/重开/续跑                | 离线完整链通过：19/24 次接纳、57 个本地请求、8 次真实科研 Notebook；原完成 journal 不变、重开零调用。真实模型验收仍未通过。                    |
-| 本批 DeepSeek                                   | 三次付费尝试均按失败保留：第一次旧代理拒绝计数失败；第二次原产物最终化冲突已修复；第三次合法仅回复选择结果被融合层额外文件要求阻断，正在修复。 |
-| 跨平台包                                        | 独立 CI 已实际启动；原 Windows Notebook runtime 构建仍在进行，四个平台包尚无完成结果。未计为通过。                                             |
+| 验证                                            | 当前证据                                                                                                                                                    |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 桌面控制、IPC/preload、组件及八语言             | 六文件 956 项通过。真实路由漏注册 resume 已修复，并新增真实 command composition 分发与越权/替换预算拒绝检查。                                               |
+| 版本、原更新 helpers/manifest、八语言及命令路由 | 五文件 857 项通过；保留原 Nightly 哈希不可排序规则，新增编号 Alpha/Beta/RC 比较。                                                                           |
+| CI、原 metadata smoke、builder/icon/版本配置    | 五文件 56 项通过。恢复原 Icon Composer 选择，白底配置和旧 ICNS 格式均保留检查。                                                                             |
+| 恢复、Core/store、driver 和真实进程资源凭证     | 七文件 82 项通过，包含真实 writer 和子进程关闭后的中断窗口；仍需整体验收。                                                                                  |
+| 类型与接口生成物                                | Node/Web 类型检查和派生接口检查通过；不是完整科研 E2E 的替代。                                                                                              |
+| 本机 Harness 上游对照                           | 同 Python 3.12.13、精确 Git pin/tree/源码及 license 校验：固定原树5项、当前63项均通过，0失败/0跳过；原始报告和比较结果已入库。                              |
+| 图标/原生环境                                   | 本机已核对实际 Electron 43.7.5；没有完整 Xcode/actool，不能声明本机完成 catalog 编译。                                                                      |
+| 完整桌面 Notebook 停止/重开/续跑                | 固定干净源码 `5812df666`：离线直接回复选择链和第四次真实 DeepSeek 全部通过；原完成阶段和固定源版本保留，重开零调用。                                        |
+| 本批 DeepSeek                                   | 第四次通过：22/24接纳、133本地/132上游请求、0拒绝、1确认取消；前三次失败保留。普通 Send、同任务原 k2 parallel、停止/重开/续跑和独立评估均验收；非收益证明。 |
+| 跨平台包                                        | 独立 CI 已实际启动；原 Windows Notebook runtime 构建仍在进行，四个平台包尚无完成结果。未计为通过。                                                          |
 
 此前的离线失败尝试均保留，不作为通过重跑删除：
 
@@ -39,8 +39,16 @@
 - 桌面 resume 命令漏注册：已复现、修复并补回归。
 - 并行任务曾报告 `Runtime Session turn is unknown or superseded`：已确定为候选私有 authority 与应用原 authority 分离导致活跃接纳被原重启调和逻辑清除。现复用原应用 Session repository/coordinator，注册实际 runtime 的存活探针；保留原接纳/重启语义。确定性回归及同环境原上游 controls 通过，见 `ALPHA_SESSION_ADMISSION.md`。
 - 恢复后的 method 严格缓存曾拒绝原请求：已确定私有 managed-inputs JSON 键序改变字节与 invocationRef。仅固定私有 adapter 的序列化顺序，原 schedule 严格缓存规则不变。版本、摘要或数组顺序实际变化仍拒绝，见 `ALPHA_METHOD_RESUME.md`。
-- 最新 DeepSeek 普通任务失败为原 `ArtifactFinalizationProofError / version-message-conflict`：产物已关联另一消息。已在固定上游确定性重现同一窗口：兼容 marker 产生后、最终运行消息 flush 前，hydration 把唯一前置消息误认为最终归属。最小修复仅阻止同一 active prompt 的无 claim 推断，原 proof/finalizer 不改；相同六场景上游 1 失败 / 5 通过，修复后六场景与原 237 项共 243 通过，见 [原路径对照](ALPHA_ARTIFACT_FINALIZATION.md)。真实模型复验仍待完成，历史数据库缺失不补造。
+- 最新 DeepSeek 普通任务失败为原 `ArtifactFinalizationProofError / version-message-conflict`：产物已关联另一消息。已在固定上游确定性重现同一窗口：兼容 marker 产生后、最终运行消息 flush 前，hydration 把唯一前置消息误认为最终归属。最小修复仅阻止同一 active prompt 的无 claim 推断，原 proof/finalizer 不改；相同六场景上游 1 失败 / 5 通过，修复后六场景与原 237 项共 243 通过，见 [原路径对照](ALPHA_ARTIFACT_FINALIZATION.md)。后续真实模型普通任务及完整链已通过；历史数据库缺失不补造。
 
-三次付费尝试和离线通过报告已逐字节保存在 [validation/alpha](validation/alpha/README.md)，包含 SHA-256、用量观测、缺失证据和失败归因边界。旧代理不能区分主动停止与异常上游拒绝；现已补真实 HTTP 控制测试，只有自身取消且客户端已断开的请求才单列取消，异常拒绝仍失败。该修复不能追认第一次失败为通过。
+四次付费尝试和离线通过报告已逐字节保存在 [validation/alpha](validation/alpha/README.md)，包含 SHA-256、用量观测、缺失证据和失败归因边界。旧代理不能区分主动停止与异常上游拒绝；现已补真实 HTTP 控制测试，只有自身取消且客户端已断开的请求才单列取消，异常拒绝仍失败。该修复不能追认第一次失败为通过。
 
 完整本机诊断位于 `/tmp/earthnano-alpha-*`。第二次失败在优化目录创建前发生，旧 finally 的目录异常使 Session 转储被跳过，普通 Core journal 也未导出；此历史缺口明确保留。现已提前注册诊断，拆分普通 journal、优化 journal 和原 Session 的独立保存路径。早期报告没有记录精确源 head，不能作为发布提交验收；最终 PR 和发布需补固定提交的持久结果。
+
+## 当前固定提交验收
+
+实际执行源码为 `5812df666a479d23ee4f7684c0449266f12f0238`，工作树干净；后端与桌面均重新构建，报告保存实际入口 SHA-256。第四次真实验证和离线直接回复路径使用相同构建。第四次独立评估两项均 pass，基线95分/候选100分只是单次同模型隔离评分，不证明能力提升；配置仍只 eligible，未发布。
+
+第三次确认的融合缺口现已修复：原选择器只需已提交回复，融合层不得额外强迫模型转写文件。现在四种方法角色经相同原 Artifact owner 保存真实回复，原 harvest、选择、重试、fallback 与完整性证明均保留，见 [方法回复证据](ALPHA_METHOD_REPLY_CAPTURE.md)。新 [私有诊断](ALPHA_FAILURE_DIAGNOSTICS.md) 仅保留有界宿主类别，既不导出任意错误文本，也不作为完成或资源释放凭证。
+
+当前本机组合95项、Python63项、Node/Web类型和构建通过；两位开发智能体交叉只读审查无新可操作发现。完整 Alpha清单仍未完成，尤其原完整stream/sweep、R/remote Compute/binary候选、跨任务采用回滚、自动策略、用量产品化及四平台原生包。下一阶段按 [工作队列](NEXT_TASKS.md) 推进，独立 helper 不算已接通能力。
