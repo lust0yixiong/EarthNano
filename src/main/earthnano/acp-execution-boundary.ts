@@ -226,7 +226,11 @@ export function createAcpExecutionBoundary({
       const results = await Promise.all([...owners].map((owner) => owner.settle()))
       if (!results.every(Boolean)) return false
       for (const entry of active.values()) {
-        if ((await entry.core.get(entry.executionId)).cleanup !== 'confirmed') return false
+        try {
+          if ((await entry.core.get(entry.executionId)).cleanup !== 'confirmed') return false
+        } catch {
+          return false
+        }
       }
       return true
     }
