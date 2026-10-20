@@ -41,7 +41,9 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
     const allowed =
       operation === 'start'
         ? [...required, 'method', 'checks', 'domain', 'inputArtifacts', 'notebook']
-        : required
+        : operation === 'startSweep'
+          ? [...required, 'previewPlanDigest']
+          : required
     if (
       required.some((key) => !Object.hasOwn(request, key)) ||
       Object.keys(request).some((key) => !allowed.includes(key))

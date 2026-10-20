@@ -36,6 +36,16 @@ export const sweepRequest = (): StartDesktopSweep => ({
 })
 
 describe('desktop catalog source boundary', () => {
+  it('retains a reviewed original plan digest while preserving older v2 requests', () => {
+    expect(
+      normalizeDesktopSweep({ ...sweepRequest(), previewPlanDigest: 'sha256:' + 'a'.repeat(64) })
+    ).toHaveProperty('previewPlanDigest', 'sha256:' + 'a'.repeat(64))
+    expect(normalizeDesktopSweep(sweepRequest())).not.toHaveProperty('previewPlanDigest')
+    for (const digest of [undefined, '', 'a'.repeat(63), 'A'.repeat(64), 'a'.repeat(64), '../plan'])
+      expect(() =>
+        normalizeDesktopSweep({ ...sweepRequest(), previewPlanDigest: digest })
+      ).toThrow()
+  })
   it('preserves independent source selections and explicit original stream options in a detached DTO', () => {
     const request = sweepRequest(),
       parsed = normalizeDesktopSweep(request)

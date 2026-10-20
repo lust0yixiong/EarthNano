@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeDesktopSweepPreview } from './optimization-sweep'
+import { normalizeDesktopSweepPreview, type PreviewDesktopSweep } from './optimization-sweep'
 
-const request = () => ({
+const request = (): PreviewDesktopSweep => ({
   projectId: 'project',
   sourceSessionId: 'source',
   catalog: [

@@ -47,19 +47,20 @@ export function isSupportedNotebookOptimizationMessage(
 }
 
 /** Original fixed-reference parsing, before original ManagedFileVersion reads and byte checks. */
+interface NotebookSourceReference {
+  source: 'upload' | 'artifact'
+  fileId: string
+  versionId: string
+  checksum?: string
+  sessionId?: string
+  name: string
+  size?: number
+}
 export function notebookOptimizationSourceReferences(
   message: PersistedChatMessage,
   sourceSessionId: string
-) {
-  const expected: Array<{
-    source: 'upload' | 'artifact'
-    fileId: string
-    versionId: string
-    checksum?: string
-    sessionId?: string
-    name: string
-    size?: number
-  }> = []
+): NotebookSourceReference[] {
+  const expected: NotebookSourceReference[] = []
   for (const upload of message.uploads ?? []) {
     if (!upload.id || !upload.versionId || !upload.sha256 || upload.sessionId !== sourceSessionId)
       throw new Error('Notebook source upload has no fixed authority')

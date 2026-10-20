@@ -467,6 +467,8 @@ export async function createDesktopSweepOptions(
       harnessRoot: dependencies.harnessRoot,
       signal: dependencies.signal
     })
+    if (request.previewPlanDigest !== undefined && request.previewPlanDigest !== plan.digest)
+      throw new Error('Original task stream changed after preview')
     const ids = plan.domains.flatMap((domain) => domain.taskIds)
     assertSweepExecutionLimit(request.sweep, ids.length, request.executionLimit)
     const selected = ids.map((id) => {

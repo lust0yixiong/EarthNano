@@ -633,6 +633,39 @@ it('enforces total selected-task execution budget before any source freeze', asy
   expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
   expect(mocks.releaseWriter).toHaveBeenCalledOnce()
 })
+it('rejects an obsolete user-reviewed original plan before reading or admitting catalog sources', async () => {
+  const deps = catalogDependencies()
+  await expect(
+    createDesktopSweepOptions(
+      { ...catalogRequest(), previewPlanDigest: 'sha256:' + 'f'.repeat(64) },
+      deps
+    )
+  ).rejects.toThrow('Original task stream changed after preview')
+  expect(deps.loadSession).not.toHaveBeenCalled()
+  expect(deps.admitSessionWork).toHaveBeenCalledExactlyOnceWith('p', 's')
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+})
+it('freezes exactly the original plan reviewed by the desktop user', async () => {
+  const request = catalogRequest(),
+    deps = catalogDependencies()
+  const preview = await createDesktopSweepPreview(
+    {
+      projectId: request.projectId,
+      sourceSessionId: request.sourceSessionId,
+      catalog: request.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+      sweep: request.sweep
+    },
+    deps
+  )
+  const options = await createDesktopSweepOptions(
+    { ...request, previewPlanDigest: preview.planDigest },
+    deps
+  )
+  expect(options.sweep.plan.digest).toBe(preview.planDigest)
+  expect(options.sweep.request.previewPlanDigest).toBe(preview.planDigest)
+  options.releaseAdmission()
+})
 it('releases all selected source admissions on freeze rejection without starting any owner', async () => {
   const deps = catalogDependencies()
   deps.loadSession.mockImplementation(async (projectId, id) => {

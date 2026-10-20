@@ -8,6 +8,7 @@ const message = (id: string): PersistedChatMessage => ({
   role: 'user',
   content: id,
   status: 'complete',
+  eventIds: [],
   createdAt: 1,
   updatedAt: 1,
   uploads: [

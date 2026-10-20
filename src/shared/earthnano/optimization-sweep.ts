@@ -46,6 +46,8 @@ export interface StartDesktopSweep {
   catalog: OptimizationSweepTask[]
   sweep: OptimizationSweepOptions
   executionLimit: number
+  /** New desktop drafts bind the user-reviewed original plan; absent on earlier v2 requests. */
+  previewPlanDigest?: string
 }
 /** Read-only original task_stream preview. Contains identities, never task data or credentials. */
 export interface PreviewDesktopSweep {

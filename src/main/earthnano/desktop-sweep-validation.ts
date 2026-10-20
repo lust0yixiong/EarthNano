@@ -42,14 +42,17 @@ const id = (value: unknown): string =>
 /** Validate every public task before original task_stream filters it. Source authority is still
  * granted independently by Main only for selected tasks, never by this structural parser. */
 export function normalizeDesktopSweep(value: unknown): StartDesktopSweep {
-  const request = object(value, [
-    'projectId',
-    'sourceSessionId',
-    'requestKey',
-    'catalog',
-    'sweep',
-    'executionLimit'
-  ])
+  const request = object(
+    value,
+    ['projectId', 'sourceSessionId', 'requestKey', 'catalog', 'sweep', 'executionLimit'],
+    ['previewPlanDigest']
+  )
+  if (
+    Object.hasOwn(request, 'previewPlanDigest') &&
+    (typeof request.previewPlanDigest !== 'string' ||
+      !/^sha256:[a-f0-9]{64}$/.test(request.previewPlanDigest))
+  )
+    return fail()
   if (!Array.isArray(request.catalog)) return fail()
   const identities = normalizeOptimizationCatalog(
     request.catalog.map((item) => {
@@ -134,6 +137,9 @@ export function normalizeDesktopSweep(value: unknown): StartDesktopSweep {
     projectId: id(request.projectId),
     sourceSessionId: id(request.sourceSessionId),
     requestKey: id(request.requestKey),
+    ...(Object.hasOwn(request, 'previewPlanDigest')
+      ? { previewPlanDigest: request.previewPlanDigest as string }
+      : {}),
     catalog,
     sweep: normalizeOptimizationSweep(request.sweep),
     executionLimit: request.executionLimit as number
