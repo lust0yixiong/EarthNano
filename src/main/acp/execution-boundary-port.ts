@@ -1,6 +1,5 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import type { AcpPromptRequest, AcpRuntimeState, AcpSessionAgentTarget } from '../../shared/acp'
-import type { ExecutionScope } from '../earthnano/execution-scope'
 import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/execution-port'
 
 export interface AcpExecutionObservation {
@@ -52,7 +51,8 @@ export interface TrustedDelegatedExecutionOwner {
   readonly frameId: string
   readonly runtimeSegmentId: string
   readonly attemptId: string
-  readonly parentScope?: ExecutionScope
+  ownsExecution(executionId: string): boolean
+  ownsTurn(provenance: AcpPromptRequest['provenanceContext']): boolean
   /** Checks attachment to the exact private child coordinator, never a renderer claim. */
   ownsSession(sessionId: string): boolean
 }
