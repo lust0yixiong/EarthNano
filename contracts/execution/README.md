@@ -14,6 +14,9 @@ The copied Python schema is generated so installed packages do not depend on the
 are fixed ASCII, numbers are bounded integers, and strings must be Unicode scalar strings.
 The request digest uses sorted-key compact UTF-8 JSON and SHA-256; it includes every request field.
 This digest is for idempotent admission, **not** a cache key that permits cross-request result reuse.
+`origin.sessionId` / `origin.promptMessageId` describe the source interaction. The record's `identity`
+describes the actual executing turn. An isolated candidate may have a different target Session;
+trusted bindings must validate target Project/Session/provenance rather than overwrite the origin.
 
 The TypeScript `ExecutionCore` implements the owner behind `ExecutionPort`. A driver receives frozen
 request references and an `ExecutionContext`; it resolves inputs through its trusted platform bindings,
@@ -40,6 +43,10 @@ Run the contract gate from the repository root:
 ```sh
 node node_modules/vitest/vitest.mjs run --project=default --maxWorkers=1 src/main/earthnano/execution-core.test.ts
 ```
+
+`stdio-roundtrip.py` and `harness-roundtrip.test.ts` are test-only transport fixtures: a real Python
+method client calls the TypeScript core over test pipes, sharing an admission budget with a TS task.
+They are not registered application endpoints and do not implement the production transport.
 
 The two extraction tasks start only after this gate passes. Their production defaults must preserve
 existing public behavior; new internal opt-in paths must use these exact requests/results and reuse
