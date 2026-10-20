@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .. import config
+from .execution_contract import ExecutionStopped
 from .spec import ChannelSpec
 
 SYSTEM_ARG_MAX = 120_000
@@ -61,10 +62,13 @@ def _obj(d: dict, key: str) -> dict:
 class ProposerError(RuntimeError):
     """A call did not produce a usable reply. Never swallowed into an empty string."""
 
-    def __init__(self, message: str, *, attempts: int = 0, cost_usd: float = 0.0):
+    def __init__(
+        self, message: str, *, attempts: int = 0, cost_usd: float = 0.0, execution_id: str = ""
+    ):
         super().__init__(message)
         self.attempts = attempts
         self.cost_usd = cost_usd
+        self.execution_id = execution_id
 
 
 @dataclass
@@ -82,6 +86,8 @@ class Reply:
     error: str = ""
     audit: Path | None = None
     workspace: Path | None = None
+    execution_id: str = ""
+    usage_status: str = "unknown"
 
     def __bool__(self) -> bool:
         return self.ok
@@ -182,6 +188,8 @@ class Proposer:
                 self._write_audit(r, mission, system, cache_key)
                 self._calls.append(r)
                 return r
+            except ExecutionStopped:
+                raise
             except subprocess.TimeoutExpired:
                 last = f"timeout after {wall}s"
             except Exception as exc:

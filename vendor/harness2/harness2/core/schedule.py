@@ -35,6 +35,8 @@ from typing import Mapping, Sequence
 from . import library as library_store
 from . import recursion, runmark, selection
 from . import tree as harness_tree
+from .execution_contract import ExecutionStopped
+from .method_execution import LEGACY, MethodExecution
 from .proposer import Proposer
 from .spec import BenchmarkAdapter, RunView
 
@@ -409,6 +411,8 @@ def _resume(
             fingerprint = sel.get("harness_fingerprint")
             if fingerprint and runmark.fingerprint(harness_dir) != fingerprint:
                 raise ValueError("adopted harness has changed")
+        except ExecutionStopped:
+            raise
         except (OSError, RuntimeError, ValueError) as exc:
             print(f"  [{task_id}] cannot resume {mode}: {exc}; re-running", flush=True)
             return False
@@ -428,16 +432,17 @@ def _dead(label: str, rid: str, dead_dir: Path, error: str) -> RunView:
 
 
 def _roll_bases(
-    task_id: str, adapter: BenchmarkAdapter, pending: Sequence[tuple[str, str]], dead_dir: Path
+    task_id: str, adapter: BenchmarkAdapter, pending: Sequence[tuple[str, str]], dead_dir: Path,
+    *, execution: MethodExecution = LEGACY, scope: str = "",
 ) -> dict[str, RunView]:
     """Roll the pending (label, run_id) reference executions, natively batched when possible."""
     if not pending:
         return {}
     rolled: dict[str, RunView] = {}
     execute_many = getattr(adapter, "execute_many", None)
-    if len(pending) > 1 and callable(execute_many):
+    if len(pending) > 1 and execution.legacy and callable(execute_many):
         try:
-            dirs = list(execute_many(task_id, None, [rid for _lbl, rid in pending]))
+            dirs = execution.rollouts(adapter, task_id, pending, scope=scope)
             for i, (label, rid) in enumerate(pending):
                 if i >= len(dirs):
                     rolled[label] = _dead(
@@ -454,6 +459,8 @@ def _roll_bases(
                     delivered=exists and adapter.delivered(rd),
                     error="" if exists else "adapter returned a missing run directory",
                 )
+        except ExecutionStopped:
+            raise
         except Exception as exc:
             for label, rid in pending:
                 rolled[label] = _dead(label, rid, dead_dir, f"{type(exc).__name__}: {exc}")
@@ -462,10 +469,12 @@ def _roll_bases(
     def _one(label_rid: tuple[str, str]) -> RunView:
         label, rid = label_rid
         try:
-            rd = adapter.execute(task_id, None, rid)
+            rd = execution.rollout(adapter, task_id, None, rid, label=label, scope=scope)
             return RunView(
                 label=label, run_id=rid, run_dir=rd, ok=True, delivered=adapter.delivered(rd)
             )
+        except ExecutionStopped:
+            raise
         except Exception as exc:
             return _dead(label, rid, dead_dir, f"{type(exc).__name__}: {exc}")
 
@@ -493,6 +502,7 @@ def _run_one_mode(
     surface,
     pool_policy: str,
     res: TaskResult,
+    execution: MethodExecution = LEGACY,
 ) -> None:
     """Run one recursion mode over the shared bases, select a final, and record it on `res`."""
     work_dir = n.task_dir(runs_root, task_id)
@@ -508,6 +518,8 @@ def _run_one_mode(
         run_id_of=lambda lbl, _n=n: _n.run_id(task_id, lbl),
         base_tree=base_tree,
         library_dir=lib_dir,
+        execution=execution,
+        scope=str(n),
     )
     res.modes[mode] = r.to_dict()
     candidates = selection.selection_pool(mode, k, r.rollouts, base)
@@ -525,6 +537,8 @@ def _run_one_mode(
             prop=selector,
             work_dir=work_dir,
             pool_kind="finals",
+            execution=execution,
+            scope=str(n),
         )
     if mode_lib and sel.ok:
         selection.reflect_adoption(
@@ -535,6 +549,8 @@ def _run_one_mode(
             prop=selector,
             work_dir=work_dir,
             decisions={stage.label: stage.notes or stage.error for stage in r.stages},
+            execution=execution,
+            scope=str(n),
         )
     d = sel.to_dict()
     d["chosen_run_dir"] = str(
@@ -577,6 +593,7 @@ def run_task(
     libraries: dict[str, library_store.Library] | None = None,
     selector_prop: Proposer | None = None,
     pool_policy: str = "finals",
+    execution: MethodExecution = LEGACY,
 ) -> TaskResult:
     """k shared reference executions -> every mode -> blind selection per mode -> summary.json.
 
@@ -606,9 +623,9 @@ def run_task(
     base_ns = Namespace(bench, sub, "agg", k, seed, tag)
     work = base_ns.task_dir(runs_root, task_id)
     work.mkdir(parents=True, exist_ok=True)
-    summary_path = work / "summary.json"
+    summary_path = work / ("summary.json" if execution.legacy else "summary.port.json")
 
-    if summary_path.is_file() and _resume(
+    if execution.legacy and summary_path.is_file() and _resume(
         summary_path, task_id, k, adapter, runs_root, modes, seed, tag, mode_libs, res
     ):
         return res
@@ -622,7 +639,9 @@ def run_task(
     dead_dir = work / "missing"
 
     pending = list(zip(labels, run_ids))
-    rolled = _roll_bases(task_id, adapter, pending, dead_dir)
+    rolled = _roll_bases(
+        task_id, adapter, pending, dead_dir, execution=execution, scope=str(base_ns),
+    )
     base: list[RunView] = [rolled[label] for label in labels]
 
     res.base = [{"label": b.label, "run_id": b.run_id, "run_dir": str(b.run_dir)} for b in base]
@@ -650,7 +669,10 @@ def run_task(
                 surface=surface,
                 pool_policy=pool_policy,
                 res=res,
+                execution=execution,
             )
+        except ExecutionStopped:
+            raise
         except Exception as exc:
             res.modes[mode] = {
                 "ok": False,
@@ -680,6 +702,7 @@ def run_domain(
     tag: str = "",
     selector_prop: Proposer | None = None,
     pool_policy: str = "finals",
+    execution: MethodExecution = LEGACY,
 ) -> dict:
     """Every task in one domain, in `stream_order()` order, threading the library forward."""
     surface = adapter.substrate.surface()
@@ -712,6 +735,7 @@ def run_domain(
                 libraries=libs,
                 selector_prop=selector_prop,
                 pool_policy=pool_policy,
+                execution=execution,
             )
             if r.status in ("ok", "skipped"):
                 out["done"] += 1
@@ -724,6 +748,8 @@ def run_domain(
                     "error": "; ".join(r.errors) if r.errors else r.status,
                     "library_entries_before": before,
                 }
+        except ExecutionStopped:
+            raise
         except Exception as exc:
             out["failed"] += 1
             row = {"task": tid, "status": "exception", "error": f"{type(exc).__name__}: {exc}"}
@@ -794,6 +820,7 @@ def run_sweep(
     pool_policy: str = "finals",
     max_tasks: int | None = None,
     only_tasks: Sequence[str] = (),
+    execution: MethodExecution = LEGACY,
 ) -> dict:
     """Run domains concurrently, preserving task order after stream filters are applied."""
     ordered_tasks = task_stream(
@@ -825,12 +852,15 @@ def run_sweep(
                 tag=tag,
                 selector_prop=selector,
                 pool_policy=pool_policy,
+                execution=execution,
             ): d
             for d in order
         }
         for f in as_completed(futs):
             try:
                 rows.append(f.result())
+            except ExecutionStopped:
+                raise
             except Exception as exc:
                 rows.append({"domain": futs[f], "error": f"{type(exc).__name__}: {exc}"})
     return {

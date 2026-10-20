@@ -1,0 +1,152 @@
+{
+  "validatedSourceCommit": "bd686944c",
+  "environment": {
+    "os": "Darwin arm64",
+    "node": "24.22.0",
+    "python": "3.12.13"
+  },
+  "vitest": {
+    "files": 22,
+    "passed": 805,
+    "failed": 0,
+    "skipped": 0,
+    "results": [
+      {
+        "path": "src/main/acp/earthnano-execution-driver.test.ts",
+        "passed": 21,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/handler-workflows.test.ts",
+        "passed": 56,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/prompt-turn-workflow.test.ts",
+        "passed": 44,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/provider-prompt-executor.test.ts",
+        "passed": 21,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/restricted-inference-runner.test.ts",
+        "passed": 30,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/runtime-coordinator.test.ts",
+        "passed": 225,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/session-configurator.test.ts",
+        "passed": 18,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/session-interaction-owner.test.ts",
+        "passed": 35,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/task-agent-port.test.ts",
+        "passed": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/execution-core.test.ts",
+        "passed": 19,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/harness-roundtrip.test.ts",
+        "passed": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/artifact-digest.test.ts",
+        "passed": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/artifact-version-review.test.ts",
+        "passed": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/model-runtime-owner.test.ts",
+        "passed": 13,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/review-assessment-owner.test.ts",
+        "passed": 28,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/scope-snapshot.test.ts",
+        "passed": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/session-persistence/runtime-resume-recovery.test.ts",
+        "passed": 18,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/session-persistence/runtime-session-owner.test.ts",
+        "passed": 93,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/specialist/session-reconfiguration.test.ts",
+        "passed": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/tasks/task-run-journal.test.ts",
+        "passed": 15,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/tasks/task-runner.test.ts",
+        "passed": 137,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/web-service/public-task-event-stream.test.ts",
+        "passed": 3,
+        "status": "passed"
+      }
+    ]
+  },
+  "pythonUnittest": {
+    "command": "python3 -B -m unittest discover -s tests -v",
+    "cwd": "vendor/harness2",
+    "passed": 24,
+    "failed": 0,
+    "seconds": 21.402
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck:node",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 scripts/earthnano/generate-contract.py --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node node_modules/eslint/bin/eslint.js src/main/earthnano src/shared/earthnano src/main/acp/earthnano-execution-driver.ts src/main/acp/earthnano-execution-driver.test.ts src/main/acp/task-agent-port.ts src/main/acp/task-prompt-execution.ts --quiet",
+      "exitCode": 0
+    }
+  ],
+  "limitations": [
+    "Mock/fake runtime and demo tests; no paid model calls",
+    "No Electron startup, full npm test, desktop end-to-end or packaging",
+    "No production resolver/transport/bootstrap, real configuration isolation or improvement-quality experiment"
+  ]
+}
