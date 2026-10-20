@@ -324,7 +324,15 @@ describe('TaskRunner', () => {
       } as ExecutionRecord)
       expect(await result).toMatchObject({ status: phase === 'completed' ? 'completed' : 'failed' })
       expect(progress.at(-1)).toBe(phase === 'completed' ? 'completed' : 'failed')
-      if (phase !== 'completed') expect((await result).error).toContain('Canonical owner evidence')
+      if (phase !== 'completed') {
+        expect((await result).error).toContain('Canonical owner evidence')
+        expect(persisted[0]).toMatchObject({
+          status: 'failed',
+          executionId: 'execution-1',
+          sessionCommitStatus: 'completed',
+          error: 'Canonical owner evidence is unavailable.'
+        })
+      }
     }
   )
 
