@@ -1,0 +1,799 @@
+{
+  "date": "2026-10-20",
+  "provider": "DeepSeek Anthropic-compatible endpoint through original Claude Code/ACP runtime",
+  "model": "deepseek-flash",
+  "runtimeVersion": "2.1.232",
+  "validatedImplementationCommit": "0a0b913318394ead684424825fd1ba9defb35adb",
+  "authorization": "Previously authorized local key file; credential never included in committed evidence",
+  "method": {
+    "mode": "sequential",
+    "k": 1,
+    "concurrency": 1
+  },
+  "tasks": 2,
+  "perAttemptLimits": {
+    "executionAdmissions": 23,
+    "eligibleProviderRequests": 112,
+    "maxOutputTokensPerResponse": 1536,
+    "executionTimeoutMs": 120000,
+    "overallTimeoutMs": 480000,
+    "thinking": "disabled"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "sourceCommit": "5ef4c829d",
+      "diagnosis": "Production provenance gate rejected model-transcribed experience.md differing from committed reflection reply; no independent assessment started. Original owner now derives reflection-reply.md from the same committed review-safe reply, preserving model files and strict identity checks.",
+      "status": "failed",
+      "error": "Reflection reply lacks its exact persisted artifact",
+      "requests": 56,
+      "rejects": 17,
+      "usage": {
+        "input": 139421,
+        "cacheRead": 317440,
+        "output": 19620
+      },
+      "records": [
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 3
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "sourceCommit": "a6259dce8",
+      "diagnosis": "Desktop lifecycle completed; live fixture wrongly required every task to create experience. Original NO_ENTRY is valid. Corrected fixture to require exact provenance only for actual original Library entries; production acceptance gates unchanged.",
+      "status": "failed",
+      "error": "",
+      "requests": 65,
+      "rejects": 20,
+      "usage": {
+        "input": 165620,
+        "cacheRead": 327552,
+        "output": 20765
+      },
+      "records": [
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 3
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        }
+      ],
+      "executionLifecycleObservedAtAssertion": "completed"
+    },
+    {
+      "attempt": 3,
+      "sourceCommit": "3d2be4a51",
+      "diagnosis": "Desktop lifecycle completed and both selected artifacts passed independent acceptance; test wrongly required configuration changes with no fallback. Original fallback and unchanged harness are valid. Corrected test records adoption/fallback and accepts scientific outputs only for selected finals; all immutable evidence still reopened. No optimization gain is required for a transport/persistence validation.",
+      "status": "failed",
+      "error": "",
+      "requests": 71,
+      "rejects": 21,
+      "usage": {
+        "input": 159448,
+        "cacheRead": 368128,
+        "output": 21285
+      },
+      "records": [
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 3
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 3
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reflection",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 2
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed",
+          "artifactCount": 1
+        }
+      ],
+      "domain": {
+        "name": "csv-analysis",
+        "order": [
+          "e87142d6-825d-4b3f-86ae-5d14f8807c4f-0001",
+          "e87142d6-825d-4b3f-86ae-5d14f8807c4f-0002"
+        ],
+        "tasks": [
+          {
+            "taskId": "e87142d6-825d-4b3f-86ae-5d14f8807c4f-0001",
+            "selection": {
+              "chosenLabel": "c1",
+              "candidateCount": 1,
+              "trivial": true,
+              "fallback": false,
+              "reason": "trivial pool: single final at k=1; delivered without a selector session"
+            },
+            "assessments": {
+              "baseline": {
+                "executionId": "ddc99a0c-ecf7-46be-ab48-c1f405bc6b30",
+                "targetExecutionId": "71b48d1a-02bd-4020-a4e6-63e9b017a4a1",
+                "reviewId": "cmvghcla50011xj23ch0h7nze",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The target artifact is result.json (artifactRef artifactId 2f5fb59d-a563-4668-8d36-0a3e759ebcec, versionId 329c8e95-2af6-4c1e-b839-5944d7094070, checksum 39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479). Its supplied content is the JSON object {\"count\": 3, \"sum\": 6}. Comparison against the source facts in INPUT/evidence/task.json (values.csv with header 'id,value' and rows one,1; two,2; three,3): the file has 3 data rows excluding the header, so count=3 is correct; 1+2+3=6, so sum=6 is correct. The output is a valid JSON object containing exactly the two requested fields and no extraneous deliverables are present in the supplied artifact array. Both frozen criteria are satisfied by direct arithmetic verification of the cited values, not inferred from completion claims. Limitations: only the single supplied artifact version was assessed; no execution provenance or file-creation log was supplied, so correctness is judged solely on the artifact content against the source data."
+              },
+              "candidate": {
+                "executionId": "ffd932f6-32c6-4c32-8c72-2319369e755b",
+                "targetExecutionId": "c0ce0510-175e-4553-8a62-85e2c5bc68a4",
+                "reviewId": "cmvghcqxv0015xj23nfkm1y66",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The task requires reading INPUT/values.csv (header 'id,value' plus three data rows one/1, two/2, three/3) and writing only a JSON object with count and sum to result.json. The sole target artifact result.json (artifactId a0044a93-ea02-4df3-931c-a674d409d291, versionId 09207d8d-0331-4210-ad61-69a5d35a4cb5, sha256 39fe4ab6...) contains exactly {\"count\": 3, \"sum\": 6}. The count 3 matches the three data rows excluding the header, and 1+2+3 = 6 matches the sum of the value column. The output is a bare JSON object with no extra deliverables, as the source task requested. Both frozen criteria are satisfied."
+              }
+            },
+            "outcome": {
+              "artifact": {
+                "status": "passed",
+                "checks": [
+                  {
+                    "path": "result.json",
+                    "pointer": "/sum",
+                    "artifactRef": {
+                      "artifactId": "a0044a93-ea02-4df3-931c-a674d409d291",
+                      "versionId": "09207d8d-0331-4210-ad61-69a5d35a4cb5",
+                      "checksum": "39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479"
+                    },
+                    "status": "pass",
+                    "reason": "matched"
+                  }
+                ],
+                "reviewId": "cmvghcqy50017xj23s0ctewgl"
+              },
+              "configuration": {
+                "status": "eligible",
+                "reasons": [],
+                "harnessRevisionRef": {
+                  "id": "candidate:harness:0a14e9f0c1db2239d01bc7c198d60033eea83abdd3862332cc4def2fab2346ba",
+                  "version": "1",
+                  "digest": "sha256:0a14e9f0c1db2239d01bc7c198d60033eea83abdd3862332cc4def2fab2346ba"
+                }
+              }
+            }
+          },
+          {
+            "taskId": "e87142d6-825d-4b3f-86ae-5d14f8807c4f-0002",
+            "selection": {
+              "chosenLabel": "c1",
+              "candidateCount": 1,
+              "trivial": true,
+              "fallback": false,
+              "reason": "trivial pool: single final at k=1; delivered without a selector session"
+            },
+            "assessments": {
+              "baseline": {
+                "executionId": "0882924b-a7c7-4c7f-bd1e-6734ab1572c3",
+                "targetExecutionId": "19b9b24a-4d93-4cbf-a7ed-3d086e6b3e78",
+                "reviewId": "cmvghcwz0001bxj23n9g3vcb3",
+                "outcome": "pass",
+                "score": 98,
+                "rationale": "The task (task.json) supplies values.csv with header 'id,value' plus three data rows (one=4, two=5, three=6) and asks for JSON with count and sum. The single target artifact result.json contains the JSON object {\"count\": 3, \"sum\": 15}. c1: the source header row is not a data row, so the expected count is 3; the artifact reports count 3, which equals the number of data rows excluding the header. c2: 4+5+6=15, and the artifact reports sum 15, matching the value column arithmetic. Both frozen criteria are satisfied by the literal content of the artifact; the output is valid JSON as requested. Score is a model judgment based on direct inspection of the supplied artifact content and source data, not a proof of the process used to produce it."
+              },
+              "candidate": {
+                "executionId": "e7571da4-43a8-43f0-aec1-15c7bd13bb3e",
+                "targetExecutionId": "91b8a446-2a36-499a-8a50-91965a70fbd4",
+                "reviewId": "cmvghd2ui001fxj233ttli04v",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The task asked for the number of data rows and the sum of the value column of values.csv, written as JSON with count and sum. The supplied source values.csv has a header line (id,value) and three data rows (one,4; two,5; three,6). The target artifact result.json reports count 3 and sum 15. The count of 3 equals the three data rows, consistent with excluding the header. The sum 4+5+6=15 matches the reported sum exactly. Both frozen criteria are satisfied. Note: the task specified writing only JSON; the artifact content contains only the JSON object, and evaluation is limited to the two frozen criteria."
+              }
+            },
+            "outcome": {
+              "artifact": {
+                "status": "passed",
+                "checks": [
+                  {
+                    "path": "result.json",
+                    "pointer": "/sum",
+                    "artifactRef": {
+                      "artifactId": "043b3be3-c884-4625-8e7b-ea08e41fcb6b",
+                      "versionId": "7c3bdd37-9400-4517-aa90-1e3d7f15f910",
+                      "checksum": "f2edf6454efa143c91f1dd5680730014c21224c34d310a83f0fee1e7633146d6"
+                    },
+                    "status": "pass",
+                    "reason": "matched"
+                  }
+                ],
+                "reviewId": "cmvghd2us001hxj23be2tl9mv"
+              },
+              "configuration": {
+                "status": "eligible",
+                "reasons": [],
+                "harnessRevisionRef": {
+                  "id": "candidate:harness:0a14e9f0c1db2239d01bc7c198d60033eea83abdd3862332cc4def2fab2346ba",
+                  "version": "1",
+                  "digest": "sha256:0a14e9f0c1db2239d01bc7c198d60033eea83abdd3862332cc4def2fab2346ba"
+                }
+              }
+            }
+          }
+        ],
+        "library": {
+          "scope": "experiment",
+          "entries": [],
+          "digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      },
+      "executionLifecycleObservedAtAssertion": "completed"
+    },
+    {
+      "attempt": 4,
+      "sourceCommit": "0a0b91331",
+      "diagnosis": "Final bounded native run passes with truthful per-task changes, fallback, NO_ENTRY, pinned independent checks and complete database reopening.",
+      "status": "passed",
+      "model": "deepseek-flash",
+      "executions": 23,
+      "roles": [
+        "baseline",
+        "proposer",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "composer",
+        "composer",
+        "candidate",
+        "reflection",
+        "baseline",
+        "proposer",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "composer",
+        "candidate",
+        "reflection",
+        "reviewer",
+        "reviewer",
+        "reviewer",
+        "reviewer"
+      ],
+      "sessions": 23,
+      "versionCount": 30,
+      "reviewCount": 29,
+      "verifiedInputReads": 8,
+      "successorEditingContexts": 4,
+      "verifiedSuccessorExperienceContexts": 0,
+      "reopened": true,
+      "configurationChanged": true,
+      "fallbackStages": ["dom1"],
+      "methodTasks": [
+        {
+          "taskId": "2bb89035-2b74-4c02-b314-10b3ff93fbea-0001",
+          "configurationChanged": true,
+          "fallbackStages": []
+        },
+        {
+          "taskId": "2bb89035-2b74-4c02-b314-10b3ff93fbea-0002",
+          "configurationChanged": true,
+          "fallbackStages": ["dom1"]
+        }
+      ],
+      "domain": {
+        "name": "csv-analysis",
+        "order": [
+          "2bb89035-2b74-4c02-b314-10b3ff93fbea-0001",
+          "2bb89035-2b74-4c02-b314-10b3ff93fbea-0002"
+        ],
+        "tasks": [
+          {
+            "taskId": "2bb89035-2b74-4c02-b314-10b3ff93fbea-0001",
+            "selection": {
+              "chosenLabel": "c1",
+              "candidateCount": 1,
+              "trivial": true,
+              "fallback": false,
+              "reason": "trivial pool: single final at k=1; delivered without a selector session"
+            },
+            "assessments": {
+              "baseline": {
+                "executionId": "e0c9f76f-a535-4180-9034-e6da7dadd2a7",
+                "targetExecutionId": "3017456f-5715-45b1-b6f8-9d0811cc0ff9",
+                "reviewId": "cmvghlnir0015xjznqipyu339",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The task required reading values.csv (header 'id,value' plus three data rows: one=1, two=2, three=3) and writing only a JSON object with count and sum to OUTPUT/result.json. The sole supplied target artifact, result.json (artifactRef version 45904773-767f-4048-a372-073a2ae53067, checksum 39fe4ab6...), contains exactly the object {\"count\": 3, \"sum\": 6}. I independently recomputed from the task's embedded source file values.csv: three data rows excluding the header (count=3) and 1+2+3=6 (sum=6). Both frozen criteria are satisfied and no discrepancy is present. Note that this is a model judgment based on the supplied evidence, not a proven fact; the assessment also does not verify the process of how the file was produced, only its content against the frozen criteria."
+              },
+              "candidate": {
+                "executionId": "62da6dad-25f4-4d70-b060-c00f839bae10",
+                "targetExecutionId": "0fe5e5a9-e9fd-4243-9212-835bbbdfa515",
+                "reviewId": "cmvghltih0019xjznxzlka1bg",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The task (task.json) supplies values.csv whose header is 'id,value' followed by three data rows (one,1; two,2; three,3), so the expected count excluding the header is 3 and the expected sum of the value column is 1+2+3=6. The sole target artifact (result.json, artifactId 41f5bd1f-4440-40fb-947c-7f457edbfd58, versionId 18fd08fa-5705-4158-94c4-98f98ea8208d, checksum 39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479) contains exactly the JSON object {\"count\": 3, \"sum\": 6}. Both criteria are directly satisfied by the literal values in the artifact: count equals 3 (data rows, header excluded) and sum equals 6 (arithmetic sum of 1,2,3). The output also conforms to the instruction to write only a JSON object with count and sum, and no other deliverables are present in the artifact list. Independent computation from the source values confirms both numbers, so no discrepancy exists between the reported results and the supplied source data. This assessment is a model judgment derived by manually summing the four-line CSV content rather than executing a program, but the values are small and unambiguous."
+              }
+            },
+            "outcome": {
+              "artifact": {
+                "status": "passed",
+                "checks": [
+                  {
+                    "path": "result.json",
+                    "pointer": "/sum",
+                    "artifactRef": {
+                      "artifactId": "41f5bd1f-4440-40fb-947c-7f457edbfd58",
+                      "versionId": "18fd08fa-5705-4158-94c4-98f98ea8208d",
+                      "checksum": "39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479"
+                    },
+                    "status": "pass",
+                    "reason": "matched"
+                  }
+                ],
+                "reviewId": "cmvghltiq001bxjzny17ma708"
+              },
+              "configuration": {
+                "status": "eligible",
+                "reasons": [],
+                "harnessRevisionRef": {
+                  "id": "candidate:harness:db8643d17cd211e260dfef8af6ab7ffac8db7a3441de89e6c0eda13781ce2756",
+                  "version": "1",
+                  "digest": "sha256:db8643d17cd211e260dfef8af6ab7ffac8db7a3441de89e6c0eda13781ce2756"
+                }
+              }
+            }
+          },
+          {
+            "taskId": "2bb89035-2b74-4c02-b314-10b3ff93fbea-0002",
+            "selection": {
+              "chosenLabel": "c1",
+              "candidateCount": 1,
+              "trivial": true,
+              "fallback": false,
+              "reason": "trivial pool: single final at k=1; delivered without a selector session"
+            },
+            "experience": {
+              "scope": "experiment",
+              "reflectionExecutionId": "409eec15-599d-422e-98b8-1307ca254915",
+              "reflectionArtifacts": [
+                {
+                  "artifactId": "34f01936-b24e-4580-82fb-5222e0b4f1b4",
+                  "versionId": "4187fe84-d743-4ba1-92f2-7e63ca8e00d2",
+                  "checksum": "35ea4c2b8b6d62b9b08a37f9eda695c85a798b4a1a7988f9c8c7c812c64720f4"
+                }
+              ],
+              "selectedExecutionId": "33f7f444-b78d-4545-93eb-b1d3b3efeeac",
+              "selectedHarnessRevisionRef": {
+                "id": "candidate:harness:6db4b896ea71bf572911a7a5b496837fefb3ab84db528dff12854321f1a129be",
+                "version": "1",
+                "digest": "sha256:6db4b896ea71bf572911a7a5b496837fefb3ab84db528dff12854321f1a129be"
+              },
+              "libraryDigest": "sha256:07f84d8965fac1419ef983711092a16dca1bfefd2499e4fefaf43df97e91bca0"
+            },
+            "assessments": {
+              "baseline": {
+                "executionId": "7d51e79c-b26a-4855-bd16-57a93b2c355d",
+                "targetExecutionId": "886fb13f-62ad-4e45-827e-8d6b47ca7da4",
+                "reviewId": "cmvghlzc8001fxjzn4rfyw41x",
+                "outcome": "pass",
+                "score": 100,
+                "rationale": "The task (INPUT/evidence/task.json) supplies values.csv with header 'id,value' followed by three data rows (one,4; two,5; three,6). The sole target artifact, result.json (artifactId 4e857b1a-c5c6-4f83-8413-00e8715703b7, versionId 0f7eaf15-d38f-4adf-96b8-2f6cdefd9d1a), contains exactly {\"count\": 3, \"sum\": 15}. Count 3 equals the number of non-header data rows, so the header is excluded (c1). Sum 15 equals 4+5+6 computed over the value column (c2). Both frozen criteria are satisfied by the artifact's literal content; the result is minimal JSON with only the required fields."
+              },
+              "candidate": {
+                "executionId": "84718087-c5ab-4169-aea3-73daa2e1c476",
+                "targetExecutionId": "33f7f444-b78d-4545-93eb-b1d3b3efeeac",
+                "reviewId": "cmvghm4by001jxjznf3z77253",
+                "outcome": "pass",
+                "score": 95,
+                "rationale": "The single target artifact result.json contains {\"count\": 3, \"sum\": 15}. The supplied source values.csv has header id,value and three data rows (one,4; two,5; three,6). c1: count 3 equals the number of non-header rows, so the header is excluded. c2: 4+5+6=15, matching the reported sum. Both checks pass. Minor limitation: the output content contains only the two required keys and no prose, satisfying the 'only JSON' instruction, but it is not verified for schema extras beyond what is visible; the artifact reflects a clean, arithmetically correct answer."
+              }
+            },
+            "outcome": {
+              "artifact": {
+                "status": "passed",
+                "checks": [
+                  {
+                    "path": "result.json",
+                    "pointer": "/sum",
+                    "artifactRef": {
+                      "artifactId": "a29b89a6-6f39-4158-b930-bf711784a0a7",
+                      "versionId": "5c16ddba-0bd2-4f9c-bb4e-6463ee6a9e96",
+                      "checksum": "f2edf6454efa143c91f1dd5680730014c21224c34d310a83f0fee1e7633146d6"
+                    },
+                    "status": "pass",
+                    "reason": "matched"
+                  }
+                ],
+                "reviewId": "cmvghm4c8001lxjznecdbv1or"
+              },
+              "configuration": {
+                "status": "blocked",
+                "reasons": ["score-regression"],
+                "harnessRevisionRef": {
+                  "id": "candidate:harness:6db4b896ea71bf572911a7a5b496837fefb3ab84db528dff12854321f1a129be",
+                  "version": "1",
+                  "digest": "sha256:6db4b896ea71bf572911a7a5b496837fefb3ab84db528dff12854321f1a129be"
+                }
+              }
+            }
+          }
+        ],
+        "library": {
+          "scope": "experiment",
+          "entries": ["2bb89035-2b74-4c02-b314-10b3ff93fbea-0002"],
+          "digest": "sha256:4a0322fd77c9c068cb1c780aac16b6bb25fb61f8ed45b9eb43d525f4715410b1"
+        }
+      },
+      "desktop": true,
+      "observedStates": ["running", "assessing", "completed"],
+      "sharedBudget": {
+        "limit": 23,
+        "admitted": 23
+      },
+      "requests": 83,
+      "rejects": 23,
+      "usage": {
+        "input": 193116,
+        "cacheRead": 461184,
+        "output": 28398
+      },
+      "testOverrides": {
+        "thinking": "disabled",
+        "maxOutputTokens": 1536,
+        "requestLimit": 112
+      },
+      "limitations": [
+        "Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity",
+        "k1 trivial selection; no LLM selector",
+        "Real model via test-only bounded observer",
+        "No paid cancellation/adversarial replay"
+      ]
+    }
+  ],
+  "conclusions": {
+    "finalStatus": "passed",
+    "attemptCount": 4,
+    "passed": 1,
+    "failed": 3,
+    "finalExecutions": 23,
+    "finalSessions": 23,
+    "finalReopened": true,
+    "finalArtifacts": ["passed", "passed"],
+    "finalConfigurationStatuses": ["eligible", "blocked"],
+    "finalLibraryEntries": 1,
+    "finalVerifiedSuccessorExperienceContexts": 0,
+    "liveExperienceTransmissionExercised": false,
+    "experienceTransmissionEvidence": "Actual original method + native Claude process + loopback model fixture verifies exact first Library lesson receipt in successor contexts. Python LEGACY/port parity additionally verifies subsequent output uses the lesson. Live final run first reflection produced NO_ENTRY and second added one entry; no live successor consumed an entry.",
+    "optimizationGainClaimed": false,
+    "notes": [
+      "One original dom1 fallback and three charged extra attempts are retained in the final run",
+      "Independent semantic checks and supplied deterministic expectations are not fed back to method/Library",
+      "Eligible permits further validation only; no configuration was published",
+      "Provider usage is reported as returned, not converted to price or used as a product monetary cap",
+      "First three diagnostics retained; no real key in reports"
+    ],
+    "totalEligibleProviderRequests": 275,
+    "totalReportedUsage": {
+      "input": 657605,
+      "cacheRead": 1474304,
+      "output": 90068
+    }
+  }
+}

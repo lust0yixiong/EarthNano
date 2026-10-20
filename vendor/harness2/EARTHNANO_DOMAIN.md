@@ -41,8 +41,12 @@ or loaded into another experiment automatically. These are raw model experiences
 verified knowledge base. Independent criteria, answers, scores and Review verdicts stay outside
 the method and Library. The existing grader-marker checks also guard the exported Library.
 
-Reflection keeps the original `<experience>` and optional `<edits>` reply syntax; the platform
-also asks the reflection Session to persist `OUTPUT/experience.md` through its existing owners.
+Reflection keeps the original `<experience>` and optional `<edits>` reply syntax; the original platform
+Session/Artifact owners also persist the same committed review-safe reply as the reserved
+`reflection-reply.md` artifact. This projection is created by the owner, not a second model
+transcription, and does not overwrite model-written files. Reserved-name collisions are rejected;
+pre/post-publication reply bytes must agree, and the existing output size/count limits include
+this transport artifact.
 `NO_ENTRY` or malformed experience yields no fabricated Library entry. Such a task can remain
 method-successful under upstream rules. Cancellation, refused budget, transport/contract loss
 or unknown cleanup stops the whole stream before the next task. Ordinary method failures and

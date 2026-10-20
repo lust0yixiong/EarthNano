@@ -15,7 +15,11 @@ and two independent assessments per task. Retried calls remain charged; platform
 The domain Python entry uses a per-task source adapter with the same base harness/agent,
 returns order, per-task original method results and exact executionIds, plus raw original
 Library file projection. Reflection must preserve original <experience>/<edits> reply syntax
-and also emit OUTPUT/experience.md for existing ArtifactVersion/Review owners.
+and be preserved by the original Session/Artifact owner as reserved reflection-reply.md.
+This is the same committed review-safe reply exported to the original parser, not a second model
+transcription. Model-written files remain unchanged. A case-folded collision blocks import;
+the owner checks identical reply bytes before/after publication and retains the existing
+64-file/4-MiB output cap including the derived transport artifact.
 
 Library is explicitly scoped to this experiment. Original reflection/Library.add may precede
 independent assessment and inform the next task within the experiment. This does not publish
@@ -33,7 +37,10 @@ candidate model score than baseline conservatively blocks eligibility. No automa
 Outcomes keep fixed-version evidence, selected harness reference and original Review references.
 
 Persistent progress/result add optional `outcome` and `domain` using research-outcome.ts.
-Domain summaries may be projected incrementally so a stopped assessment retains prior results.
+Domain progress starts with the declared order and empty task rows. Only per-task domain outcomes
+are emitted (no top-level first-task verdict). A stopped assessment retains prior task results;
+a method-phase stop retains the pending projection plus immutable raw execution evidence,
+without claiming an indexed lesson until the method projection has been validated.
 Partial/failed/interrupted execution cannot publish an eligible whole experiment.
 Root owns shared types, checker/provenance persistence and runner; platform owns manager,
 composition, IPC, UI/locales; method agent owns vendor entry and parity/isolation tests.
