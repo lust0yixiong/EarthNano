@@ -138,6 +138,12 @@ const decodeName = (name: string): string => {
   if (encodeName(path) !== name) throw new Error('Noncanonical candidate output path')
   return path
 }
+const turnReply = (turn: FrozenTurn): string =>
+  turn.blocks
+    .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
+    .map((block) => String(block.payload.content ?? ''))
+    .join('\n')
+
 /** Import only bounded, ordinary UTF-8 outputs. Immutable ArtifactVersion bytes become the authority. */
 const collectOutputs = async (root: string): Promise<Array<{ path: string; content: string }>> => {
   const files: Array<{ path: string; content: string }> = []
@@ -530,8 +536,26 @@ export function createPersistentCandidateOwners(
               throw new Error('No original runtime admission evidence')
             await runtimeSessions.flush(sessionId, promptMessageId)
             let artifactRunId: string | undefined
+            let reflectionReply: string | undefined
             if (!settlement.promptError && !settlement.cancellationRequested) {
               const outputs = await collectOutputs(materialized.outputDir)
+              if (request.role === 'reflection') {
+                // The original method consumes the committed reply, not a second model
+                // transcription. Preserve that same review-safe projection via the original
+                // artifact owner without overwriting any model-written output.
+                if (
+                  outputs.some(
+                    (file) => file.path.normalize('NFC').toLowerCase() === 'reflection-reply.md'
+                  )
+                )
+                  throw new Error('Reserved reflection reply artifact collision')
+                reflectionReply = turnReply(
+                  await scopeSnapshot(request.projectId, sessionId, promptMessageId)
+                )
+                if (!reflectionReply.trim() || Buffer.byteLength(reflectionReply) > 1024 * 1024)
+                  throw new Error('Reflection reply is empty or exceeds the output profile')
+                outputs.push({ path: 'reflection-reply.md', content: reflectionReply })
+              }
               const handle = await artifactOwner.openExecution({
                 executionId: runtimeExecutionId,
                 workspaceCwd: materialized.cwd,
@@ -558,6 +582,8 @@ export function createPersistentCandidateOwners(
               }
             }
             const frozen = await scopeSnapshot(request.projectId, sessionId, promptMessageId)
+            if (reflectionReply !== undefined && turnReply(frozen) !== reflectionReply)
+              throw new Error('Reflection reply changed during artifact publication')
             if (frozen.session.activeRun?.promptMessageId === promptMessageId)
               throw new Error('Original Session terminal commit is incomplete')
             const artifacts: ArtifactReference[] = []
@@ -668,10 +694,7 @@ export function createPersistentCandidateOwners(
               version: String(committed.updatedAt),
               digest: digest(canonical(committed))
             }
-            const replyText = frozen.blocks
-              .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
-              .map((block) => String(block.payload.content ?? ''))
-              .join('\n')
+            const replyText = turnReply(frozen)
             return {
               phase: settlement.cancellationRequested
                 ? 'cancelled'
@@ -711,10 +734,7 @@ export function createPersistentCandidateOwners(
     openOwner,
     async exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult> {
       const frozen = await pinnedTurn(record)
-      const replyText = frozen.blocks
-        .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
-        .map((block) => String(block.payload.content ?? ''))
-        .join('\n')
+      const replyText = turnReply(frozen)
       if (replyText !== record.evidence.text)
         throw new Error('Execution reply differs from original committed turn')
       return {

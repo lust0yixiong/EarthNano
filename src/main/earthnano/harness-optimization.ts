@@ -205,7 +205,7 @@ export class HarnessOptimizationBinding {
         : role === 'selector'
           ? 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. Also write that same selection and explanation to OUTPUT/selection.md so the original artifact and Review owners persist it. Do not emit a new task deliverable or alter any candidate.'
           : role === 'reflection'
-            ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). Also use Write to save that same reply to OUTPUT/experience.md for the original artifact and Review owners. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
+            ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). The Session owner persists that committed reply as reflection-reply.md; return the original reply directly without a separate file transcription. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
             : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
     ]
       .filter(Boolean)

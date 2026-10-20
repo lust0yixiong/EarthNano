@@ -136,7 +136,7 @@ export async function fixture() {
       trajectoryText: 'Private execution trajectory',
       files: [
         {
-          path: role === 'reflection' ? 'experience.md' : 'result.json',
+          path: role === 'reflection' ? 'reflection-reply.md' : 'result.json',
           content,
           digest,
           artifactRef

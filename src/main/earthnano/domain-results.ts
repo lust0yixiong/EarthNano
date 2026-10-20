@@ -139,11 +139,12 @@ export async function prepareDomainSummary(options: {
       throw new Error('Reflection immutable export identity/checksum mismatch')
     const experienceBlock = (text: string): string | undefined =>
       /<experience>[\s\S]*?<\/experience>/.exec(text)?.[0]
-    const persisted = exported.files.filter((file) => file.path === 'experience.md')
+    const persisted = exported.files.filter((file) => file.path === 'reflection-reply.md')
     const replyBlock = experienceBlock(exported.replyText)
     if (
       persisted.length !== 1 ||
       !replyBlock ||
+      persisted[0]!.content !== exported.replyText ||
       experienceBlock(persisted[0]!.content) !== replyBlock
     )
       throw new Error('Reflection reply lacks its exact persisted artifact')

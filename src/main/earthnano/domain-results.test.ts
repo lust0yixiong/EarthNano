@@ -82,11 +82,15 @@ describe('experiment Library fixed-version provenance', () => {
       })
     expect(summary).not.toHaveProperty('published')
   })
-  it('allows native assistant prefaces while binding the exact persisted experience block', async () => {
+  it('allows native assistant prefaces when the owner preserves the entire same committed reply', async () => {
     const f = await setup()
-    for (const record of f.reflected)
-      f.outputs.get(record.executionId)!.replyText =
-        `I checked the evidence before reflecting.\n${reflectionText}\nReflection complete.`
+    for (const record of f.reflected) {
+      const exported = f.outputs.get(record.executionId)!
+      exported.replyText = `I checked the evidence before reflecting.\n${reflectionText}\nReflection complete.`
+      exported.files[0]!.content = exported.replyText
+      exported.files[0]!.digest =
+        'sha256:' + createHash('sha256').update(exported.replyText).digest('hex')
+    }
     await expect(prepareDomainSummary(f.options)).resolves.toHaveProperty('tasks.0.experience')
   })
   it('retains original reflection parsing of spaced keys and later duplicate fields', async () => {
