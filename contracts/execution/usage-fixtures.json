@@ -1,0 +1,41 @@
+{
+  "valid": [
+    { "status": "unknown" },
+    { "status": "known", "inputTokens": 0, "outputTokens": 0 },
+    {
+      "status": "known",
+      "inputTokens": 7,
+      "cacheTokens": 5,
+      "cachedReadTokens": 3,
+      "cachedWriteTokens": 2,
+      "outputTokens": 4,
+      "modelTurns": 2,
+      "source": {
+        "scope": "logical-prompt",
+        "sessionId": "session",
+        "promptMessageId": "prompt",
+        "ownerMessageId": "answer"
+      }
+    }
+  ],
+  "invalid": [
+    { "status": "known", "cacheTokens": -1 },
+    { "status": "known", "modelTurns": 0.5 },
+    { "status": "known", "apiRequests": 9007199254740992 },
+    { "status": "known", "cachedReadTokens": true },
+    {
+      "status": "known",
+      "source": {
+        "scope": "execution",
+        "sessionId": "session",
+        "promptMessageId": "prompt",
+        "ownerMessageId": "answer"
+      }
+    },
+    {
+      "status": "known",
+      "source": { "scope": "logical-prompt", "sessionId": "session", "promptMessageId": "prompt" }
+    },
+    { "status": "known", "estimatedCost": 1 }
+  ]
+}

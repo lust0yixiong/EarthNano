@@ -38,6 +38,27 @@ recovering. Recovery marks unconfirmed executions interrupted and does not dispa
 No desktop bootstrap, server transport, automatic optimization trigger, configuration compiler,
 real-provider isolation or result cache is installed by this contract layer.
 
+`ExecutionUsage` stores observed provider facts. `status: known` means that some usage is known;
+each absent optional field is independently **unknown**, never zero. `inputTokens` excludes cache;
+`cacheTokens` is the provider-neutral cache total. Optional cache read/write values are a pair whose
+sum equals that total. `modelTurns` counts inference turns, not HTTP requests. `apiRequests` and
+`costMicrousd` require direct facts and are not estimated from turns, tokens or current prices.
+
+New original-owner usage has `source.scope: logical-prompt` and the exact executing Session,
+prompt and persisted usage-owner message identities. This is a snapshot of the original logical
+prompt total: upstream accumulates detached ask-user continuations into the same prompt. It is
+**not a per-Core-execution delta**. Aggregation must exclude repeated Session/prompt scopes when
+more than one distinct execution refers to them; it must not add cumulative snapshots. Retries
+with distinct fresh Sessions remain distinct. Legacy usage without this attribution remains readable
+but cannot establish additive totals. Root usage does not claim delegated child-frame or ordinary
+Reviewer coverage. Missing, ambiguous, unavailable, cancelled or interrupted usage stays unknown
+unless an exact original completed usage owner supplies actual counters.
+
+Desktop summaries report covered executions and known subtotals per metric, plus total unique
+Core admissions. A partial subtotal is not a complete charge total. Shared baseline references and
+repeated progress snapshots do not create extra executions. Time is kept separate: these provider
+counters do not establish elapsed, active-compute or billed time.
+
 Run the contract gate from the repository root:
 
 ```sh

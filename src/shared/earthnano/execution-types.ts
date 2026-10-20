@@ -65,11 +65,24 @@ export interface ExecutionEvidence {
   limitations: Array<string>
 }
 
+export interface ExecutionUsageSource {
+  scope: "logical-prompt"
+  sessionId: string
+  promptMessageId: string
+  ownerMessageId: string
+}
+
 export interface ExecutionUsage {
   status: "known" | "unknown"
   inputTokens?: number
   outputTokens?: number
   costMicrousd?: number
+  cacheTokens?: number
+  cachedReadTokens?: number
+  cachedWriteTokens?: number
+  modelTurns?: number
+  apiRequests?: number
+  source?: ExecutionUsageSource
 }
 
 export interface EffectiveConfiguration {
