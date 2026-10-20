@@ -23,6 +23,7 @@ export function validateRecord(value: unknown): void {
   if (!recordValidator(value)) {
     throw new ExecutionContractError('invalid-record', JSON.stringify(recordValidator.errors))
   }
+  validateRequest((value as { request: unknown }).request)
 }
 
 export class ExecutionContractError extends Error {
