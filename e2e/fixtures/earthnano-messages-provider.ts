@@ -376,6 +376,12 @@ export async function createEarthnanoMessagesProvider(
         })
         return
       }
+      if (role === 'reflection') {
+        emit(response, body.model, {
+          text: '<edits>Use the original fixed source and verify the arithmetic.</edits>\n<experience>\ncue: CSV aggregation\nlesson: Compute count, sum and mean from the fixed source using the original Notebook tools.\nevidence: Baseline and chosen candidate published version-bound reports for the same CSV.\n</experience>'
+        })
+        return
+      }
       if (blocks.some((block) => block.type === 'tool_use' && block.name === 'Write')) {
         emit(response, body.model, {
           text: 'Completed the requested work.'
