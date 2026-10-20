@@ -3,6 +3,7 @@ import fixtures from '../../../contracts/execution/fixtures.json'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { CandidateSnapshotStore } from './candidate-snapshot'
 import type { ExecutionContext } from './execution-core'
+import { prepareClaudeCandidate } from '../acp/claude-candidate-preparation'
 import { createClaudeCandidateDriver, type ClaudeCandidateOwner } from './claude-candidate-driver'
 
 vi.mock('../acp/claude-candidate-preparation', () => ({
@@ -128,6 +129,17 @@ describe('Claude candidate lifecycle composition', () => {
     })
     expect(f.owner.shutdown).toHaveBeenCalledOnce()
     expect(f.owner.agent.prompt).not.toHaveBeenCalled()
+  })
+
+  it('fences a failed native preparation probe before a Session owner exists', async () => {
+    const f = fixture()
+    vi.mocked(prepareClaudeCandidate).mockRejectedValueOnce(new Error('probe timeout secret'))
+    const openOwner = vi.fn(async () => f.owner)
+    const driver = createClaudeCandidateDriver({ ...f, binding, openOwner })
+    const result = await driver.execute(f.request, f.context)
+    expect(result).toMatchObject({ phase: 'failed', cleanup: 'unknown' })
+    expect(openOwner).not.toHaveBeenCalled()
+    expect(JSON.stringify(result)).not.toContain('probe timeout secret')
   })
 
   it('keeps ambiguous owner construction fenced and never serializes binding secrets', async () => {

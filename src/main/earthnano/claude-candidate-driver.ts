@@ -50,6 +50,7 @@ export function createClaudeCandidateDriver(
       let owner: ClaudeCandidateOwner | undefined
       let prepared: PreparedClaudeCandidate | undefined
       let constructingOwner = false
+      let preparingRuntime = false
       let outcome: ExecutionOutcome
       try {
         if (request.interactionPolicy !== 'deny-unresolved') {
@@ -70,7 +71,11 @@ export function createClaudeCandidateDriver(
           executionId: context.executionId,
           refs: request
         })
+        // Preparation includes a bounded native --version probe. A failed probe may have
+        // started resources without returning an owner, so its failure is conservatively fenced.
+        preparingRuntime = true
         prepared = await prepareClaudeCandidate({ resolved, materialized, binding })
+        preparingRuntime = false
         context.signal.throwIfAborted()
         constructingOwner = true
         owner = await options.openOwner({
@@ -97,7 +102,7 @@ export function createClaudeCandidateDriver(
         // structural; do not serialize arbitrary error messages into a shared execution journal.
         outcome = {
           phase: context.signal.aborted ? 'cancelled' : 'failed',
-          cleanup: constructingOwner ? 'unknown' : 'confirmed',
+          cleanup: constructingOwner || preparingRuntime ? 'unknown' : 'confirmed',
           error: {
             code: context.signal.aborted ? 'candidate-cancelled' : 'candidate-preparation-failed',
             message: context.signal.aborted
