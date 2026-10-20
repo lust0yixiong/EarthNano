@@ -43,6 +43,10 @@ independent original runtime build is supplied. No replacement download URL is i
 ## Native Alpha gate
 
 A reviewer must explicitly dispatch this workflow at the reviewed Alpha ref with `native=true`.
+For the first CI bootstrap before the workflow exists on `main`, the same native lane can also be
+started by explicitly pushing the reviewed commit to `ci/earthnano-native`. This exact repository
+branch is a validation ref, never a release trigger. It skips the duplicate source/Harness matrices;
+ordinary pull requests continue to run their complete source comparisons.
 The source definition alone does not complete Alpha acceptance. The native matrix must actually
 finish on macOS ARM64, macOS Intel, Linux x64, and Windows x64 for that same source version:
 

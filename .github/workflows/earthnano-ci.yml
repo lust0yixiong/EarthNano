@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, ci/earthnano-native]
   workflow_dispatch:
     inputs:
       native:
@@ -24,6 +24,7 @@ jobs:
     name: Resolve original platform sharding
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    if: github.ref != 'refs/heads/ci/earthnano-native'
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -96,7 +97,7 @@ jobs:
   comparison:
     name: Enforce pinned original source comparison
     needs: source
-    if: always()
+    if: always() && needs.source.result != 'skipped'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -119,6 +120,7 @@ jobs:
     name: Pinned Harness source and original unittest comparison (Python 3.12)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    if: github.ref != 'refs/heads/ci/earthnano-native'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
@@ -147,7 +149,9 @@ jobs:
 
   native:
     name: Unsigned native build and original launch ${{ matrix.os }}
-    if: github.event_name == 'workflow_dispatch' && inputs.native
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.native) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
     needs: windows_runtime
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90

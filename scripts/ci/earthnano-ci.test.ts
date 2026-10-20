@@ -143,8 +143,13 @@ describe('EarthNano original-baseline gates', () => {
     expect(source).not.toContain('secrets.')
     expect(source).not.toMatch(/permissions:[\s\S]{0,80}write/u)
     expect(workflow.jobs.native.if).toBe(
-      "github.event_name == 'workflow_dispatch' && inputs.native"
+      "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
+        "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
     )
+    expect((workflow.on.push as { branches: string[] }).branches).toEqual([
+      'main',
+      'ci/earthnano-native'
+    ])
     const actions = source.matchAll(/uses: ([^\s]+)/g)
     for (const action of actions)
       if (!action[1].startsWith('./')) expect(action[1]).toMatch(/@[a-f0-9]{40}$/)

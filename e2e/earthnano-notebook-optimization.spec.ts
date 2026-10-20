@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect } from '@playwright/test'
@@ -11,7 +12,8 @@ import { submitPromptViaUi } from './fixtures/conversation'
 import { createEarthnanoMessagesProvider } from './fixtures/earthnano-messages-provider'
 
 const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
-const optimizationExecutions = live ? 24 : 20
+const resumeAcceptance = process.env.EARTHNANO_E2E_RESUME === '1'
+const optimizationExecutions = live || resumeAcceptance ? 24 : 20
 test('runs the identical scientific task in ordinary Send and isolated Harness baseline/candidates through the original Notebook owners', async ({
   app
 }, testInfo) => {
@@ -21,10 +23,12 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     'Native scientific acceptance requires an explicitly isolated test home'
   )
   test.setTimeout(900_000)
-  const provider = await createEarthnanoMessagesProvider(live, true)
+  const provider = await createEarthnanoMessagesProvider(live, true, resumeAcceptance)
   let report: object = { status: 'failed', live }
   let acceptancePassed = false
   let runtime: object = {}
+  let executionRoot: string | undefined
+  let readSessionsForDiagnostics: (() => Promise<unknown>) | undefined
   try {
     let page = await app.completeOnboarding()
     page.setDefaultTimeout(30_000)
@@ -140,6 +144,15 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     ).toBe(true)
     console.info('Scientific workflow: Notebook verified')
     const dataRoot = await page.evaluate(async () => (await window.api.storage.getInfo()).dataRoot)
+    executionRoot = join(dataRoot, 'earthnano', 'desktop-runs')
+    readSessionsForDiagnostics = () =>
+      page.evaluate(
+        async (projectId) =>
+          (await window.api.sessions.loadAll()).sessions.filter(
+            (entry) => entry.projectId === projectId
+          ),
+        projectId
+      )
     const readOrdinary = async (): Promise<ExecutionState[]> => {
       const root = join(dataRoot, 'executions', 'session-attempts'),
         states: ExecutionState[] = []
@@ -200,6 +213,67 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         projectId,
         sourceSessionId: source.id
       })
+    let resumeEvidence: object | undefined
+    if (resumeAcceptance) {
+      await expect
+        .poll(
+          async () => {
+            const state = (await latest())?.state
+            return (
+              provider.stats.pausedBeforeForward === 1 ||
+              !!(state && ['failed', 'cancelled', 'interrupted'].includes(state))
+            )
+          },
+          { timeout: 180_000 }
+        )
+        .toBe(true)
+      expect(provider.stats.pausedBeforeForward).toBe(1)
+      const beforeStop = (await latest())!
+      const runKey = { projectId, sourceSessionId: source.id, runId: beforeStop.runId }
+      await panel.getByRole('button', { name: 'Stop optimization', exact: true }).click()
+      await expect
+        .poll(async () => (await latest())?.resumeAvailable, { timeout: 60_000 })
+        .toBe(true)
+      const stopped = (await latest())!
+      expect(stopped.state).toBe('cancelled')
+      const executionPath = join(
+        dataRoot,
+        'earthnano',
+        'desktop-runs',
+        stopped.runId,
+        'execution',
+        'execution.json'
+      )
+      const stoppedJournal = JSON.parse(await readFile(executionPath, 'utf8')) as ExecutionState
+      const completedBeforeResume = Object.values(stoppedJournal.records).filter(
+        (record) => record.phase === 'completed'
+      )
+      expect(completedBeforeResume.some((record) => record.request.role === 'baseline')).toBe(true)
+      const callsBeforeReopen = provider.stats.requests
+      page = await app.restart()
+      await openProjectSession(page, 'EarthNano Notebook optimization', prompt)
+      expect(await latest()).toEqual(stopped)
+      expect(provider.stats.requests).toBe(callsBeforeReopen)
+      const reopenedPanel = page.getByTestId('task-optimization-panel')
+      await reopenedPanel.locator('summary').click()
+      await reopenedPanel.getByRole('button', { name: 'Resume optimization', exact: true }).click()
+      await expect
+        .poll(async () => (await latest())?.state, { timeout: 30_000 })
+        .not.toBe('cancelled')
+      expect((await latest())?.runId).toBe(runKey.runId)
+      resumeEvidence = {
+        runId: stopped.runId,
+        originalBudget: stopped.budget.limit,
+        stoppedAdmissions: stopped.budget.admitted,
+        noCallsOnReopen: true,
+        completedBeforeResume: completedBeforeResume.map((record) => record.executionId)
+      }
+      // This list is compared byte-for-byte after the resumed execution finishes below.
+      await writeFile(
+        testInfo.outputPath('stopped-journal.json'),
+        JSON.stringify(stoppedJournal, null, 2)
+      )
+    }
     await expect
       .poll(async () => (await latest())?.state, { timeout: 600_000, intervals: [1000, 2000] })
       .toMatch(/^(completed|failed|cancelled|interrupted)$/)
@@ -207,6 +281,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     report = {
       status: 'incomplete',
       optimizationState: completed.state,
+      ...(resumeEvidence ? { resume: resumeEvidence } : {}),
       live,
       progress: completed,
       sourceArtifact: {
@@ -218,6 +293,28 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         runId: run.runId,
         kernelKind: run.kernelKind,
         status: run.status
+      }))
+    }
+    const methodJournal = JSON.parse(
+      await readFile(
+        join(dataRoot, 'earthnano', 'desktop-runs', completed.runId, 'execution', 'execution.json'),
+        'utf8'
+      )
+    ) as ExecutionState
+    await writeFile(
+      testInfo.outputPath('execution-journal.json'),
+      JSON.stringify(methodJournal, null, 2)
+    )
+    report = {
+      ...report,
+      executionFacts: Object.values(methodJournal.records).map((record) => ({
+        executionId: record.executionId,
+        role: record.request.role,
+        stageId:
+          record.request.origin.kind === 'optimization' ? record.request.origin.stageId : undefined,
+        phase: record.phase,
+        cleanup: record.cleanup,
+        error: record.error
       }))
     }
     expect(completed.error).toBeUndefined()
@@ -278,46 +375,85 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     })
     expect(completed.budget.admitted).toBeLessThanOrEqual(optimizationExecutions)
     expect(completed.budget.active).toBe(0)
-    const methodJournal = JSON.parse(
-      await readFile(
-        join(dataRoot, 'earthnano', 'desktop-runs', completed.runId, 'execution', 'execution.json'),
-        'utf8'
-      )
-    ) as ExecutionState
-    await writeFile(
-      testInfo.outputPath('execution-journal.json'),
-      JSON.stringify(methodJournal, null, 2)
-    )
-    report = {
-      ...report,
-      executionFacts: Object.values(methodJournal.records).map((record) => ({
-        executionId: record.executionId,
-        role: record.request.role,
-        stageId:
-          record.request.origin.kind === 'optimization' ? record.request.origin.stageId : undefined,
-        phase: record.phase,
-        cleanup: record.cleanup,
-        error: record.error
-      }))
-    }
     expect(Object.keys(methodJournal.records).sort()).toEqual(
       completed.executions.map((execution) => execution.executionId).sort()
     )
+    const sourceEvidence: unknown[] = []
+    for (const reviewer of Object.values(methodJournal.records).filter(
+      (record) =>
+        record.request.role === 'reviewer' &&
+        record.request.origin.stageId?.startsWith('semantic:') &&
+        record.phase === 'completed'
+    )) {
+      const ref = reviewer.request.taskSnapshotRef
+      const bytes = await readFile(
+        join(
+          dataRoot,
+          'earthnano',
+          'desktop-runs',
+          completed.runId,
+          'execution',
+          'snapshots',
+          'objects',
+          `${ref.digest.slice(7)}.json`
+        )
+      )
+      expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`).toBe(ref.digest)
+      const snapshot = JSON.parse(bytes.toString('utf8'))
+      const evidenceFile = snapshot.value.files.find(
+        (file: { path: string }) => file.path === 'evidence/sources.json'
+      )
+      expect(evidenceFile).toBeDefined()
+      const evidence = JSON.parse(evidenceFile.content)
+      expect(evidence).toMatchObject({
+        schemaVersion: 1,
+        profile: 'bounded-utf8-v1',
+        inputs: [
+          {
+            status: 'available',
+            content: 'sample,value\nA,2\nB,4\nC,6\n',
+            input: {
+              sourceFileId: originalUpload.id,
+              inputFileVersionId: originalUpload.versionId,
+              checksum: originalUpload.sha256
+            }
+          }
+        ]
+      })
+      sourceEvidence.push(evidence)
+    }
+    expect(sourceEvidence).toHaveLength(2)
+    expect(sourceEvidence[0]).toEqual(sourceEvidence[1])
+    report = { ...report, identicalOriginalSourceEvidence: sourceEvidence[0] }
     for (const record of Object.values(methodJournal.records)) {
-      expect(record).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+      expect(record.cleanup).toBe('confirmed')
+      expect(record.phase).toMatch(resumeAcceptance ? /^(completed|cancelled)$/ : /^completed$/)
       expect(
         methodJournal.events[record.executionId].filter(
           (event) => event.type === 'session-admitted'
         )
       ).toHaveLength(1)
-      expect(
-        methodJournal.events[record.executionId].filter(
-          (event) => event.type === 'provider-accepted'
-        )
-      ).toHaveLength(1)
+      const acceptances = methodJournal.events[record.executionId].filter(
+        (event) => event.type === 'provider-accepted'
+      )
+      if (record.phase === 'completed') expect(acceptances).toHaveLength(1)
+      else expect(acceptances.length).toBeLessThanOrEqual(1)
     }
-    const scientificRecords = Object.values(methodJournal.records).filter((record) =>
-      ['baseline', 'candidate'].includes(record.request.role)
+    if (resumeAcceptance) {
+      const stopped = JSON.parse(
+        await readFile(testInfo.outputPath('stopped-journal.json'), 'utf8')
+      ) as ExecutionState
+      expect(Object.values(stopped.records).some((record) => record.phase === 'cancelled')).toBe(
+        true
+      )
+      for (const record of Object.values(stopped.records)) {
+        expect(methodJournal.records[record.executionId]).toEqual(record)
+        expect(methodJournal.events[record.executionId]).toEqual(stopped.events[record.executionId])
+      }
+    }
+    const scientificRecords = Object.values(methodJournal.records).filter(
+      (record) =>
+        ['baseline', 'candidate'].includes(record.request.role) && record.phase === 'completed'
     )
     expect(scientificRecords.length).toBeGreaterThanOrEqual(3)
     expect(
@@ -457,7 +593,9 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       task: { prompt, managedInputs: completed.notebook!.inputs }
     })
     await expect(
-      panel.getByRole('button', { name: 'Start optimization', exact: true })
+      page
+        .getByTestId('task-optimization-panel')
+        .getByRole('button', { name: 'Start optimization', exact: true })
     ).toBeEnabled()
     const requestCount = provider.stats.requests
     page = await app.restart()
@@ -483,6 +621,23 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     expect(provider.stats.rejected).toBe(0)
     acceptancePassed = true
   } finally {
+    // Retain the original facts even when failure occurs before the interruption barrier or any
+    // success assertion. Never discard a failed attempt or fabricate an owner outcome for a report.
+    if (executionRoot) {
+      try {
+        for (const runId of await readdir(executionRoot)) {
+          const journal = await readFile(join(executionRoot, runId, 'execution', 'execution.json'))
+          await writeFile(testInfo.outputPath(`final-journal-${runId}.json`), journal)
+        }
+        const sessions = await readSessionsForDiagnostics?.()
+        await writeFile(
+          testInfo.outputPath('final-scientific-sessions.json'),
+          JSON.stringify(sessions, null, 2)
+        )
+      } catch {
+        // Failure to read diagnostics never changes the original failed acceptance result.
+      }
+    }
     const result = {
       ...report,
       status: acceptancePassed ? 'passed' : 'failed',

@@ -94,7 +94,8 @@ const nested = (value: unknown, key: string): unknown => {
  * to the explicitly authorized provider; no scientific tool or persistence response is fabricated. */
 export async function createEarthnanoMessagesProvider(
   live: boolean,
-  scientificOptimization = false
+  scientificOptimization = false,
+  pauseFirstProposer = false
 ): Promise<{
   url: string
   token: string
@@ -105,6 +106,7 @@ export async function createEarthnanoMessagesProvider(
     rejectedRoutes: Record<string, number>
     healthRequests: number
     nativeTitleRequests: number
+    pausedBeforeForward: number
     roles: Record<string, number>
     toolNames: string[]
     usage: { input: number; cacheRead: number; output: number }
@@ -120,6 +122,7 @@ export async function createEarthnanoMessagesProvider(
     rejectedRoutes: {} as Record<string, number>,
     healthRequests: 0,
     nativeTitleRequests: 0,
+    pausedBeforeForward: 0,
     roles: {} as Record<string, number>,
     toolNames: [] as string[],
     usage: { input: 0, cacheRead: 0, output: 0 }
@@ -215,6 +218,13 @@ export async function createEarthnanoMessagesProvider(
       for (const block of blocks)
         if (block.type === 'tool_use' && block.name && !stats.toolNames.includes(block.name))
           stats.toolNames.push(block.name)
+      // A deterministic cancellation seam before a paid request. It never substitutes a tool,
+      // scientific result or owner receipt; the real native client must disconnect on Stop.
+      if (pauseFirstProposer && role === 'proposer' && stats.pausedBeforeForward === 0) {
+        stats.pausedBeforeForward++
+        await new Promise<void>((resolve) => response.once('close', resolve))
+        return
+      }
       if (live) {
         const controller = new AbortController()
         controllers.add(controller)
