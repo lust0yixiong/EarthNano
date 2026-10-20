@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ErrorNotice } from '@/components/error-notice'
 import { OptimizationUsageView } from './OptimizationUsageView'
 import { useTranslation } from 'react-i18next'
@@ -8,19 +8,10 @@ import type {
 } from '../../../../shared/earthnano/desktop-optimization'
 import {
   DEFAULT_OPTIMIZATION_METHOD,
-  MAX_OPTIMIZATION_EXECUTIONS,
   type OptimizationMethodOptions
 } from '../../../../shared/earthnano/optimization-method'
-import {
-  minimumResearchExecutions,
-  normalizeOptimizationDomain
-} from '../../../../shared/earthnano/research-outcome'
 import { ExpectedJsonCheckEditor } from './OptimizationResearchInputs'
-import {
-  draftOutputChecks,
-  emptyJsonCheckDraft,
-  type JsonCheckDraft
-} from './optimization-research-input'
+import { emptyJsonCheckDraft } from './optimization-research-input'
 import {
   ResearchOutcomeView,
   ExperimentExperienceView,
@@ -35,9 +26,25 @@ import {
 } from '../../../../shared/earthnano/optimization-input'
 import {
   MAX_SWEEP_EXECUTIONS,
-  minimumSweepExecutions,
+  MAX_SWEEP_TASKS,
+  normalizeOptimizationCatalog,
+  normalizeOptimizationSweep,
+  type PreviewDesktopSweep,
+  type DesktopSweepPreview,
   type OptimizationSweepOptions
 } from '../../../../shared/earthnano/optimization-sweep'
+
+import {
+  OptimizationCatalogSource,
+  type CatalogSessionApi,
+  type NotebookSourceSelection
+} from './OptimizationCatalogSource'
+import {
+  appendTextFiles,
+  catalogTaskInput,
+  newCatalogTask,
+  type CatalogTaskDraft
+} from './optimization-catalog-input'
 
 type Props = {
   projectId: string
@@ -49,6 +56,7 @@ type Props = {
   onOpenReview?: (sessionId: string, reviewId: string) => void
   /** Protocol test seam; production always uses the typed preload API. */
   api?: DesktopOptimizationApi
+  sessions?: CatalogSessionApi
 }
 const terminal = (state: OptimizationProgress['state']): boolean =>
   ['completed', 'failed', 'cancelled', 'interrupted'].includes(state)
@@ -72,6 +80,7 @@ function OptimizationSessionPanel({
   sourcePromptMessageId,
   artifacts = [],
   api,
+  sessions,
   onOpenSession,
   onOpenReview
 }: Props & { api: DesktopOptimizationApi }): React.JSX.Element {
@@ -122,51 +131,107 @@ function OptimizationSessionPanel({
     ...DEFAULT_OPTIMIZATION_METHOD
   })
   const [checkDraft, setCheckDraft] = useState(emptyJsonCheckDraft)
-  const [domainName, setDomainName] = useState('')
-  const [nextTasks, setNextTasks] = useState<
-    Array<{ id: string; prompt: string; criteria: string; check: JsonCheckDraft }>
-  >([])
-  const domainDraft =
-    !notebookMode && (domainName.trim() || nextTasks.length)
-      ? {
-          name: domainName.trim(),
-          nextTasks: nextTasks.map((task) => ({
-            prompt: task.prompt,
-            criteria: task.criteria,
-            files,
-            checks: undefined
-          }))
-        }
-      : undefined
-  const sweepOptions = (value = method): OptimizationSweepOptions => ({
-    modes: ['parallel', 'sequential'],
-    k: value.k,
-    concurrency: value.concurrency,
-    stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  const [domainName, setDomainName] = useState('research')
+  const [taskId, setTaskId] = useState('task-0001')
+  const [nextTasks, setNextTasks] = useState<CatalogTaskDraft[]>([])
+  const [source, setSource] = useState<NotebookSourceSelection>({
+    sourceSessionId: sessionId,
+    promptMessageId: sourcePromptMessageId ?? '',
+    sourceReady: false,
+    prompt: ''
   })
-  const maximum = bothModes ? MAX_SWEEP_EXECUTIONS : MAX_OPTIMIZATION_EXECUTIONS
-  const minimum = bothModes
-    ? minimumSweepExecutions(sweepOptions(), 1 + (domainDraft?.nextTasks.length ?? 0))
-    : minimumResearchExecutions(method, domainDraft)
-  const researchInputs = (): {
-    checks: ReturnType<typeof draftOutputChecks>
-    domain: ReturnType<typeof normalizeOptimizationDomain>
-  } => ({
-    checks: draftOutputChecks(checkDraft),
-    domain: normalizeOptimizationDomain(
-      domainDraft
-        ? {
-            ...domainDraft,
-            nextTasks: nextTasks.map((task) => ({
-              prompt: task.prompt,
-              criteria: task.criteria,
-              files,
-              ...(draftOutputChecks(task.check) ? { checks: draftOutputChecks(task.check) } : {})
-            }))
-          }
-        : undefined
-    )
+  const [seed, setSeed] = useState('')
+  const [domainFilter, setDomainFilter] = useState('')
+  const [taskFilter, setTaskFilter] = useState('')
+  const [maxTasks, setMaxTasks] = useState('')
+  const [workers, setWorkers] = useState(1)
+  const integer = (value: string): number => (/^-?\d+$/.test(value) ? Number(value) : NaN)
+  const sweepOptions = (): OptimizationSweepOptions =>
+    normalizeOptimizationSweep({
+      modes: bothModes ? ['parallel', 'sequential'] : [method.mode],
+      k: method.k,
+      concurrency: method.concurrency,
+      stream: {
+        seed: seed === '' ? null : integer(seed),
+        onlyDomains: domainFilter.trim() ? domainFilter.trim().split(/[\s,]+/) : [],
+        onlyTasks: taskFilter.trim() ? taskFilter.trim().split(/[\s,]+/) : [],
+        maxTasks: maxTasks === '' ? null : integer(maxTasks),
+        workers
+      }
+    })
+  const draftCatalog =
+    (): import('../../../../shared/earthnano/optimization-sweep').OptimizationSweepTask[] => {
+      const tasks = [
+        catalogTaskInput({
+          id: 'primary',
+          taskId,
+          domain: domainName,
+          kind: notebookMode ? 'notebook' : 'text',
+          sourceSessionId: notebookMode ? source.sourceSessionId : sessionId,
+          promptMessageId: source.promptMessageId,
+          sourceReady: source.sourceReady,
+          prompt: notebookMode ? source.prompt : prompt,
+          criteria,
+          files: notebookMode ? [] : files,
+          inputArtifacts: notebookMode ? [] : inputArtifacts(),
+          check: checkDraft
+        }),
+        ...nextTasks.map(catalogTaskInput)
+      ]
+      normalizeOptimizationCatalog(tasks.map(({ taskId, domain }) => ({ taskId, domain })))
+      return tasks
+    }
+  const appendTask = (kind: CatalogTaskDraft['kind']): void =>
+    setNextTasks((tasks) => {
+      const used = new Set([taskId, ...tasks.map((task) => task.taskId)])
+      let index = 1
+      while (used.has(`task-${String(index).padStart(4, '0')}`)) index++
+      return [
+        ...tasks,
+        newCatalogTask(
+          `task-${String(index).padStart(4, '0')}`,
+          domainName,
+          kind === 'text' ? sessionId : '',
+          kind
+        )
+      ]
+    })
+  const maximum = MAX_SWEEP_EXECUTIONS
+  const [preview, setPreview] = useState<{
+    identity: { fingerprint: string }
+    result: DesktopSweepPreview
+    request: PreviewDesktopSweep
+  } | null>(null)
+  const [previewBusy, setPreviewBusy] = useState(false)
+  const fingerprint = JSON.stringify({
+    projectId,
+    sessionId,
+    prompt,
+    notebookMode,
+    source,
+    criteria,
+    files,
+    selectedVersions,
+    artifacts,
+    taskId,
+    domainName,
+    nextTasks,
+    method,
+    bothModes,
+    seed,
+    domainFilter,
+    taskFilter,
+    maxTasks,
+    workers
   })
+  const draftIdentity = useMemo(() => ({ fingerprint }), [fingerprint])
+  const latestDraft = useRef(draftIdentity)
+  useLayoutEffect(() => {
+    latestDraft.current = draftIdentity
+  }, [draftIdentity])
+  const currentPreview = preview?.identity === draftIdentity ? preview : null
+  const minimum = currentPreview?.result.minimumExecutions
+  const domainDraft = nextTasks.length > 0
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<false | 'request' | 'files'>(false)
@@ -259,65 +324,19 @@ function OptimizationSessionPanel({
     actionRevision.current += 1
     setBusy(true)
     setError(false)
-    requestKey.current ??= crypto.randomUUID()
     try {
-      const research = researchInputs()
-      const ordinary = {
+      if (!currentPreview || limit < currentPreview.result.minimumExecutions || limit > maximum)
+        throw new Error('Current preview required')
+      requestKey.current ??= crypto.randomUUID()
+      const result = await api.startSweep({
         projectId,
         sourceSessionId: sessionId,
         requestKey: requestKey.current,
-        prompt,
-        criteria,
-        files: notebookMode ? [] : files,
-        ...(notebookMode && sourcePromptMessageId
-          ? { notebook: { promptMessageId: sourcePromptMessageId } }
-          : {}),
-        ...(!notebookMode && selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {}),
         executionLimit: limit,
-        method,
-        ...(research.checks === undefined ? {} : { checks: research.checks }),
-        ...(research.domain === undefined ? {} : { domain: research.domain })
-      }
-      const result = bothModes
-        ? await api.startSweep({
-            projectId,
-            sourceSessionId: sessionId,
-            requestKey: requestKey.current,
-            executionLimit: limit,
-            sweep: sweepOptions(),
-            catalog: [
-              {
-                taskId: 'task-0001',
-                domain: research.domain?.name ?? 'research',
-                sourceSessionId: sessionId,
-                criteria,
-                checks: research.checks,
-                source:
-                  notebookMode && sourcePromptMessageId
-                    ? { kind: 'notebook', promptMessageId: sourcePromptMessageId }
-                    : {
-                        kind: 'text',
-                        prompt,
-                        files,
-                        ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {})
-                      }
-              },
-              ...(research.domain?.nextTasks ?? []).map((task, index) => ({
-                taskId: `task-${String(index + 2).padStart(4, '0')}`,
-                domain: research.domain!.name,
-                sourceSessionId: sessionId,
-                source: {
-                  kind: 'text' as const,
-                  prompt: task.prompt,
-                  files: task.files,
-                  ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {})
-                },
-                criteria: task.criteria,
-                checks: task.checks
-              }))
-            ]
-          })
-        : await api.start(ordinary)
+        previewPlanDigest: currentPreview.result.planDigest,
+        sweep: sweepOptions(),
+        catalog: draftCatalog()
+      })
       if (alive.current) {
         actionRevision.current += 1
         setProgress(result)
@@ -376,31 +395,7 @@ function OptimizationSessionPanel({
     setBusy(true)
     setError(false)
     try {
-      const next = [...files]
-      for (const file of Array.from(selected)) {
-        if (
-          !/^[A-Za-z0-9_. -]{1,180}$/.test(file.name) ||
-          file.name === '.' ||
-          file.name === '..' ||
-          !/\.(txt|md|csv|tsv|json|ya?ml|log)$/i.test(file.name) ||
-          file.size > 64_000 ||
-          next.some(
-            (entry) =>
-              entry.path.normalize('NFC').toLowerCase() === file.name.normalize('NFC').toLowerCase()
-          )
-        )
-          throw new Error('Unsupported text file')
-        const content = await file.text()
-        if (content.includes('\0') || content.includes('\uFFFD'))
-          throw new Error('Unsupported text encoding')
-        next.push({ path: file.name, content })
-      }
-      if (
-        next.length > 32 ||
-        next.reduce((total, file) => total + new TextEncoder().encode(file.content).byteLength, 0) >
-          128_000
-      )
-        throw new Error('Text inputs exceed limit')
+      const next = await appendTextFiles(files, selected)
       if (alive.current) {
         setFiles(next)
         requestKey.current = null
@@ -411,37 +406,46 @@ function OptimizationSessionPanel({
       if (alive.current) setBusy(false)
     }
   }
-  const lines = criteria
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-  let researchValid = true
+  let draftValid = true
   try {
-    researchInputs()
-    inputArtifacts()
+    draftCatalog()
+    sweepOptions()
   } catch {
-    researchValid = false
+    draftValid = false
   }
   const valid =
-    researchValid &&
-    nextTasks.every((task) => {
-      const checks = task.criteria
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-      return (
-        checks.length >= 1 && checks.length <= 16 && checks.every((line) => line.length <= 2000)
-      )
-    }) &&
-    prompt.trim().length > 0 &&
-    prompt.length <= 32_000 &&
-    criteria.length <= 16_000 &&
-    lines.length >= 1 &&
-    lines.length <= 16 &&
-    Number.isInteger(limit) &&
-    lines.every((line) => line.length <= 2000) &&
-    limit >= minimum &&
+    draftValid &&
+    !!currentPreview &&
+    Number.isSafeInteger(limit) &&
+    limit >= currentPreview.result.minimumExecutions &&
     limit <= maximum
+  const previewStream = async (): Promise<void> => {
+    const captured = draftIdentity
+    setPreviewBusy(true)
+    setError(false)
+    setPreview(null)
+    try {
+      const request = {
+        projectId,
+        sourceSessionId: sessionId,
+        catalog: draftCatalog().map(({ taskId, domain }) => ({ taskId, domain })),
+        sweep: sweepOptions()
+      }
+      const result = await api.previewSweep(request)
+      if (alive.current && latestDraft.current === captured) {
+        setPreview({ identity: captured, result, request })
+        setLimit((value) => Math.min(maximum, Math.max(value, result.minimumExecutions)))
+      }
+    } catch {
+      if (alive.current && latestDraft.current === captured) setError('request')
+    } finally {
+      if (alive.current) setPreviewBusy(false)
+    }
+  }
+  // Any edited source/options/criteria/input gets a fresh idempotency key, even after a failed submit.
+  useEffect(() => {
+    requestKey.current = null
+  }, [fingerprint, limit])
   const inputClass =
     'w-full rounded border border-border bg-bg-10 p-2 text-sm text-text-100 disabled:opacity-60'
   return (
@@ -542,6 +546,17 @@ function OptimizationSessionPanel({
                           })}
                         </p>
                       )}
+                      {task?.selection && (
+                        <>
+                          <p>
+                            {task.selection.trivial
+                              ? t('Trivial selection')
+                              : t('Selector comparison')}
+                          </p>
+                          {task.selection.fallback && <p>{t('Selection fallback')}</p>}
+                          <p className="whitespace-pre-wrap break-words">{task.selection.reason}</p>
+                        </>
+                      )}
                       {task?.experience && (
                         <ExperimentExperienceView experience={task.experience} />
                       )}
@@ -616,163 +631,221 @@ function OptimizationSessionPanel({
               ))}
           </div>
         )}
-        {sourcePromptMessageId && (
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={notebookMode}
-              disabled={active || busy}
-              onChange={(event) => {
-                setNotebookMode(event.target.checked)
-                if (event.target.checked) {
-                  setPrompt(initialPrompt)
-                  setFiles([])
-                  setSelectedVersions([])
-                  setDomainName('')
-                  setNextTasks([])
-                }
-                requestKey.current = null
-              }}
-            />
-            {t('Repeat this task with Notebook Python')}
-          </label>
-        )}
-        <label className="block">
-          {t('Task description')}
-          <textarea
-            aria-label={t('Task description')}
-            className={inputClass}
-            rows={3}
-            maxLength={32_000}
-            value={prompt}
-            disabled={active || busy || notebookMode}
-            onChange={(event) => {
-              promptEdited.current = true
-              setPrompt(event.target.value)
-              requestKey.current = null
-            }}
-          />
-        </label>
-        {!notebookMode && (
-          <>
-            {availableArtifacts.length > 0 && (
-              <fieldset className="space-y-1" data-testid="optimization-source-artifacts">
-                <legend>{t('Use saved artifact versions as inputs')}</legend>
-                {availableArtifacts.map((file) => (
-                  <label key={file.versionId} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      disabled={active || busy}
-                      checked={selectedVersions.includes(file.versionId!)}
-                      onChange={(event) => {
-                        setSelectedVersions(
-                          event.target.checked
-                            ? [...selectedVersions, file.versionId!]
-                            : selectedVersions.filter((id) => id !== file.versionId)
-                        )
-                        requestKey.current = null
-                      }}
-                    />
-                    {t('{{name}} · version {{version}}', {
-                      name: file.name,
-                      version: file.versionNumber ?? file.versionId
-                    })}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <label className="block">
-              {t('Text input files')}
+        <div data-testid={`optimization-catalog-task-${taskId}`} className="space-y-3">
+          {sourcePromptMessageId && (
+            <label className="flex items-center gap-2">
               <input
-                aria-label={t('Text input files')}
-                type="file"
-                multiple
-                accept=".txt,.md,.csv,.tsv,.json,.yaml,.yml,.log"
+                type="checkbox"
+                checked={notebookMode}
                 disabled={active || busy}
                 onChange={(event) => {
-                  void attach(event.target.files)
-                  event.target.value = ''
-                }}
-              />
-            </label>
-            <p className="text-xs text-text-400">
-              {t(
-                'Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.'
-              )}
-            </p>
-            {files.map((file) => (
-              <div key={file.path} className="flex items-center justify-between gap-2">
-                <span className="truncate">{file.path}</span>
-                <button
-                  type="button"
-                  disabled={active || busy}
-                  onClick={() => {
-                    setFiles(files.filter((entry) => entry.path !== file.path))
-                    requestKey.current = null
-                  }}
-                >
-                  {t('Remove')}
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-        <label className="block">
-          {t('Acceptance criteria (one per line)')}
-          <textarea
-            aria-label={t('Acceptance criteria (one per line)')}
-            className={inputClass}
-            rows={3}
-            maxLength={16_000}
-            value={criteria}
-            disabled={active || busy}
-            onChange={(event) => {
-              setCriteria(event.target.value)
-              requestKey.current = null
-            }}
-          />
-        </label>
-        <p className="text-xs text-text-400">{t('Write 1–16 independent checks, one per line.')}</p>
-        <ExpectedJsonCheckEditor
-          value={checkDraft}
-          disabled={active || busy}
-          inputClass={inputClass}
-          onChange={(value) => {
-            setCheckDraft(value)
-            requestKey.current = null
-          }}
-        />
-        {!notebookMode && (
-          <>
-            <label className="block">
-              {t('Domain experiment name (optional)')}
-              <input
-                aria-label={t('Domain experiment name (optional)')}
-                className={inputClass}
-                maxLength={80}
-                value={domainName}
-                disabled={active || busy}
-                onChange={(event) => {
-                  setDomainName(event.target.value)
+                  setNotebookMode(event.target.checked)
+                  if (event.target.checked) {
+                    setPrompt(initialPrompt)
+                    setFiles([])
+                    setSelectedVersions([])
+                  }
                   requestKey.current = null
                 }}
               />
+              {t('Repeat this task with Notebook Python')}
             </label>
-            <p className="text-xs text-text-400">
-              {t(
-                'Run up to four tasks in order with one shared budget. Next tasks use the same text input files.'
+          )}
+          {notebookMode && (
+            <OptimizationCatalogSource
+              projectId={projectId}
+              value={source}
+              onChange={setSource}
+              disabled={active || busy}
+              inputClass={inputClass}
+              sessions={sessions}
+            />
+          )}
+          <label className="block">
+            {t('Task ID')}
+            <input
+              aria-label={t('Task ID')}
+              className={inputClass}
+              value={taskId}
+              maxLength={80}
+              disabled={active || busy}
+              onChange={(e) => setTaskId(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            {t('Task description')}
+            <textarea
+              aria-label={t('Task description')}
+              className={inputClass}
+              rows={3}
+              maxLength={32_000}
+              value={notebookMode ? source.prompt : prompt}
+              disabled={active || busy || notebookMode}
+              onChange={(event) => {
+                promptEdited.current = true
+                setPrompt(event.target.value)
+                requestKey.current = null
+              }}
+            />
+          </label>
+          {!notebookMode && (
+            <>
+              {availableArtifacts.length > 0 && (
+                <fieldset className="space-y-1" data-testid="optimization-source-artifacts">
+                  <legend>{t('Use saved artifact versions as inputs')}</legend>
+                  {availableArtifacts.map((file) => (
+                    <label key={file.versionId} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        disabled={active || busy}
+                        checked={selectedVersions.includes(file.versionId!)}
+                        onChange={(event) => {
+                          setSelectedVersions(
+                            event.target.checked
+                              ? [...selectedVersions, file.versionId!]
+                              : selectedVersions.filter((id) => id !== file.versionId)
+                          )
+                          requestKey.current = null
+                        }}
+                      />
+                      {t('{{name}} · version {{version}}', {
+                        name: file.name,
+                        version: file.versionNumber ?? file.versionId
+                      })}
+                    </label>
+                  ))}
+                </fieldset>
               )}
-            </p>
-            <p className="text-xs text-text-400">
-              {t('Use letters, numbers, underscores or hyphens for the experiment name.')}
-            </p>
-            {nextTasks.map((task, index) => (
-              <fieldset
-                key={task.id}
-                data-testid={`next-task-${index + 1}`}
-                className="space-y-2 rounded border border-border p-2"
-              >
-                <legend>{t('Next task {{number}}', { number: index + 1 })}</legend>
+              <label className="block">
+                {t('Text input files')}
+                <input
+                  aria-label={t('Text input files')}
+                  type="file"
+                  multiple
+                  accept=".txt,.md,.csv,.tsv,.json,.yaml,.yml,.log"
+                  disabled={active || busy}
+                  onChange={(event) => {
+                    void attach(event.target.files)
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+              <p className="text-xs text-text-400">
+                {t(
+                  'Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.'
+                )}
+              </p>
+              {files.map((file) => (
+                <div key={file.path} className="flex items-center justify-between gap-2">
+                  <span className="truncate">{file.path}</span>
+                  <button
+                    type="button"
+                    disabled={active || busy}
+                    onClick={() => {
+                      setFiles(files.filter((entry) => entry.path !== file.path))
+                      requestKey.current = null
+                    }}
+                  >
+                    {t('Remove')}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+          <label className="block">
+            {t('Acceptance criteria (one per line)')}
+            <textarea
+              aria-label={t('Acceptance criteria (one per line)')}
+              className={inputClass}
+              rows={3}
+              maxLength={16_000}
+              value={criteria}
+              disabled={active || busy}
+              onChange={(event) => {
+                setCriteria(event.target.value)
+                requestKey.current = null
+              }}
+            />
+          </label>
+          <p className="text-xs text-text-400">
+            {t('Write 1–16 independent checks, one per line.')}
+          </p>
+          <ExpectedJsonCheckEditor
+            value={checkDraft}
+            disabled={active || busy}
+            inputClass={inputClass}
+            onChange={(value) => {
+              setCheckDraft(value)
+              requestKey.current = null
+            }}
+          />
+          <label className="block">
+            {t('Domain')}
+            <input
+              aria-label={t('Domain')}
+              className={inputClass}
+              maxLength={80}
+              value={domainName}
+              disabled={active || busy}
+              onChange={(e) => setDomainName(e.target.value)}
+            />
+          </label>
+        </div>
+        <p className="text-xs text-text-400">
+          {t('Each catalog task owns its source, inputs and acceptance checks.')}
+        </p>
+        {nextTasks.map((task, index) => (
+          <fieldset
+            key={task.id}
+            data-testid={`optimization-catalog-task-${task.taskId}`}
+            className="space-y-2 rounded border border-border p-2"
+          >
+            <legend>{t('Next task {{number}}', { number: index + 1 })}</legend>
+            <label className="block">
+              {t('Task ID')}
+              <input
+                aria-label={t('Task ID')}
+                className={inputClass}
+                value={task.taskId}
+                maxLength={80}
+                disabled={active || busy}
+                onChange={(e) =>
+                  setNextTasks((tasks) =>
+                    tasks.map((x) => (x.id === task.id ? { ...x, taskId: e.target.value } : x))
+                  )
+                }
+              />
+            </label>
+            <label className="block">
+              {t('Domain')}
+              <input
+                aria-label={t('Domain')}
+                className={inputClass}
+                value={task.domain}
+                maxLength={80}
+                disabled={active || busy}
+                onChange={(e) =>
+                  setNextTasks((tasks) =>
+                    tasks.map((x) => (x.id === task.id ? { ...x, domain: e.target.value } : x))
+                  )
+                }
+              />
+            </label>
+            {task.kind === 'notebook' ? (
+              <OptimizationCatalogSource
+                projectId={projectId}
+                value={task}
+                onChange={(value) =>
+                  setNextTasks((tasks) =>
+                    tasks.map((x) => (x.id === task.id ? { ...x, ...value } : x))
+                  )
+                }
+                disabled={active || busy}
+                inputClass={inputClass}
+                sessions={sessions}
+              />
+            ) : (
+              <>
                 <label className="block">
                   {t('Task description')}
                   <textarea
@@ -781,101 +854,180 @@ function OptimizationSessionPanel({
                     value={task.prompt}
                     maxLength={32000}
                     disabled={active || busy}
-                    onChange={(event) => {
-                      setNextTasks(
-                        nextTasks.map((entry) =>
-                          entry.id === task.id ? { ...entry, prompt: event.target.value } : entry
-                        )
+                    onChange={(e) =>
+                      setNextTasks((tasks) =>
+                        tasks.map((x) => (x.id === task.id ? { ...x, prompt: e.target.value } : x))
                       )
-                      requestKey.current = null
-                    }}
+                    }
                   />
                 </label>
-                <label className="block">
-                  {t('Acceptance criteria (one per line)')}
-                  <textarea
-                    aria-label={t('Next task criteria {{number}}', { number: index + 1 })}
-                    className={inputClass}
-                    value={task.criteria}
-                    maxLength={16000}
-                    disabled={active || busy}
-                    onChange={(event) => {
-                      setNextTasks(
-                        nextTasks.map((entry) =>
-                          entry.id === task.id ? { ...entry, criteria: event.target.value } : entry
-                        )
-                      )
-                      requestKey.current = null
-                    }}
-                  />
-                </label>
-                <ExpectedJsonCheckEditor
-                  value={task.check}
-                  disabled={active || busy}
-                  inputClass={inputClass}
-                  onChange={(check) => {
-                    setNextTasks(
-                      nextTasks.map((entry) => (entry.id === task.id ? { ...entry, check } : entry))
-                    )
-                    requestKey.current = null
-                  }}
-                />
                 <button
                   type="button"
-                  disabled={active || busy}
+                  disabled={active || busy || notebookMode}
                   onClick={() => {
-                    setNextTasks(nextTasks.filter((entry) => entry.id !== task.id))
-                    requestKey.current = null
+                    try {
+                      const refs = inputArtifacts()
+                      setNextTasks((tasks) =>
+                        tasks.map((x) =>
+                          x.id === task.id
+                            ? {
+                                ...x,
+                                sourceSessionId: sessionId,
+                                files: structuredClone(files),
+                                inputArtifacts: refs
+                              }
+                            : x
+                        )
+                      )
+                    } catch {
+                      setError('files')
+                    }
                   }}
                 >
-                  {t('Remove next task')}
+                  {t('Copy current text inputs')}
                 </button>
-              </fieldset>
-            ))}
+                <label className="block">
+                  {t('Text input files')}
+                  <input
+                    aria-label={t('Text input files')}
+                    type="file"
+                    multiple
+                    accept=".txt,.md,.csv,.tsv,.json,.yaml,.yml,.log"
+                    disabled={active || busy}
+                    onChange={(e) => {
+                      const selected = e.target.files
+                      if (selected) {
+                        setBusy(true)
+                        void appendTextFiles(task.files, selected)
+                          .then((value) => {
+                            if (alive.current)
+                              setNextTasks((tasks) =>
+                                tasks.map((x) => (x.id === task.id ? { ...x, files: value } : x))
+                              )
+                          })
+                          .catch(() => {
+                            if (alive.current) setError('files')
+                          })
+                          .finally(() => {
+                            if (alive.current) setBusy(false)
+                          })
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                {task.files.map((file) => (
+                  <div key={file.path}>
+                    <span>{file.path}</span>
+                    <button
+                      type="button"
+                      disabled={active || busy}
+                      onClick={() =>
+                        setNextTasks((tasks) =>
+                          tasks.map((x) =>
+                            x.id === task.id
+                              ? { ...x, files: x.files.filter((f) => f.path !== file.path) }
+                              : x
+                          )
+                        )
+                      }
+                    >
+                      {t('Remove')}
+                    </button>
+                  </div>
+                ))}
+                {availableArtifacts.length > 0 && (
+                  <fieldset>
+                    <legend>{t('Use saved artifact versions as inputs')}</legend>
+                    {availableArtifacts.map((file) => (
+                      <label key={file.versionId} className="flex gap-2">
+                        <input
+                          type="checkbox"
+                          disabled={active || busy}
+                          checked={task.inputArtifacts.some((r) => r.versionId === file.versionId)}
+                          onChange={(e) =>
+                            setNextTasks((tasks) =>
+                              tasks.map((x) =>
+                                x.id === task.id
+                                  ? {
+                                      ...x,
+                                      inputArtifacts: e.target.checked
+                                        ? [
+                                            ...x.inputArtifacts,
+                                            {
+                                              artifactId: file.artifactId!,
+                                              versionId: file.versionId!,
+                                              checksum: file.sha256!,
+                                              path: file.name!
+                                            }
+                                          ]
+                                        : x.inputArtifacts.filter(
+                                            (r) => r.versionId !== file.versionId
+                                          )
+                                    }
+                                  : x
+                              )
+                            )
+                          }
+                        />
+                        {t('{{name}} · version {{version}}', {
+                          name: file.name,
+                          version: file.versionNumber ?? file.versionId
+                        })}
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
+              </>
+            )}
+            <label className="block">
+              {t('Acceptance criteria (one per line)')}
+              <textarea
+                aria-label={t('Next task criteria {{number}}', { number: index + 1 })}
+                className={inputClass}
+                value={task.criteria}
+                maxLength={16000}
+                disabled={active || busy}
+                onChange={(e) =>
+                  setNextTasks((tasks) =>
+                    tasks.map((x) => (x.id === task.id ? { ...x, criteria: e.target.value } : x))
+                  )
+                }
+              />
+            </label>
+            <ExpectedJsonCheckEditor
+              value={task.check}
+              disabled={active || busy}
+              inputClass={inputClass}
+              onChange={(check) =>
+                setNextTasks((tasks) => tasks.map((x) => (x.id === task.id ? { ...x, check } : x)))
+              }
+            />
             <button
               type="button"
-              disabled={active || busy || nextTasks.length >= 3}
-              onClick={() => {
-                const next = [
-                  ...nextTasks,
-                  {
-                    id: crypto.randomUUID(),
-                    prompt: '',
-                    criteria: '',
-                    check: emptyJsonCheckDraft()
-                  }
-                ]
-                setNextTasks(next)
-                setLimit((value) =>
-                  Math.min(
-                    maximum,
-                    Math.max(
-                      value,
-                      bothModes
-                        ? minimumSweepExecutions(sweepOptions(), 1 + next.length)
-                        : minimumResearchExecutions(method, {
-                            name: domainName,
-                            nextTasks: next.map((task) => ({
-                              prompt: task.prompt,
-                              criteria: task.criteria,
-                              files
-                            }))
-                          })
-                    )
-                  )
-                )
-                requestKey.current = null
-              }}
+              disabled={active || busy}
+              onClick={() => setNextTasks((tasks) => tasks.filter((x) => x.id !== task.id))}
             >
-              {t('Add next task')}
+              {t('Remove next task')}
             </button>
-            {nextTasks.length > 0 && !domainName.trim() && (
-              <p className="text-xs text-text-400">
-                {t('Name the domain experiment before starting its task stream.')}
-              </p>
-            )}
-          </>
-        )}
+          </fieldset>
+        ))}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            disabled={active || busy || nextTasks.length >= MAX_SWEEP_TASKS - 1}
+            onClick={() => appendTask('text')}
+          >
+            {t('Add next task')}
+          </button>
+          <button
+            type="button"
+            disabled={active || busy || nextTasks.length >= MAX_SWEEP_TASKS - 1}
+            onClick={() => appendTask('notebook')}
+          >
+            {t('Add Notebook task from another chat')}
+          </button>
+        </div>
         <label className="block">
           {t('Optimization mode')}
           <select
@@ -904,15 +1056,6 @@ function OptimizationSessionPanel({
             onChange={(event) => {
               const enabled = event.target.checked
               setBothModes(enabled)
-              const required = enabled
-                ? minimumSweepExecutions(sweepOptions(), 1 + (domainDraft?.nextTasks.length ?? 0))
-                : minimumResearchExecutions(method, domainDraft)
-              setLimit((value) =>
-                Math.min(
-                  enabled ? MAX_SWEEP_EXECUTIONS : MAX_OPTIMIZATION_EXECUTIONS,
-                  Math.max(value, required)
-                )
-              )
               requestKey.current = null
             }}
           />
@@ -934,20 +1077,6 @@ function OptimizationSessionPanel({
               if (Number.isInteger(k) && k >= 1 && k <= 8) {
                 const next = { ...method, k }
                 setMethod(next)
-                setLimit((value) =>
-                  Math.min(
-                    maximum,
-                    Math.max(
-                      value,
-                      bothModes
-                        ? minimumSweepExecutions(
-                            sweepOptions(next),
-                            1 + (domainDraft?.nextTasks.length ?? 0)
-                          )
-                        : minimumResearchExecutions(next, domainDraft)
-                    )
-                  )
-                )
                 requestKey.current = null
               }
             }}
@@ -973,12 +1102,89 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
+        <label className="block">
+          {t('Shuffle seed (empty uses original order)')}
+          <input
+            aria-label={t('Shuffle seed (empty uses original order)')}
+            className={inputClass}
+            value={seed}
+            disabled={active || busy}
+            onChange={(e) => setSeed(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          {t('Domain filter')}
+          <input
+            aria-label={t('Domain filter')}
+            className={inputClass}
+            value={domainFilter}
+            disabled={active || busy}
+            onChange={(e) => setDomainFilter(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          {t('Task filter')}
+          <input
+            aria-label={t('Task filter')}
+            className={inputClass}
+            value={taskFilter}
+            disabled={active || busy}
+            onChange={(e) => setTaskFilter(e.target.value)}
+          />
+        </label>
         <p className="text-xs text-text-400">
-          {t(
-            'First attempts require {{minimum}} executions including assessments; retries use the same limit.',
-            { minimum }
-          )}
+          {t('Separate filter IDs with commas or spaces; empty includes all.')}
         </p>
+        <label className="block">
+          {t('Tasks per domain (empty means all)')}
+          <input
+            aria-label={t('Tasks per domain (empty means all)')}
+            className={inputClass}
+            value={maxTasks}
+            disabled={active || busy}
+            onChange={(e) => setMaxTasks(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          {t('Domain workers')}
+          <input
+            aria-label={t('Domain workers')}
+            className={inputClass}
+            type="number"
+            min={1}
+            max={4}
+            value={workers}
+            disabled={active || busy}
+            onChange={(e) => setWorkers(Number(e.target.value))}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={!draftValid || active || busy || previewBusy}
+          onClick={() => void previewStream()}
+        >
+          {t('Preview task stream')}
+        </button>
+        {currentPreview ? (
+          <div data-testid="optimization-sweep-preview" role="status">
+            <p>
+              {t(
+                'First attempts require {{minimum}} executions including assessments; retries use the same limit.',
+                { minimum }
+              )}
+            </p>
+            {currentPreview.result.order.map((domain) => (
+              <p key={domain.domain}>
+                {t('Planned domain {{domain}}: {{tasks}}', {
+                  domain: domain.domain,
+                  tasks: domain.taskIds.join(', ')
+                })}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p>{t('Preview the current task stream before starting.')}</p>
+        )}
         <label className="block">
           {domainDraft || bothModes
             ? t('Shared execution limit (all task assessments and reflections)')
@@ -1002,7 +1208,7 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
-        {minimum > maximum && (
+        {minimum !== undefined && minimum > maximum && (
           <p role="alert" className="text-xs text-text-400">
             {t('Reduce recursion or task count to stay within {{limit}} shared executions.', {
               limit: maximum

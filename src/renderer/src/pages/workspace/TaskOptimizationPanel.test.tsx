@@ -8,7 +8,12 @@ import type {
 } from '../../../../shared/earthnano/desktop-optimization'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../../shared/web-event-connection'
 import { TaskOptimizationPanel } from './TaskOptimizationPanel'
-import type { PersistedArtifact } from '../../../../shared/session-persistence'
+import { minimumSweepExecutions } from '../../../../shared/earthnano/optimization-sweep'
+import type { CatalogSessionApi } from './OptimizationCatalogSource'
+import type {
+  PersistedChatSession,
+  PersistedArtifact
+} from '../../../../shared/session-persistence'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) =>
@@ -16,7 +21,7 @@ vi.mock('react-i18next', () => ({
   })
 }))
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-let container: HTMLDivElement, root: Root, api: DesktopOptimizationApi
+let container: HTMLDivElement, root: Root, api: DesktopOptimizationApi, sessions: CatalogSessionApi
 const progress = (state: OptimizationProgress['state'] = 'running'): OptimizationProgress => ({
   runId: 'run',
   projectId: 'project',
@@ -39,6 +44,7 @@ const render = async (sessionId = 'session', artifacts?: PersistedArtifact[]): P
         sourcePromptMessageId="source-prompt"
         artifacts={artifacts}
         api={api}
+        sessions={sessions}
       />
     )
   )
@@ -59,12 +65,60 @@ const click = async (text: string): Promise<void> => {
   )!
   await act(async () => button.click())
 }
+const sourceSession = (id = 'session', promptId = 'source-prompt'): PersistedChatSession => ({
+  id,
+  projectId: 'project',
+  title: `Science ${id}`,
+  cwd: '/workspace',
+  status: 'idle',
+  createdAt: 1,
+  updatedAt: 1,
+  messages: [
+    {
+      id: promptId,
+      role: 'user',
+      content: `Task ${id}`,
+      status: 'complete',
+      eventIds: [],
+      createdAt: 1,
+      updatedAt: 1,
+      uploads: [
+        {
+          id: `upload-${id}`,
+          versionId: `version-${id}`,
+          sessionId: id,
+          name: 'measurements.csv',
+          originalName: 'measurements.csv',
+          size: 10,
+          sha256: 'a'.repeat(64)
+        }
+      ]
+    }
+  ]
+})
 beforeEach(() => {
   vi.useFakeTimers()
+  sessions = {
+    list: vi.fn().mockResolvedValue({
+      sessions: [
+        { id: 'session', projectId: 'project', title: 'Science session' },
+        { id: 'another', projectId: 'project', title: 'Science another' }
+      ]
+    }),
+    loadOne: vi.fn(async ({ sessionId }) =>
+      sourceSession(sessionId, sessionId === 'another' ? 'other-prompt' : 'source-prompt')
+    )
+  }
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
   api = {
+    previewSweep: vi.fn(async (request: Parameters<DesktopOptimizationApi['previewSweep']>[0]) => ({
+      planDigest: `sha256:${'a'.repeat(64)}`,
+      order: [{ domain: request.catalog[0].domain, taskIds: request.catalog.map((t) => t.taskId) }],
+      modes: request.sweep.modes,
+      minimumExecutions: minimumSweepExecutions(request.sweep, request.catalog.length)
+    })),
     start: vi.fn().mockResolvedValue(progress()),
     startSweep: vi.fn().mockResolvedValue(progress()),
     get: vi.fn().mockResolvedValue(progress()),
@@ -132,23 +186,35 @@ it('selects a fixed saved version without copying content or trusting a host pat
   ) as HTMLInputElement
   await act(async () => checkbox.click())
   await input('Acceptance criteria (one per line)', 'Preserve source values')
+  await click('Preview task stream')
   await click('Start optimization')
-  expect(api.start).toHaveBeenCalledWith(
+  expect(api.startSweep).toHaveBeenCalledWith(
     expect.objectContaining({
-      inputArtifacts: [
-        {
-          artifactId: 'artifact',
-          versionId: 'version',
-          path: 'source.json',
-          checksum: 'a'.repeat(64)
-        }
-      ],
-      files: []
+      catalog: [
+        expect.objectContaining({
+          source: {
+            kind: 'text',
+            prompt: 'Task session',
+            inputArtifacts: [
+              {
+                artifactId: 'artifact',
+                versionId: 'version',
+                path: 'source.json',
+                checksum: 'a'.repeat(64)
+              }
+            ],
+            files: []
+          }
+        })
+      ]
     })
   )
-  expect(JSON.stringify(vi.mocked(api.start).mock.calls)).not.toContain('/private/source.json')
+  expect(JSON.stringify(vi.mocked(api.startSweep).mock.calls)).not.toContain('/private/source.json')
 })
 afterEach(async () => {
+  expect(api.start).not.toHaveBeenCalled()
+  for (const [request] of vi.mocked(api.startSweep).mock.calls)
+    expect(request).toHaveProperty('previewPlanDigest')
   await act(async () => root.unmount())
   container.remove()
   document.documentElement.removeAttribute(WEB_EVENT_SURFACE_ATTRIBUTE)
@@ -162,18 +228,27 @@ it('starts a bounded task using edited inputs, polls typed progress and stops', 
   await input('Task description', 'Edited task')
   await input('Acceptance criteria (one per line)', 'Output is valid JSON\nThe answer equals 42')
   await input('Execution limit (includes two assessments)', '12')
+  await click('Preview task stream')
   await click('Start optimization')
-  expect(api.start).toHaveBeenCalledWith(
+  expect(api.startSweep).toHaveBeenCalledWith(
     expect.objectContaining({
       projectId: 'project',
       sourceSessionId: 'session',
-      prompt: 'Edited task',
       executionLimit: 12,
-      files: [],
-      criteria: 'Output is valid JSON\nThe answer equals 42',
-      requestKey: expect.any(String)
+      requestKey: expect.any(String),
+      catalog: [
+        {
+          taskId: 'task-0001',
+          domain: 'research',
+          sourceSessionId: 'session',
+          source: { kind: 'text', prompt: 'Edited task', files: [] },
+          criteria: 'Output is valid JSON\nThe answer equals 42'
+        }
+      ],
+      sweep: expect.objectContaining({ modes: ['sequential'] })
     })
   )
+  expect(api.start).not.toHaveBeenCalled()
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
@@ -201,7 +276,8 @@ it('requires 1–16 criteria and a sufficient execution budget, and shows safe e
     )?.disabled
   ).toBe(true)
   await input('Execution limit (includes two assessments)', '9')
-  vi.mocked(api.start).mockRejectedValue(new Error('synthetic-provider-secret'))
+  vi.mocked(api.startSweep).mockRejectedValue(new Error('synthetic-provider-secret'))
+  await click('Preview task stream')
   await click('Start optimization')
   expect(container.querySelector('[role="alert"]')?.textContent).toContain(
     'Check the selected model'
@@ -299,6 +375,7 @@ it('puts progress and stop before configuration, resets scroll only for a new ru
   await input('Acceptance criteria (one per line)', 'Synthetic criterion')
   const panel = container.querySelector('details')!
   panel.scrollTop = 180
+  await click('Preview task stream')
   await click('Start optimization')
   expect(panel.scrollTop).toBe(0)
   const status = container.querySelector('[role=status]')!
@@ -314,7 +391,8 @@ it('puts progress and stop before configuration, resets scroll only for a new ru
   expect(panel.scrollTop).toBe(85)
   await click('Stop optimization')
   expect(panel.scrollTop).toBe(85)
-  vi.mocked(api.start).mockResolvedValue({ ...progress(), runId: 'next-run' })
+  vi.mocked(api.startSweep).mockResolvedValue({ ...progress(), runId: 'next-run' })
+  await click('Preview task stream')
   await click('Start optimization')
   expect(panel.scrollTop).toBe(0)
 })
@@ -334,16 +412,21 @@ it.each(['sequential', 'parallel'] as const)(
     const executionLimit = container.querySelector(
       '[aria-label="Execution limit (includes two assessments)"]'
     ) as HTMLInputElement
-    expect(executionLimit.value).toBe('17')
-    expect(executionLimit.max).toBe('128')
-    expect(container.textContent).toContain('First attempts require 17 executions')
+    await click('Preview task stream')
+    expect(executionLimit.value).toBe('18')
+    expect(executionLimit.max).toBe('512')
+    expect(container.textContent).toContain('First attempts require 18 executions')
     await input('Execution limit (includes two assessments)', '16')
     await click('Start optimization')
     expect(api.start).not.toHaveBeenCalled()
     await input('Execution limit (includes two assessments)', '20')
+    await click('Preview task stream')
     await click('Start optimization')
-    expect(api.start).toHaveBeenCalledWith(
-      expect.objectContaining({ method: { mode, k: 2, concurrency: 3 }, executionLimit: 20 })
+    expect(api.startSweep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sweep: expect.objectContaining({ modes: [mode], k: 2, concurrency: 3 }),
+        executionLimit: 20
+      })
     )
   }
 )
@@ -448,7 +531,7 @@ it('also discards a snapshot requested while Stop was pending after its acknowle
 it('submits a bounded ordered domain stream with private expected JSON checks, copied files and one Stop', async () => {
   await render()
   await input('Acceptance criteria (one per line)', 'Correct count')
-  await input('Domain experiment name (optional)', 'csv-count')
+  await input('Domain', 'csv-count')
   await click('Add next task')
   await input('Next task description 1', 'Count a second data set')
   await input('Next task criteria 1', 'Second count is correct')
@@ -465,11 +548,11 @@ it('submits a bounded ordered domain stream with private expected JSON checks, c
   await act(async () => checkbox.click())
   await input('Expected JSON value', '{"count":1}')
   const nextCheckbox = container.querySelector(
-    '[data-testid="next-task-1"] [aria-label="Check expected JSON output"]'
+    '[data-testid="optimization-catalog-task-task-0002"] [aria-label="Check expected JSON output"]'
   ) as HTMLInputElement
   await act(async () => nextCheckbox.click())
   const nextExpected = container.querySelector(
-    '[data-testid="next-task-1"] [aria-label="Expected JSON value"]'
+    '[data-testid="optimization-catalog-task-task-0002"] [aria-label="Expected JSON value"]'
   ) as HTMLTextAreaElement
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
@@ -478,6 +561,8 @@ it('submits a bounded ordered domain stream with private expected JSON checks, c
     )
     nextExpected.dispatchEvent(new Event('input', { bubbles: true }))
   })
+  await click('Copy current text inputs')
+  await click('Preview task stream')
   expect(
     (
       container.querySelector(
@@ -485,22 +570,37 @@ it('submits a bounded ordered domain stream with private expected JSON checks, c
       ) as HTMLInputElement
     ).value
   ).toBe('20')
+  await click('Preview task stream')
   await click('Start optimization')
-  expect(api.start).toHaveBeenCalledWith(
+  expect(api.startSweep).toHaveBeenCalledWith(
     expect.objectContaining({
-      checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 1 } }],
       executionLimit: 20,
-      domain: {
-        name: 'csv-count',
-        nextTasks: [
-          {
-            prompt: 'Count a second data set',
-            criteria: 'Second count is correct',
-            files: [{ path: 'values.csv', content: 'value\n1' }],
-            checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: 2 }]
+      catalog: [
+        expect.objectContaining({
+          taskId: 'task-0001',
+          domain: 'csv-count',
+          checks: [
+            { kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 1 } }
+          ],
+          source: {
+            kind: 'text',
+            prompt: 'Task session',
+            files: [{ path: 'values.csv', content: 'value\n1' }]
           }
-        ]
-      }
+        }),
+        {
+          taskId: 'task-0002',
+          domain: 'csv-count',
+          sourceSessionId: 'session',
+          source: {
+            kind: 'text',
+            prompt: 'Count a second data set',
+            files: [{ path: 'values.csv', content: 'value\n1' }]
+          },
+          criteria: 'Second count is correct',
+          checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: 2 }]
+        }
+      ]
     })
   )
   await click('Stop optimization')
@@ -511,26 +611,24 @@ it('submits a bounded ordered domain stream with private expected JSON checks, c
   })
   expect(container.textContent).toContain('Cancelled')
 })
-it('bounds the stream to four tasks and requires valid task, domain and private JSON inputs', async () => {
+it('bounds the catalog to 32 tasks and rejects invalid task, domain and private JSON inputs before preview', async () => {
   await render()
   await input('Acceptance criteria (one per line)', 'criterion')
-  for (let index = 1; index <= 3; index++) {
+  for (let index = 1; index <= 31; index++) {
     await click('Add next task')
     await input(`Next task description ${index}`, `Task ${index}`)
     await input(`Next task criteria ${index}`, `Criterion ${index}`)
   }
-  const add = [...container.querySelectorAll('button')].find(
-    (node) => node.textContent === 'Add next task'
-  )!
-  expect(add.disabled).toBe(true)
-  const start = [...container.querySelectorAll('button')].find(
-    (node) => node.textContent === 'Start optimization'
-  )!
-  expect(start.disabled).toBe(true)
-  await input('Domain experiment name (optional)', 'four-tasks')
-  expect(start.disabled).toBe(false)
+  const button = (text: string): HTMLButtonElement =>
+    [...container.querySelectorAll('button')].find((n) => n.textContent === text)!
+  expect(button('Add next task').disabled).toBe(true)
+  expect(button('Add Notebook task from another chat').disabled).toBe(true)
+  await input('Domain', '../invalid')
+  expect(button('Preview task stream').disabled).toBe(true)
+  await input('Domain', 'research')
   await input('Recursion parameter (k)', '8')
-  expect(start.disabled).toBe(true)
+  await click('Preview task stream')
+  expect(button('Start optimization').disabled).toBe(true)
   expect(container.textContent).toContain('Reduce recursion or task count')
   expect(
     (
@@ -538,25 +636,27 @@ it('bounds the stream to four tasks and requires valid task, domain and private 
         '[aria-label="Shared execution limit (all task assessments and reflections)"]'
       ) as HTMLInputElement
     ).value
-  ).toBe('128')
-  await input('Recursion parameter (k)', '2')
-  expect(start.disabled).toBe(false)
+  ).toBe('512')
+  await input('Recursion parameter (k)', '1')
+  await click('Preview task stream')
+  expect(button('Start optimization').disabled).toBe(false)
   await input('Next task criteria 1', Array(17).fill('criterion').join('\n'))
-  expect(start.disabled).toBe(true)
+  expect(button('Preview task stream').disabled).toBe(true)
+  expect(button('Start optimization').disabled).toBe(true)
   await input('Next task criteria 1', 'criterion')
-  expect(start.disabled).toBe(false)
   await act(async () =>
     (
       container.querySelector('[aria-label="Check expected JSON output"]') as HTMLInputElement
     ).click()
   )
   await input('Expected JSON value', '{invalid')
-  expect(start.disabled).toBe(true)
+  expect(button('Preview task stream').disabled).toBe(true)
   await input('Expected JSON value', '3')
-  expect(start.disabled).toBe(false)
+  expect(button('Preview task stream').disabled).toBe(false)
   await input('Output JSON file', '../outside')
-  expect(start.disabled).toBe(true)
+  expect(button('Preview task stream').disabled).toBe(true)
   expect(api.start).not.toHaveBeenCalled()
+  expect(api.startSweep).not.toHaveBeenCalled()
 })
 it.each(['blocked', 'unverified'] as const)(
   'shows lifecycle completion independently from %s configuration admission',
@@ -738,15 +838,25 @@ it('repeats the original Notebook task by source message identity and disables t
   ).toBe(true)
   expect(container.querySelector('[aria-label="Text input files"]')).toBeNull()
   await input('Acceptance criteria (one per line)', 'Recalculate from fixed source CSV')
+  await click('Preview task stream')
   await click('Start optimization')
-  expect(api.start).toHaveBeenCalledWith(
+  expect(api.startSweep).toHaveBeenCalledWith(
     expect.objectContaining({
-      notebook: { promptMessageId: 'source-prompt' },
-      prompt: 'Task session',
-      files: []
+      catalog: [
+        {
+          taskId: 'task-0001',
+          domain: 'research',
+          sourceSessionId: 'session',
+          source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+          criteria: 'Recalculate from fixed source CSV'
+        }
+      ]
     })
   )
-  expect(vi.mocked(api.start).mock.calls[0][0].inputArtifacts).toBeUndefined()
+  expect(api.start).not.toHaveBeenCalled()
+  expect(vi.mocked(api.startSweep).mock.calls[0][0].catalog[0].source).not.toHaveProperty(
+    'inputArtifacts'
+  )
 })
 
 it('submits one explicit dual-mode Notebook catalog with a shared budget and source identity', async () => {
@@ -760,6 +870,7 @@ it('submits one explicit dual-mode Notebook catalog with a shared budget and sou
     '[aria-label="Compare both optimization modes"]'
   ) as HTMLInputElement
   await act(async () => both.click())
+  await click('Preview task stream')
   const limit = container.querySelector(
     '[aria-label="Shared execution limit (all task assessments and reflections)"]'
   ) as HTMLInputElement
@@ -768,12 +879,14 @@ it('submits one explicit dual-mode Notebook catalog with a shared budget and sou
   expect(
     (container.querySelector('[aria-label="Optimization mode"]') as HTMLSelectElement).disabled
   ).toBe(true)
+  await click('Preview task stream')
   await click('Start optimization')
   expect(api.start).not.toHaveBeenCalled()
   expect(api.startSweep).toHaveBeenCalledExactlyOnceWith({
     projectId: 'project',
     sourceSessionId: 'session',
     requestKey: expect.any(String),
+    previewPlanDigest: `sha256:${'a'.repeat(64)}`,
     executionLimit: 18,
     sweep: {
       modes: ['parallel', 'sequential'],
@@ -787,8 +900,7 @@ it('submits one explicit dual-mode Notebook catalog with a shared budget and sou
         domain: 'research',
         sourceSessionId: 'session',
         source: { kind: 'notebook', promptMessageId: 'source-prompt' },
-        criteria: 'Verify original fixed observations',
-        checks: undefined
+        criteria: 'Verify original fixed observations'
       }
     ]
   })
@@ -843,3 +955,285 @@ it('reuses the original result views for both persisted modes and preserves sepa
   expect(results[0].textContent).toContain('Output checks passed')
   expect(results[1].textContent).toContain('The candidate scored below the baseline.')
 })
+
+const selectSource = async (scope: Element, label: string, value: string): Promise<void> => {
+  const node = scope.querySelector(`[aria-label="${label}"]`) as HTMLSelectElement
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(node, value)
+    node.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+const button = (text: string): HTMLButtonElement =>
+  [...container.querySelectorAll('button')].find((n) => n.textContent === text)!
+it('starts two independently chosen original Notebook sources with separate criteria and no inherited inputs', async () => {
+  await render()
+  await act(async () =>
+    (
+      container.querySelector(
+        '[data-testid="optimization-catalog-task-task-0001"] input[type=checkbox]'
+      ) as HTMLInputElement
+    ).click()
+  )
+  await input('Acceptance criteria (one per line)', 'Verify first observations')
+  await click('Add Notebook task from another chat')
+  const other = container.querySelector('[data-testid="optimization-catalog-task-task-0002"]')!
+  await selectSource(other, 'Source chat', 'another')
+  await selectSource(other, 'Source task', 'other-prompt')
+  await input('Next task criteria 1', 'Verify second observations')
+  await click('Preview task stream')
+  expect(api.previewSweep).toHaveBeenCalledExactlyOnceWith({
+    projectId: 'project',
+    sourceSessionId: 'session',
+    catalog: [
+      { taskId: 'task-0001', domain: 'research' },
+      { taskId: 'task-0002', domain: 'research' }
+    ],
+    sweep: {
+      modes: ['sequential'],
+      k: 1,
+      concurrency: 1,
+      stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+    }
+  })
+  expect(JSON.stringify(vi.mocked(api.previewSweep).mock.calls)).not.toContain('observations')
+  await click('Start optimization')
+  expect(api.startSweep).toHaveBeenCalledWith(
+    expect.objectContaining({
+      catalog: [
+        {
+          taskId: 'task-0001',
+          domain: 'research',
+          sourceSessionId: 'session',
+          source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+          criteria: 'Verify first observations'
+        },
+        {
+          taskId: 'task-0002',
+          domain: 'research',
+          sourceSessionId: 'another',
+          source: { kind: 'notebook', promptMessageId: 'other-prompt' },
+          criteria: 'Verify second observations'
+        }
+      ]
+    })
+  )
+  expect(sessions.loadOne).toHaveBeenCalledWith({ projectId: 'project', sessionId: 'another' })
+})
+it.each([
+  ['', null],
+  ['0', 0],
+  ['-7', -7]
+] as const)(
+  'passes seed %s and filters unchanged and shows only original preview order',
+  async (value, seed) => {
+    await render()
+    await input('Acceptance criteria (one per line)', 'criterion')
+    await input('Shuffle seed (empty uses original order)', value)
+    await input('Domain filter', 'research other')
+    await input('Task filter', 'task-0001')
+    await input('Tasks per domain (empty means all)', '2')
+    await input('Domain workers', '3')
+    vi.mocked(api.previewSweep).mockResolvedValue({
+      planDigest: 'sha256:original',
+      modes: ['sequential'],
+      order: [{ domain: 'original-order', taskIds: ['original-task'] }],
+      minimumExecutions: 24
+    })
+    expect(button('Start optimization').disabled).toBe(true)
+    await click('Preview task stream')
+    expect(api.previewSweep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sweep: expect.objectContaining({
+          stream: {
+            seed,
+            onlyDomains: ['research', 'other'],
+            onlyTasks: ['task-0001'],
+            maxTasks: 2,
+            workers: 3
+          }
+        })
+      })
+    )
+    expect(
+      container.querySelector('[data-testid="optimization-sweep-preview"]')!.textContent
+    ).toContain('Planned domain original-order: original-task')
+    expect(container.textContent).toContain('First attempts require 24 executions')
+    expect(button('Start optimization').disabled).toBe(false)
+  }
+)
+it.each(['edit', 'switch', 'revert'] as const)(
+  'discards in-flight preview after %s and never enables Start from its stale minimum',
+  async (change) => {
+    let finish!: (value: Awaited<ReturnType<DesktopOptimizationApi['previewSweep']>>) => void
+    vi.mocked(api.previewSweep).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve
+      })
+    )
+    await render()
+    await input('Acceptance criteria (one per line)', 'criterion')
+    await click('Preview task stream')
+    if (change === 'switch') await render('another')
+    else {
+      await input('Task description', 'Changed')
+      if (change === 'revert') await input('Task description', 'Task session')
+    }
+    await act(async () =>
+      finish({
+        planDigest: 'sha256:stale',
+        modes: ['sequential'],
+        order: [{ domain: 'stale', taskIds: ['wrong'] }],
+        minimumExecutions: 1
+      })
+    )
+    expect(container.querySelector('[data-testid="optimization-sweep-preview"]')).toBeNull()
+    expect(button('Start optimization').disabled).toBe(true)
+    expect(api.startSweep).not.toHaveBeenCalled()
+  }
+)
+it('retains a failed submission key only for exactly the same request and gets a new key after edits', async () => {
+  vi.mocked(api.startSweep).mockRejectedValue(new Error('synthetic-private-provider-secret'))
+  await render()
+  await input('Acceptance criteria (one per line)', 'criterion')
+  await click('Preview task stream')
+  await click('Start optimization')
+  await click('Start optimization')
+  const first = vi.mocked(api.startSweep).mock.calls[0][0],
+    retry = vi.mocked(api.startSweep).mock.calls[1][0]
+  expect(retry.requestKey).toBe(first.requestKey)
+  await input('Acceptance criteria (one per line)', 'Changed criterion')
+  expect(button('Start optimization').disabled).toBe(true)
+  await click('Preview task stream')
+  await click('Start optimization')
+  const changed = vi.mocked(api.startSweep).mock.calls[2][0]
+  expect(changed.requestKey).not.toBe(first.requestKey)
+  expect(changed.catalog[0].criteria).toBe('Changed criterion')
+  expect(container.textContent).not.toContain('synthetic-private-provider-secret')
+})
+it('requires every catalog source to be structurally ready even when a filter would exclude it', async () => {
+  await render()
+  await input('Acceptance criteria (one per line)', 'criterion')
+  await click('Add Notebook task from another chat')
+  await input('Next task criteria 1', 'Other criterion')
+  await input('Task filter', 'task-0001')
+  expect(button('Preview task stream').disabled).toBe(true)
+  expect(api.previewSweep).not.toHaveBeenCalled()
+})
+it('never shares current text inputs with another task unless explicitly copied', async () => {
+  await render()
+  await input('Acceptance criteria (one per line)', 'criterion')
+  await click('Add next task')
+  await input('Next task description 1', 'Other')
+  await input('Next task criteria 1', 'Other criterion')
+  const primary = container.querySelector('[data-testid="optimization-catalog-task-task-0001"]')!
+  const file = new File(['value\n2'], 'values.csv')
+  Object.defineProperty(file, 'text', { value: vi.fn().mockResolvedValue('value\n2') })
+  await act(async () => {
+    const control = primary.querySelector('input[type=file]')!
+    Object.defineProperty(control, 'files', { configurable: true, value: [file] })
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await click('Preview task stream')
+  await click('Start optimization')
+  const catalog = vi.mocked(api.startSweep).mock.calls[0][0].catalog
+  expect(catalog[0].source).toMatchObject({ files: [{ path: 'values.csv', content: 'value\n2' }] })
+  expect(catalog[1].source).toEqual({ kind: 'text', prompt: 'Other', files: [] })
+  expect(catalog[1].criteria).toBe('Other criterion')
+})
+
+it('ignores an old source snapshot after choosing a different source chat', async () => {
+  let old!: (value: PersistedChatSession) => void
+  vi.mocked(sessions.loadOne)
+    .mockReturnValueOnce(
+      new Promise((resolve) => {
+        old = resolve
+      })
+    )
+    .mockResolvedValueOnce(sourceSession('another', 'other-prompt'))
+  await render()
+  await act(async () =>
+    (
+      container.querySelector(
+        '[data-testid="optimization-catalog-task-task-0001"] input[type=checkbox]'
+      ) as HTMLInputElement
+    ).click()
+  )
+  const primary = container.querySelector('[data-testid="optimization-catalog-task-task-0001"]')!
+  await selectSource(primary, 'Source chat', 'another')
+  await selectSource(primary, 'Source task', 'other-prompt')
+  await act(async () => old(sourceSession()))
+  expect((primary.querySelector('[aria-label="Source task"]') as HTMLSelectElement).value).toBe(
+    'other-prompt'
+  )
+  await input('Acceptance criteria (one per line)', 'Own second source')
+  await click('Preview task stream')
+  await click('Start optimization')
+  expect(vi.mocked(api.startSweep).mock.calls[0][0].catalog[0]).toMatchObject({
+    sourceSessionId: 'another',
+    source: { kind: 'notebook', promptMessageId: 'other-prompt' }
+  })
+})
+it.each(['foreign', 'archived', 'package'] as const)(
+  'rejects a loaded %s source snapshot and exposes no raw source error',
+  async (kind) => {
+    const source = sourceSession()
+    if (kind === 'foreign') source.projectId = 'other'
+    if (kind === 'archived') source.archivedAt = 1
+    if (kind === 'package')
+      source.packageOrigin = {} as NonNullable<PersistedChatSession['packageOrigin']>
+    vi.mocked(sessions.loadOne).mockResolvedValue(source)
+    await render()
+    await act(async () =>
+      (
+        container.querySelector(
+          '[data-testid="optimization-catalog-task-task-0001"] input[type=checkbox]'
+        ) as HTMLInputElement
+      ).click()
+    )
+    await input('Acceptance criteria (one per line)', 'criterion')
+    expect(button('Preview task stream').disabled).toBe(true)
+    expect(container.textContent).toContain('Source chat could not be loaded.')
+    expect(api.previewSweep).not.toHaveBeenCalled()
+  }
+)
+it.each([true, false])(
+  'keeps per-task selector narrative, trivial=%s and fallback visible in v2 results',
+  async (trivial) => {
+    vi.mocked(api.latest).mockResolvedValue({
+      ...progress('completed'),
+      sweep: {
+        planDigest: 'sha256:plan',
+        modes: ['sequential'],
+        order: [{ domain: 'research', taskIds: ['task-0001'] }],
+        domains: [
+          {
+            mode: 'sequential',
+            summary: {
+              name: 'research',
+              order: ['task-0001'],
+              tasks: [
+                {
+                  taskId: 'task-0001',
+                  selection: {
+                    chosenLabel: 'final2',
+                    candidateCount: 2,
+                    trivial,
+                    fallback: true,
+                    reason: 'Original selection explanation'
+                  }
+                }
+              ],
+              library: { scope: 'experiment', entries: [], digest: 'sha256:library' }
+            }
+          }
+        ]
+      }
+    })
+    await render()
+    const results = container.querySelector('[data-testid="domain-results"]')!
+    expect(results.textContent).toContain('Selected final2 from 2 candidates')
+    expect(results.textContent).toContain(trivial ? 'Trivial selection' : 'Selector comparison')
+    expect(results.textContent).toContain('Selection fallback')
+    expect(results.textContent).toContain('Original selection explanation')
+  }
+)
