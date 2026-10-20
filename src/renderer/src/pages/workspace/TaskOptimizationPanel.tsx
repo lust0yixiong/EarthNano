@@ -468,7 +468,12 @@ function OptimizationSessionPanel({
       </summary>
       <div className="space-y-3 px-3 pb-3">
         {progress && (
-          <div role="status" aria-live="polite" className="space-y-2">
+          <div
+            data-testid="optimization-progress"
+            role="status"
+            aria-live="polite"
+            className="space-y-2"
+          >
             <p>{stage()}</p>
             <p>
               {t('Used {{used}} of {{limit}} executions · {{active}} active', {

@@ -21,7 +21,7 @@ for (const width of [1100, 390])
     await expect(page.getByText('values.csv', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
     await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
-    await expect(page.getByRole('status')).toContainText('Used 2 of 12 executions')
+    await expect(page.getByTestId('optimization-progress')).toContainText('Used 2 of 12 executions')
     await expect(
       page.getByText('Used 2 of 12 executions · 1 active', { exact: true })
     ).toBeInViewport({ ratio: 1 })
@@ -82,7 +82,7 @@ for (const width of [1100, 390])
       await page.getByTestId('task-optimization-panel').evaluate((node) => node.scrollTop)
     ).toBe(scrolled)
     await page.getByRole('button', { name: 'Stop optimization', exact: true }).click()
-    await expect(page.getByRole('status')).toContainText('Cancelled')
+    await expect(page.getByTestId('optimization-progress')).toContainText('Cancelled')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 test('shows independent assessments, opens owner-backed views and resets on Session switch', async ({
@@ -188,7 +188,7 @@ test('keeps domain admission scoped to each task and submits private JSON expect
   await expect(
     page.getByText('Eligible for further configuration validation', { exact: true })
   ).toHaveCount(1)
-  await expect(page.getByRole('status')).not.toContainText('output-check-failed')
+  await expect(page.getByTestId('optimization-progress')).not.toContainText('output-check-failed')
   expect(
     await page.evaluate(
       () =>
