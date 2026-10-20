@@ -1,4 +1,13 @@
-# Open-Science — Agent Notes
+# EarthNano — Agent Notes
+
+## Project identity
+
+The integrated project and application are **EarthNano**. Use EarthNano in new product copy,
+project documentation, PR descriptions and user communication. OpenScience / Open-Science and
+Harness² identify the upstream projects when discussing source provenance or retained modules.
+Use `APP.name` from `src/shared/app-config.ts` for renderer product labels. Preserve upstream
+license notices and compatibility identifiers (stored paths, credential identities, CLI/MCP names,
+protocols and package/module names); renaming a display label does not authorize data migration.
 
 ## i18n — translating new user-visible strings
 

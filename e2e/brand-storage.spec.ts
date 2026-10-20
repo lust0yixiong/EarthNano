@@ -29,8 +29,8 @@ for (const mode of ['fresh', 'legacy', 'custom'] as const) {
             : 'OpenScience-DEV'
           : 'My OpenScience research'
     )
-    expect(state.name).toBe(state.packaged ? 'Open-Science' : 'Open-Science (DEV)')
-    expect(state.title).toContain('Open-Science')
+    expect(state.name).toBe(state.packaged ? 'EarthNano' : 'EarthNano (DEV)')
+    expect(state.title).toContain('EarthNano')
     expect(state.menus.join(' ')).not.toMatch(/Open Science|OpenScience/)
     expect(await realpath(state.logs)).toBe(await realpath(join(state.profile, 'desktop-logs')))
     await app.page.screenshot({ path: testInfo.outputPath(`${mode}-onboarding.png`) })

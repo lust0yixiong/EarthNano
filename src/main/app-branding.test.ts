@@ -4,11 +4,11 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const projectRoot = resolve(__dirname, '../..')
-const displayName = 'Open-Science'
+const displayName = 'EarthNano'
 const appId = 'com.aipoch.open-science'
 
 describe('app display branding', () => {
-  it('uses the Open-Science display name in shell and workspace surfaces', () => {
+  it('uses the EarthNano display name in shell and workspace surfaces', () => {
     const mainSource = readFileSync(resolve(projectRoot, 'src/main/index.ts'), 'utf8')
     const windowsSource = readFileSync(resolve(projectRoot, 'src/main/windows.ts'), 'utf8')
     const rendererHtmlSource = readFileSync(resolve(projectRoot, 'src/renderer/index.html'), 'utf8')
@@ -26,10 +26,10 @@ describe('app display branding', () => {
     expect(builderSource).toContain(`productName: ${displayName}`)
     expect(builderSource).toContain(`CFBundleName: ${displayName}`)
     // Finder uses the installation label; CFBundleName stays aligned with Electron Helpers.
-    expect(builderSource).toContain('CFBundleDisplayName: Open-Science')
-    expect(builderSource).toContain('name: Open-Science.app')
+    expect(builderSource).toContain('CFBundleDisplayName: EarthNano')
+    expect(builderSource).toContain('name: EarthNano.app')
     expect(packageSource).toContain(`"productName": "${displayName}"`)
-    expect(homePageSource).toContain(displayName)
+    expect(homePageSource).toContain('{APP.name}')
   })
 
   it('uses the Aipoch app identifier for packaged and window integration metadata', () => {

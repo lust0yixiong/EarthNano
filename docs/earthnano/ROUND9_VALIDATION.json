@@ -94,6 +94,21 @@
     },
     "diffCheck": {
       "status": "passed"
+    },
+    "productDisplayName": {
+      "status": "passed",
+      "name": "EarthNano",
+      "unitAndRendererTests": 1058,
+      "files": 9,
+      "note": "777 i18n tests rerun and passed after retaining the original translated data-move message; other eight files passed 281 tests",
+      "desktopE2e": {
+        "passed": 1,
+        "scope": "fresh onboarding, application/window title, project persistence and relaunch; original data/profile paths retained",
+        "log": "/tmp/earthnano-branding-e2e.log"
+      },
+      "build": "backend and Electron passed",
+      "lint": "passed",
+      "compatibility": "stored paths, credential identities, CLI/MCP/protocol names, internal package name and appId retained"
     }
   },
   "live": {

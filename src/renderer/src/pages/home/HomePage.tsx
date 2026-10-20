@@ -654,7 +654,7 @@ const HomePage = ({
                     rel="noreferrer"
                     className="font-serif text-[26px] font-medium leading-none tracking-[-0.02em] text-text-000 hover:text-text-100"
                   >
-                    Open-Science
+                    {APP.name}
                   </a>
                   {hasCompleteSessionCatalog &&
                   (activeSessionCounts.waiting > 0 || activeSessionCounts.running > 0) ? (

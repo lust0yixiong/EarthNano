@@ -54,3 +54,9 @@ OPEN_SCIENCE_E2E_ISOLATE_HOME=1 \
   node node_modules/@playwright/test/cli.js test \
   e2e/earthnano-research-workflow.spec.ts --workers=1
 ```
+
+## 产品名称
+
+融合项目与应用名称统一为 **EarthNano**。应用标题、首页、引导页、开发显示名、安装包显示名及文件关联描述采用 EarthNano；项目链接指向 `lust0yixiong/EarthNano`。仓库 `AGENTS.md` 已固化命名规则，OpenScience 与 Harness² 用于说明上游来源和模块。
+
+既有数据目录、凭据身份、CLI / MCP / 协议、包名与 appId 作为兼容标识保留；继承文案整理及独立签名 / 发布配置继续按发布工作包验证。上游许可证和版权署名保留。名称更正通过原品牌、窗口、包配置、首页 / 引导页及数据位置测试；八语言检查通过，真实桌面重开核对 EarthNano 名称及原数据目录。

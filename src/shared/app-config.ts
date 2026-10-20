@@ -4,18 +4,18 @@
 
 import { DEFAULT_LOCALE, type Locale } from './locale'
 
-const GITHUB_OWNER = 'aipoch'
-const GITHUB_REPO = 'open-science'
+const GITHUB_OWNER = 'lust0yixiong'
+const GITHUB_REPO = 'EarthNano'
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`
 const CDN_BASE_URL = 'https://statics.aipoch.com/open-science'
 
 export const APP = {
-  name: 'Open-Science',
+  name: 'EarthNano',
   githubOwner: GITHUB_OWNER,
   githubRepo: GITHUB_REPO,
   cdnBaseUrl: CDN_BASE_URL,
   links: {
-    website: 'https://www.aipoch.com/open-science',
+    website: GITHUB_REPO_URL,
     docs: 'https://www.aipoch.com/docs/',
     githubRepo: GITHUB_REPO_URL,
     license: `${GITHUB_REPO_URL}/blob/main/LICENSE`,
