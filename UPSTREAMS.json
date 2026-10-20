@@ -16,7 +16,7 @@
       "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
       "tree": "edc756a4d03a2826a248115482084a176e60e751",
       "path": "vendor/harness2",
-      "integration": "Unmodified tracked source snapshot; runtime integration pending",
+      "integration": "EarthNano execution-contract additions; tree records the original upstream baseline, no longer the current vendor tree",
       "license": "Apache-2.0",
       "licenseFile": "vendor/harness2/LICENSE"
     }

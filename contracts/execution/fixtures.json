@@ -1,0 +1,40 @@
+{
+  "valid": {
+    "contractVersion": 1,
+    "requestKey": "研究-1",
+    "projectId": "demo",
+    "taskSnapshotRef": {
+      "id": "snapshot",
+      "version": "1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "invocationRef": {
+      "id": "snapshot",
+      "version": "1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "agentSpecRef": {
+      "id": "snapshot",
+      "version": "1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "harnessRevisionRef": {
+      "id": "snapshot",
+      "version": "1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "environmentSpecRef": {
+      "id": "snapshot",
+      "version": "1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "role": "task",
+    "origin": {
+      "kind": "interactive"
+    },
+    "interactionPolicy": "interactive",
+    "budgetRef": "trial",
+    "timeoutMs": 10000
+  },
+  "digest": "sha256:a85d4da72997a23c5abda1b74a4a1c537a5b48e79b0c3dffaa0d0d9f3e4e8168"
+}
