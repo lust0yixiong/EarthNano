@@ -59,6 +59,13 @@ const safeFile = (value: unknown): value is string =>
   !value.includes('\0') &&
   value.split('/').every((part) => /^[A-Za-z0-9_. -]+$/.test(part) && part !== '.' && part !== '..')
 const validate = (request: StartDesktopOptimization): void => {
+  const criteriaLines =
+    typeof request?.criteria === 'string'
+      ? request.criteria
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : []
   if (
     !request ||
     !safeId(request.projectId) ||
@@ -70,6 +77,9 @@ const validate = (request: StartDesktopOptimization): void => {
     typeof request.criteria !== 'string' ||
     !request.criteria.trim() ||
     request.criteria.length > 16_000 ||
+    criteriaLines.length < 1 ||
+    criteriaLines.length > 16 ||
+    criteriaLines.some((line) => line.length > 2000) ||
     !Number.isSafeInteger(request.executionLimit) ||
     request.executionLimit < 9 ||
     request.executionLimit > 20 ||
