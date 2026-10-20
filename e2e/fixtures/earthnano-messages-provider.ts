@@ -95,7 +95,8 @@ const nested = (value: unknown, key: string): unknown => {
 export async function createEarthnanoMessagesProvider(
   live: boolean,
   scientificOptimization = false,
-  pauseFirstProposer = false
+  pauseFirstProposer = false,
+  testOptions: { keyFile?: string; upstreamFetch?: typeof fetch } = {}
 ): Promise<{
   url: string
   token: string
@@ -107,9 +108,11 @@ export async function createEarthnanoMessagesProvider(
     healthRequests: number
     nativeTitleRequests: number
     pausedBeforeForward: number
+    upstreamRequests: number
+    cancelledUpstreamRequests: number
     roles: Record<string, number>
     toolNames: string[]
-    usage: { input: number; cacheRead: number; output: number }
+    usage: { input: number; cacheRead: number; output: number; incompleteRequests: number }
   }
   close(): Promise<void>
 }> {
@@ -123,16 +126,18 @@ export async function createEarthnanoMessagesProvider(
     healthRequests: 0,
     nativeTitleRequests: 0,
     pausedBeforeForward: 0,
+    upstreamRequests: 0,
+    cancelledUpstreamRequests: 0,
     roles: {} as Record<string, number>,
     toolNames: [] as string[],
-    usage: { input: 0, cacheRead: 0, output: 0 }
+    usage: { input: 0, cacheRead: 0, output: 0, incompleteRequests: 0 }
   }
   let key = ''
   if (live) {
     const keys = new Set(
-      (await readFile(process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')).match(
-        /\bsk-[A-Za-z0-9_-]+\b/g
-      ) ?? []
+      (
+        await readFile(testOptions.keyFile ?? process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')
+      ).match(/\bsk-[A-Za-z0-9_-]+\b/g) ?? []
     )
     if (keys.size !== 1) throw new Error('Expected one explicitly supplied API key')
     key = [...keys][0]
@@ -235,16 +240,20 @@ export async function createEarthnanoMessagesProvider(
         try {
           body.max_tokens = Math.min(body.max_tokens ?? 2048, 2048)
           body.thinking = { type: 'disabled' }
-          const upstream = await fetch('https://api.deepseek.com/anthropic/v1/messages', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'anthropic-version': '2023-06-01',
-              authorization: `Bearer ${key}`
-            },
-            body: JSON.stringify(body),
-            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90_000)])
-          })
+          stats.upstreamRequests++
+          const upstream = await (testOptions.upstreamFetch ?? fetch)(
+            'https://api.deepseek.com/anthropic/v1/messages',
+            {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                authorization: `Bearer ${key}`
+              },
+              body: JSON.stringify(body),
+              signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90_000)])
+            }
+          )
           if (!upstream.ok || !upstream.body) {
             await upstream.body?.cancel()
             return reject()
@@ -275,6 +284,15 @@ export async function createEarthnanoMessagesProvider(
           }
           stats.usage.output += output
           response.end()
+        } catch (error) {
+          if (controller.signal.aborted && response.destroyed) {
+            // The real client deliberately disconnected during Stop. Keep this separately from
+            // malformed/unauthorized requests; partial or missing token totals remain incomplete.
+            stats.cancelledUpstreamRequests++
+            stats.usage.incompleteRequests++
+            return
+          }
+          throw error
         } finally {
           controllers.delete(controller)
           response.off('close', disconnect)
