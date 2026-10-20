@@ -21,3 +21,6 @@ packages/notebook-network-sandbox/LICENSE.upstream
 
 # Preserve one source record per line in the PDF regression corpus.
 packages/pdf-structure/test/fixtures/**/*.jsonl
+
+# These acceptance records retain their original bytes and published SHA-256 values.
+docs/earthnano/validation/alpha/*.json

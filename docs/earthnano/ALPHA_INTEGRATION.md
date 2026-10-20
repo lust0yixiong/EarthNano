@@ -20,23 +20,27 @@
 
 ## 本机验证和未通过项
 
-| 验证                                            | 当前证据                                                                                                             |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 桌面控制、IPC/preload、组件及八语言             | 六文件 956 项通过。真实路由漏注册 resume 已修复，并新增真实 command composition 分发与越权/替换预算拒绝检查。        |
-| 版本、原更新 helpers/manifest、八语言及命令路由 | 五文件 857 项通过；保留原 Nightly 哈希不可排序规则，新增编号 Alpha/Beta/RC 比较。                                    |
-| CI、原 metadata smoke、builder/icon/版本配置    | 五文件 56 项通过。恢复原 Icon Composer 选择，白底配置和旧 ICNS 格式均保留检查。                                      |
-| 恢复、Core/store、driver 和真实进程资源凭证     | 七文件 82 项通过，包含真实 writer 和子进程关闭后的中断窗口；仍需整体验收。                                           |
-| 类型与接口生成物                                | Node/Web 类型检查和派生接口检查通过；不是完整科研 E2E 的替代。                                                       |
-| 本机 Harness 上游对照                           | 同一 Python 3.12.13：固定原树 5 项、当时集成 55 项均通过，无跳过；新增恢复实现另有专项验证，最终 CI 将重新执行全量。 |
-| 图标/原生环境                                   | 本机已核对实际 Electron 43.7.5；没有完整 Xcode/actool，不能声明本机完成 catalog 编译。                               |
-| 完整桌面 Notebook 停止/重开/续跑                | **未通过，正在修复。** 原 Send 和基线可完成，重开无自动付费重放；但并行阶段恢复失败，另见偶发原 Session 接纳失败。   |
-| 本批 DeepSeek / 跨平台包                        | **尚未验收。** 本批截至此记录没有付费 DeepSeek 调用；托管 CI 结果另行补充。                                          |
+| 验证                                            | 当前证据                                                                                                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 桌面控制、IPC/preload、组件及八语言             | 六文件 956 项通过。真实路由漏注册 resume 已修复，并新增真实 command composition 分发与越权/替换预算拒绝检查。                 |
+| 版本、原更新 helpers/manifest、八语言及命令路由 | 五文件 857 项通过；保留原 Nightly 哈希不可排序规则，新增编号 Alpha/Beta/RC 比较。                                             |
+| CI、原 metadata smoke、builder/icon/版本配置    | 五文件 56 项通过。恢复原 Icon Composer 选择，白底配置和旧 ICNS 格式均保留检查。                                               |
+| 恢复、Core/store、driver 和真实进程资源凭证     | 七文件 82 项通过，包含真实 writer 和子进程关闭后的中断窗口；仍需整体验收。                                                    |
+| 类型与接口生成物                                | Node/Web 类型检查和派生接口检查通过；不是完整科研 E2E 的替代。                                                                |
+| 本机 Harness 上游对照                           | 同一 Python 3.12.13：固定原树 5 项、当时集成 55 项均通过，无跳过；新增恢复实现另有专项验证，最终 CI 将重新执行全量。          |
+| 图标/原生环境                                   | 本机已核对实际 Electron 43.7.5；没有完整 Xcode/actool，不能声明本机完成 catalog 编译。                                        |
+| 完整桌面 Notebook 停止/重开/续跑                | 离线完整链通过：19/24 次接纳、57 个本地请求、8 次真实科研 Notebook；原完成 journal 不变、重开零调用。真实模型验收仍未通过。   |
+| 本批 DeepSeek                                   | 两次付费尝试均按失败保留：第一次到达全部科研/恢复检查后因旧代理拒绝计数失败；第二次普通 Send 触发原产物最终化冲突，尚在定位。 |
+| 跨平台包                                        | 独立 CI 已实际启动；原 Windows Notebook runtime 构建仍在进行，四个平台包尚无完成结果。未计为通过。                            |
 
 此前的离线失败尝试均保留，不作为通过重跑删除：
 
 - 首次 PATH 选到 Python 3.9：优化在接纳前因需要 Python ≥3.11 被拒绝，零优化执行；已改用显式 Python 3.12 环境。
 - 桌面 resume 命令漏注册：已复现、修复并补回归。
-- 并行任务曾报告 `Runtime Session turn is unknown or superseded`，原 promptError 现被保留，没有伪造接纳事实；其原因尚待原 owner 边界审查。
-- 最新完整原始记录包含停止前已完成阶段、取消阶段和重开后的 method 失败。两个故障分开定位，不能将恢复调度失败误称为科研执行失败，也不能用重新运行恰好成功代替修复。
+- 并行任务曾报告 `Runtime Session turn is unknown or superseded`：已确定为候选私有 authority 与应用原 authority 分离导致活跃接纳被原重启调和逻辑清除。现复用原应用 Session repository/coordinator，注册实际 runtime 的存活探针；保留原接纳/重启语义。确定性回归及同环境原上游 controls 通过，见 `ALPHA_SESSION_ADMISSION.md`。
+- 恢复后的 method 严格缓存曾拒绝原请求：已确定私有 managed-inputs JSON 键序改变字节与 invocationRef。仅固定私有 adapter 的序列化顺序，原 schedule 严格缓存规则不变。版本、摘要或数组顺序实际变化仍拒绝，见 `ALPHA_METHOD_RESUME.md`。
+- 最新 DeepSeek 普通任务失败为原 `ArtifactFinalizationProofError / version-message-conflict`：产物已关联另一消息。现有日志不足以确认第一次认领者，正在做上游原路径确定性对照；禁止覆写版本归属或降低证明。
 
-本机原始记录位于 `/tmp/earthnano-alpha-*`，有些早期失败尚未保存完整私有 journal；新验收脚本在失败路径也保留原 journal 和 Session 快照。临时目录不是可复现证据的最终发布位置，最终 PR 必须附对应提交的持久验证记录，并明确缺失证据。
+两次付费尝试和离线通过报告已逐字节保存在 [validation/alpha](validation/alpha/README.md)，包含 SHA-256、用量观测、缺失证据和失败归因边界。旧代理不能区分主动停止与异常上游拒绝；现已补真实 HTTP 控制测试，只有自身取消且客户端已断开的请求才单列取消，异常拒绝仍失败。该修复不能追认第一次失败为通过。
+
+完整本机诊断位于 `/tmp/earthnano-alpha-*`。第二次失败在优化目录创建前发生，旧 finally 的目录异常使 Session 转储被跳过，普通 Core journal 也未导出；此历史缺口明确保留。现已提前注册诊断，拆分普通 journal、优化 journal 和原 Session 的独立保存路径。早期报告没有记录精确源 head，不能作为发布提交验收；最终 PR 和发布需补固定提交的持久结果。

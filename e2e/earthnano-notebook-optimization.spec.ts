@@ -31,6 +31,29 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
   let ordinaryRoot: string | undefined
   let readSessionsForDiagnostics: (() => Promise<unknown>) | undefined
   try {
+    runtime = {
+      source: {
+        head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+        dirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).length > 0
+      },
+      // Record actual built entrypoint bytes as well as source identity; a source commit alone
+      // cannot prove a previously built desktop binary contains the same implementation.
+      bundleEntrypointSha256: Object.fromEntries(
+        await Promise.all(
+          [
+            'out/backend/index.cjs',
+            'out/main/index.js',
+            'out/preload/index.js',
+            'out/renderer/index.html'
+          ].map(async (path) => [
+            path,
+            createHash('sha256')
+              .update(await readFile(path))
+              .digest('hex')
+          ])
+        )
+      )
+    }
     let page = await app.completeOnboarding()
     page.setDefaultTimeout(30_000)
     console.info('Scientific workflow: configuring native Claude')
@@ -59,6 +82,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       { url: provider.url, token: provider.token }
     )
     runtime = {
+      ...runtime,
       electron: await page.evaluate(() => /Electron\/([^ ]+)/.exec(navigator.userAgent)?.[1]),
       claude: claudeVersion,
       nodeRunner: process.version,
