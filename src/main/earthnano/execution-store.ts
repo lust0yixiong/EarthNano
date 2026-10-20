@@ -22,8 +22,8 @@ import {
 } from './execution-core'
 
 /**
- * Local single-writer journal. A leftover lock after process death requires explicit operator
- * reconciliation; opening a second owner must never silently steal live runtime ownership.
+ * Local single-writer journal. Recovery requires a verified dead owner and original result witnesses;
+ * opening a second owner must never silently steal live runtime ownership.
  */
 export class FileExecutionStore implements ExecutionStore {
   private closed = false

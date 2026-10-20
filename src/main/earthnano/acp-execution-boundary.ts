@@ -61,7 +61,7 @@ export function createAcpExecutionBoundary({
   host: SessionExecutionHost
   delegatedOwner?: TrustedDelegatedExecutionOwner
 }): AcpExecutionBoundary {
-  const active = new Map<string, { core: ExecutionCore; executionId: string }>()
+  const active = new Map<string, { core: ExecutionCore; executionId: string; owned: boolean }>()
   const owners = new Set<ExecutionCore>()
 
   return {
@@ -96,7 +96,11 @@ export function createAcpExecutionBoundary({
         )
           throw new Error('Execution scope cannot escalate its interaction policy')
         if (inherited.context.signal.aborted) inherited.context.signal.throwIfAborted()
-        const entry = { core: inherited.core, executionId: inherited.context.executionId }
+        const entry = {
+          core: inherited.core,
+          executionId: inherited.context.executionId,
+          owned: false
+        }
         active.set(input.request.sessionId, entry)
         try {
           const observer = delegatedOwner
@@ -190,7 +194,7 @@ export function createAcpExecutionBoundary({
         prepared.close()
         throw error
       }
-      const entry = { core, executionId }
+      const entry = { core, executionId, owned: true }
       active.set(input.request.sessionId, entry)
       const terminal = core.waitForTerminal(executionId)
       const settled: Promise<ExecutionRecord> = terminal.then(async (record) => {
@@ -225,6 +229,9 @@ export function createAcpExecutionBoundary({
       const results = await Promise.all([...owners].map((owner) => owner.settle()))
       if (!results.every(Boolean)) return false
       for (const entry of active.values()) {
+        // An inherited driver's terminal depends on this runtime's physical shutdown. Its original
+        // outer owner must join that Core after shutdown; waiting here would create a cycle.
+        if (!entry.owned) continue
         try {
           if ((await entry.core.get(entry.executionId)).cleanup !== 'confirmed') return false
         } catch {

@@ -228,6 +228,8 @@ describe('one ACP execution authority', () => {
           request: { ...s.input.request, permissionPrompts: 'none' as const }
         }
         expect(await s.boundary.execute(q)).toEqual(response)
+        // Private runtime shutdown happens before its outer driver can commit terminal cleanup.
+        expect(await s.boundary.settle()).toBe(true)
         await expect(
           s.boundary.execute({ ...q, request: { ...q.request, sessionId: 'other' } })
         ).rejects.toThrow('another Session')
