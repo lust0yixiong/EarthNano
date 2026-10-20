@@ -351,6 +351,21 @@ it
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
+    // The actual ACP coordinator inherits the outer Core authority. A second host admission
+    // would create a private ordinary journal and reserve a second budget for this same turn.
+    expect(Object.keys(state.records)).toEqual([record.executionId])
+    expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(
+      state.events[record.executionId]!.filter((event) => event.type === 'session-admitted')
+    ).toHaveLength(1)
+    expect(
+      state.events[record.executionId]!.filter((event) => event.type === 'provider-accepted')
+    ).toHaveLength(1)
+    expect(session.session.runtimeSessionAdmissions).toHaveLength(1)
+    await expect(lstat(join(root, 'executions', 'session-attempts'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
+
     expect(session.session.artifacts).toHaveLength(expectedOutputs.length)
     const before = await owners.exportResult(record)
     expect(

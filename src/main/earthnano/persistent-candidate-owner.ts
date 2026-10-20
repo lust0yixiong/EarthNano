@@ -1,3 +1,5 @@
+import { createAcpExecutionBoundary } from './acp-execution-boundary'
+import { createSessionExecutionHost } from './session-execution-host'
 import {
   createOriginalTurnEvidenceReader,
   originalEvidenceCanonical as canonical,
@@ -358,6 +360,16 @@ export function createPersistentCandidateOwners(
         },
         onEvent: () => undefined
       }
+    )
+    runtime.setExecutionBoundary(
+      createAcpExecutionBoundary({
+        host: createSessionExecutionHost({
+          dataRoot: options.dataRoot,
+          configRoot: options.configRoot,
+          getClient: options.getClient,
+          flush: (sessionId, promptId) => runtimeSessions.flush(sessionId, promptId)
+        })
+      })
     )
     runtimes.add(runtime)
     const agent = createAcpTaskAgentPort(
