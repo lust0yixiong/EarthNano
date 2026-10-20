@@ -78,7 +78,7 @@ const stream = (
   )
 }
 
-async function exercise(live: boolean, desktop = false): Promise<void> {
+async function exercise(live: boolean, desktop = false, stopEarly = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-persistent-loop-'))
   const dataRoot = join(root, 'data'),
     configRoot = join(root, 'config')
@@ -177,6 +177,7 @@ async function exercise(live: boolean, desktop = false): Promise<void> {
       )
         return reject()
       requests++
+      if (stopEarly && role === 'baseline') return // Hold the real native prompt until Stop cancels it.
       if (live) {
         const controller = new AbortController()
         controllers.add(controller)
@@ -421,6 +422,29 @@ async function exercise(live: boolean, desktop = false): Promise<void> {
       executionLimit: 10
     })
     desktopRunId = initial.runId
+    if (stopEarly) {
+      await vi.waitFor(() => expect(requests).toBe(1), { timeout: 30_000, interval: 100 })
+      expect(
+        (await manager.stop({ projectId: project.id, sourceSessionId, runId: initial.runId })).state
+      ).toBe('stopping')
+      await vi.waitFor(
+        async () => {
+          const final = await manager.get({
+            projectId: project.id,
+            sourceSessionId,
+            runId: initial.runId
+          })
+          expect(final.state).toBe('cancelled')
+          expect(final.budget.admitted).toBe(1)
+          expect(final.budget.active).toBe(0)
+          expect(final.executions.every((execution) => execution.role === 'baseline')).toBe(true)
+        },
+        { timeout: 30_000, interval: 100 }
+      )
+      expect(await manager.shutdown()).toEqual({ reaped: true })
+      expect(requests).toBe(1)
+      return
+    }
     await vi.waitFor(
       async () => {
         const progress = await manager.get({
@@ -593,4 +617,10 @@ it.skipIf(
   'validates desktop optimization and independent semantic review with authorized DeepSeek',
   () => exercise(true, true),
   480_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'stops a desktop optimization during a real native baseline without admitting later stages',
+  () => exercise(false, true, true),
+  90_000
 )
