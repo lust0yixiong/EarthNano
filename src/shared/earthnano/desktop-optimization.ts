@@ -1,4 +1,10 @@
 import type { OptimizationMethodOptions } from './optimization-method'
+import type {
+  OutputCheckSpec,
+  OptimizationDomainSpec,
+  ResearchOutcome,
+  DomainOptimizationSummary
+} from './research-outcome'
 
 /** Desktop requests contain text task inputs, never provider credentials or host paths. */
 export interface StartDesktopOptimization {
@@ -12,6 +18,8 @@ export interface StartDesktopOptimization {
   executionLimit: number
   /** Omission retains the original sequential k=1 behavior. */
   method?: OptimizationMethodOptions
+  checks?: OutputCheckSpec[]
+  domain?: OptimizationDomainSpec
 }
 export interface OptimizationRunKey {
   projectId: string
@@ -59,6 +67,8 @@ export interface OptimizationProgress {
     sessionId?: string
   }>
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
+  outcome?: ResearchOutcome
+  domain?: DomainOptimizationSummary
   error?: string
   updatedAt: number
 }
