@@ -506,6 +506,7 @@ class AcpRuntimeCoordinator {
     this.cancelRootAdmissions()
     void this.delegatedWork?.shutdown().catch(() => undefined)
     for (const runtime of this.runtimes) runtime.shutdown()
+    void this.executionBoundary?.settle().catch(() => undefined)
     this.clearRuntimeOwnership()
     this.onDisconnected?.()
   }
@@ -515,10 +516,12 @@ class AcpRuntimeCoordinator {
     this.providerShutdownStartedForQuit = true
     this.invalidateAllSessionTurns()
     this.supersedeInitializationRequests()
-    return this.shutdownAll(
+    const result = await this.shutdownAll(
       (runtime) => runtime.shutdownForQuit(),
       () => this.delegatedWork?.shutdownForQuit()
     )
+    const settled = (await this.executionBoundary?.settle()) ?? true
+    return { reaped: result.reaped && settled }
   }
 
   // Gives active agents a bounded chance to return their terminal stop response before process-tree
@@ -599,10 +602,12 @@ class AcpRuntimeCoordinator {
     this.cancelRootAdmissions()
     this.invalidateAllSessionTurns()
     this.supersedeInitializationRequests()
-    return this.shutdownAll(
+    const result = await this.shutdownAll(
       (runtime) => runtime.shutdownForUpdateGate(),
       () => this.delegatedWork?.shutdownForUpdateGate()
     )
+    const settled = (await this.executionBoundary?.settle()) ?? true
+    return { reaped: result.reaped && settled }
   }
 
   async createSession(request: AcpCreateSessionRequest = {}): Promise<AcpCreateSessionResponse> {

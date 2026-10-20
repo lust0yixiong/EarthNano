@@ -1,4 +1,3 @@
-import type { AcpExecutionDispatch } from '../acp/execution-boundary-port'
 import { SettingsService } from '../settings/service'
 import { SettingsRepository } from '../settings/repository'
 import { SkillRegistry } from '@aipoch/skills'
@@ -44,18 +43,6 @@ import {
 } from './production-framework-runtime'
 
 import { DelegatedProcessOwnership } from './process-ownership'
-
-vi.mock('../earthnano/acp-execution-boundary', () => ({
-  createAcpExecutionBoundary: () => ({
-    execute: (input: AcpExecutionDispatch) =>
-      input.dispatch({ admitted: () => undefined, providerAccepted: () => undefined }),
-    cancel: (
-      _sessionId: string,
-      original: () => Promise<import('../../shared/acp').AcpRuntimeState>
-    ) => original(),
-    settle: async () => true
-  })
-}))
 
 const safeOpenCodeConfig = JSON.stringify({
   permission: { task: 'deny' },

@@ -614,7 +614,7 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
       cancelRequested = true
       await revokeWrites().catch(() => undefined)
       if (runtime && providerSessionId) {
-        await runtime.cancelPrompt({ sessionId: providerSessionId })
+        await runtime.cancelPrompt({ sessionId: providerSessionId }).catch(() => undefined)
       }
     }
     const readMissionResult = (): ExecutionOutcome => {

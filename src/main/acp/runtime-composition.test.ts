@@ -20,7 +20,7 @@ vi.mock('electron', () => ({
 }))
 
 const execution = vi.hoisted(() => {
-  const boundary = { execute: vi.fn(), cancel: vi.fn(), settle: vi.fn() }
+  const boundary = { execute: vi.fn(), cancel: vi.fn(), settle: vi.fn(async () => true) }
   const host = { prepare: vi.fn() }
   return {
     boundary,

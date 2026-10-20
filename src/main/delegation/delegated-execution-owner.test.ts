@@ -1,7 +1,8 @@
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { FileExecutionStore } from '../earthnano/execution-store'
 import { currentExecutionScope } from '../earthnano/execution-scope'
 import { createDelegatedExecutionOwner } from './delegated-execution-owner'
 
@@ -19,24 +20,26 @@ const deferred = () => {
 const setup = async () => {
   const root = await mkdtemp(join(tmpdir(), 'delegated-canonical-'))
   roots.push(root)
-  const owner = createDelegatedExecutionOwner(root, {
-    projectId: 'project',
-    sourceSessionId: 'source',
-    parentPromptMessageId: 'root-prompt',
-    frameId: 'child-frame',
-    attemptId: 'attempt',
-    runtimeSegmentId: 'segment-1',
-    task: 'Private task text',
-    inputs: [],
-    workspaceCwd: root,
-    frameworkId: 'codex'
-  })
+  const makeOwner = () =>
+    createDelegatedExecutionOwner(root, {
+      projectId: 'project',
+      sourceSessionId: 'source',
+      parentPromptMessageId: 'root-prompt',
+      frameId: 'child-frame',
+      attemptId: 'attempt',
+      runtimeSegmentId: 'segment-1',
+      task: 'Private task text',
+      inputs: [],
+      workspaceCwd: root,
+      frameworkId: 'codex'
+    })
+  const owner = makeOwner()
   const files = async () => {
     const base = join(root, 'delegation', 'executions')
     const [mission] = await readdir(base)
     return { path: join(base, mission), names: await readdir(join(base, mission)) }
   }
-  return { owner, files }
+  return { owner, files, makeOwner }
 }
 const turn = (id: string, segment = 'segment-1') => ({
   promptMessageId: id,
@@ -45,6 +48,91 @@ const turn = (id: string, segment = 'segment-1') => ({
 })
 
 describe('original delegated mission execution owner', () => {
+  it('reuses a confirmed mission identity without dispatching another provider', async () => {
+    const { owner, makeOwner } = await setup()
+    const first = await owner.run(
+      async (context) => {
+        context.running()
+      },
+      () => ({ phase: 'completed', cleanup: 'confirmed' }),
+      async () => undefined
+    )
+    const repeatedWork = vi.fn(async () => undefined)
+    const second = await makeOwner().run(
+      repeatedWork,
+      () => ({ phase: 'completed', cleanup: 'confirmed' }),
+      async () => undefined
+    )
+    expect(second.executionId).toBe(first.executionId)
+    expect(repeatedWork).not.toHaveBeenCalled()
+  })
+
+  it('marks a dead mission interrupted and keeps its resources fenced without replay', async () => {
+    const { owner, files, makeOwner } = await setup()
+    await owner.run(
+      async (context) => {
+        context.running()
+      },
+      () => ({ phase: 'completed', cleanup: 'confirmed' }),
+      async () => undefined
+    )
+    const { path, names } = await files()
+    const filename = join(
+      path,
+      names.find((name) => name.endsWith('.json'))!
+    )
+    const state = JSON.parse(await readFile(filename, 'utf8'))
+    const record = Object.values(state.records)[0] as { phase: string; cleanup: string }
+    record.phase = 'running'
+    record.cleanup = 'pending'
+    await writeFile(filename, JSON.stringify(state))
+    await writeFile(`${filename}.lock`, '99999999')
+    const work = vi.fn(async () => undefined)
+    await expect(
+      makeOwner().run(
+        work,
+        () => ({ phase: 'completed', cleanup: 'confirmed' }),
+        async () => undefined
+      )
+    ).rejects.toThrow('fenced pending original-owner reconciliation')
+    expect(work).not.toHaveBeenCalled()
+    const recovered = JSON.parse(await readFile(filename, 'utf8'))
+    expect(Object.values(recovered.records)[0]).toMatchObject({
+      phase: 'interrupted',
+      cleanup: 'unknown'
+    })
+    expect(Object.values(recovered.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(await readFile(`${filename}.lock`, 'utf8')).toBe(String(process.pid))
+  })
+
+  it('rejects a failed preparing commit without waiting for a driver that never started', async () => {
+    const { owner, files } = await setup()
+    const original = FileExecutionStore.prototype.commit
+    const commit = vi.spyOn(FileExecutionStore.prototype, 'commit').mockImplementation(function (
+      this: FileExecutionStore,
+      state
+    ) {
+      if (Object.values(state.records).some((record) => record.phase === 'preparing')) {
+        throw new Error('preparing durable commit failed')
+      }
+      return original.call(this, state)
+    })
+    const work = vi.fn(async () => undefined)
+    try {
+      await expect(
+        owner.run(
+          work,
+          () => ({ phase: 'completed', cleanup: 'confirmed' }),
+          async () => undefined
+        )
+      ).rejects.toThrow('retired before terminal commit')
+      expect(work).not.toHaveBeenCalled()
+      expect((await files()).names.some((name) => name.endsWith('.lock'))).toBe(true)
+    } finally {
+      commit.mockRestore()
+    }
+  })
+
   it('admits one mission across internal turns and waits for original durable cleanup before completion', async () => {
     const { owner, files } = await setup()
     const cleanup = deferred()

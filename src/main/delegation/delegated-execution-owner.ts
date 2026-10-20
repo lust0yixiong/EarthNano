@@ -1,5 +1,4 @@
 import type { AcpPromptRequest } from '../../shared/acp'
-import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import type { ExecutionRecord, ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
 import {
@@ -8,7 +7,7 @@ import {
   type ExecutionOutcome
 } from '../earthnano/execution-core'
 import { currentExecutionScope, findExecutionScope } from '../earthnano/execution-scope'
-import { FileExecutionStore } from '../earthnano/execution-store'
+import { FileExecutionStore, recoverExecutionJournals } from '../earthnano/execution-store'
 import {
   originalEvidenceCanonical,
   originalEvidenceDigest
@@ -112,27 +111,31 @@ export function createDelegatedExecutionOwner(
   let core: ExecutionCore | undefined
   let executionId: string | undefined
   let activeExecutionId: string | undefined
+  let driverStarted!: () => void
+  const started = new Promise<void>((resolve) => {
+    driverStarted = resolve
+  })
   let activeTurn: AcpPromptRequest['provenanceContext']
   return {
     async run(work, readResult, cancelOriginal) {
       if (core) throw new Error('Delegated mission already admitted')
-      const store = new FileExecutionStore(
-        join(dataRoot, 'delegation', 'executions', mission, `${randomUUID()}.json`)
-      )
-      let driverDone!: () => void
-      const done = new Promise<void>((resolve) => {
-        driverDone = resolve
+      const directory = join(dataRoot, 'delegation', 'executions', mission.slice('sha256:'.length))
+      await recoverExecutionJournals({
+        directory,
+        matches: (record) =>
+          record.request.projectId === request.projectId && record.requestKey === request.requestKey
       })
+      const store = new FileExecutionStore(join(directory, 'execution.json'))
       core = new ExecutionCore(store, {
         async execute(_request, context) {
           activeExecutionId = context.executionId
           const removeCancellation = context.onCancellation?.(cancelOriginal)
+          driverStarted()
           try {
             await work(context)
             return readResult()
           } finally {
             removeCancellation?.()
-            driverDone()
           }
         }
       })
@@ -140,9 +143,8 @@ export function createDelegatedExecutionOwner(
         core.configureBudget(request.projectId, request.budgetRef, 1)
         const handle = await core.submit(request)
         executionId = handle.executionId
-        await done
+        const record = await core.waitForTerminal(executionId)
         if (!(await core.settle())) throw new Error('Delegated execution owner did not settle')
-        const record = await core.get(executionId)
         if (record.cleanup === 'confirmed') store.close()
         return record
       } finally {
@@ -169,8 +171,12 @@ export function createDelegatedExecutionOwner(
       )
     },
     async cancel(cancelOriginal) {
-      if (core && executionId) await core.cancel(executionId)
-      else await cancelOriginal()
+      if (core && executionId) {
+        // Preparation already owns disposable resources. Wait for its registered physical cleanup
+        // hook rather than using Core's resource-free queued-cancellation shortcut.
+        await Promise.race([started, core.waitForTerminal(executionId)])
+        await core.cancel(executionId)
+      } else await cancelOriginal()
     }
   }
 }
