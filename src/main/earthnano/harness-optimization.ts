@@ -19,6 +19,10 @@ import { assertExecutionTimeout } from './execution-timeout'
 import { sameExecutionInputs } from './optimization-resume'
 import { outputDigest } from './output-checks'
 import {
+  HarnessProcessFailure,
+  type HarnessFailureCategory
+} from './optimization-failure-diagnostics'
+import {
   MAX_HARNESS_FRAME_BYTES,
   MAX_HARNESS_EVIDENCE_BYTES,
   MAX_HARNESS_EVIDENCE_FILES,
@@ -348,19 +352,24 @@ export async function runHarnessProcess(options: {
   let frameBytes = 0
   let queuedFrames = 0
   let diagnosticBytes = 0
+  let failureCategory: HarnessFailureCategory | undefined
+  let bindingCode: string | undefined
+  let exitCode: number | null | undefined
   const seen = new Set<number>()
   let releaseStop!: () => void
   const stopped = new Promise<void>((resolve) => {
     releaseStop = resolve
   })
-  const stop = (): void => {
+  const stop = (category: HarnessFailureCategory = 'harness-protocol'): void => {
+    failureCategory ??= category
     failed = true
     releaseStop()
     child.kill('SIGKILL')
     void options.binding.stop()
   }
-  const timer = setTimeout(stop, options.timeoutMs)
-  options.signal?.addEventListener('abort', stop, { once: true })
+  const abort = (): void => stop('harness-cancelled')
+  const timer = setTimeout(() => stop('harness-timeout'), options.timeoutMs)
+  options.signal?.addEventListener('abort', abort, { once: true })
   child.stdout.on('data', (data: Buffer) => {
     // Protocol bytes are bounded per frame, not cumulatively across a legal multi-round run.
     // Also bound an unterminated frame before readline can accumulate an unlimited line.
@@ -368,7 +377,7 @@ export async function runHarnessProcess(options: {
     while (offset < data.length) {
       const newline = data.indexOf(10, offset)
       frameBytes += (newline < 0 ? data.length : newline + 1) - offset
-      if (frameBytes > MAX_HARNESS_FRAME_BYTES) return stop()
+      if (frameBytes > MAX_HARNESS_FRAME_BYTES) return stop('harness-frame-limit')
       if (newline < 0) break
       frameBytes = 0
       offset = newline + 1
@@ -377,9 +386,9 @@ export async function runHarnessProcess(options: {
   // Drain diagnostics without storing provider text or arbitrary Python exception data.
   child.stderr.on('data', (data) => {
     diagnosticBytes += data.length
-    if (diagnosticBytes > MAX_HARNESS_DIAGNOSTIC_BYTES) stop()
+    if (diagnosticBytes > MAX_HARNESS_DIAGNOSTIC_BYTES) stop('harness-diagnostic-limit')
   })
-  child.stdin.on('error', stop)
+  child.stdin.on('error', () => stop('harness-io'))
   lines.on('line', (line) => {
     if (failed) return
     // The original locked client waits for each response. Bound queued work too, so a peer
@@ -387,7 +396,8 @@ export async function runHarnessProcess(options: {
     if (++queuedFrames > 2) return stop()
     pending = pending
       .then(async () => {
-        if (failed || Buffer.byteLength(line) + 1 > MAX_HARNESS_FRAME_BYTES) return stop()
+        if (failed || Buffer.byteLength(line) + 1 > MAX_HARNESS_FRAME_BYTES)
+          return stop('harness-frame-limit')
         const message = plain(JSON.parse(line))
         if (
           !Number.isSafeInteger(message.id) ||
@@ -408,7 +418,8 @@ export async function runHarnessProcess(options: {
           }
           if (!failed) {
             const response = JSON.stringify({ id: message.id, result: value }) + '\n'
-            if (Buffer.byteLength(response) > MAX_HARNESS_FRAME_BYTES) return stop()
+            if (Buffer.byteLength(response) > MAX_HARNESS_FRAME_BYTES)
+              return stop('harness-frame-limit')
             child.stdin.write(response)
           }
         } catch (error) {
@@ -419,6 +430,8 @@ export async function runHarnessProcess(options: {
             'cleanup-unconfirmed',
             'not-found'
           ].includes(code ?? '')
+          failureCategory ??= 'harness-binding'
+          if (known) bindingCode = code
           if (!failed)
             child.stdin.write(
               JSON.stringify({
@@ -434,13 +447,13 @@ export async function runHarnessProcess(options: {
           child.kill('SIGKILL')
         }
       })
-      .catch(stop)
+      .catch(() => stop())
       .finally(() => {
         queuedFrames--
       })
   })
   try {
-    const exitCode = await new Promise<number | null>((resolve, reject) => {
+    exitCode = await new Promise<number | null>((resolve, reject) => {
       child.once('error', reject)
       child.once('close', resolve)
     })
@@ -453,14 +466,23 @@ export async function runHarnessProcess(options: {
       (result as { status?: string }).status === 'partial'
     if (failed || (exitCode !== 0 && !partial) || result === undefined) {
       failed = true
-      throw new Error(
-        'Harness optimization did not complete; admitted executions remain owned by the core'
-      )
+      throw new HarnessProcessFailure({
+        category: failureCategory ?? (exitCode !== 0 ? 'harness-exit' : 'harness-result-missing'),
+        exitCode,
+        protocolStatus:
+          result && typeof result === 'object'
+            ? (result as { status?: unknown }).status
+            : undefined,
+        bindingCode
+      })
     }
     return result
+  } catch (error) {
+    if (error instanceof HarnessProcessFailure) throw error
+    throw new HarnessProcessFailure({ category: failureCategory ?? 'harness-spawn', exitCode })
   } finally {
     clearTimeout(timer)
-    options.signal?.removeEventListener('abort', stop)
+    options.signal?.removeEventListener('abort', abort)
     lines.close()
     if (failed || result === undefined) await options.binding.stop()
     if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')

@@ -2,13 +2,14 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, onTestFinished, vi } from 'vitest'
 const f = vi.hoisted(() => ({
   method: vi.fn(),
   evaluate: vi.fn(),
   shutdown: vi.fn(),
   dispose: vi.fn(),
   core: vi.fn(),
+  budget: vi.fn(),
   get: vi.fn(),
   exportResult: vi.fn(),
   readReviews: vi.fn(),
@@ -27,7 +28,7 @@ vi.mock('./execution-core', async (original) => ({
     constructor(...args: unknown[]) {
       f.core(...args)
     }
-    configureBudget = vi.fn()
+    configureBudget = f.budget
     get = f.get
     dispose = f.dispose
     settle = f.settle
@@ -102,15 +103,20 @@ const options = async (): Promise<PersistentOptimizationOptions> => {
 it('applies one overall deadline across method and assessment, then awaits cleanup before rejecting', async () => {
   const o = await options()
   o.timeoutMs = 80
+  const deadline = new AbortController()
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal)
+  onTestFinished(() => timeout.mockRestore())
   let finishCleanup!: () => void
-  f.method.mockImplementation(async () => {
-    await new Promise((r) => setTimeout(r, 10))
-    return { status: 'ok' }
+  let assessmentEntered!: () => void
+  const assessing = new Promise<void>((resolve) => {
+    assessmentEntered = resolve
   })
+  f.method.mockResolvedValue({ status: 'ok' })
   f.evaluate.mockImplementation(
     async ({ signal }: { signal: AbortSignal }) =>
       new Promise((_resolve, reject) => {
         signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+        assessmentEntered()
       })
   )
   f.shutdown.mockImplementation(async () => {
@@ -124,6 +130,9 @@ it('applies one overall deadline across method and assessment, then awaits clean
     settled = true
   })
   const rejected = expect(result).rejects.toThrow()
+  await assessing
+  expect(timeout).toHaveBeenCalledExactlyOnceWith(80)
+  deadline.abort(new DOMException('Deadline expired', 'TimeoutError'))
   await vi.waitFor(() => expect(f.shutdown).toHaveBeenCalledOnce())
   expect(f.method.mock.calls[0][0].signal).toBe(f.evaluate.mock.calls[0][0].signal)
   expect(f.evaluate.mock.calls[0][0].signal.aborted).toBe(true)
@@ -131,6 +140,31 @@ it('applies one overall deadline across method and assessment, then awaits clean
   finishCleanup()
   await rejected
   expect(f.dispose).toHaveBeenCalledOnce()
+  expect(
+    JSON.parse(await readFile(join(o.workRoot, 'failure-diagnostics.jsonl'), 'utf8'))
+  ).toMatchObject({ stage: 'semantic-assessment', category: 'deadline' })
+})
+
+it('preserves deadline expiry before assessment without dispatching a reviewer or new execution', async () => {
+  const o = await options(),
+    deadline = new AbortController()
+  o.timeoutMs = 80
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal)
+  onTestFinished(() => timeout.mockRestore())
+  f.method.mockImplementation(async ({ signal }: { signal: AbortSignal }) => {
+    deadline.abort(new DOMException('Deadline expired', 'TimeoutError'))
+    signal.throwIfAborted()
+  })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toMatchObject({ name: 'TimeoutError' })
+  expect(f.evaluate).not.toHaveBeenCalled()
+  expect(f.get).not.toHaveBeenCalled()
+  expect(f.shutdown).toHaveBeenCalledOnce()
+  expect(f.settle).toHaveBeenCalledOnce()
+  expect(timeout).toHaveBeenCalledExactlyOnceWith(80)
+  expect(JSON.parse(await readFile(join(o.workRoot, 'failure-diagnostics.jsonl'), 'utf8'))).toEqual(
+    { schemaVersion: 1, stage: 'method-process', category: 'deadline' }
+  )
 })
 it('freezes the criteria and input before the method runs and keeps the plan outside its config', async () => {
   const o = await options()
@@ -219,6 +253,34 @@ it('retains the declared domain order without claiming results when its method f
   expect(await readFile(join(o.workRoot, 'method-config.json'), 'utf8')).not.toContain(
     'Private next criterion'
   )
+})
+
+it('records only a private host phase while rethrowing the exact method error and preserving cleanup', async () => {
+  const o = await options()
+  const error = new Error('PRIVATE_TOKEN_provider_text_mission')
+  let records: unknown[] | undefined
+  f.method.mockImplementationOnce(async () => {
+    const journal = (
+      f.core.mock.calls[0][0] as { load(): { records: Record<string, unknown> } }
+    ).load()
+    records = Object.values(journal.records)
+    throw error
+  })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toBe(error)
+  expect(f.method).toHaveBeenCalledOnce()
+  expect(f.evaluate).not.toHaveBeenCalled()
+  expect(f.shutdown).toHaveBeenCalledOnce()
+  expect(f.settle).toHaveBeenCalledOnce()
+  const diagnostic = await readFile(join(o.workRoot, 'failure-diagnostics.jsonl'), 'utf8')
+  expect(JSON.parse(diagnostic)).toEqual({
+    schemaVersion: 1,
+    stage: 'method-process',
+    category: 'stage-failed'
+  })
+  expect(diagnostic).not.toContain('PRIVATE_TOKEN')
+  expect(records).toEqual([])
+  expect(f.budget).toHaveBeenCalledExactlyOnceWith('p', expect.any(String), 10)
 })
 
 it.each(['../outside', 'rows.', 'nested/task'])(

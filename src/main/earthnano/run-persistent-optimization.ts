@@ -60,6 +60,10 @@ import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
 import { evaluateResearchOutcome } from './research-verification'
 import { canonicalOutput, outputDigest } from './output-checks'
 import {
+  recordOptimizationFailure,
+  type OptimizationFailureStage
+} from './optimization-failure-diagnostics'
+import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
 } from './persistent-candidate-owner'
@@ -255,6 +259,11 @@ export async function runPersistentOptimization(
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
+  let failureStage: OptimizationFailureStage = 'resume-validation'
+  const rethrowCleanupFailure = (error: unknown): never => {
+    recordOptimizationFailure(options.workRoot, 'cleanup', error)
+    throw error
+  }
   try {
     resumeIndex = new OptimizationResumeIndex(
       join(options.workRoot, 'request-tasks.json'),
@@ -277,6 +286,7 @@ export async function runPersistentOptimization(
       await options.binding(structuredClone(input.agent))
       signal.throwIfAborted()
     }
+    failureStage = 'input-projection'
     if (scientific)
       await writeProjection(
         join(options.workRoot, 'notebook-task.json'),
@@ -323,6 +333,7 @@ export async function runPersistentOptimization(
             : {})
         })
       )
+    failureStage = 'owner-validation'
     owners = createPersistentCandidateOwners(options.ownerOptions)
     if (options.resume) {
       for (const record of previousRecords) {
@@ -337,6 +348,7 @@ export async function runPersistentOptimization(
           throw new Error('Completed optimization evidence changed before resume')
       }
     }
+    failureStage = 'snapshot-validation'
     const snapshots = await createCandidateSnapshotStore({
       root: join(options.workRoot, 'snapshots'),
       candidatesRoot: join(options.workRoot, 'candidates')
@@ -418,6 +430,7 @@ export async function runPersistentOptimization(
     }
     const configPath = join(options.workRoot, 'method-config.json')
     await writeProjection(configPath, JSON.stringify(config))
+    failureStage = 'method-process'
     const methodResult = await runHarnessProcess({
       binding,
       python: options.python ?? 'python3',
@@ -440,6 +453,7 @@ export async function runPersistentOptimization(
       signal,
       ...(domain ? { acceptPartial: true } : {})
     })
+    failureStage = 'method-result'
     if (
       !methodResult ||
       typeof methodResult !== 'object' ||
@@ -448,6 +462,7 @@ export async function runPersistentOptimization(
       )
     )
       throw new Error('Harness method did not adopt a valid final result')
+    failureStage = 'execution-integrity'
     const records = await Promise.all(binding.executionIds.map((id) => core!.get(id)))
     // Match upstream PortMethodExecution's control stops. Ordinary failed attempts remain
     // charged and recorded, but a successful upstream retry may still produce a valid result.
@@ -491,6 +506,7 @@ export async function runPersistentOptimization(
         const ids = domainBinding.executionIdsForTask(taskId)
         return records.filter((record) => ids.includes(record.executionId))
       }
+      failureStage = 'domain-summary'
       domainSummary = await prepareDomainSummary({
         result: methodResult,
         domain,
@@ -529,6 +545,7 @@ export async function runPersistentOptimization(
         const ownMethod = domain
           ? (methodResult as DomainMethodResult).tasks.find((row) => row.taskId === task.taskId)!
           : methodResult
+        failureStage = 'semantic-assessment'
         const taskAssessments = await evaluateOptimizationSemantics({
           core,
           ...(options.resume
@@ -547,6 +564,7 @@ export async function runPersistentOptimization(
           timeoutMs: executionTimeoutMs,
           signal
         })
+        failureStage = 'research-verification'
         const taskOutcome = await evaluateResearchOutcome({
           records: ownRecords,
           methodResult: ownMethod,
@@ -564,6 +582,7 @@ export async function runPersistentOptimization(
           assessments = taskAssessments
           outcome = taskOutcome
         }
+        failureStage = 'result-projection'
         await writeProjection(
           join(options.workRoot, `outcome-${task.taskId}.json`),
           canonicalOutput({
@@ -584,6 +603,14 @@ export async function runPersistentOptimization(
       ...(outcome ? { outcome } : {}),
       ...(domainSummary ? { domain: domainSummary } : {})
     }
+  } catch (error) {
+    recordOptimizationFailure(
+      options.workRoot,
+      failureStage,
+      error,
+      options.signal?.aborted ? 'cancelled' : deadline.aborted ? 'deadline' : 'stage-failed'
+    )
+    throw error
   } finally {
     try {
       await binding?.stop()
@@ -602,11 +629,17 @@ export async function runPersistentOptimization(
         )
       // Unknown cleanup retains the single-writer lock for explicit reconciliation. No auto-replay.
       cleanupConfirmed = safeToUnlock
+      if (!safeToUnlock)
+        recordOptimizationFailure(options.workRoot, 'cleanup', undefined, 'cleanup-unconfirmed')
       if (safeToUnlock) store.close()
+    } catch (error) {
+      rethrowCleanupFailure(error)
     } finally {
       core?.dispose()
     }
   }
-  if (!cleanupConfirmed) throw new Error('Optimization cleanup requires reconciliation')
+  if (!cleanupConfirmed) {
+    throw new Error('Optimization cleanup requires reconciliation')
+  }
   return result!
 }
