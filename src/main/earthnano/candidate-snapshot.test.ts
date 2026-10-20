@@ -409,3 +409,84 @@ describe('candidate independent projections', () => {
     expect(a.snapshots.invocation.mission).toBe('读取输入，写入outputs/result.txt。')
   })
 })
+
+const scientificInput = (): CandidateSnapshotInput => ({
+  ...input(),
+  task: {
+    prompt: 'Compute CSV statistics with Notebook.',
+    files: [],
+    managedInputs: [
+      {
+        sourceKind: 'upload-version',
+        sourceProjectId: 'project',
+        sourceSessionId: 'source-session',
+        sourceFileId: 'source-upload',
+        inputFileVersionId: 'old-version',
+        filename: 'source.csv',
+        sizeBytes: 8,
+        checksum: 'a'.repeat(64)
+      }
+    ]
+  },
+  harness: { instructions: 'Use Notebook.', skills: [], tools: 'notebook-python' },
+  environment: {
+    isolation: 'directory-process',
+    network: 'provider-and-notebook-policy',
+    notebook: {
+      runtime: {
+        language: 'python',
+        runtimeId: '/original/python',
+        source: 'external',
+        provenance: 'user-own',
+        interpreterPath: '/original/python',
+        version: '3.12.9'
+      }
+    }
+  }
+})
+
+describe('frozen original Notebook profile', () => {
+  it('preserves exact old input tuples and runtime across revised harnesses and reopening', async () => {
+    const { root, store } = await fixture()
+    const original = scientificInput()
+    const first = await freeze(store, original)
+    const changed = await freeze(store, {
+      ...original,
+      harness: { ...original.harness, instructions: 'Check row counts before publication.' }
+    })
+    expect(first.taskSnapshotRef).toEqual(changed.taskSnapshotRef)
+    expect(first.environmentSpecRef).toEqual(changed.environmentSpecRef)
+    expect(first.harnessRevisionRef).not.toEqual(changed.harnessRevisionRef)
+    Object.assign(original.task.managedInputs![0]!, { inputFileVersionId: 'new-version' })
+    Object.assign(original.environment.notebook!.runtime, { runtimeId: '/changed/python' })
+    const reopened = await createCandidateSnapshotStore({
+      root: join(root, 'store'),
+      candidatesRoot: join(root, 'candidates')
+    })
+    const resolved = await reopened.resolve(first)
+    expect(resolved.task.managedInputs?.[0]?.inputFileVersionId).toBe('old-version')
+    expect(resolved.environment.notebook?.runtime.runtimeId).toBe('/original/python')
+    expect(Object.isFrozen(resolved.task.managedInputs![0])).toBe(true)
+    const projected = await store.materialize({ executionId: 'notebook', refs: first })
+    expect(await fs.readdir(projected.inputDir)).toEqual([])
+    expect(projected.snapshots.task.managedInputs).toEqual(resolved.task.managedInputs)
+  })
+
+  it('rejects mixed inline input, missing grants and mismatched reference combinations', async () => {
+    const { root, store } = await fixture()
+    const original = scientificInput()
+    for (const bad of [
+      { ...original, task: { ...original.task, files: [{ path: 'copy.csv', content: 'copy' }] } },
+      { ...original, task: { prompt: 'task', files: [] } },
+      { ...original, environment: input().environment },
+      { ...original, harness: { ...original.harness, tools: 'workspace-only' } }
+    ])
+      await expect(store.freeze(bad as CandidateSnapshotInput)).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'store/objects'))).toEqual([])
+    const scientific = await freeze(store, original)
+    const textual = await freeze(store)
+    await expect(
+      store.resolve({ ...scientific, environmentSpecRef: textual.environmentSpecRef })
+    ).rejects.toThrow('fixed managed inputs')
+  })
+})

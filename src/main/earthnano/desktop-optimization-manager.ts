@@ -33,6 +33,7 @@ import {
   type DomainOptimizationSummary
 } from '../../shared/earthnano/research-outcome'
 import { runPersistentOptimization } from './run-persistent-optimization'
+import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 
 export interface DesktopOptimizationManagerOptions {
@@ -40,7 +41,10 @@ export interface DesktopOptimizationManagerOptions {
   /** Resolve the current data root only after acquiring its lifetime writer lease. */
   executionRoot?: () => string
   validateSession(projectId: string, sessionId: string): Promise<void>
-  createOptions(request: StartDesktopOptimization): Promise<
+  createOptions(
+    request: StartDesktopOptimization,
+    signal?: AbortSignal
+  ): Promise<
     PersistentOptimizationOptions & {
       releaseAdmission?: () => void | Promise<void>
     }
@@ -71,6 +75,9 @@ const safeFile = (value: unknown): value is string =>
   !value.includes('\0') &&
   value.split('/').every((part) => /^[A-Za-z0-9_. -]+$/.test(part) && part !== '.' && part !== '..')
 const validate = (request: StartDesktopOptimization): void => {
+  const notebook = normalizeNotebookOptimizationSource(request?.notebook)
+  if (notebook && (request.files?.length || request.inputArtifacts?.length || request.domain))
+    throw new Error('Notebook source tasks cannot mix alternate inputs')
   const method = normalizeOptimizationMethod(request?.method)
   const domain = normalizeOptimizationDomain(request?.domain)
   normalizeOutputChecks(request?.checks)
@@ -93,6 +100,7 @@ const validate = (request: StartDesktopOptimization): void => {
           'prompt',
           'files',
           'inputArtifacts',
+          'notebook',
           'criteria',
           'executionLimit',
           'method',
@@ -204,6 +212,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
             ...(captured.inputArtifacts === undefined
               ? {}
               : { inputArtifacts: normalizeOptimizationArtifactInputs(captured.inputArtifacts) }),
+            ...(captured.notebook === undefined
+              ? {}
+              : { notebook: normalizeNotebookOptimizationSource(captured.notebook) }),
             criteria: captured.criteria,
             executionLimit: captured.executionLimit,
             ...(captured.method === undefined
@@ -345,10 +356,20 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     let workRoot: string | undefined
     try {
       controller.signal.throwIfAborted()
-      prepared = await this.options.createOptions(request)
+      prepared = await this.options.createOptions(request, controller.signal)
       controller.signal.throwIfAborted()
       if (prepared.inputArtifacts)
         saved.progress.inputArtifacts = structuredClone(prepared.inputArtifacts)
+      if (
+        request.notebook &&
+        prepared.input.task.managedInputs &&
+        prepared.input.environment.notebook
+      )
+        saved.progress.notebook = {
+          source: request.notebook,
+          inputs: structuredClone([...prepared.input.task.managedInputs]),
+          runtime: structuredClone(prepared.input.environment.notebook.runtime)
+        }
       const executionRoot = this.options.executionRoot?.() ?? this.options.root
       if (!isAbsolute(executionRoot)) throw new Error('Execution root must be absolute')
       mkdirSync(join(executionRoot, saved.progress.runId), { recursive: true, mode: 0o700 })

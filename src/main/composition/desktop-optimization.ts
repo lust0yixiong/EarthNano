@@ -29,6 +29,10 @@ import { getProjectDbClient } from '../projects/prisma-client'
 import { runtimeMetadata } from '../runtime-metadata'
 import { registerDesktopOptimizationIpcHandlers } from '../desktop-surface-declarations'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
+import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
+import { normalizeFrozenNotebookRuntime } from '../../shared/earthnano/notebook-profile'
+import { resolveOptimizationNotebookInputs } from '../earthnano/optimization-notebook-input'
+import type { PersistentCandidateNotebookOptions } from '../earthnano/persistent-candidate-owner'
 import { resolveOptimizationArtifactInputs } from '../earthnano/optimization-input'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
@@ -98,6 +102,8 @@ export async function createDesktopOptimizationOptions(
     probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
     loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
     versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
+    notebook?: PersistentCandidateNotebookOptions
+    signal?: AbortSignal
   }
 ): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
   const releaseWriter = acquireDataRootWriter()
@@ -138,6 +144,70 @@ export async function createDesktopOptimizationOptions(
       )
     const dataRoot = resolveDataRoot(),
       configRoot = resolveConfigRoot()
+    dependencies.signal?.throwIfAborted()
+    const notebookSource = normalizeNotebookOptimizationSource(request.notebook)
+    if (
+      notebookSource &&
+      (request.files.length || request.inputArtifacts?.length || request.domain)
+    )
+      throw new Error('Notebook task cannot mix alternate inputs')
+    const versions =
+      dependencies.versions ??
+      new ManagedFileVersionService({
+        storageRoot: dataRoot,
+        getClient: () => getProjectDbClient(configRoot)
+      })
+    let scientific:
+      | {
+          managedInputs: Awaited<ReturnType<typeof resolveOptimizationNotebookInputs>>
+          runtime: ReturnType<typeof normalizeFrozenNotebookRuntime>
+        }
+      | undefined
+    if (notebookSource) {
+      if (!dependencies.notebook || !dependencies.loadSession)
+        throw new DesktopOptimizationSetupError(
+          'Notebook task requires the original enabled Python runtime and fixed source inputs.'
+        )
+      const source = await dependencies.loadSession(request.projectId, request.sourceSessionId)
+      const managedInputs = await resolveOptimizationNotebookInputs({
+        projectId: request.projectId,
+        sourceSessionId: request.sourceSessionId,
+        source: notebookSource,
+        prompt: request.prompt,
+        loadSession: async () => source,
+        versions,
+        signal: dependencies.signal
+      })
+      const listing = await dependencies.notebook.service.listRuntimes({
+        projectId: request.projectId,
+        sessionId: source.id,
+        workspaceCwd: source.cwd ?? ''
+      })
+      const bound = listing.bindings.python
+      const enabled =
+        bound &&
+        listing.runtimes.find(
+          (runtime) =>
+            runtime.language === 'python' &&
+            runtime.runtimeId === bound.runtimeId &&
+            runtime.runnable &&
+            (runtime.status ?? 'active') === 'active'
+        )
+      if (!enabled || !bound || (bound.status ?? 'active') !== 'active')
+        throw new DesktopOptimizationSetupError(
+          'Notebook task requires the original enabled Python runtime and fixed source inputs.'
+        )
+      const runtime = normalizeFrozenNotebookRuntime({
+        language: bound.language,
+        runtimeId: bound.runtimeId,
+        source: bound.source,
+        provenance: bound.provenance,
+        interpreterPath: bound.interpreterPath,
+        ...(bound.version ? { version: bound.version } : {})
+      })
+      dependencies.signal?.throwIfAborted()
+      scientific = { managedInputs, runtime }
+    }
     const inputArtifacts = normalizeOptimizationArtifactInputs(request.inputArtifacts)
     const resolveFiles = async (
       files: Array<{ path: string; content: string }>
@@ -174,6 +244,7 @@ export async function createDesktopOptimizationOptions(
     return {
       projectId: request.projectId,
       sourceSessionId: request.sourceSessionId,
+      ...(notebookSource ? { sourcePromptMessageId: notebookSource.promptMessageId } : {}),
       taskId: `desktop-task-${randomUUID()}`,
       workRoot: join(dataRoot, 'earthnano', 'runs', randomUUID()),
       harnessRoot: dependencies.harnessRoot,
@@ -184,14 +255,23 @@ export async function createDesktopOptimizationOptions(
       ...(request.checks === undefined ? {} : { checks: structuredClone(request.checks) }),
       ...(domain === undefined ? {} : { domain }),
       ...(inputArtifacts?.length ? { inputArtifacts } : {}),
-      ownerOptions: { dataRoot, configRoot, getClient: () => getProjectDbClient(configRoot) },
+      ownerOptions: {
+        dataRoot,
+        configRoot,
+        getClient: () => getProjectDbClient(configRoot),
+        ...(scientific ? { notebook: dependencies.notebook } : {})
+      },
       input: {
-        task: { prompt: request.prompt, files },
+        task: {
+          prompt: request.prompt,
+          files,
+          ...(scientific ? { managedInputs: scientific.managedInputs } : {})
+        },
         harness: {
           instructions:
             'Read the frozen task inputs carefully. Follow the task requirements, verify the deliverables and write the requested files under OUTPUT.',
           skills: [],
-          tools: 'workspace-only'
+          tools: scientific ? 'notebook-python' : 'workspace-only'
         },
         agent: {
           backend: 'claude-code',
@@ -199,7 +279,11 @@ export async function createDesktopOptimizationOptions(
           providerRef,
           runtimeVersion
         },
-        environment: { isolation: 'directory-process', network: 'provider-only' }
+        environment: {
+          isolation: 'directory-process',
+          network: scientific ? 'provider-and-notebook-policy' : 'provider-only',
+          ...(scientific ? { notebook: { runtime: scientific.runtime } } : {})
+        }
       },
       binding: async (agent) => {
         const current = await dependencies.settings.resolveIsolatedClaudeProvider(target)
@@ -236,6 +320,7 @@ export async function registerDesktopOptimizationComposition(
     archive: ArchiveCoordinator
     sessions: SessionPersistenceCoordinator
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
+    notebook?: PersistentCandidateNotebookOptions
     declareElectronAdapter(name: string, install: () => void): void
   }
 ): Promise<DesktopOptimizationApi> {
@@ -260,9 +345,11 @@ export async function registerDesktopOptimizationComposition(
         root: join(resolveConfigRoot(), 'earthnano-desktop'),
         executionRoot: () => join(resolveDataRoot(), 'earthnano', 'desktop-runs'),
         validateSession,
-        createOptions: (request) =>
+        createOptions: (request, signal) =>
           createDesktopOptimizationOptions(request, {
             settings: options.settings,
+            notebook: options.notebook,
+            signal,
             validateSession,
             admitSessionWork: (projectId, sessionId) =>
               options.archive.admitSessionWork(projectId, sessionId, true),

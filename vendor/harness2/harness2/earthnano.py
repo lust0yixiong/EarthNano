@@ -84,6 +84,13 @@ class EarthNanoAdapter:
             path = self.source / safe_path(entry["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(entry["content"], encoding="utf-8", newline="")
+        if "managedInputs" in config["task"]:
+            # Source identity only. The host's original Notebook owner stages these exact Versions.
+            # This view cannot grant tools, resolve a host path, or choose a newer source Version.
+            (self.source / "managed-inputs.json").write_text(
+                json.dumps(config["task"]["managedInputs"], ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
         channel = ChannelSpec("claude_cli", config["model"],
                               timeout=math.ceil(config["executionTimeoutMs"] / 1000))
         self.spec = BenchSpec(
@@ -145,6 +152,38 @@ class EarthNanoAdapter:
         raise RuntimeError("Final assessment belongs to the independent platform Review owner")
 
 
+def validate_managed_inputs(value):
+    """Check the private identity projection; host owners remain the source/version authority."""
+    fields = {"sourceKind", "sourceProjectId", "sourceSessionId", "sourceFileId",
+              "inputFileVersionId", "filename", "sizeBytes", "checksum"}
+    if not isinstance(value, list) or not 1 <= len(value) <= 10:
+        raise ValueError("Expected one to ten original immutable inputs")
+    seen = set()
+    projects = set()
+    for entry in value:
+        if not isinstance(entry, dict) or set(entry) != fields:
+            raise ValueError("Invalid managed input identity fields")
+        if entry["sourceKind"] not in ("upload-version", "artifact-version"):
+            raise ValueError("Invalid managed input source kind")
+        for key in fields - {"sizeBytes"}:
+            text = entry[key]
+            if (not isinstance(text, str) or not text.strip() or len(text) > 4096
+                    or re.search(r"[\x00-\x1f\x7f]", text)):
+                raise ValueError("Invalid managed input identity text")
+            text.encode("utf-8")
+        safe_path(entry["filename"])
+        if (type(entry["sizeBytes"]) is not int or not 0 <= entry["sizeBytes"] <= 2**53 - 1
+                or not re.fullmatch(r"[a-f0-9]{64}", entry["checksum"])):
+            raise ValueError("Invalid managed input byte identity")
+        key = (entry["sourceKind"], entry["inputFileVersionId"])
+        if key in seen:
+            raise ValueError("Duplicate managed input Version")
+        seen.add(key)
+        projects.add(entry["sourceProjectId"])
+    if len(projects) != 1:
+        raise ValueError("Managed inputs must belong to one Project")
+
+
 def validate_config(value):
     required = {"configVersion", "taskId", "task", "baseHarnessFiles", "workRoot", "model"}
     optional = {"executionTimeoutMs", "rpcTimeoutMs", "method"}
@@ -159,11 +198,16 @@ def validate_config(value):
     if not isinstance(value["workRoot"], str) or not Path(value["workRoot"]).is_absolute():
         raise ValueError("workRoot must be an absolute new directory")
     task = value["task"]
-    if (not isinstance(task, dict) or set(task) != {"prompt", "files"}
+    if (not isinstance(task, dict) or {"prompt", "files"} - set(task)
+            or set(task) - {"prompt", "files", "managedInputs"}
             or not isinstance(task["prompt"], str) or not task["prompt"].strip()):
         raise ValueError("Expected the explicit research task and files")
     task["prompt"].encode("utf-8")
     text_files(task["files"])
+    if "managedInputs" in task:
+        validate_managed_inputs(task["managedInputs"])
+        if task["files"]:
+            raise ValueError("Managed scientific inputs cannot mix with inline files")
     base = text_files(value["baseHarnessFiles"])
     validate_text_harness({entry["path"]: entry["content"] for entry in base})
     value = dict(value, executionTimeoutMs=value.get("executionTimeoutMs", 100_000),

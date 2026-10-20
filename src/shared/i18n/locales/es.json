@@ -7652,6 +7652,7 @@
     "Some PDF text has no reliable Unicode mapping. The extracted text is retained; compare it with the original page.": "Parte del texto del PDF carece de una correspondencia Unicode fiable. El texto extraído se conserva; compárelo con la página original.",
     "Some table structures are unreliable. Original images and text are retained without cell assignments.": "La estructura de algunas tablas no es fiable. Las imágenes y los textos originales se conservan sin asignarlos a celdas.",
     "Optimize task": "Optimizar tarea",
+    "Repeat this task with Notebook Python": "Repetir esta tarea con Notebook Python",
     "Task description": "Descripción de la tarea",
     "Text input files": "Archivos de texto de entrada",
     "Acceptance criteria (one per line)": "Criterios de aceptación (uno por línea)",

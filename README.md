@@ -4,10 +4,10 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 目标是保留现有科研能力，使科研执行与自动优化共享运行、配置和证据体系。
 先面向地学与遥感科研，随后扩展到通用科研。
 
-**当前阶段：EarthNano 的普通执行与优化共用执行核心。真实桌面科研链已通过 DeepSeek 验收：上传数据 → Notebook → 固定产物版本 → Harness² 优化 → 独立审阅 → 重开。科研质量提升、默认自动优化及跨平台发布尚未验收。**
+**当前阶段：EarthNano 的普通执行与优化共用执行核心。基线和候选已通过原 Notebook 执行同一固定输入科研任务，原 Harness² 提案、组合、匿名选择及产物审阅、重启读取通过 DeepSeek 桌面验收。科研质量提升、默认自动优化及跨平台发布尚未验收。**
 
 融合项目及应用名称统一为 **EarthNano**。OpenScience 与 Harness² 仅在说明上游来源、模块能力和兼容标识时使用。
-最新验收与能力边界见[第九轮](docs/earthnano/ROUND9.md)，源码试用方式见[当前基线](docs/earthnano/BASELINE.md)。
+最新模块与验收边界见[第十轮](docs/earthnano/ROUND10.md)，源码试用方式见[当前基线](docs/earthnano/BASELINE.md)。
 
 - [当前基线、启动方式与验证范围](docs/earthnano/BASELINE.md)
 - [实施计划与当前状态](docs/earthnano/PLAN.md)
@@ -21,6 +21,7 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 - [第七轮领域经验与任务流](docs/earthnano/ROUND7.md)
 - [第八轮统一执行核心](docs/earthnano/ROUND8.md)
 - [第九轮科研端到端验收与源码覆盖](docs/earthnano/ROUND9.md)
+- [第十轮 Notebook 同任务优化与原模块深度融合](docs/earthnano/ROUND10.md)
 - [共享类型、schema 与契约测试](contracts/execution/README.md)
 - [上游来源、固定提交和许可证](UPSTREAMS.json)
 - [Harness² 固定基线与集成源码](vendor/harness2/)

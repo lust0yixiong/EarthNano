@@ -7322,6 +7322,7 @@
     "Some PDF text has no reliable Unicode mapping. The extracted text is retained; compare it with the original page.": "一部の PDF テキストには信頼できる Unicode マッピングがありません。抽出したテキストは保持されています。元のページと照合してください。",
     "Some table structures are unreliable. Original images and text are retained without cell assignments.": "一部の表構造の信頼性を確認できません。元の画像とテキストは、セルへの割り当てを行わずに保持されます。",
     "Optimize task": "タスクを最適化",
+    "Repeat this task with Notebook Python": "Notebook Python でこのタスクを再実行",
     "Task description": "タスクの説明",
     "Text input files": "テキスト入力ファイル",
     "Acceptance criteria (one per line)": "受け入れ基準（1行に1項目）",

@@ -772,6 +772,11 @@ export const createApplicationModules = async (
     archive: projectLifecycle.archiveCoordinator,
     sessions: sessionAuthority.sessionPersistenceCoordinator,
     lifecycle: handoff.optimizationRuntimeShutdown,
+    notebook: {
+      service: notebookRuntime.notebookService,
+      rpc: notebookBridge.notebookRpcServer,
+      mcpEntryPath: mainEntryPath
+    },
     declareElectronAdapter
   })
   sessionAuthority.reviewerCommandOwnerRef.current = reviewerCommandOwner

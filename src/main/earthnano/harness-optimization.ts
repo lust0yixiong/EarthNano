@@ -170,6 +170,8 @@ export class HarnessOptimizationBinding {
   private async freeze(args: Record<string, unknown>): Promise<ExecutionRequest> {
     const { snapshots, input, projectId, optimizationId, taskId, budgetRef, timeoutMs } =
       this.options
+    if (input.task.managedInputs?.some((entry) => entry.sourceProjectId !== projectId))
+      return fail()
     const invocation = plain(args.invocation)
     if (invocation.taskId !== taskId || !roles.includes(invocation.role as ExecutionRole))
       return fail()
@@ -193,10 +195,20 @@ export class HarnessOptimizationBinding {
               if (!/^skills\/[a-z0-9][a-z0-9-]*\/SKILL\.md$/.test(file.path)) return fail()
               return { path: file.path.slice('skills/'.length), content: file.content }
             }),
-          tools: 'workspace-only' as const
+          tools: input.harness.tools
         }
       : input.harness
-    const refs = await snapshots.freeze({ ...input, harness: proposed })
+    const scientific = role === 'baseline' || role === 'candidate'
+    const refs = await snapshots.freeze({
+      ...input,
+      harness: { ...proposed, tools: scientific ? input.harness.tools : 'workspace-only' },
+      environment: scientific
+        ? input.environment
+        : {
+            isolation: input.environment.isolation,
+            network: 'provider-only'
+          }
+    })
     // Role context belongs to the invocation, not a newly invented research TaskSnapshot.
     const roleMission = [
       `EarthNano execution role: ${role}.`,
@@ -212,7 +224,9 @@ export class HarnessOptimizationBinding {
           ? 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. Also write that same selection and explanation to OUTPUT/selection.md so the original artifact and Review owners persist it. Do not emit a new task deliverable or alter any candidate.'
           : role === 'reflection'
             ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). The Session owner persists that committed reply as reflection-reply.md; return the original reply directly without a separate file transcription. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
-            : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
+            : input.harness.tools === 'notebook-python'
+              ? 'Execute the scientific task with the original Notebook Python tools and the exact managed inputs supplied by the Session owner. Publish task deliverables using the original Artifact tools. The input versions and Python runtime are fixed; do not change them. Do not emit a replacement report through native output files.'
+              : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
     ]
       .filter(Boolean)
       .join('\n\n')

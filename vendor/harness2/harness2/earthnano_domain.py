@@ -43,6 +43,8 @@ def validate_config(value):
         if not isinstance(item, dict) or set(item) != {"taskId", "task"}:
             raise ValueError("Expected taskId and task")
         single = earthnano.validate_config(dict(common, **item))
+        if "managedInputs" in single["task"]:
+            raise ValueError("Managed scientific tasks do not support domain successors")
         match = re.fullmatch(r"([a-zA-Z0-9][a-zA-Z0-9_.-]*)-(\d{4})", single["taskId"])
         if not match or int(match.group(2)) != index or (prefix and match.group(1) != prefix):
             raise ValueError("Task IDs must be one root followed by ordered -0001 through -0004")

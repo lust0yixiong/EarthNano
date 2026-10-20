@@ -59,6 +59,7 @@ export interface PersistentOptimizationOptions {
   /** Existing project identity in the original OpenScience repositories. */
   projectId: string
   sourceSessionId?: string
+  sourcePromptMessageId?: string
   taskId: string
   input: CandidateSnapshotInput
   /** Host-verified immutable source provenance; never an authority to read files. */
@@ -109,6 +110,26 @@ export async function runPersistentOptimization(
   const semanticCriteria = options.semanticCriteria
   const checks = normalizeOutputChecks(options.checks)
   const domain = normalizeOptimizationDomain(options.domain)
+  const scientific = input.harness.tools === 'notebook-python'
+  if (
+    scientific &&
+    (!options.sourcePromptMessageId ||
+      !/^[A-Za-z0-9_-]{1,128}$/.test(options.sourcePromptMessageId))
+  )
+    throw new Error('Notebook source message identity missing')
+  if (
+    scientific &&
+    (!input.task.managedInputs?.length ||
+      !input.environment.notebook ||
+      input.task.files.length ||
+      inputArtifacts?.length ||
+      domain ||
+      !sourceSessionId ||
+      !options.ownerOptions.notebook)
+  )
+    throw new Error(
+      'Notebook optimization requires one original fixed-input task and runtime owner'
+    )
   if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(options.taskId) || options.taskId.endsWith('.'))
     throw new Error('Invalid optimization task identifier')
   if (domain && semanticCriteria === undefined)
@@ -176,6 +197,19 @@ export async function runPersistentOptimization(
   let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
+    if (scientific)
+      await writeFile(
+        join(options.workRoot, 'notebook-task.json'),
+        canonicalOutput({
+          schemaVersion: 1,
+          projectId: options.projectId,
+          sourceSessionId,
+          sourcePromptMessageId: options.sourcePromptMessageId,
+          task: input.task,
+          environment: input.environment
+        }),
+        { mode: 0o600, flag: 'wx' }
+      )
     if (inputArtifacts?.length)
       await writeFile(
         join(options.workRoot, 'input-artifacts.json'),

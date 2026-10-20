@@ -141,6 +141,41 @@ class EarthNanoMethodTests(unittest.TestCase):
                 run(dict(omitted, method=method), Peer())
         self.assertFalse(Path(omitted["workRoot"]).exists())
 
+    def test_managed_scientific_task_preserves_prompt_and_exact_source_metadata(self):
+        original = {
+            "sourceKind": "upload-version", "sourceProjectId": "project",
+            "sourceSessionId": "source-session", "sourceFileId": "upload",
+            "inputFileVersionId": "old-version", "filename": "values.csv",
+            "sizeBytes": 12, "checksum": "a" * 64,
+        }
+        for mode in ("sequential", "parallel"):
+            cfg = self.cfg("managed-" + mode, mode)
+            cfg["task"] = {"prompt": "Compute the original CSV mean in Notebook.",
+                           "files": [], "managedInputs": [original]}
+            peer = Peer()
+            result = run(cfg, peer)
+            self.assertEqual(result["status"], "ok")
+            self.assertEqual(len(peer.requests), 15)
+            source = Path(cfg["workRoot"]) / "source" / "managed-inputs.json"
+            self.assertEqual(json.loads(source.read_text()), [original])
+            for offered in peer.invocations.values():
+                invocation = offered["invocation"]
+                if invocation["role"] in ("baseline", "candidate"):
+                    self.assertEqual(invocation["mission"], cfg["task"]["prompt"])
+                for file in offered["contextFiles"]:
+                    if file["path"] == "source/managed-inputs.json":
+                        self.assertEqual(json.loads(file["content"]), [original])
+            self.assertNotIn("runtime", source.read_text())
+        for update in ({"checksum": "bad"}, {"sizeBytes": True}, {"storageKey": "/host"}):
+            bad = copy.deepcopy(cfg)
+            bad["task"]["managedInputs"][0].update(update)
+            with self.assertRaises(ValueError):
+                validate_config(bad)
+        bad = copy.deepcopy(cfg)
+        bad["task"]["files"] = [{"path": "copy.txt", "content": "derived source"}]
+        with self.assertRaises(ValueError):
+            validate_config(bad)
+
     def test_both_modes_match_legacy_recursion_evidence_and_real_selector(self):
         for name, token, chosen in (("sequential", "seq", "c2"), ("parallel", "agg", "agg2")):
             with self.subTest(mode=name):

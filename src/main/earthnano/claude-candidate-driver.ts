@@ -66,6 +66,11 @@ export function createClaudeCandidateDriver(
         }
         context.signal.throwIfAborted()
         const resolved = await options.snapshots.resolve(request)
+        if (
+          resolved.harness?.tools === 'notebook-python' &&
+          !['baseline', 'candidate'].includes(request.role)
+        )
+          throw new Error('Only task candidates may receive scientific tools')
         const binding = await options.binding(structuredClone(resolved.agent))
         context.signal.throwIfAborted()
         const materialized = await options.snapshots.materialize({

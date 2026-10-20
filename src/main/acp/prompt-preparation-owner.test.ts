@@ -54,7 +54,8 @@ const setup = (
   imageInputCompatibility?: Pick<ImageInputCompatibilityOwner, 'prepare'>,
   memory?: { recallForPrompt(requestText: string): Promise<string | undefined> },
   isMemoryEnabledForSession?: (sessionId: string) => boolean,
-  classificationOptions: Partial<ConstructorParameters<typeof AcpPromptPreparationOwner>[0]> = {}
+  classificationOptions: Partial<ConstructorParameters<typeof AcpPromptPreparationOwner>[0]> = {},
+  hasFrozenTurnInputs = false
 ): Fixture => {
   const turn = contextTurn()
   const promptClose = vi.fn()
@@ -104,6 +105,7 @@ const setup = (
     memory,
     isMemoryEnabledForSession,
     notebook: {
+      hasFrozenTurnInputs,
       peekHandoffContext: vi.fn(() => ({
         executionCount: 1,
         cells: [],
@@ -1234,4 +1236,37 @@ it('correlates concurrent classification decisions with their sessions and repor
     await flushLogs()
     await rm(logDir, { recursive: true, force: true })
   }
+})
+
+it('registers host-frozen Notebook inputs without sending them through generic latest reference resolution', async () => {
+  const fixture = setup(undefined, undefined, undefined, {}, true)
+  fixture.promptContent.prepare.mockResolvedValueOnce({
+    content: 'original task',
+    historyImageCount: 0,
+    turnInputs: undefined as never,
+    close: fixture.promptClose
+  })
+  fixture.registerTurnInputs.mockResolvedValueOnce([
+    {
+      sourceKind: 'upload-version',
+      inputFileVersionId: 'old-version',
+      filename: 'measurements.csv',
+      notebookPath: 'inputs/measurements-old.csv'
+    }
+  ])
+  const result = await fixture.prepare({
+    request: request({ provenanceContext: { promptMessageId: 'source-prompt' } })
+  })
+  expect(fixture.registerTurnInputs).toHaveBeenCalledWith({
+    projectId: 'project-1',
+    appSessionId: 'session-1',
+    promptMessageId: 'source-prompt',
+    uploads: [],
+    references: []
+  })
+  expect(result.status).toBe('ready')
+  if (result.status !== 'ready') throw new Error('Prompt unavailable')
+  expect(JSON.stringify(result.content)).toContain('open_science_notebook_inputs')
+  expect(JSON.stringify(result.content)).toContain('old-version')
+  result.close()
 })

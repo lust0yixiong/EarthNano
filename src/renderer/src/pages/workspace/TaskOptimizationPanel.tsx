@@ -37,6 +37,7 @@ type Props = {
   projectId: string
   sessionId: string
   initialPrompt: string
+  sourcePromptMessageId?: string
   artifacts?: PersistedArtifact[]
   onOpenSession?: (id: string) => void
   onOpenReview?: (sessionId: string, reviewId: string) => void
@@ -62,6 +63,7 @@ function OptimizationSessionPanel({
   projectId,
   sessionId,
   initialPrompt,
+  sourcePromptMessageId,
   artifacts = [],
   api,
   onOpenSession,
@@ -69,6 +71,7 @@ function OptimizationSessionPanel({
 }: Props & { api: DesktopOptimizationApi }): React.JSX.Element {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState(initialPrompt)
+  const [notebookMode, setNotebookMode] = useState(false)
   const [criteria, setCriteria] = useState('')
   const [files, setFiles] = useState<Array<{ path: string; content: string }>>([])
   const [selectedVersions, setSelectedVersions] = useState<string[]>([])
@@ -117,7 +120,7 @@ function OptimizationSessionPanel({
     Array<{ id: string; prompt: string; criteria: string; check: JsonCheckDraft }>
   >([])
   const domainDraft =
-    domainName.trim() || nextTasks.length
+    !notebookMode && (domainName.trim() || nextTasks.length)
       ? {
           name: domainName.trim(),
           nextTasks: nextTasks.map((task) => ({
@@ -158,8 +161,8 @@ function OptimizationSessionPanel({
   const promptEdited = useRef(false)
   const active = !!progress && !terminal(progress.state)
   useEffect(() => {
-    if (!promptEdited.current) setPrompt(initialPrompt)
-  }, [initialPrompt])
+    if (!promptEdited.current || notebookMode) setPrompt(initialPrompt)
+  }, [initialPrompt, notebookMode])
   const message = t(
     'Optimization request could not be completed. Check the selected model and runtime settings.'
   )
@@ -249,8 +252,11 @@ function OptimizationSessionPanel({
         requestKey: requestKey.current,
         prompt,
         criteria,
-        files,
-        ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {}),
+        files: notebookMode ? [] : files,
+        ...(notebookMode && sourcePromptMessageId
+          ? { notebook: { promptMessageId: sourcePromptMessageId } }
+          : {}),
+        ...(!notebookMode && selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {}),
         executionLimit: limit,
         method,
         ...(research.checks === undefined ? {} : { checks: research.checks }),
@@ -509,6 +515,27 @@ function OptimizationSessionPanel({
               ))}
           </div>
         )}
+        {sourcePromptMessageId && (
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={notebookMode}
+              disabled={active || busy}
+              onChange={(event) => {
+                setNotebookMode(event.target.checked)
+                if (event.target.checked) {
+                  setPrompt(initialPrompt)
+                  setFiles([])
+                  setSelectedVersions([])
+                  setDomainName('')
+                  setNextTasks([])
+                }
+                requestKey.current = null
+              }}
+            />
+            {t('Repeat this task with Notebook Python')}
+          </label>
+        )}
         <label className="block">
           {t('Task description')}
           <textarea
@@ -517,7 +544,7 @@ function OptimizationSessionPanel({
             rows={3}
             maxLength={32_000}
             value={prompt}
-            disabled={active || busy}
+            disabled={active || busy || notebookMode}
             onChange={(event) => {
               promptEdited.current = true
               setPrompt(event.target.value)
@@ -525,64 +552,70 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
-        {availableArtifacts.length > 0 && (
-          <fieldset className="space-y-1" data-testid="optimization-source-artifacts">
-            <legend>{t('Use saved artifact versions as inputs')}</legend>
-            {availableArtifacts.map((file) => (
-              <label key={file.versionId} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+        {!notebookMode && (
+          <>
+            {availableArtifacts.length > 0 && (
+              <fieldset className="space-y-1" data-testid="optimization-source-artifacts">
+                <legend>{t('Use saved artifact versions as inputs')}</legend>
+                {availableArtifacts.map((file) => (
+                  <label key={file.versionId} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      disabled={active || busy}
+                      checked={selectedVersions.includes(file.versionId!)}
+                      onChange={(event) => {
+                        setSelectedVersions(
+                          event.target.checked
+                            ? [...selectedVersions, file.versionId!]
+                            : selectedVersions.filter((id) => id !== file.versionId)
+                        )
+                        requestKey.current = null
+                      }}
+                    />
+                    {t('{{name}} · version {{version}}', {
+                      name: file.name,
+                      version: file.versionNumber ?? file.versionId
+                    })}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <label className="block">
+              {t('Text input files')}
+              <input
+                aria-label={t('Text input files')}
+                type="file"
+                multiple
+                accept=".txt,.md,.csv,.tsv,.json,.yaml,.yml,.log"
+                disabled={active || busy}
+                onChange={(event) => {
+                  void attach(event.target.files)
+                  event.target.value = ''
+                }}
+              />
+            </label>
+            <p className="text-xs text-text-400">
+              {t(
+                'Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.'
+              )}
+            </p>
+            {files.map((file) => (
+              <div key={file.path} className="flex items-center justify-between gap-2">
+                <span className="truncate">{file.path}</span>
+                <button
+                  type="button"
                   disabled={active || busy}
-                  checked={selectedVersions.includes(file.versionId!)}
-                  onChange={(event) => {
-                    setSelectedVersions(
-                      event.target.checked
-                        ? [...selectedVersions, file.versionId!]
-                        : selectedVersions.filter((id) => id !== file.versionId)
-                    )
+                  onClick={() => {
+                    setFiles(files.filter((entry) => entry.path !== file.path))
                     requestKey.current = null
                   }}
-                />
-                {t('{{name}} · version {{version}}', {
-                  name: file.name,
-                  version: file.versionNumber ?? file.versionId
-                })}
-              </label>
+                >
+                  {t('Remove')}
+                </button>
+              </div>
             ))}
-          </fieldset>
+          </>
         )}
-        <label className="block">
-          {t('Text input files')}
-          <input
-            aria-label={t('Text input files')}
-            type="file"
-            multiple
-            accept=".txt,.md,.csv,.tsv,.json,.yaml,.yml,.log"
-            disabled={active || busy}
-            onChange={(event) => {
-              void attach(event.target.files)
-              event.target.value = ''
-            }}
-          />
-        </label>
-        <p className="text-xs text-text-400">
-          {t('Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.')}
-        </p>
-        {files.map((file) => (
-          <div key={file.path} className="flex items-center justify-between gap-2">
-            <span className="truncate">{file.path}</span>
-            <button
-              type="button"
-              disabled={active || busy}
-              onClick={() => {
-                setFiles(files.filter((entry) => entry.path !== file.path))
-                requestKey.current = null
-              }}
-            >
-              {t('Remove')}
-            </button>
-          </div>
-        ))}
         <label className="block">
           {t('Acceptance criteria (one per line)')}
           <textarea
@@ -608,128 +641,137 @@ function OptimizationSessionPanel({
             requestKey.current = null
           }}
         />
-        <label className="block">
-          {t('Domain experiment name (optional)')}
-          <input
-            aria-label={t('Domain experiment name (optional)')}
-            className={inputClass}
-            maxLength={80}
-            value={domainName}
-            disabled={active || busy}
-            onChange={(event) => {
-              setDomainName(event.target.value)
-              requestKey.current = null
-            }}
-          />
-        </label>
-        <p className="text-xs text-text-400">
-          {t(
-            'Run up to four tasks in order with one shared budget. Next tasks use the same text input files.'
-          )}
-        </p>
-        <p className="text-xs text-text-400">
-          {t('Use letters, numbers, underscores or hyphens for the experiment name.')}
-        </p>
-        {nextTasks.map((task, index) => (
-          <fieldset
-            key={task.id}
-            data-testid={`next-task-${index + 1}`}
-            className="space-y-2 rounded border border-border p-2"
-          >
-            <legend>{t('Next task {{number}}', { number: index + 1 })}</legend>
+        {!notebookMode && (
+          <>
             <label className="block">
-              {t('Task description')}
-              <textarea
-                aria-label={t('Next task description {{number}}', { number: index + 1 })}
+              {t('Domain experiment name (optional)')}
+              <input
+                aria-label={t('Domain experiment name (optional)')}
                 className={inputClass}
-                value={task.prompt}
-                maxLength={32000}
+                maxLength={80}
+                value={domainName}
                 disabled={active || busy}
                 onChange={(event) => {
-                  setNextTasks(
-                    nextTasks.map((entry) =>
-                      entry.id === task.id ? { ...entry, prompt: event.target.value } : entry
-                    )
-                  )
+                  setDomainName(event.target.value)
                   requestKey.current = null
                 }}
               />
             </label>
-            <label className="block">
-              {t('Acceptance criteria (one per line)')}
-              <textarea
-                aria-label={t('Next task criteria {{number}}', { number: index + 1 })}
-                className={inputClass}
-                value={task.criteria}
-                maxLength={16000}
-                disabled={active || busy}
-                onChange={(event) => {
-                  setNextTasks(
-                    nextTasks.map((entry) =>
-                      entry.id === task.id ? { ...entry, criteria: event.target.value } : entry
+            <p className="text-xs text-text-400">
+              {t(
+                'Run up to four tasks in order with one shared budget. Next tasks use the same text input files.'
+              )}
+            </p>
+            <p className="text-xs text-text-400">
+              {t('Use letters, numbers, underscores or hyphens for the experiment name.')}
+            </p>
+            {nextTasks.map((task, index) => (
+              <fieldset
+                key={task.id}
+                data-testid={`next-task-${index + 1}`}
+                className="space-y-2 rounded border border-border p-2"
+              >
+                <legend>{t('Next task {{number}}', { number: index + 1 })}</legend>
+                <label className="block">
+                  {t('Task description')}
+                  <textarea
+                    aria-label={t('Next task description {{number}}', { number: index + 1 })}
+                    className={inputClass}
+                    value={task.prompt}
+                    maxLength={32000}
+                    disabled={active || busy}
+                    onChange={(event) => {
+                      setNextTasks(
+                        nextTasks.map((entry) =>
+                          entry.id === task.id ? { ...entry, prompt: event.target.value } : entry
+                        )
+                      )
+                      requestKey.current = null
+                    }}
+                  />
+                </label>
+                <label className="block">
+                  {t('Acceptance criteria (one per line)')}
+                  <textarea
+                    aria-label={t('Next task criteria {{number}}', { number: index + 1 })}
+                    className={inputClass}
+                    value={task.criteria}
+                    maxLength={16000}
+                    disabled={active || busy}
+                    onChange={(event) => {
+                      setNextTasks(
+                        nextTasks.map((entry) =>
+                          entry.id === task.id ? { ...entry, criteria: event.target.value } : entry
+                        )
+                      )
+                      requestKey.current = null
+                    }}
+                  />
+                </label>
+                <ExpectedJsonCheckEditor
+                  value={task.check}
+                  disabled={active || busy}
+                  inputClass={inputClass}
+                  onChange={(check) => {
+                    setNextTasks(
+                      nextTasks.map((entry) => (entry.id === task.id ? { ...entry, check } : entry))
                     )
-                  )
-                  requestKey.current = null
-                }}
-              />
-            </label>
-            <ExpectedJsonCheckEditor
-              value={task.check}
-              disabled={active || busy}
-              inputClass={inputClass}
-              onChange={(check) => {
-                setNextTasks(
-                  nextTasks.map((entry) => (entry.id === task.id ? { ...entry, check } : entry))
-                )
-                requestKey.current = null
-              }}
-            />
+                    requestKey.current = null
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={active || busy}
+                  onClick={() => {
+                    setNextTasks(nextTasks.filter((entry) => entry.id !== task.id))
+                    requestKey.current = null
+                  }}
+                >
+                  {t('Remove next task')}
+                </button>
+              </fieldset>
+            ))}
             <button
               type="button"
-              disabled={active || busy}
+              disabled={active || busy || nextTasks.length >= 3}
               onClick={() => {
-                setNextTasks(nextTasks.filter((entry) => entry.id !== task.id))
+                const next = [
+                  ...nextTasks,
+                  {
+                    id: crypto.randomUUID(),
+                    prompt: '',
+                    criteria: '',
+                    check: emptyJsonCheckDraft()
+                  }
+                ]
+                setNextTasks(next)
+                setLimit((value) =>
+                  Math.min(
+                    MAX_OPTIMIZATION_EXECUTIONS,
+                    Math.max(
+                      value,
+                      minimumResearchExecutions(method, {
+                        name: domainName,
+                        nextTasks: next.map((task) => ({
+                          prompt: task.prompt,
+                          criteria: task.criteria,
+                          files
+                        }))
+                      })
+                    )
+                  )
+                )
                 requestKey.current = null
               }}
             >
-              {t('Remove next task')}
+              {t('Add next task')}
             </button>
-          </fieldset>
-        ))}
-        <button
-          type="button"
-          disabled={active || busy || nextTasks.length >= 3}
-          onClick={() => {
-            const next = [
-              ...nextTasks,
-              { id: crypto.randomUUID(), prompt: '', criteria: '', check: emptyJsonCheckDraft() }
-            ]
-            setNextTasks(next)
-            setLimit((value) =>
-              Math.min(
-                MAX_OPTIMIZATION_EXECUTIONS,
-                Math.max(
-                  value,
-                  minimumResearchExecutions(method, {
-                    name: domainName,
-                    nextTasks: next.map((task) => ({
-                      prompt: task.prompt,
-                      criteria: task.criteria,
-                      files
-                    }))
-                  })
-                )
-              )
-            )
-            requestKey.current = null
-          }}
-        >
-          {t('Add next task')}
-        </button>
-        {nextTasks.length > 0 && !domainName.trim() && (
-          <p className="text-xs text-text-400">
-            {t('Name the domain experiment before starting its task stream.')}
-          </p>
+            {nextTasks.length > 0 && !domainName.trim() && (
+              <p className="text-xs text-text-400">
+                {t('Name the domain experiment before starting its task stream.')}
+              </p>
+            )}
+          </>
         )}
         <label className="block">
           {t('Optimization mode')}

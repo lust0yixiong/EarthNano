@@ -480,7 +480,7 @@ it('preserves checks and domain identity, forwards the shared budget and keeps l
   expect(saved.outcome?.configuration.status).toBe('blocked')
   expect(saved.domain).toEqual(summary)
   expect(run.mock.calls[0][0]).toMatchObject({ checks, domain, executionLimit: 20 })
-  expect(options.createOptions).toHaveBeenCalledWith(dto)
+  expect(options.createOptions).toHaveBeenCalledWith(dto, expect.any(AbortSignal))
   for (const changed of [
     { ...dto, checks: [{ ...checks[0], expected: 4 }] },
     { ...dto, domain: { ...domain, name: 'other' } },

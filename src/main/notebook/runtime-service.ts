@@ -435,6 +435,56 @@ class NotebookRuntimeService {
   private executionApproval: NotebookExecutionApproval | undefined
   private runtimeBindingApproval: NotebookRuntimeBindingApproval | undefined
   private readonly runtimeBindingPermissionPolicies = new WeakMap<AbortSignal, 'none'>()
+  private readonly hostPermissionPolicies = new Map<string, symbol>()
+
+  /** Main-only restriction for unattended private Sessions; this never authorizes execution. */
+  registerHostPermissionPolicy(scope: {
+    projectId: string
+    sessionId: string
+    permissionPrompts: 'none'
+  }): () => void {
+    if (scope.permissionPrompts !== 'none')
+      throw new Error('Unsupported Notebook host permission policy.')
+    const key = JSON.stringify([scope.projectId, scope.sessionId])
+    if (this.hostPermissionPolicies.has(key))
+      throw new Error('Notebook host permission policy already exists.')
+    const token = Symbol(key)
+    this.hostPermissionPolicies.set(key, token)
+    return () => {
+      if (this.hostPermissionPolicies.get(key) === token) this.hostPermissionPolicies.delete(key)
+    }
+  }
+
+  private readonly hostBindingPermits = new Map<
+    string,
+    {
+      token: symbol
+      runtime: Pick<
+        import('../../shared/notebook-runtime').NotebookRuntimeBinding,
+        'language' | 'runtimeId' | 'source' | 'provenance' | 'interpreterPath' | 'version'
+      >
+    }
+  >()
+
+  /** Main-only, revocable consent for one fresh private Session's exact first binding.
+   * This grants no code execution, package mutation, network access or runtime switching. */
+  registerHostBindingPermit(scope: {
+    projectId: string
+    sessionId: string
+    runtime: Pick<
+      import('../../shared/notebook-runtime').NotebookRuntimeBinding,
+      'language' | 'runtimeId' | 'source' | 'provenance' | 'interpreterPath' | 'version'
+    >
+  }): () => void {
+    const key = JSON.stringify([scope.projectId, scope.sessionId])
+    if (this.hostBindingPermits.has(key))
+      throw new Error('Notebook host binding permit already exists.')
+    const token = Symbol(key)
+    this.hostBindingPermits.set(key, { token, runtime: structuredClone(scope.runtime) })
+    return () => {
+      if (this.hostBindingPermits.get(key)?.token === token) this.hostBindingPermits.delete(key)
+    }
+  }
 
   setExecutionApproval(approve: NotebookExecutionApproval): void {
     this.executionApproval = approve
@@ -504,6 +554,19 @@ class NotebookRuntimeService {
       )
     }
     const current = session.runtimeBinding(language)
+    const permitKey = JSON.stringify([session.projectId, session.sessionId])
+    const permit = this.hostBindingPermits.get(permitKey)
+    if (
+      operation === 'bind' &&
+      !current &&
+      permit &&
+      (
+        ['language', 'runtimeId', 'source', 'provenance', 'interpreterPath', 'version'] as const
+      ).every((key) => permit.runtime[key] === binding[key])
+    ) {
+      this.hostBindingPermits.delete(permitKey)
+      return
+    }
     const defaultManagedFirstBinding = operation === 'bind' && !current && target.readyDefault
     const validReuse =
       operation === 'bind' &&
@@ -667,7 +730,14 @@ class NotebookRuntimeService {
     context: NotebookSourceFileAccessContext | undefined,
     signal?: AbortSignal
   ): Promise<void> {
-    if (!this.executionApproval || (run.source === 'user' && !run.promptMessageId)) return
+    const denyUnresolved = this.hostPermissionPolicies.has(
+      JSON.stringify([session.projectId, session.sessionId])
+    )
+    if (
+      (!this.executionApproval && !denyUnresolved) ||
+      (run.source === 'user' && !run.promptMessageId)
+    )
+      return
     signal?.throwIfAborted()
     const document = run.kernelEpochId
       ? await this.repository.findExisting(session.projectId, session.sessionId, session.lane)
@@ -711,6 +781,8 @@ class NotebookRuntimeService {
           )
     signal?.throwIfAborted()
     if (!risks.length) return
+    if (denyUnresolved || !this.executionApproval)
+      throw new Error('Notebook execution declined: this code requires one-time approval.')
     const approved = await this.executionApproval({
       sessionId: session.sessionId,
       title: (this.options.translate ?? englishNativeTranslator)(

@@ -1,3 +1,15 @@
+import { createAcpNotebookBinding } from '../acp/notebook-binding'
+import { ConversationPermissionGrantStore } from '../acp/permission-broker'
+import type { NotebookRuntimeService } from '../notebook/runtime-service'
+import type { NotebookLocalRpcServer } from '../notebook/local-rpc-server'
+import { NotebookRunRepository } from '../notebook/repository'
+import type { FileReference } from '../../shared/artifacts'
+import type { NotebookRunInputFile } from '../../shared/notebook'
+import {
+  normalizeFrozenNotebookInputs,
+  normalizeFrozenNotebookRuntime,
+  type FrozenNotebookInput
+} from '../../shared/earthnano/notebook-profile'
 import { createAcpExecutionBoundary } from './acp-execution-boundary'
 import { createSessionExecutionHost } from './session-execution-host'
 import {
@@ -54,8 +66,14 @@ import {
 } from '../../shared/earthnano/research-outcome'
 import { checkOutputFiles, outputDigest } from './output-checks'
 
+export interface PersistentCandidateNotebookOptions {
+  service: NotebookRuntimeService
+  rpc: NotebookLocalRpcServer
+  mcpEntryPath: string
+}
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
+  notebook?: PersistentCandidateNotebookOptions
   /** Database initialization/migration remains the host's responsibility. */
   configRoot: string
   getClient(): Promise<PrismaClient>
@@ -157,7 +175,10 @@ const collectOutputs = async (root: string): Promise<Array<{ path: string; conte
           stat.ctimeMs !== after.ctimeMs
         )
           throw new Error('Output changed or exceeded import budget')
-        files.push({ path, content: new TextDecoder('utf-8', { fatal: true }).decode(bytes) })
+        files.push({
+          path,
+          content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
+        })
       } finally {
         await handle.close()
       }
@@ -210,16 +231,35 @@ export function createPersistentCandidateOwners(
     compatibilityRepository: compatibility,
     loadSession: (projectId, appSessionId) => load(projectId, appSessionId)
   })
+  const notebookRuns = new NotebookRunRepository(options.dataRoot)
+  const notebookSessions = new Map<
+    AcpRuntimeCoordinator,
+    () => { projectId: string; sessionId: string; workspaceCwd: string } | undefined
+  >()
+  const notebookPolicyReleases = new Map<AcpRuntimeCoordinator, () => void>()
   const runtimes = new Set<AcpRuntimeCoordinator>()
   const shutdowns = new Map<AcpRuntimeCoordinator, Promise<{ reaped: boolean }>>()
   let closing = false
   const stop = (runtime: AcpRuntimeCoordinator): Promise<{ reaped: boolean }> => {
     let pending = shutdowns.get(runtime)
     if (!pending) {
-      pending = runtime
-        .shutdownForQuit()
-        .then(({ reaped }) => ({ reaped }))
-        .catch(() => ({ reaped: false }))
+      const notebookScope = notebookSessions.get(runtime)?.()
+      pending = Promise.allSettled([
+        runtime.shutdownForQuit(),
+        ...(notebookScope && options.notebook
+          ? [options.notebook.service.shutdown(notebookScope)]
+          : [])
+      ]).then((results) => {
+        const reaped =
+          results.every((result) => result.status === 'fulfilled') &&
+          results[0].status === 'fulfilled' &&
+          (results[0].value as { reaped: boolean }).reaped
+        if (reaped) {
+          notebookPolicyReleases.get(runtime)?.()
+          notebookPolicyReleases.delete(runtime)
+        }
+        return { reaped }
+      })
       shutdowns.set(runtime, pending)
     }
     return pending
@@ -234,9 +274,15 @@ export function createPersistentCandidateOwners(
     versions
   })
   const readFiles = async (
-    record: Pick<ExecutionRecord, 'request' | 'evidence'>
+    record: Pick<ExecutionRecord, 'request' | 'evidence'>,
+    scientific = record.evidence.references?.some((ref) =>
+      ref.id.startsWith('notebook-scientific:')
+    ) ?? false
   ): Promise<PersistentCandidateFile[]> => {
     const files: PersistentCandidateFile[] = []
+    if (record.evidence.artifacts.length > 64)
+      throw new Error('Candidate artifact inventory exceeds text export profile')
+    let total = 0
     for (const artifactRef of record.evidence.artifacts) {
       const lease = await versions.openVersion(
         { source: 'artifact', projectId: record.request.projectId, fileId: artifactRef.artifactId },
@@ -245,13 +291,18 @@ export function createPersistentCandidateOwners(
       try {
         if (lease.version.checksum !== artifactRef.checksum || lease.size > 1024 * 1024)
           throw new Error('Artifact version integrity mismatch')
+        total += lease.size
+        if (total > 4 * 1024 * 1024)
+          throw new Error('Candidate artifacts exceed text export profile')
         const bytes = await lease.readRange(0, lease.size)
         await lease.verifyUnchanged()
         if (digest(bytes) !== 'sha256:' + artifactRef.checksum)
           throw new Error('Artifact version bytes changed')
         files.push({
-          path: decodeName(lease.version.filename),
-          content: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+          path: scientific
+            ? logicalPath(lease.version.filename)
+            : decodeName(lease.version.filename),
+          content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes),
           digest: digest(bytes),
           artifactRef: structuredClone(artifactRef)
         })
@@ -268,6 +319,55 @@ export function createPersistentCandidateOwners(
     context
   }) => {
     if (closing) throw new Error('Candidate owner factory is shutting down')
+    const scientific = materialized.snapshots.harness.tools === 'notebook-python'
+    const science = scientific ? options.notebook : undefined
+    const frozenInputs = scientific
+      ? normalizeFrozenNotebookInputs(materialized.snapshots.task.managedInputs)
+      : []
+    const frozenRuntime = scientific
+      ? normalizeFrozenNotebookRuntime(materialized.snapshots.environment.notebook?.runtime)
+      : undefined
+    if (scientific && (!science || !['baseline', 'candidate'].includes(request.role)))
+      throw new Error('Scientific candidate original Notebook owners unavailable')
+    const grants = new ConversationPermissionGrantStore()
+    const frozenReferences: FileReference[] = frozenInputs.map((input) => ({
+      id: input.inputFileVersionId,
+      source: input.sourceKind === 'upload-version' ? 'upload' : 'artifact',
+      sourceFileId: input.sourceFileId,
+      versionId: input.inputFileVersionId,
+      name: input.filename,
+      path: '',
+      checksum: input.checksum
+    }))
+    const verifyFrozenInputs = async (): Promise<void> => {
+      for (const input of frozenInputs) {
+        if (input.sourceProjectId !== request.projectId)
+          throw new Error('Foreign scientific input Project')
+        const lease = await versions.openVersion(
+          {
+            source: input.sourceKind === 'upload-version' ? 'upload' : 'artifact',
+            projectId: request.projectId,
+            fileId: input.sourceFileId
+          },
+          input.inputFileVersionId
+        )
+        try {
+          if (
+            lease.logicalFile.sessionId !== input.sourceSessionId ||
+            lease.logicalFile.projectId !== input.sourceProjectId ||
+            lease.logicalFile.id !== input.sourceFileId ||
+            lease.version.id !== input.inputFileVersionId ||
+            lease.version.filename !== input.filename ||
+            lease.size !== input.sizeBytes ||
+            lease.version.checksum !== input.checksum
+          )
+            throw new Error('Scientific input differs from frozen Version')
+          await lease.verifyUnchanged()
+        } finally {
+          await lease.close()
+        }
+      }
+    }
     const registry = new ArtifactRunRegistry()
     const artifactOwner = new ArtifactTurnOwner({
       dataRoot: options.dataRoot,
@@ -329,6 +429,56 @@ export function createPersistentCandidateOwners(
         const runtimeOptions: AcpRuntimeOptions = {
           ...prepared.runtimeOptions,
           runtimeSessions,
+          ...(science
+            ? {
+                permissionGrantStore: grants,
+                artifacts: {
+                  configRoot: options.configRoot,
+                  dataRoot: options.dataRoot,
+                  projectId: request.projectId,
+                  mcpEntryPath: science.mcpEntryPath,
+                  repository: compatibility,
+                  runRegistry: registry,
+                  provenance,
+                  managedFileVersions: versions,
+                  getRpcConnection: () => science.rpc.ensureStarted(),
+                  issueRpcCapability: (binding) => science.rpc.issueArtifactRunCapability(binding),
+                  revokeRpcCapability: (token) => science.rpc.revokeArtifactRunCapability(token)
+                },
+                notebook: (() => {
+                  const binding = createAcpNotebookBinding({
+                    rpc: science.rpc,
+                    projectId: request.projectId,
+                    mcpEntryPath: science.mcpEntryPath,
+                    memoryTools: false,
+                    isMemoryEnabled: async () => false,
+                    canOwnRuntimeBindingDecision: (input) =>
+                      science.service.canOwnRuntimeBindingDecision(input),
+                    peekHandoffContext: (id) => science.service.peekHandoffContext(id)
+                  })
+                  return {
+                    ...binding,
+                    hasFrozenTurnInputs: true,
+                    prepareTurnInputs: async (input) => {
+                      await verifyFrozenInputs()
+                      return science.rpc.prepareNotebookTurnInputs({
+                        ...input,
+                        uploads: [],
+                        references: structuredClone(frozenReferences)
+                      })
+                    },
+                    registerTurnInputs: async (input) => {
+                      await verifyFrozenInputs()
+                      return science.rpc.registerNotebookTurnInputs({
+                        ...input,
+                        uploads: [],
+                        references: structuredClone(frozenReferences)
+                      })
+                    }
+                  }
+                })()
+              }
+            : {}),
           appVersion: 'earthnano-persistent-candidate',
           callbacks: {
             ...callbacks,
@@ -372,6 +522,12 @@ export function createPersistentCandidateOwners(
       })
     )
     runtimes.add(runtime)
+    if (science)
+      notebookSessions.set(runtime, () =>
+        sessionId
+          ? { projectId: request.projectId, sessionId, workspaceCwd: materialized.cwd }
+          : undefined
+      )
     const agent = createAcpTaskAgentPort(
       runtime,
       createAcpCreateSessionWorkflow(runtime),
@@ -390,6 +546,7 @@ export function createPersistentCandidateOwners(
         context.signal.throwIfAborted()
         if (closing || shutdowns.has(runtime)) throw new Error('Candidate owner is shutting down')
         await assertProject(request.projectId)
+        await verifyFrozenInputs()
         const created = await agent.createSession({
           cwd: materialized.cwd,
           projectId: request.projectId,
@@ -397,8 +554,63 @@ export function createPersistentCandidateOwners(
           permissionProfile: 'ask'
         })
         sessionId = created.sessionId
+        if (science && frozenRuntime) {
+          notebookPolicyReleases.set(
+            runtime,
+            science.service.registerHostPermissionPolicy({
+              projectId: request.projectId,
+              sessionId,
+              permissionPrompts: 'none'
+            })
+          )
+          const scope = { projectId: request.projectId, sessionId, workspaceCwd: materialized.cwd }
+          const { runtimes: available } = await science.service.listRuntimes(scope)
+          const same = (
+            value: import('../../shared/notebook-runtime').NotebookRuntimeBinding
+          ): boolean =>
+            (
+              [
+                'language',
+                'runtimeId',
+                'source',
+                'provenance',
+                'interpreterPath',
+                'version'
+              ] as const
+            ).every((key) => value[key] === frozenRuntime[key])
+          if (
+            !available.some(
+              (entry) => entry.runnable && (entry.status ?? 'active') === 'active' && same(entry)
+            )
+          )
+            throw new Error('Frozen Notebook runtime unavailable or changed')
+          const releasePermit = science.service.registerHostBindingPermit({
+            projectId: request.projectId,
+            sessionId,
+            runtime: frozenRuntime
+          })
+          try {
+            const result = await science.service.bindRuntime(
+              { ...scope, language: 'python', runtimeId: frozenRuntime.runtimeId },
+              context.signal
+            )
+            if (!('bound' in result) || !same(result.bound))
+              throw new Error('Frozen Notebook binding did not commit')
+          } finally {
+            releasePermit()
+          }
+          for (const category of [
+            'mcp:open-science-notebook/notebook_execute:python',
+            'mcp:open-science-notebook/notebook_state',
+            'mcp:open-science-notebook/list_notebook_runtimes',
+            'mcp:open-science-artifacts/write_artifact_file'
+          ])
+            grants.remember(sessionId, category)
+        }
         const now = Date.now()
-        const text = `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nINPUT: ${materialized.inputDir}\nOUTPUT: ${materialized.outputDir}\nTask files are in INPUT. Inputs and embedded context are read-only reference material. Write deliverables under OUTPUT. For proposer/composer harness output, write OUTPUT/context/harness/instructions.md and optional OUTPUT/context/harness/skills/<name>/SKILL.md. Do not use the Python working directory.`
+        const text = scientific
+          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound Python Notebook and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+          : `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nINPUT: ${materialized.inputDir}\nOUTPUT: ${materialized.outputDir}\nTask files are in INPUT. Inputs and embedded context are read-only reference material. Write deliverables under OUTPUT. For proposer/composer harness output, write OUTPUT/context/harness/instructions.md and optional OUTPUT/context/harness/skills/<name>/SKILL.md. Do not use the Python working directory.`
         const idle = await coordinator.saveSession({
           id: sessionId,
           projectId: request.projectId,
@@ -474,7 +686,7 @@ export function createPersistentCandidateOwners(
             await runtimeSessions.flush(sessionId, promptMessageId)
             let artifactRunId: string | undefined
             let reflectionReply: string | undefined
-            if (!settlement.promptError && !settlement.cancellationRequested) {
+            if (!scientific && !settlement.promptError && !settlement.cancellationRequested) {
               const outputs = await collectOutputs(materialized.outputDir)
               if (request.role === 'reflection') {
                 // The original method consumes the committed reply, not a second model
@@ -531,10 +743,60 @@ export function createPersistentCandidateOwners(
             if (frozen.session.activeRun?.promptMessageId === promptMessageId)
               throw new Error('Original Session terminal commit is incomplete')
             const artifacts = await turnArtifacts(frozen)
-            const files = await readFiles({ request, evidence: { artifacts } } as Pick<
-              ExecutionRecord,
-              'request' | 'evidence'
-            >)
+            const files = await readFiles(
+              { request, evidence: { artifacts } } as Pick<ExecutionRecord, 'request' | 'evidence'>,
+              scientific
+            )
+            const scientificReferences: Ref[] = []
+            if (scientific && !settlement.promptError && !settlement.cancellationRequested) {
+              if (!artifacts.length)
+                throw new Error('Scientific candidate published no Notebook report')
+              const runs = (
+                await notebookRuns.readSessionRuns(request.projectId, sessionId)
+              ).filter((run) => run.promptMessageId === promptMessageId)
+              const tuple = (
+                input: NotebookRunInputFile | FrozenNotebookInput
+              ): FrozenNotebookInput => ({
+                sourceKind: input.sourceKind,
+                sourceProjectId: input.sourceProjectId,
+                sourceSessionId: input.sourceSessionId,
+                sourceFileId: input.sourceFileId,
+                inputFileVersionId: input.inputFileVersionId,
+                filename: input.filename,
+                sizeBytes: input.sizeBytes,
+                checksum: input.checksum
+              })
+              const validRuns = runs.filter(
+                (run) =>
+                  run.status === 'completed' &&
+                  run.kernelKind === 'python' &&
+                  run.executionInvocationId &&
+                  (run.runtimeId ?? run.frozenRuntimeTarget?.runtimeId) ===
+                    frozenRuntime!.runtimeId &&
+                  run.frozenRuntimeTarget?.source === frozenRuntime!.source &&
+                  run.frozenRuntimeTarget?.interpreterPath === frozenRuntime!.interpreterPath &&
+                  canonical((run.inputFiles ?? []).map(tuple)) === canonical(frozenInputs)
+              )
+              if (!validRuns.length)
+                throw new Error(
+                  'Scientific candidate has no original completed fixed-input Python Run'
+                )
+              for (const artifact of artifacts) {
+                const { execution } = await provenance.getVersionExecution({
+                  projectId: request.projectId,
+                  appSessionId: sessionId,
+                  artifactId: artifact.artifactId,
+                  versionId: artifact.versionId
+                })
+                if (!execution || !validRuns.some((run) => run.runId === execution.producerRunId))
+                  throw new Error('Scientific ArtifactVersion has no original Notebook producer')
+              }
+              scientificReferences.push({
+                id: `notebook-scientific:${sessionId}:${promptMessageId}`,
+                version: promptMessageId,
+                digest: digest(canonical(runs))
+              })
+            }
             const integrity = files.map((file) => {
               let jsonSyntax: 'valid' | 'invalid' | 'not-applicable' = 'not-applicable'
               if (/\.json$/i.test(file.path)) {
@@ -640,7 +902,7 @@ export function createPersistentCandidateOwners(
                   'Original durable Session review-safe turn projection and fixed ArtifactVersion bytes; deterministic file-integrity Review only',
                 text: replyText,
                 artifacts,
-                references: [frozen.reference, reviewRef],
+                references: [frozen.reference, reviewRef, ...scientificReferences],
                 limitations: [
                   'No semantic Reviewer claim; scope snapshot applies original redaction and clipping.',
                   'Configuration loading remains unknown without independent runtime observation.'
@@ -659,6 +921,16 @@ export function createPersistentCandidateOwners(
     openOwner,
     async exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult> {
       const frozen = await pinnedTurn(record)
+      const scientificRef = record.evidence.references.find((ref) =>
+        ref.id.startsWith('notebook-scientific:')
+      )
+      if (scientificRef) {
+        const runs = (
+          await notebookRuns.readSessionRuns(record.request.projectId, record.identity.sessionId!)
+        ).filter((run) => run.promptMessageId === record.identity.promptMessageId)
+        if (digest(canonical(runs)) !== scientificRef.digest)
+          throw new Error('Original scientific Notebook Runs changed')
+      }
       const replyText = turnReply(frozen)
       if (replyText !== record.evidence.text)
         throw new Error('Execution reply differs from original committed turn')

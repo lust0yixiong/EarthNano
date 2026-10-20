@@ -155,6 +155,19 @@ class DomainTests(unittest.TestCase):
         root.mkdir()
         return config(root, **kwargs)
 
+    def test_managed_scientific_tasks_reject_domain_mixing_before_work(self):
+        cfg = self.cfg("managed-domain")
+        cfg["tasks"][0]["task"] = {
+            "prompt": "Original scientific source task", "files": [], "managedInputs": [{
+                "sourceKind": "upload-version", "sourceProjectId": "project",
+                "sourceSessionId": "source-session", "sourceFileId": "upload",
+                "inputFileVersionId": "old-version", "filename": "values.csv",
+                "sizeBytes": 12, "checksum": "a" * 64,
+            }]}
+        with self.assertRaisesRegex(ValueError, "domain successors"):
+            earthnano_domain.validate_config(cfg)
+        self.assertFalse(Path(cfg["workRoot"]).exists())
+
     def assert_stream(self, cfg, peer, result):
         ids = [item["taskId"] for item in cfg["tasks"]]
         self.assertEqual(result["status"], "ok")
