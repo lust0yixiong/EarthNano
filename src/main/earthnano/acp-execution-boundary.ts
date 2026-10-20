@@ -78,9 +78,17 @@ export function createAcpExecutionBoundary({
         try {
           return await input.dispatch(observation(inherited.context, input, {}))
         } finally {
-          if (active.get(input.request.sessionId) === entry) active.delete(input.request.sessionId)
+          void inherited.core.waitForTerminal(entry.executionId).then((record) => {
+            if (record.cleanup === 'confirmed' && active.get(input.request.sessionId) === entry)
+              active.delete(input.request.sessionId)
+          })
         }
       }
+
+      if (active.has(input.request.sessionId))
+        throw new Error(
+          'Session execution remains owned pending original result and resource settlement'
+        )
 
       const prepared = await host.prepare(input)
       const native = deferred<PromptResponse>()
@@ -173,7 +181,11 @@ export function createAcpExecutionBoundary({
     },
     async settle() {
       const results = await Promise.all([...owners].map((owner) => owner.settle()))
-      return results.every(Boolean)
+      if (!results.every(Boolean)) return false
+      for (const entry of active.values()) {
+        if ((await entry.core.get(entry.executionId)).cleanup !== 'confirmed') return false
+      }
+      return true
     }
   }
 }

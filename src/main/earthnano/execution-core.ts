@@ -14,7 +14,11 @@ import type {
   ExecutionHandle
 } from '../../shared/earthnano/execution-port'
 import { assertExecutionTimeout } from './execution-timeout'
-import { withExecutionScope, withPhysicalCancellation } from './execution-scope'
+import {
+  registerExecutionScope,
+  withExecutionScope,
+  withPhysicalCancellation
+} from './execution-scope'
 import {
   ExecutionContractError,
   requestDigest,
@@ -447,6 +451,7 @@ export class ExecutionCore implements ExecutionPort {
     })
   }
   private async drive(id: string): Promise<void> {
+    let releaseScope: (() => void) | undefined
     const controller = new AbortController()
     this.controllers.set(id, controller)
     try {
@@ -513,15 +518,14 @@ export class ExecutionCore implements ExecutionPort {
         }
       }
       const request = clone(this.require(id).request)
-      const outcome = await withExecutionScope(
-        {
-          core: this,
-          request,
-          context,
-          identity: () => clone(this.require(id).identity)
-        },
-        () => this.driver.execute(request, context)
-      )
+      const scope = {
+        core: this,
+        request,
+        context,
+        identity: () => clone(this.require(id).identity)
+      }
+      releaseScope = registerExecutionScope(scope)
+      const outcome = await withExecutionScope(scope, () => this.driver.execute(request, context))
       if (!this.active(id)) return
       if (!['completed', 'failed', 'cancelled'].includes(outcome.phase)) {
         throw new Error('Driver returned a nonterminal outcome')
@@ -540,6 +544,7 @@ export class ExecutionCore implements ExecutionPort {
           }
         })
     } finally {
+      releaseScope?.()
       clearTimeout(this.timers.get(id))
       this.timers.delete(id)
       this.cancellationOwners.delete(id)
