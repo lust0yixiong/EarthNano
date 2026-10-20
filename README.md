@@ -4,12 +4,13 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 目标是保留现有科研能力，使科研执行与自动优化共享运行、配置和证据体系。
 先面向地学与遥感科研，随后扩展到通用科研。
 
-**当前阶段：共享执行契约已落实，两侧执行路径已抽取并提供内部 opt-in 入口。自动优化与真实候选隔离尚未接入，应用尚未完成 EarthNano 功能验收。**
+**当前阶段：共享执行契约与两侧执行路径已落实，首个 Claude Code 后端的配置加载和候选目录/进程隔离已通过真实 CLI/ACP 验证（限定 profile）。默认桌面入口与自动优化闭环尚未切换，应用尚未完成 EarthNano 功能验收。**
 
 - [实施计划与当前状态](docs/earthnano/PLAN.md)
 - [最小核心契约](docs/earthnano/CORE_CONTRACT.md)
 - [第一轮审查与验证结果](docs/earthnano/ROUND1.md)
 - [第二轮实现与验证结果](docs/earthnano/ROUND2.md)
+- [第三轮 Claude Code 配置与候选隔离](docs/earthnano/ROUND3.md)
 - [共享类型、schema 与契约测试](contracts/execution/README.md)
 - [上游来源、固定提交和许可证](UPSTREAMS.json)
 - [Harness² 固定基线与集成源码](vendor/harness2/)

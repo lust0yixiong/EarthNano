@@ -1,0 +1,246 @@
+{
+  "validatedSourceCommit": "9a23a1057d4d7d328a7a75d434b662daca9d2927",
+  "environment": {
+    "os": "Darwin arm64",
+    "node": "24.22.0",
+    "python": "3.12.13",
+    "claudeCode": "2.1.232",
+    "claudeAgentAcp": "0.70.0",
+    "claudeAgentSdk": "0.3.232"
+  },
+  "vitest": {
+    "files": 29,
+    "passed": 901,
+    "failed": 0,
+    "skipped": 0,
+    "projects": [
+      {
+        "project": "default",
+        "files": 28,
+        "passed": 899,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "process",
+        "files": 1,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "results": [
+      {
+        "path": "src/main/acp/agent-process.test.ts",
+        "project": "default",
+        "passed": 11,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/claude-candidate-preparation.test.ts",
+        "project": "default",
+        "passed": 22,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/earthnano-execution-driver.test.ts",
+        "project": "default",
+        "passed": 21,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/handler-workflows.test.ts",
+        "project": "default",
+        "passed": 56,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/prompt-turn-workflow.test.ts",
+        "project": "default",
+        "passed": 44,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/provider-prompt-executor.test.ts",
+        "project": "default",
+        "passed": 21,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/restricted-inference-runner.test.ts",
+        "project": "default",
+        "passed": 30,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/runtime-coordinator.test.ts",
+        "project": "default",
+        "passed": 225,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/session-configurator.test.ts",
+        "project": "default",
+        "passed": 18,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/session-interaction-owner.test.ts",
+        "project": "default",
+        "passed": 35,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/task-agent-port.test.ts",
+        "project": "default",
+        "passed": 5,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/agent-framework/claude-code.test.ts",
+        "project": "default",
+        "passed": 16,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/candidate-snapshot.test.ts",
+        "project": "default",
+        "passed": 29,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/claude-candidate-driver.test.ts",
+        "project": "default",
+        "passed": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/execution-core.test.ts",
+        "project": "default",
+        "passed": 19,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/earthnano/harness-roundtrip.test.ts",
+        "project": "default",
+        "passed": 1,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/artifact-digest.test.ts",
+        "project": "default",
+        "passed": 7,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/artifact-version-review.test.ts",
+        "project": "default",
+        "passed": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/model-runtime-owner.test.ts",
+        "project": "default",
+        "passed": 13,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/review-assessment-owner.test.ts",
+        "project": "default",
+        "passed": 28,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/reviewer/scope-snapshot.test.ts",
+        "project": "default",
+        "passed": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/specialist/session-reconfiguration.test.ts",
+        "project": "default",
+        "passed": 10,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/session-persistence/runtime-resume-recovery.test.ts",
+        "project": "default",
+        "passed": 18,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/session-persistence/runtime-session-owner.test.ts",
+        "project": "default",
+        "passed": 93,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/tasks/task-run-journal.test.ts",
+        "project": "default",
+        "passed": 15,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/tasks/task-runner.test.ts",
+        "project": "default",
+        "passed": 137,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/settings/provider-env.test.ts",
+        "project": "default",
+        "passed": 6,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/web-service/public-task-event-stream.test.ts",
+        "project": "default",
+        "passed": 3,
+        "status": "passed"
+      },
+      {
+        "path": "src/main/acp/claude-candidate-preparation.integration.test.ts",
+        "project": "process",
+        "passed": 2,
+        "status": "passed"
+      }
+    ]
+  },
+  "pythonUnittest": {
+    "command": "python3 -B -m unittest discover -s tests -v",
+    "cwd": "vendor/harness2",
+    "passed": 24,
+    "failed": 0,
+    "seconds": 25.411
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck:node",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 scripts/earthnano/generate-contract.py --check",
+      "exitCode": 0
+    },
+    {
+      "command": "ESLint all seven added TypeScript files",
+      "exitCode": 0
+    },
+    {
+      "command": "Prettier --check all seven added TypeScript files",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "limitations": [
+    "Actual Claude CLI and ACP/runtime against a local deterministic Anthropic HTTP fixture, not paid inference or scientific quality evaluation",
+    "POSIX profile; verified on Darwin arm64, not Linux; Windows explicitly unsupported",
+    "Candidate native text rejects all @ characters including email, dynamic shell context, and nonempty Skill arguments",
+    "Directory/process and tool capability isolation, not an OS filesystem/network sandbox or hostile same-UID isolation",
+    "Configuration attestation remains unknown; runtime text evidence is partial, without persistent ArtifactVersion/Review binding",
+    "Default desktop bootstrap and Harness automatic optimization are not wired; no Electron startup, full npm test or packaging; GitHub Actions remains disabled"
+  ]
+}
