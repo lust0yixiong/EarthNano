@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ExecutionRecord, ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
 import type { NewCheck, ReviewWithChecks } from '../../shared/reviewer'
 
 import { ExecutionCore, type ExecutionContext } from './execution-core'
 import { currentExecutionScope } from './execution-scope'
-import { FileExecutionStore } from './execution-store'
+import { FileExecutionStore, recoverExecutionJournals } from './execution-store'
 import { assertExecutionTimeout, MAX_TIMER_TIMEOUT_MS } from './execution-timeout'
 import { semanticCanonical } from './semantic-evaluation'
 
@@ -45,36 +45,6 @@ export interface ReviewerExecutionOptions {
   cwd: string
 }
 
-/** Old disposable environments are independent of a new assessment. Recover only abandoned
- * journals whose owner death is proven by the shared store; never replay their provider work or
- * change the original Review. Without original disposal evidence their cleanup stays unknown. */
-function recoverReviewerExecutions(directory: string): void {
-  for (const name of readdirSync(directory)) {
-    if (!name.endsWith('.json.lock')) continue
-    const filename = join(directory, name.slice(0, -'.lock'.length))
-    if (!existsSync(filename)) continue
-    let store: FileExecutionStore
-    try {
-      store = FileExecutionStore.recoverStale(filename)
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Execution store still has a live owner')
-        continue
-      throw error
-    }
-    let recovery: ExecutionCore | undefined
-    try {
-      recovery = new ExecutionCore(store, {
-        execute: async () => {
-          throw new Error('Reviewer recovery cannot replay provider work')
-        }
-      })
-    } finally {
-      recovery?.dispose()
-      store.close()
-    }
-  }
-}
-
 /** The original assessment owns Review creation, MCP, submission, disposal and durable commit.
  * Core admission counts one assessment execution, including upstream's optional recovery turn;
  * it does not claim to count model requests, API calls, tokens or currency. */
@@ -87,8 +57,6 @@ export async function runReviewerExecution(
   const invocation = randomUUID()
   const directory = join(options.artifactStorageRoot, 'earthnano', 'reviewer-executions')
   mkdirSync(directory, { recursive: true, mode: 0o700 })
-  recoverReviewerExecutions(directory)
-  const store = new FileExecutionStore(join(directory, `${invocation}.json`))
   const request: ExecutionRequest = {
     contractVersion: 1,
     projectId: options.projectId,
@@ -127,6 +95,14 @@ export async function runReviewerExecution(
     // plus setup/disposal/commit, using the same timer limits as every other Core execution.
     timeoutMs: Math.min(MAX_TIMER_TIMEOUT_MS, options.reviewerTimeoutMs * 2 + 30_000)
   }
+  // Recovery uses the same Core/store policy as ordinary turns. Historic disposable Reviewer
+  // environments stay fenced with unknown cleanup; this new assessment owns a distinct resource.
+  await recoverExecutionJournals({
+    directory,
+    targetEnvironmentId: request.environmentSpecRef.id,
+    matches: (record) => record.request.role === 'reviewer'
+  })
+  const store = new FileExecutionStore(join(directory, `${invocation}.json`))
   let result: ReviewAssessmentResult | undefined
   let failure: unknown
   let failed = false
