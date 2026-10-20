@@ -13,6 +13,8 @@ import {
 } from '../earthnano/desktop-optimization-manager'
 import type { PersistentOptimizationOptions } from '../earthnano/run-persistent-optimization'
 import type { SettingsService } from '../settings/service'
+import { createDefaultDetectDeps } from '../settings/claude-detect'
+import { isSupportedClaudeCliVersion } from '../../shared/claude-runtime'
 import type { ArchiveCoordinator } from '../archive/coordinator'
 import type { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
 import type { ApplicationModuleBuilder } from '../application-runtime'
@@ -88,6 +90,7 @@ export async function createDesktopOptimizationOptions(
     admitSessionWork(projectId: string, sessionId: string): () => void
     harnessRoot: string
     resolvePython?: () => Promise<string>
+    probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
   }
 ): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
   const releaseWriter = acquireDataRootWriter()
@@ -113,6 +116,13 @@ export async function createDesktopOptimizationOptions(
         'Optimization requires an explicit custom messages provider. Check the selected model and runtime settings.'
       )
     const executablePath = await dependencies.settings.resolveIsolatedClaudeExecutable()
+    const runtimeVersion = await (
+      dependencies.probeClaudeVersion ?? createDefaultDetectDeps().getVersion
+    )(executablePath)
+    if (!runtimeVersion || !isSupportedClaudeCliVersion(runtimeVersion))
+      throw new DesktopOptimizationSetupError(
+        'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
+      )
     await access(dependencies.harnessRoot)
     const python = await (dependencies.resolvePython ?? resolveOptimizationPython)()
     if (!isAbsolute(python))
@@ -150,7 +160,7 @@ export async function createDesktopOptimizationOptions(
           backend: 'claude-code',
           model: provider.model,
           providerRef,
-          runtimeVersion: '2.1.232'
+          runtimeVersion
         },
         environment: { isolation: 'directory-process', network: 'provider-only' }
       },
@@ -163,12 +173,12 @@ export async function createDesktopOptimizationOptions(
           current.provider.baseUrl !== provider.baseUrl ||
           !current.provider.apiEndpoints?.includes('messages') ||
           agent.providerRef !== providerRef ||
-          agent.runtimeVersion !== '2.1.232'
+          agent.runtimeVersion !== runtimeVersion
         )
           throw new Error('Optimization provider changed')
         return {
           executablePath,
-          runtimeVersion: '2.1.232',
+          runtimeVersion,
           providerRef,
           provider: current.provider
         }

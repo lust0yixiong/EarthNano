@@ -90,6 +90,7 @@ const dependencies = () => ({
   validateSession: vi.fn().mockResolvedValue(undefined),
   admitSessionWork: vi.fn().mockReturnValue(vi.fn()),
   harnessRoot: mocks.root,
+  probeClaudeVersion: vi.fn().mockResolvedValue('2.1.232'),
   resolvePython: vi.fn().mockResolvedValue('/synthetic/python3.11')
 })
 beforeEach(async () => {
@@ -152,6 +153,55 @@ it('rejects a changed provider identity during the frozen run', async () => {
     provider: { ...selected().provider, baseUrl: 'https://changed.invalid' }
   })
   await expect(options.binding(options.input.agent)).rejects.toThrow('provider changed')
+  options.releaseAdmission()
+})
+it.each(['2.1.118', '2.1.250'])(
+  'freezes the selected CLI version %s for every candidate instead of the development version',
+  async (version) => {
+    const deps = dependencies()
+    deps.probeClaudeVersion.mockResolvedValue(version)
+    const options = await createDesktopOptimizationOptions(request, deps)
+    expect(deps.probeClaudeVersion).toHaveBeenCalledExactlyOnceWith('/synthetic/claude')
+    expect(options.input.agent.runtimeVersion).toBe(version)
+    // A later probe result cannot silently change an already frozen comparison.
+    deps.probeClaudeVersion.mockResolvedValue('2.1.999')
+    expect(await options.binding(options.input.agent)).toMatchObject({
+      executablePath: '/synthetic/claude',
+      runtimeVersion: version
+    })
+    await expect(
+      options.binding({ ...options.input.agent, runtimeVersion: '2.1.999' })
+    ).rejects.toThrow('provider changed')
+    options.releaseAdmission()
+  }
+)
+it.each([undefined, 'unverified', '2.1.117'])(
+  'rejects unverified or unsupported CLI version %s and releases admission before execution',
+  async (version) => {
+    const deps = dependencies()
+    deps.probeClaudeVersion.mockResolvedValue(version)
+    await expect(createDesktopOptimizationOptions(request, deps)).rejects.toThrow(
+      'supported Claude Code runtime'
+    )
+    expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+    expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+    expect(deps.resolvePython).not.toHaveBeenCalled()
+  }
+)
+it('uses the existing version probe on the selected executable when no test probe is supplied', async () => {
+  const deps = dependencies()
+  const executable = join(mocks.root, 'claude')
+  await writeFile(executable, '#!/bin/sh\nprintf "2.1.250 (Claude Code)\\n"\n', { mode: 0o700 })
+  deps.settings.resolveIsolatedClaudeExecutable.mockResolvedValue(executable)
+  const options = await createDesktopOptimizationOptions(request, {
+    ...deps,
+    probeClaudeVersion: undefined
+  })
+  expect(options.input.agent.runtimeVersion).toBe('2.1.250')
+  expect(await options.binding(options.input.agent)).toMatchObject({
+    executablePath: executable,
+    runtimeVersion: '2.1.250'
+  })
   options.releaseAdmission()
 })
 it('keeps corrupt feature metadata unavailable and fenced without aborting desktop composition', async () => {
