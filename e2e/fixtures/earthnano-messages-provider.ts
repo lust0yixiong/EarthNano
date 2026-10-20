@@ -96,7 +96,12 @@ export async function createEarthnanoMessagesProvider(
   live: boolean,
   scientificOptimization = false,
   pauseFirstProposer = false,
-  testOptions: { keyFile?: string; upstreamFetch?: typeof fetch } = {}
+  testOptions: {
+    keyFile?: string
+    upstreamFetch?: typeof fetch
+    /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
+    maxModelRequests?: number
+  } = {}
 ): Promise<{
   url: string
   token: string
@@ -116,6 +121,9 @@ export async function createEarthnanoMessagesProvider(
   }
   close(): Promise<void>
 }> {
+  const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
+  if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
+    throw new Error('Invalid bounded acceptance request limit')
   const token = randomUUID(),
     controllers = new Set<AbortController>()
   const stats = {
@@ -192,11 +200,7 @@ export async function createEarthnanoMessagesProvider(
         chunks.push(Buffer.from(chunk))
       }
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Body
-      if (
-        body.model !== 'deepseek-flash' ||
-        !body.stream ||
-        ++stats.requests > (scientificOptimization ? 160 : 120)
-      )
+      if (body.model !== 'deepseek-flash' || !body.stream || ++stats.requests > maxModelRequests)
         return reject()
       const userText = body.messages
         .filter((message) => message.role === 'user')
@@ -402,8 +406,26 @@ export async function createEarthnanoMessagesProvider(
           (file: { path: string }) =>
             file.path === (scientificOptimization ? 'research-results.json' : 'result.json')
         )
-        const value = JSON.parse(file.content),
-          pass = value.count === 3 && value.sum === 12 && value.mean === 4
+        const value = JSON.parse(file.content)
+        let expected = { count: 3, sum: 12, mean: 4 }
+        if (scientificOptimization) {
+          // Only the offline model's decision is substituted. Recompute from the actual
+          // independently frozen source evidence, so a second task cannot pass using task one's CSV.
+          const sources = JSON.parse(await readFile(join(input, 'evidence/sources.json'), 'utf8'))
+          if (sources.inputs.length !== 1 || sources.inputs[0].status !== 'available')
+            throw new Error('Expected one available fixed CSV source for offline assessment')
+          const [header, ...rows] = sources.inputs[0].content.trim().split(/\r?\n/)
+          if (header !== 'sample,value') throw new Error('Unsupported acceptance CSV')
+          const values = rows.map((row: string) => Number(row.split(',')[1]))
+          if (!values.length || values.some((number: number) => !Number.isFinite(number)))
+            throw new Error('Invalid acceptance CSV values')
+          const sum = values.reduce((total: number, number: number) => total + number, 0)
+          expected = { count: values.length, sum, mean: sum / values.length }
+        }
+        const pass =
+          value.count === expected.count &&
+          value.sum === expected.sum &&
+          value.mean === expected.mean
         return write(
           join(output, 'assessment.json'),
           JSON.stringify({

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -98,3 +98,90 @@ it('counts a completed upstream stream once and retains actual reported token to
     usage: { input: 11, cacheRead: 7, output: 5, incompleteRequests: 0 }
   })
 })
+
+it('enforces an explicit model-request ceiling before another upstream request', async () => {
+  const upstream = vi.fn<typeof fetch>(async () => new Response('data: [DONE]\n\n'))
+  const provider = await createEarthnanoMessagesProvider(true, true, false, {
+    keyFile: await (async () => {
+      const root = await mkdtemp(join(tmpdir(), 'earthnano-bounded-'))
+      cleanups.push(() => rm(root, { recursive: true, force: true }))
+      const keyFile = join(root, 'fixture.key')
+      await writeFile(keyFile, ['sk', 'fixture-only'].join('-'), { mode: 0o600 })
+      return keyFile
+    })(),
+    upstreamFetch: upstream,
+    maxModelRequests: 1
+  })
+  cleanups.push(() => provider.close())
+  await (await request(provider)).text()
+  expect((await request(provider)).status).toBe(400)
+  expect(upstream).toHaveBeenCalledOnce()
+  expect(provider.stats.requests).toBe(2)
+  expect(provider.stats.upstreamRequests).toBe(1)
+})
+
+it.each([0, 321, 1.5, NaN])(
+  'rejects an invalid acceptance ceiling %s',
+  async (maxModelRequests) => {
+    await expect(
+      createEarthnanoMessagesProvider(false, true, false, { maxModelRequests })
+    ).rejects.toThrow('Invalid bounded acceptance request limit')
+  }
+)
+
+it.each([true, false])(
+  'offline reviewer uses its own frozen source, correct=%s',
+  async (correct) => {
+    const root = await mkdtemp(join(tmpdir(), 'earthnano-source-review-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    await mkdir(join(root, 'evidence'))
+    await writeFile(
+      join(root, 'evidence/sources.json'),
+      JSON.stringify({
+        inputs: [{ status: 'available', content: 'sample,value\nX,10\nY,20\n' }]
+      })
+    )
+    await writeFile(
+      join(root, 'evidence/artifacts.json'),
+      JSON.stringify([
+        {
+          path: 'research-results.json',
+          artifactRef: 'artifact-ref',
+          content: JSON.stringify(
+            correct ? { count: 2, sum: 30, mean: 15 } : { count: 3, sum: 12, mean: 4 }
+          )
+        }
+      ])
+    )
+    await writeFile(
+      join(root, 'evidence/criteria.json'),
+      JSON.stringify({ criteria: [{ id: 'arithmetic' }] })
+    )
+    const provider = await createEarthnanoMessagesProvider(false, true)
+    cleanups.push(() => provider.close())
+    const response = await fetch(`${provider.url}/v1/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        ...body,
+        messages: [
+          {
+            role: 'user',
+            content: `EarthNano execution role: reviewer.\nINPUT: ${root}\nOUTPUT: ${root}`
+          }
+        ]
+      })
+    })
+    expect(response.status).toBe(200)
+    const events = (await response.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)))
+    const instruction = JSON.parse(
+      events.find((event) => event.delta?.partial_json)?.delta.partial_json
+    )
+    const assessment = JSON.parse(instruction.content)
+    expect(assessment.outcome).toBe(correct ? 'pass' : 'flagged')
+    expect(provider.stats.upstreamRequests).toBe(0)
+  }
+)
