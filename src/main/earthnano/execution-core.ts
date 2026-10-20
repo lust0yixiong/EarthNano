@@ -137,7 +137,10 @@ export class ExecutionCore implements ExecutionPort {
   private readonly cancellationOwners = new Map<string, () => Promise<void>>()
   private readonly cancellations = new Map<string, Promise<CancellationReceipt>>()
   private readonly observations = new Map<string, Set<string>>()
-  private readonly terminalWaiters = new Map<string, Set<(record: ExecutionRecord) => void>>()
+  private readonly terminalWaiters = new Map<
+    string,
+    Set<{ resolve(record: ExecutionRecord): void; reject(error: Error): void }>
+  >()
 
   constructor(
     private readonly store: ExecutionStore,
@@ -264,9 +267,9 @@ export class ExecutionCore implements ExecutionPort {
     this.assertOpen()
     const record = this.require(id)
     if (terminal(record.phase)) return Promise.resolve(clone(record))
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const waiters = this.terminalWaiters.get(id) ?? new Set()
-      waiters.add(resolve)
+      waiters.add({ resolve, reject })
       this.terminalWaiters.set(id, waiters)
     })
   }
@@ -387,6 +390,10 @@ export class ExecutionCore implements ExecutionPort {
   /** Retires this owner for controlled restart. Late driver callbacks cannot write to the store. */
   dispose(): void {
     this.disposed = true
+    for (const waiters of this.terminalWaiters.values())
+      for (const waiter of waiters)
+        waiter.reject(new Error('Execution owner retired before terminal commit'))
+    this.terminalWaiters.clear()
     for (const timer of this.timers.values()) clearTimeout(timer)
     for (const controller of this.controllers.values()) controller.abort()
     this.controllers.clear()
@@ -426,7 +433,7 @@ export class ExecutionCore implements ExecutionPort {
       const record = next.records[id]
       if (!record || !terminal(record.phase)) continue
       this.terminalWaiters.delete(id)
-      for (const resolve of waiters) resolve(clone(record))
+      for (const waiter of waiters) waiter.resolve(clone(record))
     }
   }
   private append(

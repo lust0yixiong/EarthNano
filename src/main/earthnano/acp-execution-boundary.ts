@@ -78,10 +78,13 @@ export function createAcpExecutionBoundary({
         try {
           return await input.dispatch(observation(inherited.context, input, {}))
         } finally {
-          void inherited.core.waitForTerminal(entry.executionId).then((record) => {
-            if (record.cleanup === 'confirmed' && active.get(input.request.sessionId) === entry)
-              active.delete(input.request.sessionId)
-          })
+          void inherited.core
+            .waitForTerminal(entry.executionId)
+            .then((record) => {
+              if (record.cleanup === 'confirmed' && active.get(input.request.sessionId) === entry)
+                active.delete(input.request.sessionId)
+            })
+            .catch(() => undefined)
         }
       }
 
