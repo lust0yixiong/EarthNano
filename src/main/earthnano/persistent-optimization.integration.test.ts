@@ -93,12 +93,14 @@ async function exercise(
   stopEarly = false,
   method?: OptimizationMethodOptions,
   failFirstProposal = false,
-  research?: { domain?: OptimizationDomainSpec; checks?: OutputCheckSpec[] }
+  research?: { domain?: OptimizationDomainSpec; checks?: OutputCheckSpec[] },
+  resumeStages?: number
 ): Promise<void> {
   const k = method?.k ?? 1
   const taskCount = 1 + (research?.domain?.nextTasks.length ?? 0)
   const expectedAdmissions =
-    (7 * k + (k > 1 ? 1 : 0) + (desktop ? 2 : 0) + (research?.domain ? 1 : 0)) * taskCount
+    (7 * k + (k > 1 ? 1 : 0) + (desktop || resumeStages ? 2 : 0) + (research?.domain ? 1 : 0)) *
+    taskCount
   const executionLimit = research?.domain
     ? minimumResearchExecutions(
         method ?? { mode: 'sequential', k: 1, concurrency: 1 },
@@ -122,6 +124,7 @@ async function exercise(
   const controllers = new Set<AbortController>()
   let requests = 0,
     rejects = 0
+  const rejectedRoutes: string[] = []
   const usage = { input: 0, cacheRead: 0, output: 0 }
   const readInputs = new Set<string>()
   const successorContexts = new Map<string, string>()
@@ -134,6 +137,9 @@ async function exercise(
   const server = createServer(async (request, response) => {
     const reject = (): void => {
       rejects++
+      rejectedRoutes.push(
+        `${request.method} ${new URL(request.url ?? '/', 'http://127.0.0.1').pathname}`
+      )
       response.writeHead(400, { 'content-type': 'application/json' })
       response.end(
         JSON.stringify({
@@ -474,6 +480,9 @@ async function exercise(
     harnessRoot: resolve('vendor/harness2'),
     ownerOptions,
     executionLimit,
+    ...(resumeStages
+      ? { semanticCriteria: 'The result excludes the header and sums the value column correctly.' }
+      : {}),
     ...(research ?? {}),
     ...(method ? { method } : {}),
     executionTimeoutMs: 120_000,
@@ -690,6 +699,73 @@ async function exercise(
       'completed'
     )
     await restarted.shutdown()
+  } else if (resumeStages) {
+    const stop = new AbortController()
+    let requested = false
+    await expect(
+      runPersistentOptimization({
+        ...runOptions,
+        signal: stop.signal,
+        onProgress: (progress) => {
+          if (
+            !requested &&
+            progress.records.filter((record) => record.phase === 'completed').length >= resumeStages
+          ) {
+            requested = true
+            setImmediate(() => stop.abort())
+          }
+        }
+      })
+    ).rejects.toThrow()
+    const journalPath = join(runOptions.workRoot, 'execution.json')
+    const before = JSON.parse(
+      await readFile(journalPath, 'utf8')
+    ) as import('./execution-core').ExecutionState
+    const confirmed = Object.values(before.records).filter((record) => record.phase === 'completed')
+    expect(confirmed.length).toBeGreaterThanOrEqual(resumeStages)
+    expect(Object.values(before.records).every((record) => record.cleanup === 'confirmed')).toBe(
+      true
+    )
+    const pausedCount = requests
+    result = await runPersistentOptimization({ ...runOptions, resume: true })
+    expect(requests).toBeGreaterThan(pausedCount)
+    expect(result.records.filter((record) => record.phase === 'completed')).toHaveLength(
+      expectedAdmissions
+    )
+    for (const record of confirmed)
+      expect(result.records.find((entry) => entry.executionId === record.executionId)).toEqual(
+        record
+      )
+    const after = JSON.parse(
+      await readFile(journalPath, 'utf8')
+    ) as import('./execution-core').ExecutionState
+    expect(Object.values(after.budgets)[0].admitted).toBe(result.records.length)
+    expect(result.records.length).toBeLessThanOrEqual(executionLimit)
+    expect((result.methodResult as { fallbackStages: string[] }).fallbackStages).toEqual([])
+    const beforeReopen = requests
+    const reopened = await runPersistentOptimization({ ...runOptions, resume: true })
+    expect(requests).toBe(beforeReopen)
+    expect(reopened.records).toEqual(result.records)
+    expect(reopened.assessments).toEqual(result.assessments)
+    expect((reopened.methodResult as { chosenArtifacts: unknown }).chosenArtifacts).toEqual(
+      (result.methodResult as { chosenArtifacts: unknown }).chosenArtifacts
+    )
+    await expect(
+      runPersistentOptimization({
+        ...runOptions,
+        resume: true,
+        input: { ...runOptions.input, agent: { ...runOptions.input.agent, model: 'changed' } }
+      })
+    ).rejects.toThrow('identity changed')
+    expect(requests).toBe(beforeReopen)
+    const owners = createPersistentCandidateOwners(ownerOptions)
+    for (const record of confirmed)
+      expect((await owners.exportResult(record)).artifacts).toEqual(record.evidence.artifacts)
+    await owners.shutdown()
+    // The unchanged native CLI probes this optional health endpoint before each Session.
+    // The bounded fixture rejects it; no admitted model request may be rejected.
+    expect(new Set(rejectedRoutes)).toEqual(new Set(['HEAD /api/hello']))
+    return
   } else result = await runPersistentOptimization(runOptions)
   if (live) {
     expect(result.records.length).toBeGreaterThanOrEqual(expectedAdmissions)
@@ -1115,4 +1191,10 @@ it.skipIf(process.platform === 'win32')(
   'persists an ordinary failed proposer charge and accepts the original retry through real Sessions and reviews',
   () => exercise(false, true, false, undefined, true),
   480_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'explicitly resumes partial original stages through real Sessions and Core without repeating completed model dispatches or charges',
+  () => exercise(false, false, false, undefined, false, undefined, 2),
+  240_000
 )

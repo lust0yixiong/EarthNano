@@ -16,6 +16,8 @@ import type {
 import { requestDigest, validateRequest } from './execution-contract'
 import { assertClaudeCandidateText } from '../acp/claude-candidate-preparation'
 import { assertExecutionTimeout } from './execution-timeout'
+import { sameExecutionInputs } from './optimization-resume'
+import { outputDigest } from './output-checks'
 import {
   MAX_HARNESS_FRAME_BYTES,
   MAX_HARNESS_EVIDENCE_BYTES,
@@ -29,6 +31,7 @@ export interface PersistentExecutionExport {
   artifacts: ArtifactReference[]
   replyText: string
   trajectoryText: string
+  reused?: boolean
   files: Array<CandidateTextFile & { digest: string; artifactRef: ArtifactReference }>
 }
 export interface HarnessOptimizationBindingOptions {
@@ -41,6 +44,9 @@ export interface HarnessOptimizationBindingOptions {
   budgetRef: string
   timeoutMs: number
   exportResult(record: ExecutionRecord): Promise<PersistentExecutionExport>
+  resumeRecords?: ExecutionRecord[]
+  resumeSlot?(requestKey: string): string | undefined
+  onFreeze?(request: ExecutionRequest, slot: string): void
 }
 
 const fail = (): never => {
@@ -104,12 +110,34 @@ export class HarnessOptimizationBinding {
   private readonly frozen = new Map<string, string>()
   private readonly admitted = new Set<string>()
   private stopped = false
+  private readonly reused = new Set<string>()
+  private readonly fresh = new Set<string>()
+  private readonly slots = new Map<string, string>()
+  private readonly requestSlots = new Map<string, string>()
   constructor(options: HarnessOptimizationBindingOptions) {
     this.options = { ...options, input: structuredClone(options.input) }
     assertExecutionTimeout(options.timeoutMs)
+    for (const record of options.resumeRecords ?? []) {
+      if (
+        record.request.projectId !== options.projectId ||
+        record.request.origin.optimizationId !== options.optimizationId ||
+        record.request.budgetRef !== options.budgetRef ||
+        record.cleanup !== 'confirmed' ||
+        !['completed', 'failed', 'cancelled'].includes(record.phase)
+      )
+        return fail()
+      const slot = options.resumeSlot?.(record.requestKey)
+      if (!slot) throw new Error('Optimization stage ownership is unavailable')
+      this.slots.set(slot, record.executionId)
+      this.requestSlots.set(record.requestKey, slot)
+      this.admitted.add(record.executionId)
+      if (record.phase === 'completed') this.reused.add(record.executionId)
+    }
   }
   get executionIds(): string[] {
-    return [...this.admitted]
+    return this.options.resumeRecords === undefined
+      ? [...this.admitted]
+      : [...new Set([...this.slots.values(), ...this.fresh])]
   }
   async stop(): Promise<void> {
     this.stopped = true
@@ -119,12 +147,18 @@ export class HarnessOptimizationBinding {
     if (this.stopped) throw new Error('Optimization binding stopped')
     const { core } = this.options
     if (operation === 'freezeInvocation') return this.freeze(args)
+    if (operation === 'taskRecords') {
+      if (args.taskId !== this.options.taskId) return fail()
+      return Promise.all(this.executionIds.map((id) => core.get(id)))
+    }
     if (operation === 'submit') {
       validateRequest(args.request)
       const request = args.request as ExecutionRequest
       if (this.frozen.get(request.requestKey) !== requestDigest(request)) return fail()
       const handle = await core.submit(request)
       this.admitted.add(handle.executionId)
+      if (!this.reused.has(handle.executionId)) this.fresh.add(handle.executionId)
+      this.slots.set(this.requestSlots.get(request.requestKey)!, handle.executionId)
       if (this.stopped) await core.cancel(handle.executionId)
       return handle
     }
@@ -161,7 +195,7 @@ export class HarnessOptimizationBinding {
           )
             return fail()
         }
-        return result
+        return { ...result, ...(this.reused.has(id) ? { reused: true } : {}) }
       }
       default:
         return fail()
@@ -260,8 +294,29 @@ export class HarnessOptimizationBinding {
     }
     validateRequest(request)
     if (this.stopped) throw new Error('Optimization binding stopped during freezing')
-    this.frozen.set(request.requestKey, requestDigest(request))
-    return request
+    const slot = outputDigest([role, stageLabel, label, invocation.attempt ?? 1])
+    const previous = this.options.resumeRecords?.filter(
+      (record) => this.options.resumeSlot?.(record.requestKey) === slot
+    )
+    const completed = previous?.find(
+      (record) => record.phase === 'completed' && sameExecutionInputs(record.request, request)
+    )
+    let frozenRequest = request
+    if (completed) {
+      // Re-submit the ORIGINAL immutable request: Core returns the same handle without admission.
+      await this.options.exportResult(completed)
+      frozenRequest = structuredClone(completed.request)
+      this.reused.add(completed.executionId)
+    } else if (previous?.some((record) => record.phase === 'completed')) {
+      throw new Error('Completed optimization stage identity changed; paid replay refused')
+    } else if (previous?.length) {
+      const last = previous.at(-1)!
+      frozenRequest.origin.retryOfExecutionId = last.executionId
+    }
+    this.options.onFreeze?.(frozenRequest, slot)
+    this.requestSlots.set(frozenRequest.requestKey, slot)
+    this.frozen.set(frozenRequest.requestKey, requestDigest(frozenRequest))
+    return frozenRequest
   }
 }
 

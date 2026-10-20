@@ -20,6 +20,7 @@ from typing import TextIO
 
 from .execution_contract import ExecutionStopped, validate_request
 from .method_execution import Invocation
+from . import runmark
 from .proposer import Reply
 
 MAX_MESSAGE_BYTES = 32 * 1024 * 1024
@@ -212,19 +213,23 @@ class PlatformRequestFactory:
 class PlatformResultReader:
     """Validate the fixed-version projection and build a private, readonly adapter view."""
 
-    def __init__(self, client: JsonLineClient, root: Path):
+    def __init__(self, client: JsonLineClient, root: Path, *, resume=False):
         self.client = client
         self.root = Path(root)
-        self.root.mkdir(mode=0o700)
+        self.root.mkdir(mode=0o700, exist_ok=resume)
+        self.resume = resume
+        self.metadata = self.root / ".projections"
+        self.metadata.mkdir(mode=0o700, exist_ok=resume)
         self.views: dict[Path, dict] = {}
         self.lock = threading.Lock()
 
     def _read(self, record):
         try:
             result = self.client.exchange("readResult", executionId=record["executionId"])
-            if not isinstance(result, dict) or set(result) != {
-                "executionId", "artifacts", "replyText", "trajectoryText", "files"
-            }:
+            required = {"executionId", "artifacts", "replyText", "trajectoryText", "files"}
+            if (not isinstance(result, dict) or required - set(result)
+                    or set(result) - required - {"reused"}
+                    or ("reused" in result and type(result["reused"]) is not bool)):
                 raise ValueError("Invalid versioned result projection")
             if (result["executionId"] != record["executionId"]
                     or result["artifacts"] != record["evidence"]["artifacts"]):
@@ -244,7 +249,22 @@ class PlatformResultReader:
         except Exception:
             raise ExecutionStopped("Invalid immutable result projection") from None
 
-    def _materialize(self, result, *, harvest=False):
+    def _materialize(self, result, invocation, *, harvest=False):
+        if self.resume:
+            for folder in sorted(self.root.iterdir()):
+                marker = runmark.read_mark(self.metadata / folder.name)
+                if (not marker or marker.get("execution_id") != result["executionId"]
+                        or marker.get("harvest") != harvest):
+                    continue
+                if not runmark.is_complete(self.metadata / folder.name, harness_dir=invocation.harness_dir):
+                    raise ExecutionStopped("Completed rollout harness changed; replay refused")
+                original = self.view(folder)
+                expected = result if not harvest else dict(result, files=[
+                    dict(entry, path=entry["path"][len("context/harness/"):])
+                    for entry in result["files"] if entry["path"].startswith("context/harness/")])
+                if self._stable(original) != self._stable(expected) or not self.intact(folder):
+                    raise ExecutionStopped("Committed result projection changed; replay refused")
+                return folder
         folder = self.root / uuid.uuid4().hex
         folder.mkdir(mode=0o700)
         files = result["files"]
@@ -257,6 +277,14 @@ class PlatformResultReader:
             with target.open("x", encoding="utf-8", newline="") as stream:
                 stream.write(entry["content"])
             target.chmod(0o400)
+        projection = dict(result, files=files)
+        metadata = self.metadata / folder.name
+        metadata.mkdir(mode=0o700)
+        (metadata / "projection.json").write_text(
+            json.dumps(projection, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+        runmark.mark_complete(metadata, run_id=invocation.run_id or invocation.label,
+                              harness_dir=invocation.harness_dir,
+                              extra={"execution_id": result["executionId"], "harvest": harvest})
         for parent, directories, _ in os.walk(folder, topdown=False):
             for name in directories:
                 (Path(parent) / name).chmod(0o500)
@@ -266,18 +294,46 @@ class PlatformResultReader:
         return folder
 
     def rollout(self, record, invocation):
-        return self._materialize(self._read(record))
+        return self._materialize(self._read(record), invocation)
 
     def reply(self, record, invocation):
         result = self._read(record)
         harvested = any(entry["path"].startswith("context/harness/") for entry in result["files"])
-        workspace = self._materialize(result, harvest=True) if harvested else None
+        workspace = self._materialize(result, invocation, harvest=True) if harvested else None
         return Reply(label=invocation.label, text=result["replyText"], ok=True, workspace=workspace,
-                     execution_id=record["executionId"])
+                     execution_id=record["executionId"], cached=result.get("reused", False))
+
+    @staticmethod
+    def _stable(result):
+        return {key: value for key, value in result.items() if key != "reused"}
 
     def view(self, path):
+        folder = Path(path)
         with self.lock:
-            return self.views[Path(path)]
+            if folder in self.views:
+                return self.views[folder]
+        if not self.resume or folder.is_symlink() or self.root.resolve() not in folder.resolve().parents:
+            raise ExecutionStopped("Unowned method result path")
+        metadata = self.metadata / folder.name
+        marker = runmark.read_mark(metadata)
+        if not marker or marker.get("version") != runmark.VERSION:
+            raise ExecutionStopped("Original completed rollout marker is unavailable")
+        result = self._read({
+            "executionId": marker.get("execution_id"),
+            "evidence": {"artifacts": json.loads(
+                (metadata / "projection.json").read_text(encoding="utf-8"))["artifacts"]},
+        })
+        projection = json.loads((metadata / "projection.json").read_text(encoding="utf-8"))
+        if marker.get("harvest"):
+            result = dict(result, files=[dict(entry, path=entry["path"][len("context/harness/"):])
+                for entry in result["files"] if entry["path"].startswith("context/harness/")])
+        if self._stable(projection) != self._stable(result):
+            raise ExecutionStopped("Original immutable result projection changed")
+        with self.lock:
+            self.views[folder] = result
+        if not self.intact(folder):
+            raise ExecutionStopped("Original completed rollout bytes changed")
+        return result
 
     def intact(self, path):
         try:

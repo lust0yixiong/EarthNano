@@ -498,3 +498,59 @@ describe('host-fixed scientific Harness capabilities', () => {
     }
   )
 })
+
+it('reuses only the exact completed original stage and refuses changed task or role context before replay', async () => {
+  const f = await setup()
+  const original = (await f.binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+  await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+  const record = await f.core.get(handle.executionId)
+  const { outputDigest } = await import('./output-checks')
+  const slot = outputDigest(['baseline', 'inv1', 'inv1.a1', 1])
+  const resumed = (source = input): HarnessOptimizationBinding =>
+    new HarnessOptimizationBinding({
+      core: f.core,
+      snapshots: f.snapshots,
+      input: source,
+      projectId: original.projectId,
+      optimizationId: original.origin.optimizationId!,
+      taskId: 't1',
+      budgetRef: original.budgetRef,
+      timeoutMs: original.timeoutMs,
+      resumeRecords: [record],
+      resumeSlot: () => slot,
+      exportResult: async (value) => ({ ...f.exportValue, executionId: value.executionId })
+    })
+  const binding = resumed()
+  const reused = (await binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  expect(reused).toEqual(original)
+  expect(await binding.dispatch('submit', { request: reused })).toEqual({
+    ...handle,
+    phase: 'completed'
+  })
+  expect(await binding.dispatch('readResult', { executionId: handle.executionId })).toMatchObject({
+    reused: true
+  })
+  expect(binding.executionIds).toEqual([handle.executionId])
+  await expect(
+    resumed({ ...input, task: { ...input.task, prompt: 'Changed scientific task' } }).dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )
+  ).rejects.toThrow('identity changed')
+  await expect(
+    resumed().dispatch('freezeInvocation', {
+      ...invocation('baseline'),
+      contextFiles: [{ path: 'context/harness/instructions.md', content: 'Changed evidence' }]
+    })
+  ).rejects.toThrow('identity changed')
+  await expect(
+    binding.dispatch('submit', { request: { ...reused, role: 'candidate' } })
+  ).rejects.toThrow()
+})

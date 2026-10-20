@@ -26,7 +26,7 @@ from .core.proposer import Proposer
 def validate_config(value):
     fields = {"configVersion", "domain", "tasks", "baseHarnessFiles", "workRoot", "model",
               "method", "executionTimeoutMs", "rpcTimeoutMs"}
-    if (not isinstance(value, dict) or set(value) != fields
+    if (not isinstance(value, dict) or fields - set(value) or set(value) - fields - {"resume"}
             or type(value["configVersion"]) is not int or value["configVersion"] != 1):
         raise ValueError("Invalid EarthNano domain configuration fields or version")
     domain = value["domain"]
@@ -37,6 +37,8 @@ def validate_config(value):
     if not isinstance(tasks, list) or not 1 <= len(tasks) <= 4:
         raise ValueError("Expected one to four ordered tasks")
     common = {key: value[key] for key in fields - {"domain", "tasks"}}
+    if "resume" in value:
+        common["resume"] = value["resume"]
     normalized = []
     prefix = None
     for index, item in enumerate(tasks, 1):
@@ -64,7 +66,7 @@ class DomainAdapter(earthnano.EarthNanoAdapter):
         self.sources = {first["taskId"]: self.source}
         for item in config["tasks"][1:]:
             source = root / "task-sources" / item["taskId"]
-            source.mkdir(parents=True)
+            source.mkdir(parents=True, exist_ok=config.get("resume", False))
             for entry in text_files(item["task"]["files"]):
                 path = source / safe_path(entry["path"])
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,7 +117,7 @@ def task_result(config, task_id, summary, adapter, reader, records):
     base_tree = tree.read_tree(earthnano.TEXT_SURFACE, adapter.base_harness())
     stages = summary.get("modes", {}).get(mode, {}).get("stages", [])
     result = {
-        "taskId": task_id, "status": summary["status"], "summary": summary,
+        "taskId": task_id, "status": "ok" if summary["status"] == "skipped" else summary["status"], "summary": summary,
         "chosenArtifacts": chosen["artifacts"] if chosen else [],
         "configurationChanged": bool(chosen_tree and chosen_tree != base_tree),
         "fallbackStages": [stage["label"] for stage in stages if stage["fell_back"]],
@@ -142,17 +144,18 @@ def task_result(config, task_id, summary, adapter, reader, records):
 def run(config, client):
     config = validate_config(config)
     root = Path(config["workRoot"])
-    root.mkdir(mode=0o700)
-    reader = PlatformResultReader(client, root / "results")
+    root.mkdir(mode=0o700, exist_ok=config.get("resume", False))
+    reader = PlatformResultReader(client, root / "results", resume=config.get("resume", False))
     adapter = DomainAdapter(config, root, reader)
     factory = DomainRequestFactory(client, timeout_ms=config["executionTimeoutMs"])
     execution = PortMethodExecution(StdioExecutionPort(client), factory, reader, poll_interval=0.02)
+    execution.resume = config.get("resume", False)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)
     method = config["method"]
     mode = schedule.mode_token(method["mode"])
     ordered = schedule.task_stream(adapter, seed=None)[config["domain"]]
     library_root = root / "library"
-    library_root.mkdir(mode=0o700)
+    library_root.mkdir(mode=0o700, exist_ok=config.get("resume", False))
     stream = schedule.run_domain(config["domain"], ordered, method["k"], adapter=adapter,
                                  prop=prop, runs_root=adapter.spec.runs_root,
                                  library_root=library_root, modes=(mode,), seed=None,
@@ -171,8 +174,9 @@ def run(config, client):
             "seed": None, "status": row["status"], "base": [], "modes": {}, "selections": {},
             "errors": [row.get("error", "Domain task did not persist a summary")],
         }
-        own_records = [record for record in records
-                       if factory.task_by_request[record["requestKey"]] == task_id]
+        own_records = (client.exchange("taskRecords", taskId=task_id) if config.get("resume") else
+                       [record for record in records
+                        if factory.task_by_request[record["requestKey"]] == task_id])
         projected = task_result(config, task_id, summary, adapter, reader, own_records)
         projected["libraryEntriesBefore"] = row.get("library_entries_before", {}).get(
             mode, sum(task in entries for task in ordered[:index]))

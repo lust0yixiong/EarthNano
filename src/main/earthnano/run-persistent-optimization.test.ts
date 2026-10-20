@@ -1,6 +1,6 @@
 import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const f = vi.hoisted(() => ({
@@ -79,7 +79,7 @@ const options = async (): Promise<PersistentOptimizationOptions> => {
     projectId: 'p',
     taskId: 't',
     workRoot: join(root, 'run'),
-    harnessRoot: root,
+    harnessRoot: resolve('vendor/harness2'),
     input: {
       task: { prompt: 'Task', files: [] },
       harness: { instructions: 'Instructions', skills: [], tools: 'workspace-only' },

@@ -261,7 +261,6 @@ class PortMethodExecution(MethodExecution):
             reply.cost_usd = spent
             reply.usage_status = usage_status
             reply.attempts = attempt
-            reply.cached = False
             return reply
         raise ProposerError(
             f"[{label}] {last}", attempts=tries, cost_usd=spent, execution_id=previous,

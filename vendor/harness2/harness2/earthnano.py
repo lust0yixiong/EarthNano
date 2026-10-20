@@ -74,12 +74,12 @@ class EarthNanoAdapter:
         self.config, self.root, self.reader = config, root, reader
         self.substrate = TextSubstrate()
         self.base = root / "base-harness"
-        self.base.mkdir()
+        self.base.mkdir(exist_ok=config.get("resume", False))
         base = {item["path"]: item["content"] for item in text_files(config["baseHarnessFiles"])}
         validate_text_harness(base)
         tree.write_tree(TEXT_SURFACE, base, self.base, stubs=False)
         self.source = root / "source"
-        self.source.mkdir()
+        self.source.mkdir(exist_ok=config.get("resume", False))
         for entry in text_files(config["task"]["files"]):
             path = self.source / safe_path(entry["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -186,9 +186,11 @@ def validate_managed_inputs(value):
 
 def validate_config(value):
     required = {"configVersion", "taskId", "task", "baseHarnessFiles", "workRoot", "model"}
-    optional = {"executionTimeoutMs", "rpcTimeoutMs", "method"}
+    optional = {"executionTimeoutMs", "rpcTimeoutMs", "method", "resume"}
     if not isinstance(value, dict) or required - value.keys() or value.keys() - required - optional:
         raise ValueError("Invalid EarthNano configuration fields")
+    if "resume" in value and value["resume"] is not True:
+        raise ValueError("Resume requires explicit true")
     if value["configVersion"] != 1:
         raise ValueError("Unsupported EarthNano configuration version")
     if not isinstance(value["taskId"], str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", value["taskId"]):
@@ -228,12 +230,13 @@ def validate_config(value):
 def run(config, client):
     config = validate_config(config)
     root = Path(config["workRoot"])
-    root.mkdir(mode=0o700)  # No cache resume or overwrite of a previous invocation's local view.
-    reader = PlatformResultReader(client, root / "results")
+    root.mkdir(mode=0o700, exist_ok=config.get("resume", False))
+    reader = PlatformResultReader(client, root / "results", resume=config.get("resume", False))
     adapter = EarthNanoAdapter(config, root, reader)
     execution = PortMethodExecution(StdioExecutionPort(client),
                                     PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"]),
                                     reader, poll_interval=0.02)
+    execution.resume = config.get("resume", False)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)
     method = config["method"]
     mode = schedule.mode_token(method["mode"])
@@ -250,7 +253,10 @@ def run(config, client):
     changed = bool(chosen_tree and chosen_tree != base_tree)
     stages = result.modes.get(mode, {}).get("stages", [])
     return {
-        "status": result.status, "summary": result.to_dict(), "records": list(execution.records),
+        "status": "ok" if result.status == "skipped" else result.status,
+        "summary": result.to_dict(),
+        "records": (client.exchange("taskRecords", taskId=config["taskId"])
+                    if config.get("resume") else list(execution.records)),
         "chosenArtifacts": chosen["artifacts"] if chosen else [],
         "configurationChanged": changed,
         "fallbackStages": [stage["label"] for stage in stages if stage["fell_back"]],

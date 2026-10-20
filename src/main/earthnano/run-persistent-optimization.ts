@@ -25,6 +25,15 @@ import {
   type ClaudeCandidateDriverOptions
 } from './claude-candidate-driver'
 import { ExecutionCore } from './execution-core'
+import {
+  OptimizationResumeIndex,
+  optimizationMethodDigest,
+  readPersistentOptimizationResume,
+  writeResumeJson,
+  reuseAssessmentRequest,
+  type OptimizationResumeIdentity
+} from './optimization-resume'
+export { readPersistentOptimizationResume } from './optimization-resume'
 import { FileExecutionStore } from './execution-store'
 import {
   assertExecutionTimeout,
@@ -64,8 +73,10 @@ export interface PersistentOptimizationOptions {
   input: CandidateSnapshotInput
   /** Host-verified immutable source provenance; never an authority to read files. */
   inputArtifacts?: OptimizationArtifactInput[]
-  /** New exclusive run directory; never reuse a prior optimization workspace. */
+  /** New exclusive run directory; an existing directory requires explicit resume. */
   workRoot: string
+  /** Explicit user continuation of this exact run; never automatic or a budget increase. */
+  resume?: true
   harnessRoot: string
   python?: string
   ownerOptions: PersistentCandidateOwnersOptions
@@ -97,6 +108,8 @@ export interface PersistentOptimizationResult {
 export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
 ): Promise<PersistentOptimizationResult> {
+  if (options.resume !== undefined && options.resume !== true)
+    throw new Error('Optimization resume requires explicit true')
   options.signal?.throwIfAborted()
   const method = normalizeOptimizationMethod(options.method)
   const input = structuredClone(options.input)
@@ -169,8 +182,40 @@ export async function runPersistentOptimization(
   assertExecutionTimeout(executionTimeoutMs, MAX_HARNESS_EXECUTION_TIMEOUT_MS)
   const deadline = AbortSignal.timeout(timeoutMs)
   const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
-  await mkdir(options.workRoot, { mode: 0o700 })
-  const optimizationId = randomUUID()
+  const identity = JSON.parse(
+    JSON.stringify({
+      projectId: options.projectId,
+      sourceSessionId: options.sourceSessionId,
+      sourcePromptMessageId: options.sourcePromptMessageId,
+      taskId: options.taskId,
+      input,
+      inputArtifacts,
+      method,
+      semanticCriteria,
+      checks,
+      domain,
+      executionLimit: limit,
+      executionTimeoutMs
+    })
+  ) as OptimizationResumeIdentity
+  const methodDigest = optimizationMethodDigest(options.harnessRoot)
+  const saved = options.resume ? readPersistentOptimizationResume(options.workRoot) : undefined
+  if (
+    saved &&
+    (saved.methodDigest !== methodDigest ||
+      canonicalOutput(saved.identity) !== canonicalOutput(identity))
+  )
+    throw new Error('Optimization resume identity changed; paid replay refused')
+  if (!options.resume) await mkdir(options.workRoot, { mode: 0o700 })
+  const optimizationId = saved?.optimizationId ?? randomUUID()
+  if (!saved)
+    writeResumeJson(join(options.workRoot, 'resume.json'), {
+      schemaVersion: 1,
+      optimizationId,
+      identity,
+      identityDigest: outputDigest(identity),
+      methodDigest
+    })
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
   let stage: PersistentOptimizationProgress['stage'] = 'optimizing'
   let outcome: ResearchOutcome | undefined
@@ -191,14 +236,40 @@ export async function runPersistentOptimization(
       ...(domainSummary ? { domain: structuredClone(domainSummary) } : {})
     })
   }
+  let resumeIndex: OptimizationResumeIndex
+  let previousRecords: ExecutionRecord[] = []
+  const writeProjection = async (path: string, body: string): Promise<void> => {
+    if (options.resume) writeResumeJson(path, JSON.parse(body))
+    else await writeFile(path, body, { mode: 0o600, flag: 'wx' })
+  }
   let result: PersistentOptimizationResult | undefined
   let cleanupConfirmed = false
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
+    resumeIndex = new OptimizationResumeIndex(
+      join(options.workRoot, 'request-tasks.json'),
+      !!options.resume
+    )
+    previousRecords = Object.values(store.load().records)
+    if (options.resume) {
+      resumeIndex.validate(previousRecords)
+      if (
+        previousRecords.some(
+          (record) =>
+            record.request.projectId !== options.projectId ||
+            record.request.origin.optimizationId !== optimizationId ||
+            record.request.budgetRef !== optimizationId
+        )
+      )
+        throw new Error('Optimization resume journal belongs to another experiment')
+      // Re-authorize the exact original provider/model/runtime even when all stages are cached.
+      await options.binding(structuredClone(input.agent))
+      signal.throwIfAborted()
+    }
     if (scientific)
-      await writeFile(
+      await writeProjection(
         join(options.workRoot, 'notebook-task.json'),
         canonicalOutput({
           schemaVersion: 1,
@@ -207,11 +278,10 @@ export async function runPersistentOptimization(
           sourcePromptMessageId: options.sourcePromptMessageId,
           task: input.task,
           environment: input.environment
-        }),
-        { mode: 0o600, flag: 'wx' }
+        })
       )
     if (inputArtifacts?.length)
-      await writeFile(
+      await writeProjection(
         join(options.workRoot, 'input-artifacts.json'),
         canonicalOutput({
           schemaVersion: 1,
@@ -222,11 +292,10 @@ export async function runPersistentOptimization(
             taskId: task.taskId,
             inputDigest: outputDigest(task.input.task)
           }))
-        }),
-        { mode: 0o600, flag: 'wx' }
+        })
       )
     if (semanticCriteria !== undefined)
-      await writeFile(
+      await writeProjection(
         join(options.workRoot, 'assessment-plan.json'),
         JSON.stringify({
           schemaVersion: 1,
@@ -243,14 +312,31 @@ export async function runPersistentOptimization(
                 }))
               }
             : {})
-        }),
-        { mode: 0o600, flag: 'wx' }
+        })
       )
     owners = createPersistentCandidateOwners(options.ownerOptions)
+    if (options.resume) {
+      for (const record of previousRecords) {
+        signal.throwIfAborted()
+        if (record.phase !== 'completed') continue
+        await owners.exportResult(record)
+        const reviews = await owners.readReviews(record)
+        if (
+          !reviews.length ||
+          reviews.some((review) => review.lifecycle !== 'complete' || review.outcome !== 'pass')
+        )
+          throw new Error('Completed optimization evidence changed before resume')
+      }
+    }
     const snapshots = await createCandidateSnapshotStore({
       root: join(options.workRoot, 'snapshots'),
       candidatesRoot: join(options.workRoot, 'candidates')
     })
+    if (options.resume)
+      for (const record of previousRecords) {
+        signal.throwIfAborted()
+        await snapshots.resolve(record.request)
+      }
     core = new ExecutionCore(
       {
         load: () => store.load(),
@@ -277,13 +363,24 @@ export async function runPersistentOptimization(
       timeoutMs: executionTimeoutMs,
       exportResult: owners.exportResult
     }
+    const taskBindingOptions = (
+      task: (typeof tasks)[number]
+    ): import('./harness-optimization').HarnessOptimizationBindingOptions => ({
+      ...bindingOptions,
+      input: task.input,
+      taskId: task.taskId,
+      ...(options.resume
+        ? { resumeRecords: resumeIndex.recordsForTask(task.taskId, previousRecords) }
+        : {}),
+      resumeSlot: (key) => resumeIndex.slot(key),
+      onFreeze: (request, slot) => resumeIndex.remember(task.taskId, request, slot)
+    })
     binding = domain
-      ? new HarnessDomainBinding(
-          tasks.map((task) => ({ ...bindingOptions, input: task.input, taskId: task.taskId }))
-        )
-      : new HarnessOptimizationBinding({ ...bindingOptions, input, taskId: options.taskId })
+      ? new HarnessDomainBinding(tasks.map(taskBindingOptions))
+      : new HarnessOptimizationBinding(taskBindingOptions(tasks[0]))
     const config = {
       configVersion: 1,
+      ...(options.resume ? { resume: true } : {}),
       method,
       ...(domain
         ? {
@@ -304,7 +401,7 @@ export async function runPersistentOptimization(
       rpcTimeoutMs: executionTimeoutMs + HARNESS_RPC_TIMEOUT_MARGIN_MS
     }
     const configPath = join(options.workRoot, 'method-config.json')
-    await writeFile(configPath, JSON.stringify(config), { mode: 0o600, flag: 'wx' })
+    await writeProjection(configPath, JSON.stringify(config))
     const methodResult = await runHarnessProcess({
       binding,
       python: options.python ?? 'python3',
@@ -386,15 +483,14 @@ export async function runPersistentOptimization(
         snapshots,
         owners
       })
-      await writeFile(
+      await writeProjection(
         join(options.workRoot, 'experiment-library.json'),
         JSON.stringify({
           schemaVersion: 1,
           scope: 'experiment',
           library: (methodResult as DomainMethodResult).library,
           provenance: domainSummary
-        }),
-        { mode: 0o600, flag: 'wx' }
+        })
       )
       publish()
       if ((methodResult as DomainMethodResult).status !== 'ok')
@@ -419,6 +515,9 @@ export async function runPersistentOptimization(
           : methodResult
         const taskAssessments = await evaluateOptimizationSemantics({
           core,
+          ...(options.resume
+            ? { reuseRequest: (request) => reuseAssessmentRequest(previousRecords, request) }
+            : {}),
           snapshots,
           owners,
           input: task.input,
@@ -449,15 +548,14 @@ export async function runPersistentOptimization(
           assessments = taskAssessments
           outcome = taskOutcome
         }
-        await writeFile(
+        await writeProjection(
           join(options.workRoot, `outcome-${task.taskId}.json`),
           canonicalOutput({
             taskId: task.taskId,
             assessments: taskAssessments,
             outcome: taskOutcome,
             configurationPublication: 'not-published'
-          }),
-          { mode: 0o600, flag: 'wx' }
+          })
         )
         publish()
       }

@@ -250,6 +250,8 @@ const sleep = async (signal: AbortSignal): Promise<void> => {
 
 export async function evaluateOptimizationSemantics(options: {
   core: ExecutionPort
+  /** Host-only exact completed assessment lookup; evaluator retains all identity checks. */
+  reuseRequest?(request: ExecutionRequest): ExecutionRequest
   snapshots: CandidateSnapshotStore
   owners: PersistentCandidateOwners
   input: CandidateSnapshotInput
@@ -386,7 +388,7 @@ export async function evaluateOptimizationSemantics(options: {
         signal
       )
       signal.throwIfAborted()
-      const request: ExecutionRequest = {
+      let request: ExecutionRequest = {
         contractVersion: 1,
         requestKey: `assessment:${randomUUID()}`,
         projectId: options.projectId,
@@ -402,6 +404,7 @@ export async function evaluateOptimizationSemantics(options: {
         budgetRef: options.budgetRef,
         timeoutMs: options.timeoutMs
       }
+      if (options.reuseRequest) request = options.reuseRequest(request)
       const handle = await options.core.submit(request)
       executionId = handle.executionId
       let record: ExecutionRecord
