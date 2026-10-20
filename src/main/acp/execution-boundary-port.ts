@@ -21,6 +21,8 @@ export interface AcpExecutionOwnerCompletion {
 }
 
 export interface AcpExecutionDispatch {
+  /** Original coordinator attempt identity, allocated once before canonical admission. */
+  attemptId: string
   request: AcpPromptRequest
   operation: 'sendPrompt' | 'sendAppContinuation' | 'sendApplicationPrompt'
   runtimeReviewOwner: 'task' | 'renderer'
