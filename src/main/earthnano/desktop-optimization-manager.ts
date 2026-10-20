@@ -85,14 +85,14 @@ const validate = (request: StartDesktopOptimization): void => {
       !safeFile(file.path) ||
       seen.has(file.path) ||
       typeof file.content !== 'string' ||
-      Buffer.byteLength(file.content) > 1_000_000 ||
+      Buffer.byteLength(file.content) > 64_000 ||
       file.content.includes('\0')
     )
       throw new Error('Invalid optimization input file')
     seen.add(file.path)
     size += Buffer.byteLength(file.content)
   }
-  if (size > 4_000_000) throw new Error('Optimization inputs exceed the text profile limit')
+  if (size > 128_000) throw new Error('Optimization inputs exceed the text profile limit')
 }
 
 /** Desktop authority: one explicit user action starts one bounded method. Status is a projection
