@@ -2,6 +2,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -19,6 +20,10 @@ import { emptyExecutionState, type ExecutionState, type ExecutionStore } from '.
  */
 export class FileExecutionStore implements ExecutionStore {
   private closed = false
+  private recoveredPid?: number
+  get recoveredOwnerPid(): number | undefined {
+    return this.recoveredPid
+  }
   private readonly lock: string
   constructor(private readonly filename: string) {
     mkdirSync(dirname(filename), { recursive: true })
@@ -29,6 +34,42 @@ export class FileExecutionStore implements ExecutionStore {
       fsyncSync(fd)
     } finally {
       closeSync(fd)
+    }
+  }
+  /** Trusted restart recovery only. Never steal a live, inaccessible or malformed PID lock. */
+  static recoverStale(filename: string): FileExecutionStore {
+    const lock = `${filename}.lock`
+    if (!existsSync(lock)) return new FileExecutionStore(filename)
+    const recoveryLock = `${lock}.recovery`
+    const recovery = openSync(recoveryLock, 'wx', 0o600)
+    try {
+      const before = lstatSync(lock)
+      if (!before.isFile() || before.isSymbolicLink())
+        throw new Error('Invalid execution owner lock')
+      const contents = readFileSync(lock, 'utf8')
+      const pid = Number(contents)
+      if (!/^\d+$/.test(contents) || !Number.isSafeInteger(pid) || pid <= 0)
+        throw new Error('Invalid execution owner PID')
+      try {
+        process.kill(pid, 0)
+        throw new Error('Execution store still has a live owner')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+      }
+      const after = lstatSync(lock)
+      if (
+        before.ino !== after.ino ||
+        before.dev !== after.dev ||
+        contents !== readFileSync(lock, 'utf8')
+      )
+        throw new Error('Execution owner lock changed during recovery')
+      unlinkSync(lock)
+      const store = new FileExecutionStore(filename)
+      store.recoveredPid = pid
+      return store
+    } finally {
+      closeSync(recovery)
+      unlinkSync(recoveryLock)
     }
   }
   load(): ExecutionState {
