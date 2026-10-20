@@ -19,6 +19,12 @@ import { assertExecutionTimeout } from './execution-timeout'
 import { sameExecutionInputs } from './optimization-resume'
 import { outputDigest } from './output-checks'
 import {
+  assertHarnessBindingV2Identity,
+  harnessBindingV2Slot,
+  HARNESS_BINDING_V2,
+  type HarnessBindingV2Identity
+} from './harness-binding-v2'
+import {
   HarnessProcessFailure,
   type HarnessFailureCategory
 } from './optimization-failure-diagnostics'
@@ -50,7 +56,9 @@ export interface HarnessOptimizationBindingOptions {
   exportResult(record: ExecutionRecord): Promise<PersistentExecutionExport>
   resumeRecords?: ExecutionRecord[]
   resumeSlot?(requestKey: string): string | undefined
-  onFreeze?(request: ExecutionRequest, slot: string): void
+  bindingIdentity?: HarnessBindingV2Identity
+  resumeScope?(requestKey: string): string | undefined
+  onFreeze?(request: ExecutionRequest, slot: string, scope?: string): void
 }
 
 const fail = (): never => {
@@ -118,8 +126,18 @@ export class HarnessOptimizationBinding {
   private readonly fresh = new Set<string>()
   private readonly slots = new Map<string, string>()
   private readonly requestSlots = new Map<string, string>()
+  private readonly requestScopes = new Map<string, string>()
+  private resumeValidated?: Promise<void>
   constructor(options: HarnessOptimizationBindingOptions) {
-    this.options = { ...options, input: structuredClone(options.input) }
+    this.options = {
+      ...options,
+      input: structuredClone(options.input),
+      ...(options.bindingIdentity
+        ? { bindingIdentity: structuredClone(options.bindingIdentity) }
+        : {})
+    }
+    if (this.options.bindingIdentity)
+      assertHarnessBindingV2Identity(this.options.bindingIdentity, this.options.bindingIdentity)
     assertExecutionTimeout(options.timeoutMs)
     for (const record of options.resumeRecords ?? []) {
       if (
@@ -132,6 +150,13 @@ export class HarnessOptimizationBinding {
         return fail()
       const slot = options.resumeSlot?.(record.requestKey)
       if (!slot) throw new Error('Optimization stage ownership is unavailable')
+      if (this.options.bindingIdentity) {
+        const scope = options.resumeScope?.(record.requestKey)
+        if (!scope || !new RegExp(`^${HARNESS_BINDING_V2}:sha256:[a-f0-9]{64}$`).test(slot))
+          return fail()
+        this.assertScope(scope, record.request.role)
+        this.requestScopes.set(record.requestKey, scope)
+      }
       this.slots.set(slot, record.executionId)
       this.requestSlots.set(record.requestKey, slot)
       this.admitted.add(record.executionId)
@@ -149,11 +174,27 @@ export class HarnessOptimizationBinding {
   }
   async dispatch(operation: string, args: Record<string, unknown>): Promise<unknown> {
     if (this.stopped) throw new Error('Optimization binding stopped')
+    if (this.options.bindingIdentity && this.options.resumeRecords?.length) {
+      await this.validateResume()
+      if (this.stopped) throw new Error('Optimization binding stopped')
+    }
     const { core } = this.options
     if (operation === 'freezeInvocation') return this.freeze(args)
     if (operation === 'taskRecords') {
       if (args.taskId !== this.options.taskId) return fail()
-      return Promise.all(this.executionIds.map((id) => core.get(id)))
+      const records = await Promise.all(this.executionIds.map((id) => core.get(id)))
+      if (args.scope === undefined) return records
+      if (
+        !this.options.bindingIdentity ||
+        typeof args.scope !== 'string' ||
+        !Object.values(this.options.bindingIdentity.modeScopes).includes(args.scope)
+      )
+        return fail()
+      return records.filter(
+        (record) =>
+          record.request.role === 'baseline' ||
+          this.requestScopes.get(record.requestKey) === args.scope
+      )
     }
     if (operation === 'submit') {
       validateRequest(args.request)
@@ -205,6 +246,28 @@ export class HarnessOptimizationBinding {
         return fail()
     }
   }
+  private scopeHeader(scope: string): string {
+    return `EarthNano logical task: ${this.options.taskId}. Original method scope: ${scope}. Binding identity digest: ${this.options.bindingIdentity!.digest}.`
+  }
+  private validateResume(): Promise<void> {
+    return (this.resumeValidated ??= Promise.all(
+      this.options.resumeRecords!.map(async (record) => {
+        const snapshots = await this.options.snapshots.resolve(record.request)
+        const prefix = `EarthNano execution role: ${record.request.role}.\n\n${this.scopeHeader(this.requestScopes.get(record.requestKey)!)}\n\n`
+        if (!snapshots.invocation.mission.startsWith(prefix))
+          throw new Error('Optimization task or scope identity changed; paid replay refused')
+      })
+    ).then(() => undefined))
+  }
+  private assertScope(scope: string, role: ExecutionRole): void {
+    const identity = this.options.bindingIdentity!
+    if (
+      role === 'baseline'
+        ? scope !== identity.baseScope
+        : !Object.values(identity.modeScopes).includes(scope)
+    )
+      return fail()
+  }
   private async freeze(args: Record<string, unknown>): Promise<ExecutionRequest> {
     const { snapshots, input, projectId, optimizationId, taskId, budgetRef, timeoutMs } =
       this.options
@@ -216,13 +279,30 @@ export class HarnessOptimizationBinding {
     const role = invocation.role as ExecutionRole
     const label = string(invocation.label, 256),
       stageLabel = string(invocation.stageLabel, 256)
-    if (!label || !stageLabel || !string(invocation.scope, 256)) return fail()
+    const scope = string(invocation.scope, 256)
+    if (!label || !stageLabel || !scope) return fail()
+    const v2slot = this.options.bindingIdentity
+      ? harnessBindingV2Slot(this.options.bindingIdentity, taskId, {
+          taskId: invocation.taskId,
+          scope,
+          role,
+          stageLabel,
+          label,
+          attempt: invocation.attempt ?? 1
+        })
+      : undefined
     const mission = string(invocation.mission),
       system = string(invocation.system ?? '')
     const context = textFiles(args.contextFiles),
       harness = textFiles(args.harnessFiles)
     const retryOf = string(invocation.retryOfExecutionId ?? '', 256)
     if (retryOf && !this.admitted.has(retryOf)) return fail()
+    if (
+      retryOf &&
+      this.options.bindingIdentity &&
+      this.requestScopes.get((await this.options.core.get(retryOf)).requestKey) !== scope
+    )
+      return fail()
     if (invocation.harvest != null && invocation.harvest !== 'context/harness') return fail()
     const proposed = harness.length
       ? {
@@ -250,6 +330,7 @@ export class HarnessOptimizationBinding {
     // Role context belongs to the invocation, not a newly invented research TaskSnapshot.
     const roleMission = [
       `EarthNano execution role: ${role}.`,
+      ...(this.options.bindingIdentity ? [this.scopeHeader(scope)] : []),
       system,
       mission,
       'The following JSON contains frozen, read-only context files; interpret their relative paths inside this evidence package, not on the host filesystem.',
@@ -298,7 +379,7 @@ export class HarnessOptimizationBinding {
     }
     validateRequest(request)
     if (this.stopped) throw new Error('Optimization binding stopped during freezing')
-    const slot = outputDigest([role, stageLabel, label, invocation.attempt ?? 1])
+    const slot = v2slot ?? outputDigest([role, stageLabel, label, invocation.attempt ?? 1])
     const previous = this.options.resumeRecords?.filter(
       (record) => this.options.resumeSlot?.(record.requestKey) === slot
     )
@@ -317,7 +398,10 @@ export class HarnessOptimizationBinding {
       const last = previous.at(-1)!
       frozenRequest.origin.retryOfExecutionId = last.executionId
     }
-    this.options.onFreeze?.(frozenRequest, slot)
+    if (this.options.bindingIdentity) {
+      this.options.onFreeze?.(frozenRequest, slot, scope)
+      this.requestScopes.set(frozenRequest.requestKey, scope)
+    } else this.options.onFreeze?.(frozenRequest, slot)
     this.requestSlots.set(frozenRequest.requestKey, slot)
     this.frozen.set(frozenRequest.requestKey, requestDigest(frozenRequest))
     return frozenRequest
