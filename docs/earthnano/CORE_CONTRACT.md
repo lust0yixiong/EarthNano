@@ -60,6 +60,7 @@ interface ExecutionRequest {
   普通对话可在提交时创建快照，无需用户预先建立 benchmark 任务。
 - invocationRef 包含本角色实际使用的 mission/system、可见输入与证据引用、
   候选配置工作副本的初始版本，以及文本/产物/配置提案的收集要求。
+  使用 Library 时也冻结本次可见的经验快照，后续入库不能改变已有调用输入。
   TaskSnapshot 始终表示科研任务；不能用它代替 proposer 或 selector 的阶段提示。
   普通任务的调用输入包可以由任务快照与配置生成，生成结果也需冻结。
 - 同一 solver 候选组使用同一个 TaskSnapshot、AgentSpec 和 EnvironmentSpec；有意改变这些变量时
@@ -93,6 +94,8 @@ interface ExecutionPort {
   `runId/sessionId/promptMessageId` 映射。provider session ID 与应用 session ID 分别记录。
 - `ExecutionRecord` 包含请求引用、phase、时间、错误、等待原因、生效配置记录、
   证据引用、资源消耗和清理状态。映射现有 `promptAttemptId` 时记录关联，不覆盖原身份。
+  核心 executionId 与既有 runtime executionId、turnToken、事件 promptExecutionId 分属
+  不同身份空间，显式保存关联，不能覆盖现有用于过滤过期事件的标识。
 - 相同项目的相同 `requestKey` 与相同请求摘要返回同一执行；不同摘要返回冲突。
   有意重试使用新 key 和 executionId，通过 `retryOfExecutionId` 关联。
 - 幂等接纳不承诺外部工具“恰好一次”执行。崩溃后的未知副作用必须先核实，不能自动重放。
@@ -142,6 +145,8 @@ provider 已接纳、首段输出等保留为事件，不等价于 completed。
 每条事件包含 executionId、该执行内单调序号、事件类型、时间及可用的原有消息/工具标识。
 证据记录在 UI 合并或公共流裁剪之前接收。读取缺口明确返回 gap，不能把缺失事件当成完整轨迹。
 结果证据状态至少区分 complete / partial / unavailable。
+complete 指已声明可持久化范围内完整；沿用现有脱敏与可见范围，不持久化原本排除的 thought。
+快照裁剪、数据缺失及不可重放原因均需注明，不能以“完整轨迹”扩大采集范围。
 
 输出包括文本以及 OpenScience 已有 `artifactId/versionId/checksum` 引用；配置提案可以附带
 新的 HarnessRevision 引用。产物后续修改不能改变已经用于选择和审阅的版本。
@@ -158,6 +163,8 @@ Assessment 引用具体执行/产物版本，注明 `review | reproducibility | 
 - 原版 finals 选择池排除基线，k=1 有直接选择路径。选择成功不能被写成改进已被证明；
   后续若增加基线回退或发布门槛，应与原方法选择结果分开记录。
 - 原 Library 给改进过程提供历史配置与经验上下文，并非直接替换后续普通任务的全局默认配置。
+  按 mode/domain 及任务流的严格先前前缀确定可见经验；NO_ENTRY 和失败反思不入库。
+  共享 Library 根目录不等于允许不同任务流相互读取，调用方必须维护上述范围。
 - R=4k、P=3k 是每个 task、每种 mode 的方法计数。agg/seq 共享 k 个 base，
   两种 mode 全部执行时唯一 solver rollout 为 7k，不能按 8k 重复收取共享基线。
   P 不包括 selector/reflection，提案校验重试和传输重试另计真实调用。
@@ -166,7 +173,8 @@ Assessment 引用具体执行/产物版本，注明 `review | reproducibility | 
 ## 7. 两条最小调用示例与后续验收
 
 普通执行：桌面消息 → 创建输入/配置引用 → submit(role=task, origin=interactive) →
-接纳后返回 → ACP 执行及原有人工交互 → 产物版本提交 → completed。
+核心持久化接纳返回句柄 → ACP 执行及原有人工交互 → 产物版本提交 → completed。
+桌面 façade 仍等待匹配的 Session turn admission 才向桌面调用者响应。
 
 优化执行：冻结任务输入 → 登记 optimizationId → 方法提交 baseline/candidate 及
 proposer/composer/selector/reflection 执行 → 相同核心执行与采集 →
