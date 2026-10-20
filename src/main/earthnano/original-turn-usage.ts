@@ -6,6 +6,7 @@ import {
   type SessionUsageMessage
 } from '../../shared/session-usage'
 import type { AcpModelCallUsage, AcpTurnTokenUsage } from '../../shared/acp-usage-contract'
+import type { ExecutionIdentity } from '../../shared/earthnano/execution-types'
 import {
   isHumanUserMessage,
   isHiddenControlMessage,
@@ -56,7 +57,8 @@ const exactModelCallUsage = (
 const rootTurnScopes = (
   session: PersistedChatSession,
   scoped: readonly SessionUsageMessage[],
-  promptMessageId: string
+  promptMessageId: string,
+  exactAdmission?: NonNullable<PersistedChatSession['runtimeSessionAdmissions']>[number]
 ): readonly PersistedChatMessage[][] => {
   if (!session.conversationGraph) {
     return [
@@ -70,14 +72,15 @@ const rootTurnScopes = (
   const rootFrame = graph.frames.find(({ id }) => id === graph.rootFrameId)
   if (!rootFrame) return []
   const admittedBranchIds = new Set(
-    (session.runtimeSessionAdmissions ?? [])
-      .filter(
-        (admission) =>
-          admission.promptMessageId === promptMessageId &&
-          admission.rootFrameId === rootFrame.id &&
-          admission.agentFrameId === rootFrame.id
-      )
-      .map(({ messageBranchId }) => messageBranchId)
+    (exactAdmission
+      ? [exactAdmission]
+      : (session.runtimeSessionAdmissions ?? []).filter(
+          (admission) =>
+            admission.promptMessageId === promptMessageId &&
+            admission.rootFrameId === rootFrame.id &&
+            admission.agentFrameId === rootFrame.id
+        )
+    ).map(({ messageBranchId }) => messageBranchId)
   )
   if (admittedBranchIds.size === 0) return []
   try {
@@ -108,18 +111,36 @@ const rootTurnScopes = (
 }
 
 /** Reads one authoritative, non-inherited root prompt's provider-reported turn usage. */
-export const readOriginalTurnUsage = (
+const readTurnUsage = (
   session: PersistedChatSession,
-  promptMessageId: string
+  promptMessageId: string,
+  exactAdmission?: NonNullable<PersistedChatSession['runtimeSessionAdmissions']>[number]
 ): OriginalTurnUsage | undefined => {
   if (!promptMessageId) return undefined
   const scoped = sessionUsageMessages(session)
   const eligiblePromptIds = new Set(
     sessionUsageRuns(session, scoped).map(({ messageId }) => messageId)
   )
+  if (exactAdmission) {
+    const prompt = scoped.find(({ message }) => message.id === promptMessageId)
+    // Exact Main admission proves application ownership, so attribution alone may be present.
+    // Relayed/presentation/hidden/delegated/inherited prompts still cannot own usage here.
+    if (
+      !prompt ||
+      !prompt.isRootFrame ||
+      prompt.inherited ||
+      prompt.message.role !== 'user' ||
+      prompt.message.presentation ||
+      prompt.message.relayedFrom ||
+      prompt.message.delegatedCallerSource ||
+      isHiddenControlMessage(prompt.message)
+    )
+      return undefined
+    eligiblePromptIds.add(promptMessageId)
+  }
   if (!eligiblePromptIds.has(promptMessageId)) return undefined
 
-  const scopes = rootTurnScopes(session, scoped, promptMessageId)
+  const scopes = rootTurnScopes(session, scoped, promptMessageId, exactAdmission)
   if (scopes.length === 0) return undefined
   const ownersById = new Map<string, PersistedChatMessage>()
   for (const messages of scopes) {
@@ -133,7 +154,7 @@ export const readOriginalTurnUsage = (
     if (
       !prompt ||
       !isTurnAnchor(prompt) ||
-      !isHumanUserMessage(prompt) ||
+      (!exactAdmission && !isHumanUserMessage(prompt)) ||
       isHiddenControlMessage(prompt)
     ) {
       continue
@@ -161,3 +182,42 @@ export const readOriginalTurnUsage = (
     ...(modelCallUsage ? { modelCallUsage } : {})
   }
 }
+
+/** Reads provider-reported usage only when a Core identity's runtime token matches one admission. */
+export const readExecutionTurnUsage = (
+  session: PersistedChatSession,
+  identity: Pick<ExecutionIdentity, 'sessionId' | 'promptMessageId' | 'runtimeExecutionId'>
+): OriginalTurnUsage | undefined => {
+  const { runtimeExecutionId, promptMessageId } = identity
+  if (!runtimeExecutionId || !promptMessageId || identity.sessionId !== session.id) return undefined
+  const admissions = (session.runtimeSessionAdmissions ?? []).filter(
+    (admission) =>
+      admission.executionId === runtimeExecutionId && admission.promptMessageId === promptMessageId
+  )
+  if (admissions.length !== 1) return undefined
+  const admission = admissions[0]!
+  const graph = session.conversationGraph
+  if (
+    !graph ||
+    admission.rootFrameId !== graph.rootFrameId ||
+    admission.agentFrameId !== graph.rootFrameId
+  )
+    return undefined
+  const prompt = graph.messages.find(({ id }) => id === promptMessageId)
+  if (
+    !prompt ||
+    prompt.agentFrameId !== graph.rootFrameId ||
+    prompt.runtimeSegmentId !== admission.promptRuntimeSegmentId
+  )
+    return undefined
+
+  // Limit the generic reader to this exact admission. A prior or resumed execution may reuse the
+  // same prompt ID on another branch; it must not make this execution ambiguous or be summed.
+  return readTurnUsage(session, promptMessageId, admission)
+}
+
+/** Reads a human-authored prompt's provider-reported usage without an ExecutionRecord identity. */
+export const readOriginalTurnUsage = (
+  session: PersistedChatSession,
+  promptMessageId: string
+): OriginalTurnUsage | undefined => readTurnUsage(session, promptMessageId)

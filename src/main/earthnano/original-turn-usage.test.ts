@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createLinearConversationGraph } from '../../shared/conversation-graph'
 import type { PersistedChatMessage, PersistedChatSession } from '../../shared/session-persistence'
-import { readOriginalTurnUsage } from './original-turn-usage'
+import { readExecutionTurnUsage, readOriginalTurnUsage } from './original-turn-usage'
 
 const message = (
   id: string,
@@ -39,6 +39,35 @@ const session = (
     messages,
     ...overrides
   }) as PersistedChatSession
+
+const admittedGraphSession = (
+  prompts: PersistedChatMessage[],
+  answers: PersistedChatMessage[],
+  executionId = 'execution',
+  promptMessageId = prompts[0]!.id
+): PersistedChatSession => {
+  const source = session([...prompts, ...answers])
+  const graph = createLinearConversationGraph({
+    sessionId: source.id,
+    messages: [...prompts, ...answers],
+    createdAt: 1,
+    updatedAt: 10
+  })
+  source.conversationGraph = graph
+  const prompt = graph.messages.find(({ id }) => id === promptMessageId)!
+  source.runtimeSessionAdmissions = [
+    {
+      executionId,
+      promptMessageId,
+      promptRuntimeSegmentId: prompt.runtimeSegmentId!,
+      rootFrameId: graph.rootFrameId,
+      agentFrameId: graph.rootFrameId,
+      messageBranchId: graph.frames.find(({ id }) => id === graph.rootFrameId)!.activeBranchId,
+      runtimeSegmentId: prompt.runtimeSegmentId!
+    }
+  ]
+  return source
+}
 
 describe('readOriginalTurnUsage', () => {
   it('reads only the requested root prompt interval and excludes later turns', () => {
@@ -230,5 +259,144 @@ describe('readOriginalTurnUsage', () => {
     expect(readOriginalTurnUsage(source, 'prompt')).toEqual({
       usage: { inputTokens: 7, cacheTokens: 5, outputTokens: 4 }
     })
+  })
+})
+
+describe('readExecutionTurnUsage', () => {
+  const usage = { inputTokens: 8, cacheTokens: 2, outputTokens: 3 }
+
+  it('requires exact Session, prompt, execution, and a unique root admission', () => {
+    const source = admittedGraphSession(
+      [message('prompt', 'user')],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+    const read = (
+      runtimeExecutionId = 'execution',
+      sessionId = 'session',
+      promptMessageId = 'prompt'
+    ): ReturnType<typeof readExecutionTurnUsage> =>
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId,
+        sessionId,
+        promptMessageId
+      })
+
+    expect(read()).toEqual({ usage })
+    expect(read('other-execution')).toBeUndefined()
+    expect(read('execution', 'other-session')).toBeUndefined()
+    expect(read('execution', 'session', 'other-prompt')).toBeUndefined()
+    source.runtimeSessionAdmissions!.push({ ...source.runtimeSessionAdmissions![0]! })
+    expect(read()).toBeUndefined()
+  })
+
+  it('uses the exact admitted branch after active-branch changes and same-prompt re-admission', () => {
+    const source = admittedGraphSession(
+      [message('prompt', 'user')],
+      [message('original-answer', 'agent', { turnUsage: usage })]
+    )
+    const graph = source.conversationGraph!
+    const root = graph.branches[0]!
+    const originalPrompt = graph.messages.find(({ id }) => id === 'prompt')!
+    graph.messages.push({
+      ...graph.messages.find(({ id }) => id === 'original-answer')!,
+      id: 'alternate-answer',
+      content: 'alternate',
+      parentMessageId: 'prompt',
+      introducedOnBranchId: 'alternate-branch',
+      turnUsage: { inputTokens: 99, cacheTokens: 0, outputTokens: 9 }
+    })
+    graph.branches.push({
+      id: 'alternate-branch',
+      agentFrameId: graph.rootFrameId,
+      parentBranchId: root.id,
+      forkMessageId: 'prompt',
+      headMessageId: 'alternate-answer',
+      createdAt: 2,
+      updatedAt: 10
+    })
+    graph.frames.find(({ id }) => id === graph.rootFrameId)!.activeBranchId = 'alternate-branch'
+    source.runtimeSessionAdmissions!.push({
+      ...source.runtimeSessionAdmissions![0]!,
+      executionId: 'resumed-execution',
+      messageBranchId: 'alternate-branch',
+      runtimeSegmentId: originalPrompt.runtimeSegmentId!
+    })
+
+    expect(
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+    ).toEqual({ usage })
+    expect(
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'resumed-execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+    ).toEqual({ usage: { inputTokens: 99, cacheTokens: 0, outputTokens: 9 } })
+  })
+
+  it('accepts an application-attributed prompt only through exact root admission', () => {
+    const appPrompt = message('prompt', 'user', {
+      attribution: {
+        kind: 'application',
+        feature: 'reviewer',
+        purpose: 'correction',
+        causeReviewId: 'review'
+      }
+    })
+    const source = admittedGraphSession(
+      [appPrompt],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+
+    expect(readOriginalTurnUsage(source, 'prompt')).toBeUndefined()
+    expect(
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+    ).toEqual({ usage })
+  })
+
+  it('rejects delegated or inherited prompt evidence and ambiguous owners', () => {
+    const delegated = admittedGraphSession(
+      [
+        message('prompt', 'user', {
+          delegatedCallerSource: { rootMessageId: 'root', toolInvocationId: 'tool' }
+        })
+      ],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+    const inherited = admittedGraphSession(
+      [
+        message('prompt', 'user', {
+          usageOrigin: { sessionId: 'source-session', messageId: 'source-prompt' }
+        })
+      ],
+      [message('answer', 'agent', { turnUsage: usage })]
+    )
+    const ambiguous = admittedGraphSession(
+      [message('prompt', 'user')],
+      [
+        message('answer-1', 'agent', { turnUsage: usage }),
+        message('answer-2', 'agent', {
+          turnUsage: { inputTokens: 100, cacheTokens: 0, outputTokens: 10 }
+        })
+      ]
+    )
+    const read = (source: PersistedChatSession): ReturnType<typeof readExecutionTurnUsage> =>
+      readExecutionTurnUsage(source, {
+        runtimeExecutionId: 'execution',
+        sessionId: source.id,
+        promptMessageId: 'prompt'
+      })
+
+    expect(read(delegated)).toBeUndefined()
+    expect(read(inherited)).toBeUndefined()
+    expect(read(ambiguous)).toBeUndefined()
   })
 })
