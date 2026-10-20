@@ -7427,6 +7427,7 @@
     "Source task": "원본 작업",
     "Task ID": "작업 ID",
     "Task filter": "작업 필터",
-    "Tasks per domain (empty means all)": "도메인별 작업 수 (비워 두면 모두)"
+    "Tasks per domain (empty means all)": "도메인별 작업 수 (비워 두면 모두)",
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "미리보기 필터와 일치하는 작업이 없습니다. 필터를 조정한 후 다시 미리보기를 확인하세요."
   }
 }

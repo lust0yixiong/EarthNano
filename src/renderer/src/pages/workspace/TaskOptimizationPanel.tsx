@@ -230,6 +230,8 @@ function OptimizationSessionPanel({
     latestDraft.current = draftIdentity
   }, [draftIdentity])
   const currentPreview = preview?.identity === draftIdentity ? preview : null
+  const hasSelectedTasks =
+    currentPreview?.result.order.some((domain) => domain.taskIds.length > 0) ?? false
   const minimum = currentPreview?.result.minimumExecutions
   const domainDraft = nextTasks.length > 0
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
@@ -325,7 +327,12 @@ function OptimizationSessionPanel({
     setBusy(true)
     setError(false)
     try {
-      if (!currentPreview || limit < currentPreview.result.minimumExecutions || limit > maximum)
+      if (
+        !currentPreview ||
+        !hasSelectedTasks ||
+        limit < currentPreview.result.minimumExecutions ||
+        limit > maximum
+      )
         throw new Error('Current preview required')
       requestKey.current ??= crypto.randomUUID()
       const result = await api.startSweep({
@@ -416,6 +423,7 @@ function OptimizationSessionPanel({
   const valid =
     draftValid &&
     !!currentPreview &&
+    hasSelectedTasks &&
     Number.isSafeInteger(limit) &&
     limit >= currentPreview.result.minimumExecutions &&
     limit <= maximum
@@ -1167,20 +1175,28 @@ function OptimizationSessionPanel({
         </button>
         {currentPreview ? (
           <div data-testid="optimization-sweep-preview" role="status">
-            <p>
-              {t(
-                'First attempts require {{minimum}} executions including assessments; retries use the same limit.',
-                { minimum }
-              )}
-            </p>
-            {currentPreview.result.order.map((domain) => (
-              <p key={domain.domain}>
-                {t('Planned domain {{domain}}: {{tasks}}', {
-                  domain: domain.domain,
-                  tasks: domain.taskIds.join(', ')
-                })}
+            {hasSelectedTasks ? (
+              <>
+                <p>
+                  {t(
+                    'First attempts require {{minimum}} executions including assessments; retries use the same limit.',
+                    { minimum }
+                  )}
+                </p>
+                {currentPreview.result.order.map((domain) => (
+                  <p key={domain.domain}>
+                    {t('Planned domain {{domain}}: {{tasks}}', {
+                      domain: domain.domain,
+                      tasks: domain.taskIds.join(', ')
+                    })}
+                  </p>
+                ))}
+              </>
+            ) : (
+              <p>
+                {t('No tasks match the previewed filters. Adjust the filters and preview again.')}
               </p>
-            ))}
+            )}
           </div>
         ) : (
           <p>{t('Preview the current task stream before starting.')}</p>

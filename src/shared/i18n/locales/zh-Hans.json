@@ -7429,6 +7429,7 @@
     "Source task": "来源任务",
     "Task ID": "任务 ID",
     "Task filter": "任务筛选",
-    "Tasks per domain (empty means all)": "每个任务域的任务数（留空表示全部）"
+    "Tasks per domain (empty means all)": "每个任务域的任务数（留空表示全部）",
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "没有任务符合预览的筛选条件。请调整筛选条件后重新预览。"
   }
 }

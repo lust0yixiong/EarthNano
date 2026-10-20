@@ -1237,3 +1237,46 @@ it.each([true, false])(
     expect(results.textContent).toContain('Original selection explanation')
   }
 )
+
+it.each([{ order: [] }, { order: [{ domain: 'research', taskIds: [] }] }])(
+  'keeps an original empty stream read-only without rewriting its filters: %j',
+  async ({ order }) => {
+    await render()
+    await input('Acceptance criteria (one per line)', 'criterion')
+    await input('Task filter', 'not-selected')
+    vi.mocked(api.previewSweep).mockResolvedValue({
+      planDigest: `sha256:${'e'.repeat(64)}`,
+      order,
+      modes: ['sequential'],
+      minimumExecutions: 0
+    })
+    await click('Preview task stream')
+    expect(api.previewSweep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sweep: expect.objectContaining({
+          stream: expect.objectContaining({ onlyTasks: ['not-selected'] })
+        })
+      })
+    )
+    expect(
+      container.querySelector('[data-testid="optimization-sweep-preview"]')!.textContent
+    ).toContain('No tasks match the previewed filters. Adjust the filters and preview again.')
+    expect((container.querySelector('[aria-label="Task filter"]') as HTMLInputElement).value).toBe(
+      'not-selected'
+    )
+    expect(button('Start optimization').disabled).toBe(true)
+    await click('Start optimization')
+    expect(api.startSweep).not.toHaveBeenCalled()
+    vi.mocked(api.previewSweep).mockResolvedValue({
+      planDigest: `sha256:${'a'.repeat(64)}`,
+      order: [{ domain: 'research', taskIds: ['task-0001'] }],
+      modes: ['sequential'],
+      minimumExecutions: 10
+    })
+    await input('Task filter', '')
+    expect(button('Start optimization').disabled).toBe(true)
+    await click('Preview task stream')
+    expect(button('Start optimization').disabled).toBe(false)
+    expect(container.textContent).not.toContain('No tasks match the previewed filters.')
+  }
+)

@@ -7429,6 +7429,7 @@
     "Source task": "参照元タスク",
     "Task ID": "タスク ID",
     "Task filter": "タスクフィルター",
-    "Tasks per domain (empty means all)": "ドメインごとのタスク数（空欄ですべて）"
+    "Tasks per domain (empty means all)": "ドメインごとのタスク数（空欄ですべて）",
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "プレビューしたフィルターに一致するタスクはありません。フィルターを調整して再度プレビューしてください。"
   }
 }

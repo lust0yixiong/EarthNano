@@ -7759,6 +7759,7 @@
     "Source task": "Tâche source",
     "Task ID": "ID de tâche",
     "Task filter": "Filtre de tâches",
-    "Tasks per domain (empty means all)": "Tâches par domaine (vide pour toutes)"
+    "Tasks per domain (empty means all)": "Tâches par domaine (vide pour toutes)",
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "Aucune tâche ne correspond aux filtres prévisualisés. Modifiez les filtres et relancez la prévisualisation."
   }
 }

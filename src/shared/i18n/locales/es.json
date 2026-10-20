@@ -7759,6 +7759,7 @@
     "Source task": "Tarea de origen",
     "Task ID": "ID de tarea",
     "Task filter": "Filtro de tareas",
-    "Tasks per domain (empty means all)": "Tareas por dominio (vacío incluye todas)"
+    "Tasks per domain (empty means all)": "Tareas por dominio (vacío incluye todas)",
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "Ninguna tarea coincide con los filtros previsualizados. Ajuste los filtros y vuelva a previsualizar."
   }
 }
