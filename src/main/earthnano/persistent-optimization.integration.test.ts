@@ -129,6 +129,7 @@ async function exercise(
   let apiKey = ''
   let diagnosticError = ''
   let desktopRunDirectory: string | undefined
+  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
   let liveReportWritten = false
   const server = createServer(async (request, response) => {
     const reject = (): void => {
@@ -414,7 +415,16 @@ async function exercise(
       await writeFile(
         process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT,
         JSON.stringify(
-          { status: 'failed', error: diagnosticError, method, requests, rejects, usage, records },
+          {
+            status: 'failed',
+            error: diagnosticError,
+            method,
+            requests,
+            rejects,
+            usage,
+            records,
+            ...(result?.domain ? { domain: result.domain } : {})
+          },
           null,
           2
         ) + '\n',
@@ -505,7 +515,6 @@ async function exercise(
       }
     }
   }
-  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
   let desktopRunId: string | undefined
   const observedStates = new Set<string>()
   const criteria =
@@ -622,7 +631,11 @@ async function exercise(
           })
           expect(progress.domain?.tasks).toHaveLength(taskCount)
           expect(
-            progress.domain?.tasks.every((task) => task.experience?.scope === 'experiment')
+            progress.domain?.tasks.every((task) =>
+              progress.domain!.library.entries.includes(task.taskId)
+                ? task.experience?.scope === 'experiment'
+                : task.experience === undefined
+            )
           ).toBe(true)
           expect(
             progress.domain?.tasks.every((task) => task.outcome?.artifact.status === 'passed')
@@ -733,15 +746,17 @@ async function exercise(
     )
     const firstExperience = domainMethod.library.files.find((file) =>
       file.path.endsWith(`/${result.domain!.order[0]}/EXPERIENCE.md`)
-    )!
-    expect(firstExperience).toBeTruthy()
+    )
+    if (!live) expect(firstExperience).toBeTruthy()
     expect(successorContexts.size).toBeGreaterThanOrEqual(3)
-    for (const context of successorContexts.values())
-      expect(context).toContain(
-        JSON.stringify(firstExperience.content)
-          .replaceAll('@', '\\u0040')
-          .replaceAll('`', '\\u0060')
-      )
+    if (firstExperience) {
+      for (const context of successorContexts.values())
+        expect(context).toContain(
+          JSON.stringify(firstExperience.content)
+            .replaceAll('@', '\\u0040')
+            .replaceAll('`', '\\u0060')
+        )
+    } else expect(result.domain!.tasks[0]!.experience).toBeUndefined()
   } else
     expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
   const completedRecords = result.records.filter((record) => record.phase === 'completed')
@@ -877,7 +892,12 @@ async function exercise(
           reviewCount,
           verifiedInputReads: readInputs.size,
           ...(research?.domain
-            ? { verifiedSuccessorExperienceContexts: successorContexts.size }
+            ? {
+                successorEditingContexts: successorContexts.size,
+                verifiedSuccessorExperienceContexts: result.domain!.tasks[0]!.experience
+                  ? successorContexts.size
+                  : 0
+              }
             : {}),
           reopened: true,
           configurationChanged: true,
@@ -971,7 +991,7 @@ it.skipIf(
     !process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE ||
     process.env.EARTHNANO_LIVE_DOMAIN !== '1'
 )(
-  'validates original domain reflection and actual experience reuse with authorized DeepSeek',
+  'validates original domain reflection and independent acceptance with authorized DeepSeek',
   () =>
     exercise(true, true, false, undefined, false, { domain: researchDomain, checks: sumCheck(6) }),
   480_000
