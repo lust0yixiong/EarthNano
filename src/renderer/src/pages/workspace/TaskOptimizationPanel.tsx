@@ -177,7 +177,7 @@ function OptimizationSessionPanel({
           file.name === '.' ||
           file.name === '..' ||
           !/\.(txt|md|csv|tsv|json|ya?ml|log)$/i.test(file.name) ||
-          file.size > 1_000_000 ||
+          file.size > 64_000 ||
           next.some(
             (entry) =>
               entry.path.normalize('NFC').toLowerCase() === file.name.normalize('NFC').toLowerCase()
@@ -192,7 +192,7 @@ function OptimizationSessionPanel({
       if (
         next.length > 32 ||
         next.reduce((total, file) => total + new TextEncoder().encode(file.content).byteLength, 0) >
-          4_000_000
+          128_000
       )
         throw new Error('Text inputs exceed limit')
       if (alive.current) {
@@ -261,7 +261,7 @@ function OptimizationSessionPanel({
           />
         </label>
         <p className="text-xs text-text-400">
-          {t('Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.')}
+          {t('Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.')}
         </p>
         {files.map((file) => (
           <div key={file.path} className="flex items-center justify-between gap-2">
@@ -338,7 +338,7 @@ function OptimizationSessionPanel({
             description={
               error === 'files'
                 ? t(
-                    'Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.'
+                    'Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.'
                   )
                 : message
             }

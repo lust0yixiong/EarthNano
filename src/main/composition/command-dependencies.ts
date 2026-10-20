@@ -1,3 +1,4 @@
+import type { DesktopOptimizationApi } from '../../shared/earthnano/desktop-optimization'
 import { createSessionRecoveryFolderCommand } from '../session-persistence/ipc'
 import { createCompletionHandoffCommands } from '../agents/completion-handoff-ipc'
 import type { composeAgentCompletion } from './agent-completion'
@@ -89,6 +90,7 @@ export function composeCommandDependencies({
   artifactSurfaces,
   sessionPackageSurfaces,
   reviewerCommandOwner,
+  optimizationCommandOwner,
   listAppIconPreviews
 }: {
   reportUploadProgress: ((clientId: string, progress: UploadTransferProgress) => void) | undefined
@@ -130,6 +132,7 @@ export function composeCommandDependencies({
   storageHandoff: ReturnType<typeof composeStorageHandoff>
   artifactSurfaces: ReturnType<typeof composeArtifactSurfaces>
   sessionPackageSurfaces: ReturnType<typeof composeSessionPackageSurfaces>
+  optimizationCommandOwner?: DesktopOptimizationApi
   reviewerCommandOwner: Awaited<ReturnType<typeof registerReviewerComposition>>
   listAppIconPreviews: (() => import('../../shared/settings').AppIconPreview[]) | undefined
 }): { applicationCommandDependencies: ApplicationCommandCompositionDependencies } {
@@ -421,6 +424,7 @@ export function composeCommandDependencies({
           taskNotifications.takePendingOpenSession(expectedToken)
       },
       reviewer: reviewerCommandOwner,
+      optimization: optimizationCommandOwner,
       storage: storageHandoff.storageCommandOwner,
       update: handoff.updateCommandOwner
     }

@@ -7327,7 +7327,7 @@
     "Execution limit (includes two assessments)": "执行次数上限（含两次评估）",
     "Start optimization": "开始优化",
     "Stop optimization": "停止优化",
-    "Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.": "最多选择 32 个文件名简单的文本文件，单个不超过 1 MB，总计不超过 4 MB。",
+    "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "最多选择 32 个文件名简单的文本文件，单个不超过 64 KB，总计不超过 128 KB。",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "无法完成优化请求，请检查所选模型和运行环境设置。",
     "Used {{used}} of {{limit}} executions · {{active}} active": "已用 {{used}} / {{limit}} 次执行 · {{active}} 项进行中",
     "Baseline assessment": "基准评估",

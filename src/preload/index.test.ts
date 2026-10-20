@@ -997,6 +997,7 @@ describe('preload bridge — core renderer contract catalog', () => {
       'tags',
       'remote-access',
       'reviewer',
+      'optimization',
       'sessions',
       'side-chat',
       'storage',

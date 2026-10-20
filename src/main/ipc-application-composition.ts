@@ -767,14 +767,13 @@ export const createApplicationModules = async (
     runtimeShutdownOwner: handoff.reviewerModelRuntimeShutdown,
     declareElectronAdapter
   })
-  if (!headless)
-    await registerDesktopOptimizationComposition(modules, {
-      settings: settingsBootstrap.settingsService,
-      archive: projectLifecycle.archiveCoordinator,
-      sessions: sessionAuthority.sessionPersistenceCoordinator,
-      lifecycle: handoff.optimizationRuntimeShutdown,
-      declareElectronAdapter
-    })
+  const optimizationCommandOwner = await registerDesktopOptimizationComposition(modules, {
+    settings: settingsBootstrap.settingsService,
+    archive: projectLifecycle.archiveCoordinator,
+    sessions: sessionAuthority.sessionPersistenceCoordinator,
+    lifecycle: handoff.optimizationRuntimeShutdown,
+    declareElectronAdapter
+  })
   sessionAuthority.reviewerCommandOwnerRef.current = reviewerCommandOwner
   const commandDependencies = composeCommandDependencies({
     localeOwner,
@@ -810,6 +809,7 @@ export const createApplicationModules = async (
     artifactSurfaces,
     sessionPackageSurfaces,
     reviewerCommandOwner,
+    optimizationCommandOwner,
     listAppIconPreviews
   })
   await composeBackendLifecycle({

@@ -196,6 +196,7 @@ const RENDERER_CAPABILITY_ORDER = Object.freeze([
   'tags',
   'remote-access',
   'reviewer',
+  'optimization',
   'runtime',
   'sessions',
   'settings',

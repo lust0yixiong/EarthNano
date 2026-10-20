@@ -7327,7 +7327,7 @@
     "Execution limit (includes two assessments)": "実行回数の上限（2回の評価を含む）",
     "Start optimization": "最適化を開始",
     "Stop optimization": "最適化を停止",
-    "Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.": "単純な名前のテキストファイルを最大32個選択できます。各1 MB、合計4 MBまでです。",
+    "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "単純な名前のテキストファイルを最大32個選択できます。各64 KB、合計128 KBまでです。",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "最適化リクエストを完了できませんでした。選択したモデルと実行環境の設定を確認してください。",
     "Used {{used}} of {{limit}} executions · {{active}} active": "実行回数 {{used}} / {{limit}} · 実行中 {{active}}",
     "Baseline assessment": "ベースライン評価",

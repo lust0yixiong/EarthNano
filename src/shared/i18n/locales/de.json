@@ -7488,7 +7488,7 @@
     "Execution limit (includes two assessments)": "Ausführungslimit (einschließlich zweier Bewertungen)",
     "Start optimization": "Optimierung starten",
     "Stop optimization": "Optimierung stoppen",
-    "Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.": "Wählen Sie bis zu 32 Textdateien mit einfachen Namen, höchstens 1 MB pro Datei und 4 MB insgesamt.",
+    "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "Wählen Sie bis zu 32 Textdateien mit einfachen Namen, höchstens 64 KB pro Datei und 128 KB insgesamt.",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "Die Optimierungsanfrage konnte nicht abgeschlossen werden. Prüfen Sie das gewählte Modell und die Laufzeiteinstellungen.",
     "Used {{used}} of {{limit}} executions · {{active}} active": "{{used}} von {{limit}} Ausführungen verwendet · {{active}} aktiv",
     "Baseline assessment": "Ausgangsbewertung",

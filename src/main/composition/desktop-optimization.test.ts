@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -32,6 +32,7 @@ vi.mock('../desktop-surface-declarations', () => ({
   registerDesktopOptimizationIpcHandlers: mocks.register
 }))
 vi.mock('../earthnano/desktop-optimization-manager', () => ({
+  DesktopOptimizationSetupError: class extends Error {},
   DesktopOptimizationManager: class {
     constructor(options: unknown) {
       mocks.constructed(options)
@@ -49,6 +50,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
 }))
 import {
   createDesktopOptimizationOptions,
+  resolveOptimizationPython,
   registerDesktopOptimizationComposition
 } from './desktop-optimization'
 const request: StartDesktopOptimization = {
@@ -87,7 +89,8 @@ const dependencies = () => ({
   },
   validateSession: vi.fn().mockResolvedValue(undefined),
   admitSessionWork: vi.fn().mockReturnValue(vi.fn()),
-  harnessRoot: mocks.root
+  harnessRoot: mocks.root,
+  resolvePython: vi.fn().mockResolvedValue('/synthetic/python3.11')
 })
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -102,6 +105,7 @@ it('captures only an explicit custom messages route and holds original admission
   const options = await createDesktopOptimizationOptions(request, deps)
   expect(options.input.task).toEqual({ prompt: request.prompt, files: request.files })
   expect(options.executionLimit).toBe(9)
+  expect(options.python).toBe('/synthetic/python3.11')
   expect(options.semanticCriteria).toBe(request.criteria)
   expect(JSON.stringify(options.input)).not.toContain('synthetic-private-key')
   expect(deps.settings.resolveIsolatedClaudeProvider).toHaveBeenCalledWith(target)
@@ -179,4 +183,39 @@ it('keeps corrupt feature metadata unavailable and fenced without aborting deskt
   const captured = mocks.constructed.mock.calls[0][0] as { root: string; executionRoot(): string }
   expect(captured.root).toBe(join(mocks.root, 'config', 'earthnano-desktop'))
   expect(captured.executionRoot()).toBe(join(mocks.root, 'data', 'earthnano', 'desktop-runs'))
+})
+
+it('rejects missing or non-absolute Python before owner execution and releases admissions', async () => {
+  const deps = dependencies()
+  deps.resolvePython.mockRejectedValueOnce(new Error('No compatible Python'))
+  await expect(createDesktopOptimizationOptions(request, deps)).rejects.toThrow(
+    'No compatible Python'
+  )
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  deps.resolvePython.mockResolvedValueOnce('python3')
+  await expect(createDesktopOptimizationOptions(request, deps)).rejects.toThrow('absolute Python')
+  expect(mocks.releaseWriter).toHaveBeenCalledTimes(2)
+})
+
+it('pins an executable Python >=3.11 and rejects old interpreters, fallback commands and the macOS stub', async () => {
+  const executable = join(mocks.root, 'python3')
+  await writeFile(executable, 'synthetic executable, never spawned', { mode: 0o700 })
+  const probe = vi.fn().mockResolvedValue('3.11.9')
+  const resolve = vi.fn().mockResolvedValue({ command: executable, baseArgs: [] })
+  await expect(
+    resolveOptimizationPython({ resolve, probe, path: '', platform: 'darwin' })
+  ).resolves.toBe(await realpath(executable))
+  const accept = resolve.mock.calls[0][0].probe
+  probe.mockResolvedValue('3.9.20')
+  await expect(accept({ command: executable, baseArgs: [] })).resolves.toBe(false)
+  await expect(
+    resolveOptimizationPython({ resolve, probe, path: '', platform: 'darwin' })
+  ).rejects.toThrow('Python 3.11')
+  probe.mockClear().mockResolvedValue('3.12.0')
+  await expect(accept({ command: '/usr/bin/python3', baseArgs: [] })).resolves.toBe(false)
+  expect(probe).not.toHaveBeenCalled()
+  resolve.mockResolvedValue({ command: 'python3', baseArgs: [] })
+  await expect(
+    resolveOptimizationPython({ resolve, probe, path: '', platform: 'darwin' })
+  ).rejects.toThrow('Python 3.11')
 })

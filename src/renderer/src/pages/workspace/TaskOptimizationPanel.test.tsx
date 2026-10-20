@@ -186,3 +186,30 @@ it('hides the unsupported Windows execution profile', async () => {
     Object.defineProperty(window, 'api', { configurable: true, value: previous })
   }
 })
+
+it('enforces the small desktop text profile before dispatch: 64 KB per file and 128 KB total', async () => {
+  await render()
+  const control = container.querySelector('input[type=file]')!
+  const oversized = new File(['x'.repeat(64_001)], 'large.txt')
+  const read = vi.fn()
+  Object.defineProperty(oversized, 'text', { value: read })
+  await act(async () => {
+    Object.defineProperty(control, 'files', { configurable: true, value: [oversized] })
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  expect(read).not.toHaveBeenCalled()
+  expect(container.querySelector('[role=alert]')).not.toBeNull()
+  const batch = [1, 2, 3].map((index) => {
+    const content = 'x'.repeat(64_000),
+      file = new File([content], `input${index}.txt`)
+    Object.defineProperty(file, 'text', { value: vi.fn().mockResolvedValue(content) })
+    return file
+  })
+  await act(async () => {
+    Object.defineProperty(control, 'files', { configurable: true, value: batch })
+    control.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  expect(container.querySelector('[role=alert]')).not.toBeNull()
+  expect(container.textContent).not.toContain('input1.txt')
+  expect(api.start).not.toHaveBeenCalled()
+})

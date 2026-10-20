@@ -1,11 +1,16 @@
-import { access } from 'node:fs/promises'
-import { join } from 'node:path'
+import { access, realpath } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { resolvePythonCommand, probeInterpreterVersion } from '@aipoch/environment'
+import { delimiter, isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type {
   DesktopOptimizationApi,
   StartDesktopOptimization
 } from '../../shared/earthnano/desktop-optimization'
-import { DesktopOptimizationManager } from '../earthnano/desktop-optimization-manager'
+import {
+  DesktopOptimizationManager,
+  DesktopOptimizationSetupError
+} from '../earthnano/desktop-optimization-manager'
 import type { PersistentOptimizationOptions } from '../earthnano/run-persistent-optimization'
 import type { SettingsService } from '../settings/service'
 import type { ArchiveCoordinator } from '../archive/coordinator'
@@ -27,6 +32,48 @@ export type DesktopOptimizationLifecycle = Pick<
   'hasActiveWork' | 'shutdown' | 'prepareForUpdateGate' | 'releaseUpdateGate'
 >
 
+/** Resolve once to an absolute executable; the generic notebook resolver's bare-command fallback
+ * is intentionally insufficient for this Python >=3.11 application dependency. */
+export async function resolveOptimizationPython(
+  dependencies: {
+    resolve?: typeof resolvePythonCommand
+    probe?: typeof probeInterpreterVersion
+    path?: string
+    platform?: NodeJS.Platform
+  } = {}
+): Promise<string> {
+  const acceptable = async (command: string, baseArgs: string[] = []): Promise<boolean> => {
+    if ((dependencies.platform ?? process.platform) === 'darwin' && command === '/usr/bin/python3')
+      return false
+    const version = await (dependencies.probe ?? probeInterpreterVersion)(command, baseArgs)
+    const parts = version?.match(/^(\d+)\.(\d+)/)
+    return !!parts && (+parts[1] > 3 || (+parts[1] === 3 && +parts[2] >= 11))
+  }
+  const selected = await (dependencies.resolve ?? resolvePythonCommand)({
+    platform: dependencies.platform ?? process.platform,
+    probe: ({ command, baseArgs }) => acceptable(command, baseArgs)
+  })
+  if (selected.baseArgs.length) throw new Error('Unsupported Python launcher')
+  const candidates = isAbsolute(selected.command)
+    ? [selected.command]
+    : (dependencies.path ?? process.env.PATH ?? '')
+        .split(delimiter)
+        .filter(Boolean)
+        .map((directory) => join(directory, selected.command))
+  for (const candidate of candidates) {
+    try {
+      await access(candidate, constants.X_OK)
+      const executable = await realpath(candidate)
+      if (isAbsolute(executable) && (await acceptable(executable))) return executable
+    } catch {
+      /* Continue searching explicit executable candidates. */
+    }
+  }
+  throw new DesktopOptimizationSetupError(
+    'Optimization requires Python 3.11 or newer. Check the selected model and runtime settings.'
+  )
+}
+
 /** Uses explicit current identity and the existing key resolver without provisioning host Claude settings. */
 export async function createDesktopOptimizationOptions(
   request: StartDesktopOptimization,
@@ -40,6 +87,7 @@ export async function createDesktopOptimizationOptions(
     validateSession(projectId: string, sessionId: string): Promise<void>
     admitSessionWork(projectId: string, sessionId: string): () => void
     harnessRoot: string
+    resolvePython?: () => Promise<string>
   }
 ): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
   const releaseWriter = acquireDataRootWriter()
@@ -49,7 +97,9 @@ export async function createDesktopOptimizationOptions(
     await dependencies.validateSession(request.projectId, request.sourceSessionId)
     const target = await dependencies.settings.captureActiveExplicitAgentBackendTarget()
     if (process.platform === 'win32' || target.frameworkId !== 'claude-code')
-      throw new Error('Optimization requires a supported Claude Code runtime')
+      throw new DesktopOptimizationSetupError(
+        'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
+      )
     const selected = await dependencies.settings.resolveIsolatedClaudeProvider(target)
     const provider = selected.provider
     if (
@@ -59,9 +109,16 @@ export async function createDesktopOptimizationOptions(
       !provider.key ||
       !provider.baseUrl
     )
-      throw new Error('Optimization requires an explicit custom messages provider')
+      throw new DesktopOptimizationSetupError(
+        'Optimization requires an explicit custom messages provider. Check the selected model and runtime settings.'
+      )
     const executablePath = await dependencies.settings.resolveIsolatedClaudeExecutable()
     await access(dependencies.harnessRoot)
+    const python = await (dependencies.resolvePython ?? resolveOptimizationPython)()
+    if (!isAbsolute(python))
+      throw new DesktopOptimizationSetupError(
+        'Optimization requires an absolute Python 3.11 executable. Check the selected model and runtime settings.'
+      )
     const dataRoot = resolveDataRoot(),
       configRoot = resolveConfigRoot()
     const providerRef = `desktop-provider:${selected.providerId}`
@@ -77,6 +134,7 @@ export async function createDesktopOptimizationOptions(
       taskId: `desktop-task-${randomUUID()}`,
       workRoot: join(dataRoot, 'earthnano', 'runs', randomUUID()),
       harnessRoot: dependencies.harnessRoot,
+      python,
       executionLimit: request.executionLimit,
       semanticCriteria: request.criteria,
       ownerOptions: { dataRoot, configRoot, getClient: () => getProjectDbClient(configRoot) },
@@ -133,7 +191,7 @@ export async function registerDesktopOptimizationComposition(
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
     declareElectronAdapter(name: string, install: () => void): void
   }
-): Promise<void> {
+): Promise<DesktopOptimizationApi> {
   const validateSession = async (projectId: string, sessionId: string): Promise<void> => {
     if (isMigrationInProgress() || isMigrationPending()) throw new Error('Data root is moving')
     await options.archive.withProjectAvailable(projectId, async () => {
@@ -194,4 +252,5 @@ export async function registerDesktopOptimizationComposition(
   options.declareElectronAdapter('desktop-optimization', () =>
     registerDesktopOptimizationIpcHandlers(manager)
   )
+  return manager
 }

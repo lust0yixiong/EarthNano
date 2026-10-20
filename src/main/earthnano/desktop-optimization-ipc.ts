@@ -3,6 +3,44 @@ import type { DesktopOptimizationApi } from '../../shared/earthnano/desktop-opti
 import { callerContextForEvent, requireDesktopCaller } from '../caller-context'
 import { ipcMainHandle } from '../ipc-handler-registry'
 
+export async function invokeDesktopOptimization<K extends keyof DesktopOptimizationApi>(
+  api: DesktopOptimizationApi,
+  operation: K,
+  request: unknown
+): Promise<Awaited<ReturnType<DesktopOptimizationApi[K]>>> {
+  try {
+    if (!request || typeof request !== 'object' || Array.isArray(request))
+      throw new Error('Invalid optimization request')
+    const allowed =
+      operation === 'start'
+        ? [
+            'projectId',
+            'sourceSessionId',
+            'requestKey',
+            'prompt',
+            'files',
+            'criteria',
+            'executionLimit'
+          ]
+        : operation === 'latest'
+          ? ['projectId', 'sourceSessionId']
+          : ['projectId', 'sourceSessionId', 'runId']
+    if (
+      Object.keys(request).length !== allowed.length ||
+      Object.keys(request).some((key) => !allowed.includes(key))
+    )
+      throw new Error('Unexpected optimization fields')
+    // The manager owns full bounded DTO validation and Project/Session authorization.
+    return await (
+      api[operation] as (input: unknown) => Promise<Awaited<ReturnType<DesktopOptimizationApi[K]>>>
+    ).call(api, request)
+  } catch {
+    throw new Error(
+      'Optimization request could not be completed. Check the selected model and runtime settings.'
+    )
+  }
+}
+
 /** Desktop-only, top-frame admission. Requests never accept credentials, executable paths or URLs. */
 export function registerDesktopOptimizationIpcHandlers(api: DesktopOptimizationApi): void {
   for (const operation of ['start', 'get', 'latest', 'stop'] as const) {
@@ -19,29 +57,7 @@ export function registerDesktopOptimizationIpcHandlers(api: DesktopOptimizationA
             event.senderFrame !== event.sender.mainFrame
           )
             throw new Error('Unavailable desktop caller')
-          if (!request || typeof request !== 'object' || Array.isArray(request))
-            throw new Error('Invalid optimization request')
-          const allowed =
-            operation === 'start'
-              ? [
-                  'projectId',
-                  'sourceSessionId',
-                  'requestKey',
-                  'prompt',
-                  'files',
-                  'criteria',
-                  'executionLimit'
-                ]
-              : operation === 'latest'
-                ? ['projectId', 'sourceSessionId']
-                : ['projectId', 'sourceSessionId', 'runId']
-          if (
-            Object.keys(request).length !== allowed.length ||
-            Object.keys(request).some((key) => !allowed.includes(key))
-          )
-            throw new Error('Unexpected optimization fields')
-          // The manager owns full bounded DTO validation and Project/Session authorization.
-          return await (api[operation] as (input: unknown) => Promise<unknown>)(request)
+          return await invokeDesktopOptimization(api, operation, request)
         } catch {
           // Provider/settings errors can contain credential-bearing URLs. Do not serialize them to IPC.
           throw new Error(

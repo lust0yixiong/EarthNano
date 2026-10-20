@@ -7797,7 +7797,7 @@
     "Execution limit (includes two assessments)": "Лимит запусков (включая две оценки)",
     "Start optimization": "Начать оптимизацию",
     "Stop optimization": "Остановить оптимизацию",
-    "Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.": "Выберите до 32 текстовых файлов с простыми именами: до 1 МБ каждый и 4 МБ суммарно.",
+    "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "Выберите до 32 текстовых файлов с простыми именами: до 64 КБ каждый и 128 КБ суммарно.",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "Не удалось выполнить запрос оптимизации. Проверьте выбранную модель и настройки среды выполнения.",
     "Used {{used}} of {{limit}} executions · {{active}} active": "Использовано {{used}} из {{limit}} запусков · активных: {{active}}",
     "Baseline assessment": "Оценка исходного варианта",
