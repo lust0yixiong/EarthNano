@@ -388,5 +388,13 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       closeSync(fd)
     }
     renameSync(temp, path)
+    for (const directory of [join(this.options.root, saved.progress.runId), this.options.root]) {
+      const handle = openSync(directory, 'r')
+      try {
+        fsyncSync(handle)
+      } finally {
+        closeSync(handle)
+      }
+    }
   }
 }

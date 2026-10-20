@@ -46,12 +46,15 @@ export interface PersistentOptimizationOptions {
 
 /** Opt-in production composition. Existing Session/Artifact/Review owners remain authoritative.
  * A fresh invocation is required; interruption never silently replays a paid model request. */
-export async function runPersistentOptimization(options: PersistentOptimizationOptions): Promise<{
+export interface PersistentOptimizationResult {
   optimizationId: string
   methodResult: unknown
   records: ExecutionRecord[]
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
-}> {
+}
+export async function runPersistentOptimization(
+  options: PersistentOptimizationOptions
+): Promise<PersistentOptimizationResult> {
   options.signal?.throwIfAborted()
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
     throw new Error('Optimization paths must be absolute')
@@ -71,6 +74,8 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
   const publish = (): void => {
     options.onProgress?.({ optimizationId, stage, records: Object.values(store.load().records) })
   }
+  let result: PersistentOptimizationResult | undefined
+  let cleanupConfirmed = false
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
@@ -183,7 +188,7 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
         signal: options.signal
       })
     }
-    return {
+    result = {
       optimizationId,
       methodResult,
       records: Object.values(store.load().records),
@@ -204,10 +209,12 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
             record.cleanup === 'confirmed'
         )
       // Unknown cleanup retains the single-writer lock for explicit reconciliation. No auto-replay.
+      cleanupConfirmed = safeToUnlock
       if (safeToUnlock) store.close()
-      else throw new Error('Optimization cleanup requires reconciliation')
     } finally {
       core?.dispose()
     }
   }
+  if (!cleanupConfirmed) throw new Error('Optimization cleanup requires reconciliation')
+  return result!
 }

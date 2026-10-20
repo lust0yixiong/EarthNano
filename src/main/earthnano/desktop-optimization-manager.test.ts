@@ -6,7 +6,10 @@ import {
   DesktopOptimizationManager,
   type DesktopOptimizationManagerOptions
 } from './desktop-optimization-manager'
-import type { StartDesktopOptimization } from '../../shared/earthnano/desktop-optimization'
+import type {
+  StartDesktopOptimization,
+  OptimizationRunKey
+} from '../../shared/earthnano/desktop-optimization'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { PersistentOptimizationOptions } from './run-persistent-optimization'
 
@@ -26,7 +29,12 @@ const task: StartDesktopOptimization = {
 const fixture = (
   run: DesktopOptimizationManagerOptions['run'],
   overrides: Partial<DesktopOptimizationManagerOptions> = {}
-) => {
+): {
+  root: string
+  release: ReturnType<typeof vi.fn>
+  options: DesktopOptimizationManagerOptions
+  manager: DesktopOptimizationManager
+} => {
   const root = mkdtempSync(join(tmpdir(), 'earthnano-desktop-'))
   roots.push(root)
   const release = vi.fn()
@@ -41,7 +49,7 @@ const fixture = (
   }
   return { root, release, options, manager: new DesktopOptimizationManager(options) }
 }
-const record = (id: string, role: string, phase: string, cleanup = 'confirmed') =>
+const record = (id: string, role: string, phase: string, cleanup = 'confirmed'): ExecutionRecord =>
   ({
     executionId: id,
     request: { role },
@@ -63,7 +71,7 @@ const complete = {
   records: [],
   assessments: { baseline: assessment, candidate: assessment }
 }
-const key = (runId: string) => ({
+const key = (runId: string): OptimizationRunKey => ({
   projectId: task.projectId,
   sourceSessionId: task.sourceSessionId,
   runId
