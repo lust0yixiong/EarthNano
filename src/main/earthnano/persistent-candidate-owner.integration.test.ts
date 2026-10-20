@@ -102,7 +102,14 @@ it
     'checks-freeze-before-await',
     'checks-mismatch',
     'reflection-owner-export',
-    'reflection-reserved-collision'
+    'reflection-reserved-collision',
+    'selector-owner-export',
+    'selector-reserved-collision',
+    'proposer-reply-only',
+    'composer-reply-only',
+    'proposer-file-only',
+    'proposer-empty',
+    'proposer-reserved-collision'
   ] as const)(
   'persists original owners with bounded integrity checks and review cleanup: %s',
   async (scenario) => {
@@ -180,9 +187,23 @@ it
     })
     let disposeCore = (): void => undefined
     const reflectionScenario = scenario.startsWith('reflection-')
+    const methodRole = reflectionScenario
+      ? 'reflection'
+      : scenario.startsWith('selector-')
+        ? 'selector'
+        : scenario.startsWith('proposer-')
+          ? 'proposer'
+          : scenario.startsWith('composer-')
+            ? 'composer'
+            : undefined
+    const reservedCollision = scenario.endsWith('reserved-collision')
     const finalReply = reflectionScenario
       ? '<experience>\ncue: Complete source rows\nlesson: Reconcile every source row\nevidence: The selected final reconciles all rows\n</experience>'
-      : 'PERSISTED_FINAL_REPLY'
+      : methodRole === 'selector'
+        ? '<why>Both finals are usable; prefer B.</why>\n```choice\nB\n```'
+        : scenario === 'proposer-file-only' || scenario === 'proposer-empty'
+          ? ''
+          : 'PERSISTED_FINAL_REPLY'
     const outputs = reflectionScenario
       ? [
           {
@@ -194,23 +215,39 @@ it
               'This model-written file intentionally differs from the final reflection reply.'
           }
         ]
-      : [
-          { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
-          {
-            path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
-            content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
-          },
-          ...(scenario === 'six-outputs-and-skills'
-            ? ['one', 'two', 'three', 'four'].map((name) => ({
-                path: `context/harness/skills/${name}/SKILL.md`,
-                content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
-              }))
-            : [])
-        ]
+      : methodRole
+        ? reservedCollision
+          ? [
+              {
+                path: `${methodRole[0].toUpperCase() + methodRole.slice(1)}-Reply.md`,
+                content: 'Model text differs from committed reply'
+              }
+            ]
+          : scenario === 'proposer-file-only'
+            ? [
+                {
+                  path: 'context/harness/instructions.md',
+                  content: 'Persisted file-only instructions'
+                }
+              ]
+            : []
+        : [
+            { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
+            {
+              path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
+              content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
+            },
+            ...(scenario === 'six-outputs-and-skills'
+              ? ['one', 'two', 'three', 'four'].map((name) => ({
+                  path: `context/harness/skills/${name}/SKILL.md`,
+                  content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
+                }))
+              : [])
+          ]
     const expectedOutputs = [
       ...outputs,
-      ...(scenario === 'reflection-owner-export'
-        ? [{ path: 'reflection-reply.md', content: finalReply }]
+      ...(methodRole && !reservedCollision && (finalReply.trim() || !outputs.length)
+        ? [{ path: `${methodRole}-reply.md`, content: finalReply }]
         : [])
     ]
     let taskProviderRequests = 0
@@ -312,7 +349,7 @@ it
       projectId: 'persistent-project',
       ...refs,
       invocationRef,
-      role: reflectionScenario ? 'reflection' : 'candidate',
+      role: methodRole ?? 'candidate',
       origin: { kind: 'optimization', optimizationId: 'local', stageId: 'candidate' },
       interactionPolicy: 'deny-unresolved',
       budgetRef: 'synthetic',
@@ -387,7 +424,7 @@ it
       expect(await owners.shutdown()).toEqual({ reaped: true })
       return
     }
-    if (scenario === 'reflection-reserved-collision') {
+    if (reservedCollision) {
       expect(record, JSON.stringify(record)).toMatchObject({
         phase: 'failed',
         cleanup: 'confirmed'
@@ -403,7 +440,7 @@ it
       expect(original.status).toBe('found')
       if (original.status === 'found') {
         expect(original.session.activeRun).toBeUndefined()
-        expect(JSON.stringify(original.session.messages)).toContain('Reconcile every source row')
+        expect(JSON.stringify(original.session.messages)).toContain(finalReply.split('\n')[0])
       }
       expect(await owners.shutdown()).toEqual({ reaped: true })
       return
@@ -482,13 +519,28 @@ it
         .map((file) => ({ path: file.path, content: file.content }))
         .sort((a, b) => a.path.localeCompare(b.path))
     ).toEqual([...expectedOutputs].sort((a, b) => a.path.localeCompare(b.path)))
-    if (scenario === 'reflection-owner-export') {
-      const canonical = before.files.find((file) => file.path === 'reflection-reply.md')!
+    if (methodRole && (finalReply.trim() || !outputs.length)) {
+      const canonical = before.files.find((file) => file.path === `${methodRole}-reply.md`)!
       expect(canonical.content).toBe(before.replyText)
-      expect(before.files.find((file) => file.path === 'experience.md')!.content).not.toBe(
-        before.replyText
-      )
+      if (reflectionScenario)
+        expect(before.files.find((file) => file.path === 'experience.md')!.content).not.toBe(
+          before.replyText
+        )
       expect(record.evidence.artifacts).toContainEqual(canonical.artifactRef)
+      expect(
+        session.session.messages.some(
+          (message) =>
+            message.role === 'agent' &&
+            message.status === 'complete' &&
+            message.artifactIds?.includes(canonical.artifactRef.versionId)
+        )
+      ).toBe(true)
+      if (scenario === 'proposer-empty') {
+        expect(canonical.content).toBe('')
+        expect(canonical.artifactRef.checksum).toBe(
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        )
+      }
     }
     const integrity = (await owners.readReviews(record))[0]!
     expect(integrity).toMatchObject({
@@ -654,15 +706,16 @@ it
       configRoot,
       getClient: async () => client
     })
-    await writeFile(
-      join(
-        root,
-        'candidates',
-        record.executionId,
-        `workspace/outputs/${outputs[Math.min(1, outputs.length - 1)]!.path}`
-      ),
-      'MUTATED_CWD'
-    )
+    if (outputs.length)
+      await writeFile(
+        join(
+          root,
+          'candidates',
+          record.executionId,
+          `workspace/outputs/${outputs[Math.min(1, outputs.length - 1)]!.path}`
+        ),
+        'MUTATED_CWD'
+      )
     expect(await owners.exportResult(record)).toEqual(before)
     const forged = structuredClone(record) as ExecutionRecord
     forged.evidence.artifacts[0].checksum = '0'.repeat(64)

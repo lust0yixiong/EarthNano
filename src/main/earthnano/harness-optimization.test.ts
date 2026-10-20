@@ -140,7 +140,8 @@ describe('trusted Harness optimization binding', () => {
     expect(resolved.invocation.mission).toContain('candidate A final output')
     expect(resolved.invocation.mission).toContain('candidate B final output')
     expect(resolved.invocation.mission).toContain('choice block and why format')
-    expect(resolved.invocation.mission).toContain('OUTPUT/selection.md')
+    expect(resolved.invocation.mission).toContain('selector-reply.md')
+    expect(resolved.invocation.mission).not.toContain('OUTPUT/selection.md')
     expect(resolved.invocation.mission).not.toContain('Emit the complete revised harness')
   })
   it('freezes role context separately while retaining the same research task across changed harnesses', async () => {

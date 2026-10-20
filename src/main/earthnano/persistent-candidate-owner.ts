@@ -314,7 +314,9 @@ export function createPersistentCandidateOwners(
         total += lease.size
         if (total > 4 * 1024 * 1024)
           throw new Error('Candidate artifacts exceed text export profile')
-        const bytes = await lease.readRange(0, lease.size)
+        // The original immutable lease forbids empty ranges. A zero-byte Version has exact
+        // empty content; still verify its original lease and checksum before exporting it.
+        const bytes = lease.size === 0 ? Buffer.alloc(0) : await lease.readRange(0, lease.size)
         await lease.verifyUnchanged()
         if (digest(bytes) !== 'sha256:' + artifactRef.checksum)
           throw new Error('Artifact version bytes changed')
@@ -740,32 +742,44 @@ export function createPersistentCandidateOwners(
               throw new Error('No original runtime admission evidence')
             await runtimeSessions.flush(sessionId, promptMessageId)
             let artifactRunId: string | undefined
-            let reflectionReply: string | undefined
+            let methodReply: string | undefined
             if (!scientific && !settlement.promptError && !settlement.cancellationRequested) {
               const outputs = await collectOutputs(materialized.outputDir)
-              if (request.role === 'reflection') {
+              if (['proposer', 'composer', 'selector', 'reflection'].includes(request.role)) {
                 // The original method consumes the committed reply, not a second model
                 // transcription. Preserve that same review-safe projection via the original
                 // artifact owner without overwriting any model-written output.
+                const replyPath = `${request.role}-reply.md`
                 if (
-                  outputs.some(
-                    (file) => file.path.normalize('NFC').toLowerCase() === 'reflection-reply.md'
-                  )
+                  outputs.some((file) => {
+                    const path = file.path.normalize('NFC').toLowerCase()
+                    return path === replyPath || path.startsWith(replyPath + '/')
+                  })
                 )
-                  throw new Error('Reserved reflection reply artifact collision')
-                reflectionReply = turnReply(
+                  throw new Error('Reserved method reply artifact collision')
+                methodReply = turnReply(
                   await scopeSnapshot(request.projectId, sessionId, promptMessageId)
                 )
                 if (
-                  !reflectionReply.trim() ||
-                  Buffer.byteLength(reflectionReply) > 1024 * 1024 ||
-                  outputs.length >= 64 ||
-                  outputs.reduce((total, file) => total + Buffer.byteLength(file.content), 0) +
-                    Buffer.byteLength(reflectionReply) >
-                    4 * 1024 * 1024
+                  (!methodReply.trim() && ['selector', 'reflection'].includes(request.role)) ||
+                  Buffer.byteLength(methodReply) > 1024 * 1024
                 )
-                  throw new Error('Reflection reply is empty or exceeds the output profile')
-                outputs.push({ path: 'reflection-reply.md', content: reflectionReply })
+                  throw new Error('Method reply is empty or exceeds the output profile')
+                // A proposer/composer's accepted harness can be entirely file-based. Preserve
+                // an actual reply when present; never manufacture narrative or a proposal.
+                // When neither a narrative nor a harvested file exists, an exact zero-byte
+                // reply is still evidence of what was committed. Original publication must
+                // independently bind it to a real durable agent Message; no Message is invented.
+                if (methodReply.trim() || !outputs.length) {
+                  if (
+                    outputs.length >= 64 ||
+                    outputs.reduce((total, file) => total + Buffer.byteLength(file.content), 0) +
+                      Buffer.byteLength(methodReply) >
+                      4 * 1024 * 1024
+                  )
+                    throw new Error('Method reply exceeds the output profile')
+                  outputs.push({ path: replyPath, content: methodReply })
+                }
               }
               const handle = await artifactOwner.openExecution({
                 executionId: runtimeExecutionId,
@@ -793,8 +807,8 @@ export function createPersistentCandidateOwners(
               }
             }
             const frozen = await scopeSnapshot(request.projectId, sessionId, promptMessageId)
-            if (reflectionReply !== undefined && turnReply(frozen) !== reflectionReply)
-              throw new Error('Reflection reply changed during artifact publication')
+            if (methodReply !== undefined && turnReply(frozen) !== methodReply)
+              throw new Error('Method reply changed during artifact publication')
             if (frozen.session.activeRun?.promptMessageId === promptMessageId)
               throw new Error('Original Session terminal commit is incomplete')
             const artifacts = await turnArtifacts(frozen)
