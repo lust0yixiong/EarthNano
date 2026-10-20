@@ -261,6 +261,20 @@ describe('EarthNano original-baseline gates', () => {
         }
     await expect(compareReports(reports, out)).resolves.toBeUndefined()
     expect(JSON.parse(await readFile(join(out, 'comparison.json'), 'utf8')).results).toHaveLength(3)
+    for (const [field, changed] of [
+      ['source', 'c'.repeat(40)],
+      ['lockDigest', 'd'.repeat(64)]
+    ]) {
+      const originals: Array<[string, string]> = []
+      for (let shard = 1; shard <= 8; shard++) {
+        const path = join(reports, `win32-candidate-${shard}`, 'source-report.json')
+        const bytes = await readFile(path, 'utf8')
+        originals.push([path, bytes])
+        await writeFile(path, JSON.stringify({ ...JSON.parse(bytes), [field]: changed }))
+      }
+      await expect(compareReports(reports, out)).rejects.toThrow('across platforms')
+      for (const [path, bytes] of originals) await writeFile(path, bytes)
+    }
     const file = join(reports, 'win32-candidate-8', 'source-report.json'),
       value = JSON.parse(await readFile(file, 'utf8'))
     for (const extra of [
@@ -328,7 +342,7 @@ describe('EarthNano original-baseline gates', () => {
     const config = join(root, 'vitest.config.mjs'),
       runtime = join(root, 'runtime.json')
     await writeFile(config, `export default {test:{include:['case.test.mjs'],maxWorkers:1}}`)
-    for (const mode of ['passed', 'assertion', 'global']) {
+    for (const mode of ['passed', 'assertion', 'global', 'skips']) {
       const body =
         mode === 'assertion'
           ? 'expect(1).toBe(2)'
@@ -337,7 +351,10 @@ describe('EarthNano original-baseline gates', () => {
             : 'expect(1).toBe(1)'
       await writeFile(
         join(root, 'case.test.mjs'),
-        `import {it,expect} from ${JSON.stringify(join(process.cwd(), 'node_modules/vitest/dist/index.js'))};it('case',()=>{${body}})`
+        `import {it,expect,describe} from ${JSON.stringify(join(process.cwd(), 'node_modules/vitest/dist/index.js'))};` +
+          (mode === 'skips'
+            ? `describe('outer',()=>{it.skip('skipped',()=>{});it.todo('todo');describe('inner',()=>it('passed',()=>expect(1).toBe(1)))})`
+            : `it('case',()=>{${body}})`)
       )
       const child = spawnSync(
         process.execPath,
@@ -363,6 +380,18 @@ describe('EarthNano original-baseline gates', () => {
       const inventory = normalizeVitest(raw, root)
       const report = { tests: inventory, stages: stages(mode === 'assertion') }
       report.stages.at(-1)!.status = child.status!
+      if (mode === 'skips') {
+        expect(raw).toMatchObject({
+          numTotalTests: 3,
+          numPassedTests: 1,
+          numPendingTests: 1,
+          numTodoTests: 1,
+          numTotalTestSuites: 3,
+          success: true
+        })
+        expect(inventory.map((test) => test.status).sort()).toEqual(['passed', 'skipped', 'todo'])
+        expect(originalRuntime).toMatchObject({ reason: 'passed', unhandledErrors: [] })
+      }
       if (mode === 'global') {
         expect(inventory.every((test) => test.status === 'passed')).toBe(true)
         expect(raw.success).toBe(true)
@@ -477,6 +506,60 @@ describe('EarthNano original-baseline gates', () => {
     )
     expect(wrongPin.status).not.toBe(0)
     expect(wrongPin.stderr).toContain('Wrong original Harness source pin/tree')
+  }, 60_000)
+  it('anchors actual candidate Git cleanliness at the repository root before unittest admission', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'earthnano-harness-cleanliness-'))
+    roots.push(root)
+    const vendor = join(root, 'vendor', 'harness2'),
+      script = join(process.cwd(), 'scripts/ci/earthnano-harness.py')
+    await mkdir(join(vendor, 'harness2'), { recursive: true })
+    await mkdir(join(vendor, 'tests'))
+    await writeFile(join(vendor, 'harness2', '__init__.py'), '')
+    await writeFile(join(vendor, 'LICENSE'), 'test-only-license')
+    await writeFile(
+      join(root, 'UPSTREAMS.json'),
+      JSON.stringify({ upstreams: [{ name: 'Harness²', commit: HARNESS_PIN, tree: HARNESS_TREE }] })
+    )
+    const file = join(vendor, 'tests', 'test_case.py'),
+      body = 'import unittest\nclass Original(unittest.TestCase):\n def test_case(self): pass'
+    await writeFile(file, body)
+    for (const args of [
+      ['init', '--quiet'],
+      ['add', '.'],
+      [
+        '-c',
+        'user.name=CI',
+        '-c',
+        'user.email=ci@example.invalid',
+        'commit',
+        '--quiet',
+        '-m',
+        'fixture'
+      ]
+    ])
+      expect(spawnSync('git', args, { cwd: root, encoding: 'utf8' }).status).toBe(0)
+    const python = process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+      output = join(root, 'clean-report.json')
+    const invoke = (path: string): ReturnType<typeof spawnSync> =>
+      spawnSync(python, [script, vendor, path, '--kind', 'candidate'], {
+        encoding: 'utf8',
+        timeout: 15_000
+      })
+    expect(invoke(output).status).toBe(0)
+    expect(JSON.parse(await readFile(output, 'utf8'))).toMatchObject({
+      testsRun: 1,
+      collectionErrors: [],
+      source: { kind: 'candidate', scope: 'vendor/harness2' }
+    })
+    await writeFile(file, body + '\n# changed')
+    expect(invoke(join(root, 'changed-report.json')).stderr?.toString()).toContain(
+      'Harness source changed after checkout'
+    )
+    await writeFile(file, body)
+    await writeFile(join(vendor, 'tests', 'test_untracked.py'), '# untracked')
+    expect(invoke(join(root, 'untracked-report.json')).stderr?.toString()).toContain(
+      'Harness source changed after checkout'
+    )
   }, 60_000)
   it('keeps only a read-only pinned workflow and explicit unsigned native acceptance', async () => {
     const source = await readFile('.github/workflows/earthnano-ci.yml', 'utf8'),

@@ -17,6 +17,8 @@ comparison rejects mismatched actual Node/Electron/image identities and incomple
 Each source retains its own original lockfile; the report records its hash rather than silently
 replacing upstream dependencies with candidate dependencies. Native runtime URLs and integrity
 manifests remain those of the original owners.
+All platforms must report one candidate HEAD and one lockfile digest per source kind; internally
+consistent platform shards from different revisions cannot be combined as one comparison.
 
 Tests are compared after merging every shard, so adding tests cannot move a baseline assertion
 out of the compared shard. A baseline pass becoming a failure/skip, a removed baseline assertion,

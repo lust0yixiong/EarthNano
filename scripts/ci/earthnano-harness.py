@@ -30,7 +30,7 @@ def source_identity(root, kind):
             raise RuntimeError("Wrong candidate Harness provenance")
     else:
         raise RuntimeError("Unknown Harness source kind")
-    if git("status", "--porcelain", "--untracked-files=all", "--", scope):
+    if git("status", "--porcelain", "--untracked-files=all", "--", ":(top)" + scope):
         raise RuntimeError("Harness source changed after checkout")
     files = []
     for directory in ("harness2", "tests"):

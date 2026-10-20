@@ -409,6 +409,17 @@ export async function compareReports(root, out) {
     }
   }
   await walk(root)
+  if (
+    new Set(reports.filter((report) => report.kind === 'candidate').map((report) => report.source))
+      .size !== 1
+  )
+    throw new Error('Candidate source identity differs across platforms')
+  for (const kind of ['baseline', 'candidate'])
+    if (
+      new Set(reports.filter((report) => report.kind === kind).map((report) => report.lockDigest))
+        .size !== 1
+    )
+      throw new Error('Source lockfile identity differs across platforms')
   const results = []
   for (const platform of ['darwin', 'linux', 'win32']) {
     const expectedTotal = platform === 'win32' ? 8 : 4
