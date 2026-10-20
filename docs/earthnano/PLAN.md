@@ -15,6 +15,9 @@
 内部 opt-in。第四轮已接实际 Session/ArtifactVersion/Review；第五轮接入桌面显式任务入口、进度/执行预算/停止与独立语义评估，并完成分层及 DeepSeek 验证。普通 Send 尚未默认自动优化。实际验证范围见 [第五轮结果](ROUND5.md)，后续实施见
 [最小任务清单](NEXT_TASKS.md)，共同边界见 [最小核心契约](CORE_CONTRACT.md)。
 
+第一至第五轮累计实现已完成合并前审查和整合验证；按本次用户选择依次合入 `main`。
+源码试用、审阅修复、精确验证提交和交付边界以 [当前基线](BASELINE.md) 为准。
+
 根目录以 OpenScience 固定提交为基础，保留上游历史。Harness² 的固定提交源码完整保存在
 `vendor/harness2/`，包含其测试和许可证。来源及版本见根目录 `UPSTREAMS.json`。
 

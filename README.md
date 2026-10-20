@@ -6,6 +6,9 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 
 **当前阶段：桌面 Session 已有显式优化入口、进度/执行次数预算/停止及独立语义评估，限定文本样例通过 DeepSeek 与持久化验证。科研质量提升、默认自动优化及跨平台发布尚未验收。**
 
+DeepSeek 样例通过生产 manager 的集成测试运行；真实 Electron 验证为离线桌面冒烟，尚未从桌面按钮完成付费闭环。源码试用方式及整合验证见[当前基线](docs/earthnano/BASELINE.md)。
+
+- [当前基线、启动方式与验证范围](docs/earthnano/BASELINE.md)
 - [实施计划与当前状态](docs/earthnano/PLAN.md)
 - [最小核心契约](docs/earthnano/CORE_CONTRACT.md)
 - [第一轮审查与验证结果](docs/earthnano/ROUND1.md)

@@ -1,0 +1,186 @@
+{
+  "date": "2026-10-20",
+  "validatedSourceCommit": "54dcb848ae11078170e03a992d85a86d1596a04b",
+  "pullRequests": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "scope": "Cumulative integration gate after pre-merge fixes; this is a source development baseline, not release certification",
+  "vitest": [
+    {
+      "name": "default",
+      "project": "default",
+      "files": 47,
+      "passed": 2356,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/preload/index.test.ts",
+        "src/main/application-command-composition.test.ts",
+        "src/main/application-command-wiring.test.ts",
+        "src/main/lifecycle-shutdown.test.ts",
+        "src/main/runtime-shutdown-lifetime.test.ts",
+        "src/shared/renderer-contract-catalog.test.ts",
+        "src/main/agent-framework/claude-code.test.ts",
+        "src/main/acp/agent-process.test.ts",
+        "src/main/acp/claude-candidate-preparation.test.ts",
+        "src/main/acp/earthnano-execution-driver.test.ts",
+        "src/main/acp/handler-workflows.test.ts",
+        "src/main/acp/prompt-turn-workflow.test.ts",
+        "src/main/acp/provider-prompt-executor.test.ts",
+        "src/main/acp/restricted-inference-runner.test.ts",
+        "src/main/acp/runtime-coordinator.test.ts",
+        "src/main/acp/session-configurator.test.ts",
+        "src/main/acp/session-interaction-owner.test.ts",
+        "src/main/acp/task-agent-port.test.ts",
+        "src/main/composition/desktop-optimization.test.ts",
+        "src/main/earthnano/candidate-snapshot.test.ts",
+        "src/main/earthnano/claude-candidate-driver.test.ts",
+        "src/main/earthnano/desktop-optimization-ipc.test.ts",
+        "src/main/earthnano/desktop-optimization-manager.test.ts",
+        "src/main/earthnano/execution-core.test.ts",
+        "src/main/earthnano/harness-optimization.test.ts",
+        "src/main/earthnano/harness-roundtrip.test.ts",
+        "src/main/earthnano/run-persistent-optimization.test.ts",
+        "src/main/earthnano/semantic-evaluation.test.ts",
+        "src/main/reviewer/artifact-digest.test.ts",
+        "src/main/reviewer/artifact-version-review.test.ts",
+        "src/main/reviewer/model-runtime-owner.test.ts",
+        "src/main/reviewer/review-assessment-owner.test.ts",
+        "src/main/reviewer/scope-snapshot.test.ts",
+        "src/main/session-persistence/runtime-resume-recovery.test.ts",
+        "src/main/session-persistence/runtime-session-owner.test.ts",
+        "src/main/specialist/session-reconfiguration.test.ts",
+        "src/main/tasks/task-run-journal.test.ts",
+        "src/main/tasks/task-runner.test.ts",
+        "src/main/storage/command-owner.atomicity.test.ts",
+        "src/main/web-service/public-task-event-stream.test.ts",
+        "src/main/settings/agent-runtime-manager.test.ts",
+        "src/main/settings/backend-resolver.test.ts",
+        "src/main/settings/claude-detect.test.ts",
+        "src/main/settings/provider-env.test.ts",
+        "src/renderer/src/i18n/resources.test.ts",
+        "src/renderer/src/pages/workspace/ConversationPanel.interaction.test.tsx",
+        "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx"
+      ]
+    },
+    {
+      "name": "native",
+      "project": "process",
+      "files": 3,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 2,
+      "paths": [
+        "src/main/acp/claude-candidate-preparation.integration.test.ts",
+        "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
+        "src/main/earthnano/persistent-optimization.integration.test.ts"
+      ]
+    }
+  ],
+  "python": {
+    "command": "python3 -B -m unittest discover -s tests -v",
+    "cwd": "vendor/harness2",
+    "passed": 33,
+    "failed": 0
+  },
+  "desktop": {
+    "sourceCommit": "54dcb848ae11078170e03a992d85a86d1596a04b",
+    "platform": "Darwin arm64",
+    "node": "v24.22.0",
+    "stagedNode": "v22.23.3",
+    "electron": "43.7.5",
+    "workingTreeClean": true,
+    "commands": [
+      {
+        "command": "node scripts/build-backend.mjs",
+        "exitCode": 0,
+        "log": "desktop-build-backend.log"
+      },
+      {
+        "command": "node scripts/stage-node-runtime.mjs --reuse",
+        "exitCode": 0,
+        "log": "desktop-stage-runtime.log"
+      },
+      {
+        "command": "node node_modules/electron-vite/bin/electron-vite.js build",
+        "exitCode": 0,
+        "log": "desktop-build-electron.log"
+      },
+      {
+        "command": "OPEN_SCIENCE_E2E_ISOLATE_HOME=1 node node_modules/@playwright/test/cli.js test e2e/task-optimization-desktop.spec.ts --workers=1",
+        "exitCode": 0,
+        "passed": 1,
+        "durationSeconds": 12.4,
+        "log": "desktop-electron.log"
+      },
+      {
+        "command": "node node_modules/@playwright/test/cli.js test --config <Chrome override of e2e/playwright.browser.config.ts>",
+        "exitCode": 0,
+        "passed": 4,
+        "durationSeconds": 33.7,
+        "log": "desktop-chrome.log"
+      }
+    ],
+    "scope": "Electron isolates HOME/config/data and uses synthetic offline ACP. It validates actual preload/Node command dispatch and rejection of unsupported OpenCode routes with zero optimization admissions. Chrome uses typed mock API and validates start/poll/stop, budget and Stop visibility at 1100/390px, scroll preservation, owner view navigation, session reset, safe errors and Web hiding.",
+    "modelCalls": 0,
+    "limitations": [
+      "No new live Claude/DeepSeek optimization was run by these UI checks.",
+      "No packages rebuilt or dependencies reinstalled. Source files unchanged."
+    ]
+  },
+  "checks": [
+    {
+      "name": "Node and Web TypeScript native typecheck",
+      "exitCode": 0
+    },
+    {
+      "name": "ESLint and Prettier on 9 pre-merge changed TS files",
+      "exitCode": 0
+    },
+    {
+      "name": "Shared contract generator --check",
+      "exitCode": 0
+    },
+    {
+      "name": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "name": "Local credential scan over cumulative changed files",
+      "matchedFiles": 0
+    }
+  ],
+  "reviewFixes": [
+    {
+      "commit": "da5f2e37a",
+      "change": "Probe and freeze selected supported Claude CLI version instead of hardcoding development version"
+    },
+    {
+      "commit": "47e98d5c7",
+      "change": "Reject overflowing Node/Python deadlines before persistence or child spawn"
+    },
+    {
+      "commit": "54dcb848a",
+      "change": "Aggregate file integrity Findings with full fixed-version evidence; parse JSON extensions case-insensitively; settle failed or aborted Review commits"
+    }
+  ],
+  "reviewCoverage": [
+    "OpenScience execution/store/snapshot/ACP/persistent owner and legacy task compatibility",
+    "Harness2 original method seam, transport, cancellation, budget and independent assessment evidence",
+    "Luna read-only documentation and delivery scope consistency audit"
+  ],
+  "liveProviderCallsThisGate": 0,
+  "priorLiveEvidence": "ROUND5_DEEPSEEK_VALIDATION.json",
+  "limitations": [
+    "No full npm test or complete original scientific workflow acceptance",
+    "No live paid replay after the pre-merge fixes",
+    "Electron verifies real dispatch and pre-admission unsupported-route rejection; paid success path remains a separate manager integration test",
+    "Darwin arm64 only; no signed installers or cross-platform certification",
+    "No proof of quality improvement: prior baseline and candidate both scored 100",
+    "GitHub Actions remains disabled; all listed gates are local"
+  ]
+}
