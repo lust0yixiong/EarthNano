@@ -479,6 +479,7 @@ describe('preload bridge — public surface inventory', () => {
       'officePreview.reportState',
       'optimization.get',
       'optimization.latest',
+      'optimization.previewSweep',
       'optimization.resume',
       'optimization.start',
       'optimization.startSweep',
@@ -1948,6 +1949,14 @@ describe('desktop optimization preload protocol', () => {
     }
     await api.optimization.startSweep(sweep)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:startSweep', sweep)
+    const preview = {
+      projectId: sweep.projectId,
+      sourceSessionId: sweep.sourceSessionId,
+      catalog: sweep.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+      sweep: sweep.sweep
+    }
+    await api.optimization.previewSweep(preview)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:previewSweep', preview)
 
     const key = { projectId: 'p', sourceSessionId: 's', runId: 'run' }
     await api.optimization.get(key)

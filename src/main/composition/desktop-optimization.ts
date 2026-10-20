@@ -48,6 +48,10 @@ import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-p
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import {
   assertSweepExecutionLimit,
+  normalizeDesktopSweepPreview,
+  minimumSweepExecutions,
+  type PreviewDesktopSweep,
+  type DesktopSweepPreview,
   type StartDesktopSweep
 } from '../../shared/earthnano/optimization-sweep'
 import { normalizeDesktopSweep } from '../earthnano/desktop-sweep-validation'
@@ -371,6 +375,55 @@ export async function createDesktopOptimizationOptions(
   }
 }
 
+/** Read-only original task_stream, authorized by the navigation Session. No provider or source
+ * catalog task source reader exists in this dependency surface. Navigation authorization keeps
+ * the original Session owner checks (which may read its snapshot). Lifetime leases cover cleanup. */
+export async function createDesktopSweepPreview(
+  value: PreviewDesktopSweep,
+  dependencies: Pick<
+    DesktopOptimizationDependencies,
+    | 'validateSession'
+    | 'admitSessionWork'
+    | 'harnessRoot'
+    | 'resolvePython'
+    | 'previewSweep'
+    | 'signal'
+  >
+): Promise<DesktopSweepPreview> {
+  const request = normalizeDesktopSweepPreview(value)
+  dependencies.signal?.throwIfAborted()
+  const releaseWriter = acquireDataRootWriter()
+  let releaseSession: (() => void) | undefined
+  try {
+    releaseSession = dependencies.admitSessionWork(request.projectId, request.sourceSessionId)
+    await dependencies.validateSession(request.projectId, request.sourceSessionId)
+    dependencies.signal?.throwIfAborted()
+    const python = await (dependencies.resolvePython ?? resolveOptimizationPython)()
+    dependencies.signal?.throwIfAborted()
+    const plan = await (dependencies.previewSweep ?? previewOptimizationSweep)({
+      catalog: request.catalog,
+      options: request.sweep,
+      python,
+      harnessRoot: dependencies.harnessRoot,
+      signal: dependencies.signal
+    })
+    dependencies.signal?.throwIfAborted()
+    const selectedCount = plan.domains.reduce((count, domain) => count + domain.taskIds.length, 0)
+    return {
+      planDigest: plan.digest,
+      order: plan.domains,
+      modes: plan.options.modes,
+      minimumExecutions: selectedCount ? minimumSweepExecutions(plan.options, selectedCount) : 0
+    }
+  } finally {
+    try {
+      releaseSession?.()
+    } finally {
+      releaseWriter()
+    }
+  }
+}
+
 /** One explicit sweep, original shared provider and independently authorized selected sources. */
 export async function createDesktopSweepOptions(
   value: StartDesktopSweep,
@@ -545,6 +598,7 @@ export async function registerDesktopOptimizationComposition(
         validateSession,
         createOptions: (request, signal) =>
           createDesktopOptimizationOptions(request, dependencies(signal)),
+        previewSweep: (request, signal) => createDesktopSweepPreview(request, dependencies(signal)),
         createSweepOptions: (request, signal) =>
           createDesktopSweepOptions(request, dependencies(signal))
       })
@@ -555,6 +609,7 @@ export async function registerDesktopOptimizationComposition(
       manager = {
         start: unavailable,
         startSweep: unavailable,
+        previewSweep: unavailable,
         get: unavailable,
         latest: unavailable,
         stop: unavailable,

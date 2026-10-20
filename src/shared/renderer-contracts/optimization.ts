@@ -2,6 +2,10 @@ import type { DesktopOptimizationApi } from '../earthnano/desktop-optimization'
 import { callable, ELECTRON } from './definition'
 
 export const contracts = {
+  'optimization.previewSweep': callable<DesktopOptimizationApi['previewSweep']>()('optimization', [
+    'optimization:previewSweep',
+    ELECTRON
+  ]),
   'optimization.startSweep': callable<DesktopOptimizationApi['startSweep']>()('optimization', [
     'optimization:startSweep',
     ELECTRON

@@ -672,3 +672,128 @@ it('retains an earlier task outcome when the shared domain stream is stopped bef
   expect(release).toHaveBeenCalledOnce()
   expect(await manager.shutdown()).toEqual({ reaped: true })
 })
+
+const previewDto = {
+  projectId: 'project',
+  sourceSessionId: 'source',
+  catalog: [{ taskId: 'a', domain: 'd' }],
+  sweep: {
+    modes: ['parallel' as const],
+    k: 1,
+    concurrency: 1,
+    stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+const previewResult = {
+  planDigest: 'sha256:fixed',
+  order: [{ domain: 'd', taskIds: ['a'] }],
+  modes: ['parallel' as const],
+  minimumExecutions: 10
+}
+it('previews without creating persistent runs, invoking Core or occupying start admission', async () => {
+  const previewSweep = vi.fn().mockResolvedValue(previewResult),
+    run = vi.fn()
+  const { manager, options, root } = fixture(run, { previewSweep })
+  expect(await manager.previewSweep(previewDto)).toEqual(previewResult)
+  expect(previewSweep).toHaveBeenCalledWith(previewDto, expect.any(AbortSignal))
+  expect(options.createOptions).not.toHaveBeenCalled()
+  expect(run).not.toHaveBeenCalled()
+  expect(readdirSync(root)).toEqual([])
+  expect(manager.hasActiveWork()).toBe(false)
+})
+it('rejects cross-project/extra-field previews before original planning', async () => {
+  const previewSweep = vi.fn(),
+    validateSession = vi.fn(async (projectId: string) => {
+      if (projectId !== 'project') throw new Error('wrong project')
+    })
+  const { manager } = fixture(vi.fn(), { previewSweep, validateSession })
+  await expect(manager.previewSweep({ ...previewDto, projectId: 'other' })).rejects.toThrow(
+    'wrong project'
+  )
+  await expect(
+    manager.previewSweep({ ...previewDto, provider: 'secret' } as typeof previewDto)
+  ).rejects.toThrow()
+  expect(previewSweep).not.toHaveBeenCalled()
+})
+it.each(['shutdown', 'prepareForUpdateGate'] as const)(
+  'cancels active preview and waits for physical settlement during %s',
+  async (operation) => {
+    let finish!: () => void, signal!: AbortSignal
+    const previewSweep = vi.fn((_request, originalSignal: AbortSignal) => {
+      signal = originalSignal
+      return new Promise<typeof previewResult>((resolve) => {
+        finish = () => resolve(previewResult)
+      })
+    })
+    const { manager } = fixture(vi.fn(), { previewSweep })
+    const preview = manager.previewSweep(previewDto)
+    const rejected = expect(preview).rejects.toThrow()
+    await vi.waitFor(() => expect(previewSweep).toHaveBeenCalledOnce())
+    expect(manager.hasActiveWork()).toBe(true)
+    let settled = false
+    const stopping = manager[operation]().then((outcome) => {
+      settled = true
+      return outcome
+    })
+    expect(signal.aborted).toBe(true)
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    await expect(manager.previewSweep(previewDto)).rejects.toThrow('closed')
+    finish()
+    expect(await stopping).toEqual({ reaped: true })
+    await rejected
+    expect(manager.hasActiveWork()).toBe(false)
+    if (operation === 'prepareForUpdateGate') {
+      manager.releaseUpdateGate()
+      previewSweep.mockResolvedValueOnce(previewResult)
+      expect(await manager.previewSweep(previewDto)).toEqual(previewResult)
+    }
+  }
+)
+it('does not launch a preview after close during authorization', async () => {
+  let release!: () => void
+  const validateSession = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+    ),
+    previewSweep = vi.fn()
+  const { manager } = fixture(vi.fn(), { validateSession, previewSweep })
+  const pending = manager.previewSweep(previewDto)
+  const rejected = expect(pending).rejects.toThrow()
+  await vi.waitFor(() => expect(validateSession).toHaveBeenCalledOnce())
+  const closing = manager.shutdown()
+  release()
+  expect(await closing).toEqual({ reaped: true })
+  await rejected
+  expect(previewSweep).not.toHaveBeenCalled()
+})
+it('Stop remains available while preview is pending and does not wait on its subprocess', async () => {
+  let endPreview!: () => void
+  const previewSweep = vi.fn(
+    () =>
+      new Promise<typeof previewResult>((resolve) => {
+        endPreview = () => resolve(previewResult)
+      })
+  )
+  const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+    await new Promise<void>((resolve) =>
+      options.signal!.addEventListener('abort', () => resolve(), { once: true })
+    )
+    throw new Error('cancelled')
+  })
+  const { manager } = fixture(run, { previewSweep })
+  const started = await manager.start(task)
+  await vi.waitFor(() => expect(run).toHaveBeenCalledOnce())
+  const pending = manager.previewSweep(previewDto)
+  await vi.waitFor(() => expect(previewSweep).toHaveBeenCalledOnce())
+  expect((await manager.stop(key(started.runId))).state).toBe('stopping')
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(started.runId))).state).toBe('cancelled')
+  )
+  expect(manager.hasActiveWork()).toBe(true)
+  endPreview()
+  await pending
+  expect(await manager.shutdown()).toEqual({ reaped: true })
+})

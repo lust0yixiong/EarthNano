@@ -952,13 +952,22 @@ it.each([false, true])(
 it('dispatches optimization through the real desktop inventory while rejecting web callers and unexpected fields', async () => {
   const start = vi.fn().mockResolvedValue({ runId: 'synthetic' })
   const resume = vi.fn().mockResolvedValue({ runId: 'synthetic', state: 'queued' })
+  const previewSweep = vi.fn().mockResolvedValue({ planDigest: 'preview' })
   const startSweep = vi.fn().mockResolvedValue({ runId: 'sweep' })
   const deps = dependencies()
   const composition = createApplicationCommandComposition({
     ...deps,
     host: {
       ...deps.host,
-      optimization: { start, startSweep, get: vi.fn(), latest: vi.fn(), stop: vi.fn(), resume }
+      optimization: {
+        start,
+        startSweep,
+        previewSweep,
+        get: vi.fn(),
+        latest: vi.fn(),
+        stop: vi.fn(),
+        resume
+      }
     }
   })
   const request = {
@@ -971,6 +980,7 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     executionLimit: 12
   }
   for (const channel of [
+    'optimization:previewSweep',
     'optimization:startSweep',
     'optimization:start',
     'optimization:get',
@@ -1028,6 +1038,35 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     })
   ).resolves.toEqual({ runId: 'sweep' })
   expect(startSweep).toHaveBeenCalledWith(sweep)
+  const preview = {
+    projectId: sweep.projectId,
+    sourceSessionId: sweep.sourceSessionId,
+    catalog: sweep.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+    sweep: sweep.sweep
+  }
+  await expect(
+    composition.desktop.invoke('optimization:previewSweep', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [preview]
+    })
+  ).resolves.toEqual({ planDigest: 'preview' })
+  expect(previewSweep).toHaveBeenCalledWith(preview)
+  await expect(
+    composition.desktop.invoke('optimization:previewSweep', {
+      ...invocation(),
+      args: [preview]
+    })
+  ).rejects.toThrow()
+  await expect(
+    composition.desktop.invoke('optimization:previewSweep', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [{ ...preview, provider: 'forbidden' }]
+    })
+  ).rejects.toThrow()
+  expect(previewSweep).toHaveBeenCalledOnce()
+
   await expect(
     composition.desktop.invoke('optimization:startSweep', { ...invocation(), args: [sweep] })
   ).rejects.toThrow()

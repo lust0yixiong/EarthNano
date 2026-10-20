@@ -1,3 +1,4 @@
+import { normalizeDesktopSweepPreview } from '../../shared/earthnano/optimization-sweep'
 import { normalizeDesktopSweep } from './desktop-sweep-validation'
 import type { IpcMainInvokeEvent } from 'electron'
 import type { DesktopOptimizationApi } from '../../shared/earthnano/desktop-optimization'
@@ -20,21 +21,23 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
     if (!request || typeof request !== 'object' || Array.isArray(request))
       throw new Error('Invalid optimization request')
     const required =
-      operation === 'startSweep'
-        ? ['projectId', 'sourceSessionId', 'requestKey', 'catalog', 'sweep', 'executionLimit']
-        : operation === 'start'
-          ? [
-              'projectId',
-              'sourceSessionId',
-              'requestKey',
-              'prompt',
-              'files',
-              'criteria',
-              'executionLimit'
-            ]
-          : operation === 'latest'
-            ? ['projectId', 'sourceSessionId']
-            : ['projectId', 'sourceSessionId', 'runId']
+      operation === 'previewSweep'
+        ? ['projectId', 'sourceSessionId', 'catalog', 'sweep']
+        : operation === 'startSweep'
+          ? ['projectId', 'sourceSessionId', 'requestKey', 'catalog', 'sweep', 'executionLimit']
+          : operation === 'start'
+            ? [
+                'projectId',
+                'sourceSessionId',
+                'requestKey',
+                'prompt',
+                'files',
+                'criteria',
+                'executionLimit'
+              ]
+            : operation === 'latest'
+              ? ['projectId', 'sourceSessionId']
+              : ['projectId', 'sourceSessionId', 'runId']
     const allowed =
       operation === 'start'
         ? [...required, 'method', 'checks', 'domain', 'inputArtifacts', 'notebook']
@@ -44,6 +47,7 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
       Object.keys(request).some((key) => !allowed.includes(key))
     )
       throw new Error('Unexpected optimization fields')
+    if (operation === 'previewSweep') normalizeDesktopSweepPreview(request)
     if (operation === 'startSweep') normalizeDesktopSweep(request)
     if (operation === 'start' && Object.hasOwn(request, 'method'))
       normalizeOptimizationMethod((request as Record<string, unknown>).method)
@@ -66,7 +70,15 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
 
 /** Desktop-only, top-frame admission. Requests never accept credentials, executable paths or URLs. */
 export function registerDesktopOptimizationIpcHandlers(api: DesktopOptimizationApi): void {
-  for (const operation of ['start', 'startSweep', 'get', 'latest', 'stop', 'resume'] as const) {
+  for (const operation of [
+    'previewSweep',
+    'start',
+    'startSweep',
+    'get',
+    'latest',
+    'stop',
+    'resume'
+  ] as const) {
     ipcMainHandle(
       `optimization:${operation}`,
       async (event: IpcMainInvokeEvent, request: unknown) => {

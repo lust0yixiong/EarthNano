@@ -307,6 +307,7 @@ describe('Host application commands', () => {
       channels: [
         'optimization:start',
         'optimization:startSweep',
+        'optimization:previewSweep',
         'optimization:get',
         'optimization:latest',
         'optimization:stop',
@@ -329,7 +330,11 @@ describe('Host application commands', () => {
       {} as HostApplicationCommandDependencies
     )
 
-    expect(router.dispatcher.commandNames()).toHaveLength(86)
+    expect(
+      router.dispatcher.commandNames().filter((name) => name !== 'optimization:previewSweep')
+    ).toHaveLength(86)
+    expect(router.dispatcher.commandNames()).toContain('optimization:previewSweep')
+    expect(router.dispatcher.commandNames()).toHaveLength(87)
     installation.uninstall()
     expect(router.dispatcher.commandNames()).toEqual([])
   })

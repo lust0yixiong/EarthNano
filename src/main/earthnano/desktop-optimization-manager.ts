@@ -1,5 +1,10 @@
 import { normalizeDesktopSweep } from './desktop-sweep-validation'
-import type { StartDesktopSweep } from '../../shared/earthnano/optimization-sweep'
+import {
+  normalizeDesktopSweepPreview,
+  type StartDesktopSweep,
+  type PreviewDesktopSweep,
+  type DesktopSweepPreview
+} from '../../shared/earthnano/optimization-sweep'
 import { canonicalOutput } from './output-checks'
 import { createHash, randomUUID } from 'node:crypto'
 import {
@@ -67,6 +72,7 @@ export interface DesktopOptimizationManagerOptions {
       releaseAdmission?: () => void | Promise<void>
     }
   >
+  previewSweep?(request: PreviewDesktopSweep, signal: AbortSignal): Promise<DesktopSweepPreview>
   createSweepOptions?(
     request: StartDesktopSweep,
     signal?: AbortSignal
@@ -228,6 +234,7 @@ const sweepRequestDigest = (request: StartDesktopSweep): string =>
 export class DesktopOptimizationManager implements DesktopOptimizationApi {
   private readonly saved = new Map<string, SavedRun>()
   private readonly active = new Map<string, ActiveRun>()
+  private readonly previews = new Set<{ controller: AbortController; done: Promise<void> }>()
   private admission: Promise<unknown> = Promise.resolve()
   private closing = false
   private updateGate = false
@@ -263,8 +270,39 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
   hasActiveWork(): boolean {
     return (
       this.active.size > 0 ||
+      this.previews.size > 0 ||
       [...this.saved.values()].some((run) => run.progress.state === 'interrupted')
     )
+  }
+
+  async previewSweep(value: PreviewDesktopSweep): Promise<DesktopSweepPreview> {
+    const request = normalizeDesktopSweepPreview(value)
+    if (this.closing || this.updateGate) throw new Error('Optimization admission is closed')
+    const controller = new AbortController()
+    // Register before any await. Planning must never occupy the start/resume admission queue:
+    // Stop stays available while the original Python process is being cancelled/reaped.
+    const result = Promise.resolve().then(async () => {
+      controller.signal.throwIfAborted()
+      await this.options.validateSession(request.projectId, request.sourceSessionId)
+      controller.signal.throwIfAborted()
+      if (!this.options.previewSweep) throw new Error('Sweep preview is unavailable')
+      const preview = await this.options.previewSweep(request, controller.signal)
+      controller.signal.throwIfAborted()
+      return preview
+    })
+    const pending = {
+      controller,
+      done: result.then(
+        () => undefined,
+        () => undefined
+      )
+    }
+    this.previews.add(pending)
+    try {
+      return await result
+    } finally {
+      this.previews.delete(pending)
+    }
   }
 
   async start(request: StartDesktopOptimization): Promise<OptimizationProgress> {
@@ -417,11 +455,13 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
 
   async shutdown(): Promise<{ reaped: boolean }> {
     this.closing = true
+    for (const preview of this.previews) preview.controller.abort()
     await this.admission.catch(() => undefined)
     return this.stopAll()
   }
   async prepareForUpdateGate(): Promise<{ reaped: boolean }> {
     this.updateGate = true
+    for (const preview of this.previews) preview.controller.abort()
     await this.admission.catch(() => undefined)
     return this.stopAll()
   }
@@ -430,6 +470,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
   }
 
   private async stopAll(): Promise<{ reaped: boolean }> {
+    for (const preview of this.previews) preview.controller.abort()
     for (const [id, run] of this.active) {
       const saved = this.saved.get(id)!
       saved.progress.state = 'stopping'
@@ -439,7 +480,10 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     await Promise.race([
-      Promise.all([...this.active.values()].map((run) => run.done)),
+      Promise.all([
+        ...[...this.active.values()].map((run) => run.done),
+        ...[...this.previews].map((preview) => preview.done)
+      ]),
       new Promise<void>((resolve) => {
         timer = setTimeout(resolve, 25_000)
       })

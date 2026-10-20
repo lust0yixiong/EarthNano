@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile, realpath } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile, realpath, cp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -52,6 +52,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
     releaseUpdateGate = (): void => undefined
     start = vi.fn()
     startSweep = vi.fn()
+    previewSweep = vi.fn()
     get = vi.fn()
     latest = vi.fn()
     stop = vi.fn()
@@ -61,6 +62,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
 import {
   createDesktopOptimizationOptions,
   createDesktopSweepOptions,
+  createDesktopSweepPreview,
   resolveOptimizationPython,
   registerDesktopOptimizationComposition
 } from './desktop-optimization'
@@ -657,3 +659,233 @@ it('releases every source and the data-root lease even when one original admissi
     expect(result.value).toHaveBeenCalledOnce()
   expect(mocks.releaseWriter).toHaveBeenCalledOnce()
 })
+
+const previewRequest = {
+  projectId: 'p',
+  sourceSessionId: 's',
+  catalog: [
+    { taskId: 'z2', domain: 'z' },
+    { taskId: 'a2', domain: 'a' },
+    { taskId: 'z1', domain: 'z' },
+    { taskId: 'a1', domain: 'a' }
+  ],
+  sweep: {
+    modes: ['parallel' as const, 'sequential' as const],
+    k: 2,
+    concurrency: 2,
+    stream: {
+      seed: null as number | null,
+      onlyDomains: [] as string[],
+      onlyTasks: [] as string[],
+      maxTasks: null as number | null,
+      workers: 2
+    }
+  }
+}
+it.each([null, 0, -7])(
+  'previews original task_stream seed %s without model capture, catalog task source reads or execution',
+  async (seed) => {
+    const deps = dependencies()
+    const loadSession = vi.fn(() => {
+      throw new Error('Source body must not be read')
+    })
+    const versions = {
+      openVersion: vi.fn(() => {
+        throw new Error('Source file must not be read')
+      })
+    }
+    const dto = {
+      ...previewRequest,
+      sweep: {
+        ...previewRequest.sweep,
+        stream: { ...previewRequest.sweep.stream, seed, maxTasks: 1 }
+      }
+    }
+    const python = execFileSync(
+      process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+      ['-c', 'import sys; print(sys.executable)'],
+      { encoding: 'utf8' }
+    ).trim()
+    const harnessRoot = resolve('vendor/harness2')
+    const host = { ...deps, loadSession, versions, harnessRoot, resolvePython: async () => python }
+    const result = await createDesktopSweepPreview(dto, host)
+    const { previewOptimizationSweep } = await import('../earthnano/sweep-plan')
+    const original = await previewOptimizationSweep({
+      catalog: dto.catalog,
+      options: dto.sweep,
+      python,
+      harnessRoot
+    })
+    expect(result).toEqual({
+      planDigest: original.digest,
+      order: original.domains,
+      modes: ['parallel', 'sequential'],
+      minimumExecutions: 66
+    })
+    expect(result.order).toHaveLength(2)
+    expect(result.order.every((row) => row.taskIds.length === 1)).toBe(true)
+    expect(deps.settings.captureActiveExplicitAgentBackendTarget).not.toHaveBeenCalled()
+    expect(deps.settings.resolveIsolatedClaudeProvider).not.toHaveBeenCalled()
+    expect(deps.settings.resolveIsolatedClaudeExecutable).not.toHaveBeenCalled()
+    expect(loadSession).not.toHaveBeenCalled()
+    expect(versions.openVersion).not.toHaveBeenCalled()
+    expect(deps.validateSession).toHaveBeenCalledWith('p', 's')
+    expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+    expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  }
+)
+it('applies original domain/task filters and releases navigation leases after preview failure', async () => {
+  const deps = dependencies()
+  const python = execFileSync(
+    process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+    ['-c', 'import sys; print(sys.executable)'],
+    { encoding: 'utf8' }
+  ).trim()
+  const result = await createDesktopSweepPreview(
+    {
+      ...previewRequest,
+      sweep: {
+        ...previewRequest.sweep,
+        stream: { ...previewRequest.sweep.stream, onlyDomains: ['z'], onlyTasks: ['z2'] }
+      }
+    },
+    { ...deps, harnessRoot: resolve('vendor/harness2'), resolvePython: async () => python }
+  )
+  expect(result.order).toEqual([{ domain: 'z', taskIds: ['z2'] }])
+  expect(result.minimumExecutions).toBe(33)
+  deps.validateSession.mockRejectedValueOnce(new Error('wrong project'))
+  await expect(createDesktopSweepPreview(previewRequest, deps)).rejects.toThrow('wrong project')
+  expect(deps.resolvePython).not.toHaveBeenCalled()
+  expect(mocks.releaseWriter).toHaveBeenCalledTimes(2)
+  expect(deps.admitSessionWork.mock.results[1].value).toHaveBeenCalledTimes(2)
+})
+it('does not spawn a preview after cancellation during Python resolution and releases both leases', async () => {
+  const deps = dependencies(),
+    controller = new AbortController()
+  const previewSweep = vi.fn()
+  await expect(
+    createDesktopSweepPreview(previewRequest, {
+      ...deps,
+      signal: controller.signal,
+      previewSweep,
+      resolvePython: async () => {
+        controller.abort()
+        return '/python'
+      }
+    })
+  ).rejects.toThrow()
+  expect(previewSweep).not.toHaveBeenCalled()
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+})
+it('rejects preview bodies, provider settings and malformed catalog metadata before acquiring a lease', async () => {
+  const deps = dependencies()
+  for (const dto of [
+    { ...previewRequest, provider: 'SECRET' },
+    { ...previewRequest, catalog: [{ taskId: 'a', domain: 'd', prompt: 'SECRET' }] },
+    { ...previewRequest, executionLimit: 512 }
+  ])
+    await expect(createDesktopSweepPreview(dto, deps)).rejects.toThrow()
+  expect(deps.admitSessionWork).not.toHaveBeenCalled()
+  expect(deps.resolvePython).not.toHaveBeenCalled()
+  expect(mocks.releaseWriter).not.toHaveBeenCalled()
+})
+
+it('reaps an already-running original Python preview before releasing navigation leases', async () => {
+  // Only this private fixture copy adds a wait at the original CLI entry point; planning,
+  // process launch and cancellation use the production helper. No shared sources are changed.
+  const harnessRoot = join(mocks.root, 'slow-harness')
+  await cp(resolve('vendor/harness2/harness2'), join(harnessRoot, 'harness2'), { recursive: true })
+  const entry = join(harnessRoot, 'harness2', 'earthnano_sweep.py'),
+    marker = join(mocks.root, 'preview-pid')
+  await writeFile(
+    entry,
+    (await readFile(entry, 'utf8')).replace(
+      '    raise SystemExit(main())',
+      `    import os, time
+    from pathlib import Path
+    Path(${JSON.stringify(marker)}).write_text(str(os.getpid()))
+    time.sleep(30)
+    raise SystemExit(main())`
+    )
+  )
+  const deps = dependencies(),
+    controller = new AbortController()
+  const python = execFileSync(
+    process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+    ['-c', 'import sys; print(sys.executable)'],
+    { encoding: 'utf8' }
+  ).trim()
+  const pending = createDesktopSweepPreview(previewRequest, {
+    ...deps,
+    harnessRoot,
+    signal: controller.signal,
+    resolvePython: async () => python
+  })
+  const rejected = expect(pending).rejects.toThrow('cancelled')
+  let pid = 0
+  await vi.waitFor(async () => {
+    pid = Number(await readFile(marker, 'utf8'))
+    expect(pid).toBeGreaterThan(0)
+  })
+  expect(mocks.releaseWriter).not.toHaveBeenCalled()
+  expect(deps.admitSessionWork.mock.results[0].value).not.toHaveBeenCalled()
+  controller.abort()
+  await rejected
+  expect(() => process.kill(pid, 0)).toThrow()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+})
+
+it.each(['missing', 'foreign-project', 'archived', 'imported'])(
+  'wires preview through original navigation authorization and rejects %s Session before planning',
+  async (kind) => {
+    const modules = {
+      add: async (_input: unknown, factory: (input: unknown) => { capability: unknown }) =>
+        factory(_input).capability
+    } as unknown as ApplicationModuleBuilder
+    const deps = dependencies()
+    const session =
+      kind === 'missing'
+        ? undefined
+        : {
+            id: 's',
+            projectId: kind === 'foreign-project' ? 'other' : 'p',
+            ...(kind === 'archived' ? { archivedAt: 1 } : {}),
+            ...(kind === 'imported' ? { packageOrigin: {} } : {})
+          }
+    const sessions = {
+      assertSessionAvailable: vi.fn().mockResolvedValue(undefined),
+      readSessionSnapshot: vi.fn().mockResolvedValue(session)
+    }
+    const archive = {
+      withProjectAvailable: vi.fn(async (_id: string, operation: () => Promise<void>) =>
+        operation()
+      ),
+      admitSessionWork: deps.admitSessionWork
+    }
+    await registerDesktopOptimizationComposition(modules, {
+      settings: deps.settings,
+      archive,
+      sessions,
+      sessionRepository: {},
+      lifecycle: { current: undefined },
+      declareElectronAdapter: vi.fn()
+    } as unknown as Parameters<typeof registerDesktopOptimizationComposition>[1])
+    const captured = mocks.constructed.mock.calls[0][0] as {
+      previewSweep: NonNullable<
+        import('../earthnano/desktop-optimization-manager').DesktopOptimizationManagerOptions['previewSweep']
+      >
+    }
+    await expect(
+      captured.previewSweep(previewRequest, new AbortController().signal)
+    ).rejects.toThrow('Source Session is unavailable')
+    expect(archive.withProjectAvailable).toHaveBeenCalledWith('p', expect.any(Function))
+    expect(sessions.assertSessionAvailable).toHaveBeenCalledWith('p', 's')
+    expect(sessions.readSessionSnapshot).toHaveBeenCalledWith('p', 's')
+    expect(deps.settings.captureActiveExplicitAgentBackendTarget).not.toHaveBeenCalled()
+    expect(deps.admitSessionWork).toHaveBeenCalledWith('p', 's', true)
+    expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
+    expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  }
+)

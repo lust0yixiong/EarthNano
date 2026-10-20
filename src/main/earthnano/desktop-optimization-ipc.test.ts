@@ -33,6 +33,7 @@ let api: DesktopOptimizationApi
 beforeEach(() => {
   handlers.clear()
   api = {
+    previewSweep: vi.fn().mockResolvedValue({ planDigest: 'safe' }),
     startSweep: vi.fn().mockResolvedValue({ state: 'queued' }),
     start: vi.fn().mockResolvedValue({ state: 'queued' }),
     get: vi.fn().mockResolvedValue({ state: 'running' }),
@@ -237,5 +238,53 @@ it('rejects malformed excluded source authority and masks raw sweep setup errors
   vi.mocked(api.startSweep).mockRejectedValue(new Error('credential=synthetic-private-key'))
   await expect(invokeDesktopOptimization(api, 'startSweep', sweep)).rejects.toThrow(
     'Optimization request could not be completed. Check the selected model and runtime settings.'
+  )
+})
+
+const preview = {
+  projectId: 'p',
+  sourceSessionId: 's',
+  catalog: [{ taskId: 'a', domain: 'd' }],
+  sweep: {
+    modes: ['parallel'],
+    k: 1,
+    concurrency: 1,
+    stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+it('forwards only strict identity-only preview DTOs over the top-frame desktop boundary', async () => {
+  await expect(handlers.get('optimization:previewSweep')!(event(), preview)).resolves.toEqual({
+    planDigest: 'safe'
+  })
+  expect(api.previewSweep).toHaveBeenCalledWith(preview)
+  for (const extra of [
+    { provider: 'SECRET' },
+    { prompt: 'SECRET' },
+    { files: [] },
+    { executionLimit: 512 }
+  ])
+    await expect(
+      invokeDesktopOptimization(api, 'previewSweep', { ...preview, ...extra })
+    ).rejects.toThrow('could not be completed')
+  await expect(
+    invokeDesktopOptimization(api, 'previewSweep', {
+      ...preview,
+      catalog: [{ ...preview.catalog[0], source: { kind: 'notebook' } }]
+    })
+  ).rejects.toThrow('could not be completed')
+  await expect(
+    handlers.get('optimization:previewSweep')!(
+      { ...event(), senderFrame: {} } as IpcMainInvokeEvent,
+      preview
+    )
+  ).rejects.toThrow('could not be completed')
+  expect(api.previewSweep).toHaveBeenCalledOnce()
+})
+it('redacts preview authorization, subprocess and provider-shaped errors', async () => {
+  vi.mocked(api.previewSweep).mockRejectedValue(
+    new Error('credential=SECRET https://SECRET@example.invalid')
+  )
+  await expect(invokeDesktopOptimization(api, 'previewSweep', preview)).rejects.toThrow(
+    /^Optimization request could not be completed\. Check the selected model and runtime settings\.$/
   )
 })
