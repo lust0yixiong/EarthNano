@@ -79,7 +79,7 @@ type Fixture = {
   setFault(value: FixtureFault): void
   options: Parameters<typeof evaluateOptimizationSemantics>[0]
 }
-async function setup(limit = 9, baselineCount = 1): Promise<Fixture> {
+async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-semantic-unit-'))
   roots.push(root)
   const snapshots = await createCandidateSnapshotStore({
@@ -99,6 +99,40 @@ async function setup(limit = 9, baselineCount = 1): Promise<Fixture> {
       runtimeVersion: '2.1.232'
     },
     environment: { isolation: 'directory-process', network: 'provider-only' }
+  }
+  if (scientific) {
+    Object.assign(input, {
+      task: {
+        prompt: 'Compute the original CSV statistics.',
+        files: [],
+        managedInputs: [
+          {
+            sourceKind: 'upload-version',
+            sourceProjectId: 'project',
+            sourceSessionId: 'original-session',
+            sourceFileId: 'upload',
+            inputFileVersionId: 'old-version',
+            filename: 'values.csv',
+            sizeBytes: 12,
+            checksum: 'a'.repeat(64)
+          }
+        ]
+      },
+      harness: { ...input.harness, tools: 'notebook-python' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        notebook: {
+          runtime: {
+            language: 'python',
+            runtimeId: '/original/python',
+            interpreterPath: '/original/python',
+            source: 'external',
+            provenance: 'user-own'
+          }
+        }
+      }
+    })
   }
   const refs = await snapshots.freeze(input)
   const invocationRef = await snapshots.freezeInvocation({
@@ -524,4 +558,21 @@ describe('independent semantic execution', () => {
     ).rejects.toThrow()
     expect(f.admissions).toHaveLength(0)
   })
+})
+
+it('assesses scientific outputs as fixed textual evidence without Notebook or managed input grants', async () => {
+  const f = await setup(9, 1, true)
+  await evaluateOptimizationSemantics(f.options)
+  expect(f.reviewerInputs).toHaveLength(2)
+  for (const reviewer of f.reviewerInputs) {
+    expect(reviewer.harness.tools).toBe('workspace-only')
+    expect(reviewer.environment).toEqual({
+      isolation: 'directory-process',
+      network: 'provider-only'
+    })
+    expect(reviewer.task.managedInputs).toBeUndefined()
+    expect(
+      reviewer.task.files.find((entry) => entry.path === 'evidence/task.json')?.content
+    ).toContain('old-version')
+  }
 })

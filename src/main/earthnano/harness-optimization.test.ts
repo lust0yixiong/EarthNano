@@ -58,7 +58,9 @@ const invocation = (role = 'proposer'): Record<string, unknown> => ({
   harnessFiles: [],
   contextFiles: [{ path: 'context/harness/instructions.md', content: 'Original method' }]
 })
-const setup = async (): Promise<{
+const setup = async (
+  sourceInput: CandidateSnapshotInput = input
+): Promise<{
   root: string
   binding: HarnessOptimizationBinding
   snapshots: CandidateSnapshotStore
@@ -111,7 +113,7 @@ const setup = async (): Promise<{
   const binding = new HarnessOptimizationBinding({
     core,
     snapshots,
-    input,
+    input: sourceInput,
     projectId: 'project',
     optimizationId: randomUUID(),
     taskId: 't1',
@@ -404,4 +406,95 @@ describe('trusted Harness optimization binding', () => {
     ).toThrow('Invalid optimization timeout')
     expect(freeze).not.toHaveBeenCalled()
   })
+})
+
+describe('host-fixed scientific Harness capabilities', () => {
+  const scientific = (): CandidateSnapshotInput => ({
+    ...input,
+    task: {
+      prompt: 'Compute the original CSV mean in Notebook.',
+      files: [],
+      managedInputs: [
+        {
+          sourceKind: 'upload-version',
+          sourceProjectId: 'project',
+          sourceSessionId: 'source-session',
+          sourceFileId: 'upload',
+          inputFileVersionId: 'old-version',
+          filename: 'values.csv',
+          sizeBytes: 12,
+          checksum: 'a'.repeat(64)
+        }
+      ]
+    },
+    harness: { ...input.harness, tools: 'notebook-python' },
+    environment: {
+      isolation: 'directory-process',
+      network: 'provider-and-notebook-policy',
+      notebook: {
+        runtime: {
+          language: 'python',
+          runtimeId: '/original/python',
+          interpreterPath: '/original/python',
+          source: 'external',
+          provenance: 'user-own'
+        }
+      }
+    }
+  })
+  it('retains one fixed task/runtime and the scientific profile through candidate harness edits', async () => {
+    const source = scientific(),
+      f = await setup(source)
+    const baseline = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const candidate = (await f.binding.dispatch('freezeInvocation', {
+      ...invocation('candidate'),
+      harnessFiles: [{ path: 'instructions.md', content: 'Revised guidance' }],
+      // Untrusted local fields cannot replace the host capabilities or sources.
+      environment: { notebook: { runtime: { runtimeId: '/attacker/python' } } },
+      task: { managedInputs: [] },
+      tools: 'arbitrary-shell'
+    })) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(candidate)
+    expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
+    expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
+    expect(resolved.harness).toMatchObject({
+      tools: 'notebook-python',
+      instructions: 'Revised guidance'
+    })
+    expect(resolved.environment).toEqual(source.environment)
+    expect(resolved.task).toEqual(source.task)
+    expect(resolved.invocation.mission).toContain(
+      'Publish task deliverables using the original Artifact tools'
+    )
+  })
+  it('rejects a foreign source Project before freezing or admitting scientific work', async () => {
+    const source = scientific()
+    Object.assign(source.task.managedInputs![0]!, { sourceProjectId: 'another-project' })
+    const f = await setup(source)
+    const freeze = vi.spyOn(f.snapshots, 'freeze')
+    await expect(f.binding.dispatch('freezeInvocation', invocation('baseline'))).rejects.toThrow()
+    expect(freeze).not.toHaveBeenCalled()
+    expect(f.binding.executionIds).toEqual([])
+  })
+  it.each(['proposer', 'composer', 'selector', 'reflection'])(
+    'keeps %s textual despite the scientific source profile',
+    async (role) => {
+      const source = scientific(),
+        f = await setup(source)
+      const request = (await f.binding.dispatch(
+        'freezeInvocation',
+        invocation(role)
+      )) as ExecutionRequest
+      const resolved = await f.snapshots.resolve(request)
+      expect(resolved.harness.tools).toBe('workspace-only')
+      expect(resolved.environment).toEqual(input.environment)
+      expect(resolved.task).toEqual(source.task)
+      expect(resolved.invocation.mission).not.toContain(
+        'Publish task deliverables using the original Artifact tools'
+      )
+    }
+  )
 })

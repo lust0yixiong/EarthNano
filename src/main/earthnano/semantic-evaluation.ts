@@ -353,7 +353,7 @@ export async function evaluateOptimizationSemantics(options: {
           tools: 'workspace-only'
         },
         agent: input.agent,
-        environment: input.environment
+        environment: { isolation: input.environment.isolation, network: 'provider-only' }
       }
       const refs = await abortable(options.snapshots.freeze(reviewInput), signal)
       const mission = `EarthNano execution role: reviewer. Assess only the frozen evidence. checks.evidence may cite ONLY entries of INPUT/evidence/artifacts.json: copy path and the complete artifactRef verbatim from the SAME array entry. The quote must be an exact contiguous short substring of that entry's content; do not quote JSON container syntax or escaped serialization instead. INPUT/evidence/task.json and INPUT/evidence/criteria.json provide source facts and requirements for reasoning, but are NOT target artifacts and MUST NOT appear in checks.evidence.path or be combined with a target artifactRef. Explain source comparisons in rationale instead. Artifact path values are logical identifiers inside the JSON array, not host files or files in your working directory; do not try to Read them from disk. Their full content is already supplied in artifacts.json. Criteria digest: ${criteriaDigest}. Every criterion c1..cN must occur exactly once; each check needs at least one exact target artifactRef, path, and nonempty quote that exists in that file. outcome is pass exactly when every check passes, otherwise flagged. Scores are integers 0..100. Do not output markdown or extra fields. Use this JSON schema: ${encodeEvidence(semanticAssessmentSchema)}`

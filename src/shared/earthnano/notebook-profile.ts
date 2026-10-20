@@ -44,17 +44,12 @@ const plain = (
 }
 
 const text = (value: unknown, max = 4096): string => {
-  if (
-    typeof value !== 'string' ||
-    !value.trim() ||
-    value.length > max ||
-    /[\x00-\x1f\x7f]/.test(value)
-  )
+  if (typeof value !== 'string' || !value.trim() || value.length > max)
     throw new Error('Notebook profile requires bounded nonempty text')
   for (const character of value) {
     const point = character.codePointAt(0)!
-    if (point >= 0xd800 && point <= 0xdfff)
-      throw new Error('Notebook profile text has a lone surrogate')
+    if (point < 32 || point === 127 || (point >= 0xd800 && point <= 0xdfff))
+      throw new Error('Notebook profile text has a control character or lone surrogate')
   }
   return value
 }

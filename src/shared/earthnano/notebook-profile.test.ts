@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeFrozenNotebookInputs, normalizeFrozenNotebookRuntime } from './notebook-profile'
+import {
+  normalizeFrozenNotebookInputs,
+  normalizeFrozenNotebookRuntime,
+  type FrozenNotebookInput,
+  type FrozenNotebookRuntime
+} from './notebook-profile'
 
-const input = () => ({
+const input = (): FrozenNotebookInput => ({
   sourceKind: 'upload-version',
   sourceProjectId: 'project',
   sourceSessionId: 'source-session',
@@ -11,7 +16,7 @@ const input = () => ({
   sizeBytes: 12,
   checksum: 'a'.repeat(64)
 })
-const runtime = () => ({
+const runtime = (): FrozenNotebookRuntime => ({
   language: 'python',
   runtimeId: '/original/python',
   interpreterPath: '/original/python',
