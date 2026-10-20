@@ -191,13 +191,34 @@ export async function runPersistentOptimization(
     )
       throw new Error('Harness method did not adopt a valid final result')
     const records = await Promise.all(binding.executionIds.map((id) => core!.get(id)))
+    // Match upstream PortMethodExecution's control stops. Ordinary failed attempts remain
+    // charged and recorded, but a successful upstream retry may still produce a valid result.
+    const controlCodes = new Set([
+      'budget-exhausted',
+      'budget-rejected',
+      'cleanup-unconfirmed',
+      'timeout',
+      'cancelled',
+      'interrupted',
+      'process_restarted',
+      'invalid-request',
+      'request-conflict',
+      'not-found'
+    ])
     if (
       !records.length ||
-      records.some((record) => record.phase !== 'completed' || record.cleanup !== 'confirmed')
+      !records.some((record) => record.phase === 'completed') ||
+      records.some(
+        (record) =>
+          !['completed', 'failed'].includes(record.phase) ||
+          record.cleanup !== 'confirmed' ||
+          controlCodes.has(record.error?.code ?? '')
+      )
     )
       throw new Error('Optimization has incomplete executions')
     // Re-read original owners after the method ends; Python summaries cannot attest persistence.
     for (const record of records) {
+      if (record.phase === 'failed') continue
       await owners.exportResult(record)
       const reviews = await owners.readReviews(record)
       if (

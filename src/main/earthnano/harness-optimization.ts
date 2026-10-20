@@ -202,7 +202,9 @@ export class HarnessOptimizationBinding {
       JSON.stringify(context).replaceAll('@', '\\u0040').replaceAll('`', '\\u0060'),
       ['proposer', 'composer'].includes(role)
         ? 'Emit the complete revised harness as files beneath OUTPUT/context/harness/: instructions.md and optional skills/name/SKILL.md. OUTPUT is the absolute output directory supplied by the Session owner. Read the current harness from the frozen JSON context; do not modify INPUT or any original context directory. Preserve unchanged harness files in the emitted tree. Finish with a short explanation of your changes.'
-        : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
+        : role === 'selector'
+          ? 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. Also write that same selection and explanation to OUTPUT/selection.md so the original artifact and Review owners persist it. Do not emit a new task deliverable or alter any candidate.'
+          : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
     ]
       .filter(Boolean)
       .join('\n\n')

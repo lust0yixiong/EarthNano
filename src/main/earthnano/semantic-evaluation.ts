@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
+import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
 import type {
   ArtifactReference,
   ExecutionRecord,
@@ -272,7 +273,11 @@ export async function evaluateOptimizationSemantics(options: {
   const input = structuredClone(options.input),
     criteria = options.criteria
   const records = structuredClone(options.records),
-    method = options.methodResult as { status?: string; chosenArtifacts?: ArtifactReference[] }
+    method = options.methodResult as {
+      status?: string
+      chosenArtifacts?: ArtifactReference[]
+      method?: unknown
+    }
   const criteriaItems = semanticCriteria(criteria),
     criteriaDigest = semanticDigest(criteria)
   if (
@@ -291,13 +296,23 @@ export async function evaluateOptimizationSemantics(options: {
     )
   )
     fail('Assessment targets belong to another optimization')
-  const baselines = records.filter((record) => record.request.role === 'baseline')
+  const allBaselines = records.filter((record) => record.request.role === 'baseline')
+  const declaredMethod =
+    method.method === undefined ? undefined : normalizeOptimizationMethod(method.method)
+  if (declaredMethod && allBaselines.length !== declaredMethod.k)
+    fail('Assessment requires the fixed base1 baseline and all declared method baselines')
+  // The comparison is fixed before execution; concurrent completion order must never choose
+  // which reference is evaluated. Single-baseline legacy records retain compatibility.
+  const baselines =
+    allBaselines.length === 1 && !declaredMethod
+      ? allBaselines
+      : allBaselines.filter((record) => record.request.origin.stageId === 'base1')
   const candidates = records.filter(
     (record) =>
       record.request.role === 'candidate' && same(record.evidence.artifacts, method.chosenArtifacts)
   )
   if (baselines.length !== 1 || candidates.length !== 1)
-    fail('Assessment requires one baseline and an unambiguous chosen final version')
+    fail('Assessment requires the fixed base1 baseline and an unambiguous chosen final version')
   const preparationSignal = options.signal
     ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs)])
     : AbortSignal.timeout(options.timeoutMs)

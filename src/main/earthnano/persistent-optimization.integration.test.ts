@@ -10,6 +10,10 @@ vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: true } 
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { DesktopOptimizationManager } from './desktop-optimization-manager'
 import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import {
+  minimumOptimizationExecutions,
+  type OptimizationMethodOptions
+} from '../../shared/earthnano/optimization-method'
 import { ReviewRepository } from '../reviewer/repository'
 import { runPersistentOptimization } from './run-persistent-optimization'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
@@ -78,7 +82,21 @@ const stream = (
   )
 }
 
-async function exercise(live: boolean, desktop = false, stopEarly = false): Promise<void> {
+async function exercise(
+  live: boolean,
+  desktop = false,
+  stopEarly = false,
+  method?: OptimizationMethodOptions,
+  failFirstProposal = false
+): Promise<void> {
+  const k = method?.k ?? 1
+  const expectedAdmissions = 7 * k + (k > 1 ? 1 : 0) + (desktop ? 2 : 0)
+  const executionLimit = method
+    ? minimumOptimizationExecutions(method, desktop) + 3
+    : desktop && live
+      ? 12
+      : 10
+  const requestLimit = method ? 96 : desktop ? 48 : 32
   const root = await mkdtemp(join(tmpdir(), 'earthnano-persistent-loop-'))
   const dataRoot = join(root, 'data'),
     configRoot = join(root, 'config')
@@ -173,11 +191,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
         )
       )
         readInputs.add(inputDirectory)
-      if (
-        requests >= (desktop ? 48 : 32) ||
-        body.model !== 'deepseek-flash' ||
-        body.stream !== true
-      )
+      if (requests >= requestLimit || body.model !== 'deepseek-flash' || body.stream !== true)
         return reject()
       requests++
       if (stopEarly && role === 'baseline') return // Hold the real native prompt until Stop cancels it.
@@ -247,7 +261,24 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
         )
         if (alreadyWrote) {
           stream(response, body.model, {
-            text: 'Completed the requested work and checked the output.'
+            text:
+              role === 'selector'
+                ? '```choice\nB\n```\n<why>Both outputs satisfy the task; choose B as the deterministic tie-break.</why>'
+                : 'Completed the requested work and checked the output.'
+          })
+          return
+        }
+        if (role === 'selector') {
+          expect(userText).toContain('"path":"candidates/A.md"')
+          expect(userText).toContain('"path":"candidates/B.md"')
+          expect(userText).not.toContain('assessment-plan.json')
+          stream(response, body.model, {
+            name: 'Write',
+            input: {
+              file_path: join(output, 'selection.md'),
+              content:
+                '```choice\nB\n```\n<why>Both outputs satisfy the task; choose B as the deterministic tie-break.</why>'
+            }
           })
           return
         }
@@ -319,7 +350,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       await writeFile(
         process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT,
         JSON.stringify(
-          { status: 'failed', error: diagnosticError, requests, rejects, usage, records },
+          { status: 'failed', error: diagnosticError, method, requests, rejects, usage, records },
           null,
           2
         ) + '\n',
@@ -361,13 +392,15 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
     `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
   )
   const ownerOptions = { dataRoot, configRoot, getClient: async () => client }
+  let bindingAttempts = 0
   const runOptions: PersistentOptimizationOptions = {
     projectId: project.id,
     taskId: 'synthetic-csv',
     workRoot: join(root, 'run'),
     harnessRoot: resolve('vendor/harness2'),
     ownerOptions,
-    executionLimit: 10,
+    executionLimit,
+    ...(method ? { method } : {}),
     executionTimeoutMs: 120_000,
     timeoutMs: 480_000,
     input: {
@@ -389,18 +422,23 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       },
       environment: { isolation: 'directory-process', network: 'provider-only' }
     },
-    binding: async (agent) => ({
-      executablePath: native,
-      runtimeVersion: '2.1.232',
-      providerRef: agent.providerRef,
-      provider: {
-        type: 'custom',
-        model: agent.model,
-        key: loopbackKey,
-        baseUrl,
-        apiEndpoints: ['messages']
+    binding: async (agent) => {
+      // In the default sequential k1 path, admission 2 is the first proposer. Fail before
+      // spawning a process; original Harness² owns the retry and the charge remains durable.
+      if (failFirstProposal && ++bindingAttempts === 2) throw new Error('Fixture binding failure')
+      return {
+        executablePath: native,
+        runtimeVersion: '2.1.232',
+        providerRef: agent.providerRef,
+        provider: {
+          type: 'custom',
+          model: agent.model,
+          key: loopbackKey,
+          baseUrl,
+          apiEndpoints: ['messages']
+        }
       }
-    })
+    }
   }
   let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
   let desktopRunId: string | undefined
@@ -454,12 +492,13 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       prompt: runOptions.input.task.prompt,
       files: [...runOptions.input.task.files],
       criteria,
-      executionLimit: live ? 12 : 10
+      executionLimit,
+      ...(method ? { method } : {})
     })
     desktopRunId = initial.runId
     desktopRunDirectory = join(root, 'desktop', initial.runId)
     if (stopEarly) {
-      await vi.waitFor(() => expect(requests).toBe(1), { timeout: 30_000, interval: 100 })
+      await vi.waitFor(() => expect(requests).toBe(k), { timeout: 30_000, interval: 100 })
       expect(
         (await manager.stop({ projectId: project.id, sourceSessionId, runId: initial.runId })).state
       ).toBe('stopping')
@@ -471,14 +510,14 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
             runId: initial.runId
           })
           expect(final.state).toBe('cancelled')
-          expect(final.budget.admitted).toBe(1)
+          expect(final.budget.admitted).toBe(k)
           expect(final.budget.active).toBe(0)
           expect(final.executions.every((execution) => execution.role === 'baseline')).toBe(true)
         },
         { timeout: 30_000, interval: 100 }
       )
       expect(await manager.shutdown()).toEqual({ reaped: true })
-      expect(requests).toBe(1)
+      expect(requests).toBe(k)
       return
     }
     const deadline = Date.now() + 480_000
@@ -491,17 +530,27 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       observedStates.add(progress.state)
       if (['failed', 'interrupted', 'cancelled'].includes(progress.state))
         throw new Error(
-          `Desktop run ended ${progress.state} after ${progress.budget.admitted} admissions`
+          `Desktop run ended ${progress.state} after ${progress.budget.admitted} admissions: ${diagnosticError}`
         )
       if (progress.state === 'completed') {
         expect(progress.budget).toEqual({
-          limit: live ? 12 : 10,
+          limit: executionLimit,
           admitted: result.records.length,
           completed: result.records.length,
           active: 0
         })
         expect(progress.assessments?.baseline.reviewId).toBeTruthy()
         expect(progress.assessments?.candidate.reviewId).toBeTruthy()
+        if (method) {
+          expect(progress.method).toEqual(method)
+          expect(progress.selection).toMatchObject({
+            candidateCount: k,
+            trivial: false,
+            fallback: false
+          })
+          expect(progress.executions.some((entry) => entry.role === 'selector')).toBe(true)
+          expect(progress.executions.every((entry) => entry.stageId)).toBe(true)
+        }
         break
       }
       if (Date.now() > deadline) throw new Error('Desktop integration timed out')
@@ -512,11 +561,13 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
     )
     expect(plan.criteria).toBe(criteria)
     expect(plan.criteriaDigest).toMatch(/^sha256:[a-f0-9]{64}$/)
+    if (method) expect(plan.baselineStageId).toBe('base1')
     const methodConfig = await readFile(
       join(desktopRunDirectory!, 'execution/method-config.json'),
       'utf8'
     )
     expect(methodConfig).not.toContain(criteria)
+    if (method) expect(JSON.parse(methodConfig).method).toEqual(method)
     expect(observedStates.has('assessing')).toBe(true)
     expect(await manager.shutdown()).toEqual({ reaped: true })
     const restarted = new DesktopOptimizationManager({
@@ -530,21 +581,58 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
     )
     await restarted.shutdown()
   } else result = await runPersistentOptimization(runOptions)
-  if (desktop && live) {
-    expect(result.records.length).toBeGreaterThanOrEqual(9)
-    expect(result.records.length).toBeLessThanOrEqual(12)
-  } else expect(result.records).toHaveLength(desktop ? 9 : 7)
-  expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(1)
-  expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3)
-  expect(result.records.filter((record) => record.request.role === 'proposer')).toHaveLength(
-    result.records.length - (desktop ? 7 : 5)
+  if (live) {
+    expect(result.records.length).toBeGreaterThanOrEqual(expectedAdmissions)
+    expect(result.records.length).toBeLessThanOrEqual(executionLimit)
+  } else expect(result.records).toHaveLength(expectedAdmissions + (failFirstProposal ? 1 : 0))
+  expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(k)
+  expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3 * k)
+  const proposals = result.records.filter((record) => record.request.role === 'proposer').length
+  const compositions = result.records.filter((record) => record.request.role === 'composer').length
+  if (live) {
+    expect(proposals).toBeGreaterThanOrEqual(2 * k)
+    expect(compositions).toBeGreaterThanOrEqual(k)
+  } else {
+    expect(proposals).toBe(2 * k + (failFirstProposal ? 1 : 0))
+    expect(compositions).toBe(k)
+  }
+  expect(result.records.filter((record) => record.request.role === 'selector')).toHaveLength(
+    k > 1 ? 1 : 0
   )
-  expect(result.records.filter((record) => record.request.role === 'composer')).toHaveLength(1)
+  if (method)
+    expect(result.methodResult).toMatchObject({
+      method,
+      selection: { candidateCount: k, trivial: false, fallback: false }
+    })
+  if (method && !live)
+    expect(result.methodResult).toMatchObject({
+      summary: {
+        selections: {
+          [method.mode === 'parallel' ? 'agg' : 'seq']: { chosen_id: 'B', fallback: false }
+        }
+      }
+    })
   expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
-  expect(result.records.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
-  const sessionIds = new Set(result.records.map((record) => record.identity.sessionId))
-  expect(sessionIds.size).toBe(result.records.length)
-  if (live) expect(readInputs.size).toBe(4)
+  const completedRecords = result.records.filter((record) => record.phase === 'completed')
+  if (failFirstProposal) {
+    expect(result.records.filter((record) => record.phase === 'failed')).toMatchObject([
+      {
+        cleanup: 'confirmed',
+        request: { role: 'proposer' },
+        error: { code: 'candidate-preparation-failed' }
+      }
+    ])
+  }
+  expect(completedRecords.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
+  const sessionIds = new Set(completedRecords.map((record) => record.identity.sessionId))
+  expect(sessionIds.size).toBe(completedRecords.length)
+  if (live) expect(readInputs.size).toBe(4 * k)
+  if (desktop && method) {
+    const fixedBaseline = result.records.find(
+      (record) => record.request.role === 'baseline' && record.request.origin.stageId === 'base1'
+    )!
+    expect(result.assessments?.baseline.targetExecutionId).toBe(fixedBaseline.executionId)
+  }
   await client.$disconnect()
   const reopened = createProjectDbClient(configRoot)
   const owners = await createPersistentCandidateOwners({
@@ -567,6 +655,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
     for (const record of result.records) {
       const restored = await core.get(record.executionId)
       expect(restored).toEqual(record)
+      if (record.phase === 'failed') continue
       const exported = await owners.exportResult(restored)
       const reviews = await owners.readReviews(restored)
       expect(exported.files.length).toBeGreaterThan(0)
@@ -611,6 +700,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
         {
           status: 'passed',
           model: 'deepseek-flash',
+          ...(method ? { method } : {}),
           executions: result.records.length,
           roles: result.records.map((record) => record.request.role),
           sessions: sessionIds.size,
@@ -625,7 +715,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
                 desktop: true,
                 observedStates: [...observedStates],
                 assessments: result.assessments,
-                sharedBudget: { limit: live ? 12 : 10, admitted: result.records.length }
+                sharedBudget: { limit: executionLimit, admitted: result.records.length }
               }
             : {}),
           requests,
@@ -634,13 +724,15 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
           testOverrides: {
             thinking: 'disabled',
             maxOutputTokens: 1536,
-            requestLimit: desktop ? 48 : 32
+            requestLimit
           },
           limitations: [
             desktop
               ? 'Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity'
               : 'Deterministic integrity/JSON review, not semantic scientific assessment',
-            'k1 trivial selection; no LLM selector',
+            k > 1
+              ? 'Original anonymous finals-only selector; independent comparison uses predeclared base1, not an aggregate of all baselines'
+              : 'k1 trivial selection; no LLM selector',
             'Real model via test-only bounded observer',
             'No paid cancellation/adversarial replay'
           ]
@@ -688,4 +780,34 @@ it.skipIf(process.platform === 'win32')(
   'stops a desktop optimization during a real native baseline without admitting later stages',
   () => exercise(false, true, true),
   90_000
+)
+
+for (const mode of ['sequential', 'parallel'] as const) {
+  it.skipIf(process.platform === 'win32')(
+    `persists desktop ${mode} k2 through the original selector and independent base1 assessment`,
+    () => exercise(false, true, false, { mode, k: 2, concurrency: 2 }),
+    480_000
+  )
+  it.skipIf(
+    process.platform === 'win32' ||
+      process.env.EARTHNANO_LIVE_DEEPSEEK !== '1' ||
+      !process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE ||
+      process.env.EARTHNANO_LIVE_METHOD_MODE !== mode
+  )(
+    `validates desktop ${mode} k2 selection with authorized DeepSeek`,
+    () => exercise(true, true, false, { mode, k: 2, concurrency: 2 }),
+    480_000
+  )
+}
+
+it.skipIf(process.platform === 'win32')(
+  'stops both concurrent native baselines without admitting a recursive successor',
+  () => exercise(false, true, true, { mode: 'parallel', k: 2, concurrency: 2 }),
+  90_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'persists an ordinary failed proposer charge and accepts the original retry through real Sessions and reviews',
+  () => exercise(false, true, false, undefined, true),
+  480_000
 )

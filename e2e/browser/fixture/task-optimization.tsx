@@ -26,8 +26,9 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
   sourceSessionId: 'session',
   state,
   stage: 'baseline',
+  ...(calls.start.at(-1)?.method ? { method: calls.start.at(-1)!.method } : {}),
   budget: {
-    limit: 12,
+    limit: calls.start.at(-1)?.executionLimit ?? 12,
     admitted: state === 'completed' ? 9 : 2,
     completed: state === 'completed' ? 9 : 1,
     active: state === 'completed' ? 0 : 1
@@ -42,6 +43,17 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
     { executionId: 'final', role: 'candidate', phase: 'completed', sessionId: 'candidate-session' }
   ],
   updatedAt: 1,
+  ...(state === 'completed' && (calls.start.at(-1)?.method?.k ?? 1) > 1
+    ? {
+        selection: {
+          chosenLabel: calls.start.at(-1)?.method?.mode === 'parallel' ? 'agg2' : 'c2',
+          candidateCount: 2,
+          trivial: false,
+          fallback: false,
+          reason: 'Selected from the two fixed candidate outputs.'
+        }
+      }
+    : {}),
   ...(state === 'completed'
     ? {
         assessments: {

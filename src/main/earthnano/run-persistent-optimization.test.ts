@@ -1,13 +1,17 @@
 import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const f = vi.hoisted(() => ({
   method: vi.fn(),
   evaluate: vi.fn(),
   shutdown: vi.fn(),
   dispose: vi.fn(),
-  core: vi.fn()
+  core: vi.fn(),
+  get: vi.fn(),
+  exportResult: vi.fn(),
+  readReviews: vi.fn(),
+  executionIds: ['baseline']
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
@@ -18,21 +22,21 @@ vi.mock('./execution-core', async (original) => ({
       f.core(...args)
     }
     configureBudget = vi.fn()
-    get = async (): Promise<unknown> => ({ phase: 'completed', cleanup: 'confirmed' })
+    get = f.get
     dispose = f.dispose
   }
 }))
 vi.mock('./harness-optimization', () => ({
   HarnessOptimizationBinding: class {
-    executionIds = ['baseline']
+    executionIds = f.executionIds
     stop = async (): Promise<void> => {}
   },
   runHarnessProcess: f.method
 }))
 vi.mock('./persistent-candidate-owner', () => ({
   createPersistentCandidateOwners: () => ({
-    exportResult: async (): Promise<void> => {},
-    readReviews: async (): Promise<unknown[]> => [{ lifecycle: 'complete', outcome: 'pass' }],
+    exportResult: f.exportResult,
+    readReviews: f.readReviews,
     shutdown: f.shutdown
   })
 }))
@@ -50,6 +54,12 @@ import {
   HARNESS_RPC_TIMEOUT_MARGIN_MS
 } from './execution-timeout'
 const roots: string[] = []
+beforeEach(() => {
+  f.executionIds = ['baseline']
+  f.get.mockResolvedValue({ phase: 'completed', cleanup: 'confirmed' })
+  f.exportResult.mockResolvedValue(undefined)
+  f.readReviews.mockResolvedValue([{ lifecycle: 'complete', outcome: 'pass' }])
+})
 afterEach(async () => {
   vi.clearAllMocks()
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
@@ -223,4 +233,51 @@ it('rejects invalid method or excessive budget before allocating any run resourc
   await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
   expect(f.method).not.toHaveBeenCalled()
   expect(f.core).not.toHaveBeenCalled()
+})
+
+it('retains charged failed attempts while accepting an upstream retry with verified completed results', async () => {
+  const o = await options()
+  f.executionIds = ['failed-attempt', 'successful-retry']
+  const failed = { phase: 'failed', cleanup: 'confirmed', error: { code: 'provider-failed' } }
+  const completed = { phase: 'completed', cleanup: 'confirmed' }
+  f.get.mockImplementation(async (id) => (id === 'failed-attempt' ? failed : completed))
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await runPersistentOptimization(o)
+  expect(f.evaluate.mock.calls[0][0].records).toEqual([failed, completed])
+  expect(f.exportResult).toHaveBeenCalledExactlyOnceWith(completed)
+  expect(f.readReviews).toHaveBeenCalledExactlyOnceWith(completed)
+})
+
+it.each([
+  { phase: 'failed', cleanup: 'unknown' },
+  { phase: 'cancelled', cleanup: 'confirmed' },
+  { phase: 'interrupted', cleanup: 'confirmed' },
+  ...['timeout', 'budget-exhausted', 'cleanup-unconfirmed', 'request-conflict'].map((code) => ({
+    phase: 'failed',
+    cleanup: 'confirmed',
+    error: { code }
+  }))
+])('never treats a control stop as a recoverable attempt: %j', async (stopped) => {
+  const o = await options()
+  f.executionIds = ['successful-retry', 'stopped']
+  f.get.mockImplementation(async (id) =>
+    id === 'stopped' ? stopped : { phase: 'completed', cleanup: 'confirmed' }
+  )
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toThrow(
+    'Optimization has incomplete executions'
+  )
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
+
+it('still requires passing persisted integrity reviews after a retry', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.readReviews.mockResolvedValue([{ lifecycle: 'complete', outcome: 'flagged' }])
+  await expect(runPersistentOptimization(o)).rejects.toThrow('passing integrity review')
+  expect(f.evaluate).not.toHaveBeenCalled()
 })
