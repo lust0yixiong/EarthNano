@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
 import { fixture, input, reflectionText } from './research-domain.test-fixture'
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 async function setup() {
   const f = await fixture()
   const taskIds = ['experiment-0001', 'experiment-0002']

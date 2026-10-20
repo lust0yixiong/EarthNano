@@ -9,7 +9,7 @@ import { emptyExecutionState, ExecutionCore, type ExecutionContext } from './exe
 import { HarnessDomainBinding } from './harness-domain-binding'
 import { fixture, input } from './research-domain.test-fixture'
 
-const invocation = (taskId: string, retryOfExecutionId = '') => ({
+const invocation = (taskId: string, retryOfExecutionId = ''): Record<string, unknown> => ({
   invocation: {
     taskId,
     scope: 'earthnano-claude-text-seq1',
@@ -26,6 +26,7 @@ const invocation = (taskId: string, retryOfExecutionId = '') => ({
   contextFiles: []
 })
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 async function setup(hang = false) {
   const f = await fixture()
   let state = emptyExecutionState()
@@ -100,11 +101,17 @@ async function setup(hang = false) {
   }))
   return { ...f, core, execute, exporters, tasks, binding: new HarnessDomainBinding(tasks) }
 }
-const freeze = async (f: Awaited<ReturnType<typeof setup>>, taskId: string, retry = '') =>
+const freeze = async (
+  f: Awaited<ReturnType<typeof setup>>,
+  taskId: string,
+  retry = ''
+): Promise<ExecutionRequest> =>
   (await f.binding.dispatch('freezeInvocation', invocation(taskId, retry))) as ExecutionRequest
-const submit = async (f: Awaited<ReturnType<typeof setup>>, request: ExecutionRequest) =>
-  (await f.binding.dispatch('submit', { request })) as ExecutionHandle
-const complete = async (f: Awaited<ReturnType<typeof setup>>, executionId: string) =>
+const submit = async (
+  f: Awaited<ReturnType<typeof setup>>,
+  request: ExecutionRequest
+): Promise<ExecutionHandle> => (await f.binding.dispatch('submit', { request })) as ExecutionHandle
+const complete = async (f: Awaited<ReturnType<typeof setup>>, executionId: string): Promise<void> =>
   await vi.waitFor(async () => expect((await f.core.get(executionId)).phase).toBe('completed'))
 
 describe('domain task execution ownership', () => {

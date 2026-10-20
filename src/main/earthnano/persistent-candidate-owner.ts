@@ -552,7 +552,14 @@ export function createPersistentCandidateOwners(
                 reflectionReply = turnReply(
                   await scopeSnapshot(request.projectId, sessionId, promptMessageId)
                 )
-                if (!reflectionReply.trim() || Buffer.byteLength(reflectionReply) > 1024 * 1024)
+                if (
+                  !reflectionReply.trim() ||
+                  Buffer.byteLength(reflectionReply) > 1024 * 1024 ||
+                  outputs.length >= 64 ||
+                  outputs.reduce((total, file) => total + Buffer.byteLength(file.content), 0) +
+                    Buffer.byteLength(reflectionReply) >
+                    4 * 1024 * 1024
+                )
                   throw new Error('Reflection reply is empty or exceeds the output profile')
                 outputs.push({ path: 'reflection-reply.md', content: reflectionReply })
               }

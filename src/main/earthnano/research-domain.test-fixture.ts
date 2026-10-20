@@ -37,6 +37,7 @@ export const input: CandidateSnapshotInput = {
 export const reflectionText =
   '<experience>\ncue: Row reconciliation\nlesson: Verify all source rows\nevidence: The adopted output reconciles all rows\nconfidence: provisional\n</experience>'
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 export async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-domain-adversarial-'))
   const snapshots = await createCandidateSnapshotStore({

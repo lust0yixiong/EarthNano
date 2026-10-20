@@ -738,7 +738,9 @@ async function exercise(
     expect(successorContexts.size).toBeGreaterThanOrEqual(3)
     for (const context of successorContexts.values())
       expect(context).toContain(
-        JSON.stringify(firstExperience.content).replaceAll('@', '\\u0040').replaceAll('`', '\\u0060')
+        JSON.stringify(firstExperience.content)
+          .replaceAll('@', '\\u0040')
+          .replaceAll('`', '\\u0060')
       )
   } else
     expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })

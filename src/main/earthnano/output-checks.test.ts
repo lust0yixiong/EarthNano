@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto'
 import { expect, it } from 'vitest'
 import { checkOutputFiles } from './output-checks'
-const file = (content: string) => ({
+import type { PersistentCandidateFile } from './persistent-candidate-owner'
+import type { OutputCheckResult } from '../../shared/earthnano/research-outcome'
+const file = (content: string): PersistentCandidateFile => ({
   path: 'result.json',
   content,
   digest: 'sha256:' + createHash('sha256').update(content).digest('hex'),
@@ -57,7 +59,7 @@ it('rejects changed bytes or ambiguous output versions', () => {
   expect(() => checkOutputFiles([file('{}'), file('{}')], [check])).toThrow('Ambiguous')
 })
 it('only traverses canonical JSON array indices and keeps plain object keys valid', () => {
-  const inspect = (pointer: string, expected: number) =>
+  const inspect = (pointer: string, expected: number): OutputCheckResult =>
     checkOutputFiles(
       [file('{"items":[1,2,3],"object":{"length":3,"01":2}}')],
       [{ kind: 'json-value', path: 'result.json', pointer, expected }]
