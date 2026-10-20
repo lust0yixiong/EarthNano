@@ -72,6 +72,42 @@ export function normalizeVitest(report, root) {
   return tests
 }
 export function compareInventories(baseline, candidate) {
+  // These five names changed only with the user-requested product/artwork replacement. Preserve
+  // raw reports and require the corresponding renamed assertion to pass; no arbitrary fuzzy match,
+  // removed assertion waiver or exception for an actual failed/skipped candidate is allowed.
+  const names = [
+    [
+      'src/main/app-branding.test.ts',
+      'app display branding uses the Open-Science display name in shell and workspace surfaces',
+      'app display branding uses the EarthNano display name in shell and workspace surfaces'
+    ],
+    [
+      'src/main/windows-icon-assets.test.ts',
+      'Windows icon assets keeps the packaged default synchronized with the V3 light icon',
+      'Windows icon assets keeps the packaged default synchronized with the EarthNano light icon'
+    ],
+    ...['build/icon.ico', 'resources/icon-light.ico', 'resources/icon-dark.ico'].map((path) => [
+      'src/main/windows-icon-assets.test.ts',
+      `Windows icon assets keeps the V3 ring recognizable in the small frames of '${path}'`,
+      `Windows icon assets keeps the EarthNano mark recognizable in the small frames of '${path}'`
+    ])
+  ]
+  const reviewedTestRenames = []
+  baseline = baseline.map((test) => {
+    for (const [path, before, after] of names) {
+      const prefix = `${path} :: ${before} :: `
+      if (test.path === path && test.name === before && test.id.startsWith(prefix)) {
+        const id = `${path} :: ${after} :: ${test.id.slice(prefix.length)}`
+        reviewedTestRenames.push({
+          originalId: test.id,
+          id,
+          reason: 'approved-product-artwork-replacement'
+        })
+        return { ...test, id, originalId: test.id }
+      }
+    }
+    return test
+  })
   const old = new Map(baseline.map((test) => [test.id, test]))
   const current = new Map(candidate.map((test) => [test.id, test]))
   if (old.size !== baseline.length || current.size !== candidate.length)
@@ -99,6 +135,7 @@ export function compareInventories(baseline, candidate) {
     }
   }
   return {
+    reviewedTestRenames,
     conclusion: regressions.length ? 'new-regressions' : 'no-new-regressions',
     regressions,
     baselineFailures,

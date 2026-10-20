@@ -562,7 +562,7 @@ describe('electron-builder Linux desktop identity', () => {
 })
 
 describe('electron-builder macOS icons', () => {
-  it('uses the white EarthNano Icon Composer catalog and the legacy-icon DMG container', () => {
+  it('uses Icon Composer for the app and signs the legacy-icon DMG container', () => {
     const config = load(readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8')) as {
       mac?: { icon?: string; darkModeSupport?: boolean }
       dmg?: { icon?: string; sign?: boolean }

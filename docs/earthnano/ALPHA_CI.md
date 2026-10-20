@@ -28,6 +28,13 @@ Installation, collection, timeout, missing-artifact and runtime failures block c
 than being treated as passing baseline failures. Raw logs are opened before each child command;
 interrupted stages retain a running marker and fail the complete-inventory gate.
 
+Five exact branding assertion names have reviewed one-to-one mappings: the product display name,
+the packaged default icon, and the 16/20/24px frame test for each of the three app ICO files.
+These names changed with the requested EarthNano artwork/product replacement. Raw inventories
+retain original names; `reviewedTestRenames` lists every applied mapping. Their actual passing
+results remain mandatory: missing, failed or skipped corresponding candidate assertions still
+fail the gate. No other test-name matching, fuzzy identity or removed-test waiver is used.
+
 The Harness job fetches exact original commit `1cfe254e8d25b15f37048c3730134686abe60335`, checks
 its tree `edc756a4d03a2826a248115482084a176e60e751`, checks the retained original license, and runs
 original unittest discovery against original and integrated source with the same interpreter.

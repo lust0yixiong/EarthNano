@@ -91,6 +91,38 @@ describe('EarthNano original-baseline gates', () => {
       )
     ).toThrow('runtime failure')
   })
+  it('maps only explicitly reviewed branding assertion names while still enforcing their actual result', () => {
+    const path = 'src/main/app-branding.test.ts'
+    const before =
+      'app display branding uses the Open-Science display name in shell and workspace surfaces'
+    const after =
+      'app display branding uses the EarthNano display name in shell and workspace surfaces'
+    const baseline = [{ path, name: before, id: `${path} :: ${before} :: 0`, status: 'passed' }]
+    const candidate = [{ path, name: after, id: `${path} :: ${after} :: 0`, status: 'passed' }]
+    const comparison = compareInventories(baseline, candidate)
+    expect(comparison.conclusion).toBe('no-new-regressions')
+    expect(comparison.reviewedTestRenames).toHaveLength(1)
+    expect(baseline[0].name).toBe(before)
+    expect(compareInventories(baseline, []).regressions).toHaveLength(1)
+    for (const status of ['failed', 'pending'])
+      expect(compareInventories(baseline, [{ ...candidate[0], status }]).conclusion).toBe(
+        'new-regressions'
+      )
+    expect(
+      compareInventories([{ ...baseline[0], path: 'different.ts' }], candidate).conclusion
+    ).toBe('new-regressions')
+    for (const asset of ['build/icon.ico', 'resources/icon-light.ico', 'resources/icon-dark.ico']) {
+      const path = 'src/main/windows-icon-assets.test.ts'
+      const before = `Windows icon assets keeps the V3 ring recognizable in the small frames of '${asset}'`
+      const after = `Windows icon assets keeps the EarthNano mark recognizable in the small frames of '${asset}'`
+      const old = [{ path, name: before, id: `${path} :: ${before} :: 0`, status: 'passed' }]
+      const current = [{ path, name: after, id: `${path} :: ${after} :: 0`, status: 'passed' }]
+      expect(compareInventories(old, current).conclusion).toBe('no-new-regressions')
+      expect(compareInventories(old, [{ ...current[0], status: 'failed' }]).conclusion).toBe(
+        'new-regressions'
+      )
+    }
+  })
   it('enforces reviewed source/license pins without installing or building', async () => {
     await expect(verifyPins(process.cwd())).resolves.toMatchObject({ schemaVersion: 1 })
   })
