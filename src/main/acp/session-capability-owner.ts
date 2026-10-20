@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { McpServer } from '@agentclientprotocol/sdk'
 
 import type { SideChatSendMessageRequest, SideChatSendMessageResult } from '../../shared/side-chat'
@@ -355,6 +356,8 @@ export class AcpSessionCapabilityOwner {
   private readonly bridgeMcpSessionKeys = new Map<string, string>()
   private readonly provisionalRoutingOwners = new Map<string, object>()
   private provisionalGeneration = 0
+  // Independent runtime owners share application RPC services before provider Session adoption.
+  private readonly provisionalRoutingNamespace = randomUUID()
   private artifactSessionSequence = 0
   private notebookSessionSequence = 0
   private skillImportSessionSequence = 0
@@ -719,7 +722,7 @@ export class AcpSessionCapabilityOwner {
       })
     }
 
-    const timestamp = Date.now()
+    const namespace = `${Date.now()}-${this.provisionalRoutingNamespace}`
     if (this.options.artifacts) this.artifactSessionSequence += 1
     if (this.options.notebook) this.notebookSessionSequence += 1
     if (this.options.skillImport) this.skillImportSessionSequence += 1
@@ -729,21 +732,21 @@ export class AcpSessionCapabilityOwner {
 
     return Object.freeze({
       artifact: this.options.artifacts
-        ? `artifact-session-${timestamp}-${this.artifactSessionSequence}`
+        ? `artifact-session-${namespace}-${this.artifactSessionSequence}`
         : '',
       notebook: this.options.notebook
-        ? `notebook-session-${timestamp}-${this.notebookSessionSequence}`
+        ? `notebook-session-${namespace}-${this.notebookSessionSequence}`
         : '',
       skillImport: this.options.skillImport
-        ? `skill-import-session-${timestamp}-${this.skillImportSessionSequence}`
+        ? `skill-import-session-${namespace}-${this.skillImportSessionSequence}`
         : '',
-      plan: this.options.plan ? `plan-session-${timestamp}-${this.planSessionSequence}` : '',
+      plan: this.options.plan ? `plan-session-${namespace}-${this.planSessionSequence}` : '',
       sideChat: this.options.sideChat
-        ? `side-chat-session-${timestamp}-${this.sideChatSessionSequence}`
+        ? `side-chat-session-${namespace}-${this.sideChatSessionSequence}`
         : '',
       literature:
         this.options.literature || this.options.library
-          ? `literature-session-${timestamp}-${this.literatureSessionSequence}`
+          ? `literature-session-${namespace}-${this.literatureSessionSequence}`
           : ''
     })
   }

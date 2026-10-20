@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { NotebookSessionRequest } from '../../shared/notebook'
 import { claudeCodeFramework, codexFramework, opencodeFramework } from '../agent-framework'
 import { NotebookLocalRpcServer } from '../notebook/local-rpc-server'
 import type { NotebookRpcConnection } from '../notebook/mcp-server'
@@ -73,10 +74,13 @@ type HandoverHarness = {
 }
 const createHarness = (path: (typeof paths)[number]): HandoverHarness => {
   const onSessionReleased = vi.fn()
-  const rpc = new NotebookLocalRpcServer({ execute: async () => ({}) } as never, {
-    transport: 'tcp',
-    onSessionReleased
-  })
+  const rpc = new NotebookLocalRpcServer(
+    {
+      execute: async () => ({}),
+      listRuntimes: async (request: NotebookSessionRequest) => ({ sessionId: request.sessionId })
+    } as never,
+    { transport: 'tcp', onSessionReleased }
+  )
   cleanups.push(() => rpc.close())
   const connections: NotebookRpcConnection[] = []
   const capture = async (
@@ -156,6 +160,57 @@ const createHarness = (path: (typeof paths)[number]): HandoverHarness => {
 }
 
 describe.each(paths)('$name capability handover', (path) => {
+  it('isolates concurrent first-turn credentials across independent owners at the same time', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_234)
+    const { createOwner, provision, onSessionReleased } = createHarness(path)
+    const firstOwner = createOwner()
+    const secondOwner = createOwner()
+    try {
+      // Both credentials exist before either provider Session is adopted. The second first-turn
+      // provision must neither rotate the first owner's bearer nor share its provisional alias.
+      const first = await provision(firstOwner, 'first', false, true)
+      const second = await provision(secondOwner, 'second', false, true)
+      await first.expectUsable()
+      first.pending.commit('first')
+      second.pending.commit('second')
+      await first.expectUsable()
+      await second.expectUsable()
+      const expectCanonicalRoute = async (
+        connection: NotebookRpcConnection,
+        sessionId: string
+      ): Promise<void> => {
+        const response = await fetch(connection.endpoint, {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${connection.token}`,
+            'content-type': 'application/json'
+          },
+          // Routing comes from the original capability, not the caller's claimed Session.
+          body: JSON.stringify({
+            method: 'listRuntimes',
+            params: { sessionId: 'untrusted-session', workspaceCwd: '/workspace' }
+          })
+        })
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual({ result: { sessionId } })
+      }
+      await expectCanonicalRoute(first.issued[0], 'first')
+      await expectCanonicalRoute(second.issued[0], 'second')
+      firstOwner.dispose(['first'])
+      await expectRevoked(first.issued)
+      await second.expectUsable()
+      await expectCanonicalRoute(second.issued[0], 'second')
+      expect(onSessionReleased).toHaveBeenCalledExactlyOnceWith('first')
+      secondOwner.dispose(['second'])
+      await expectRevoked(second.issued)
+      expect(onSessionReleased.mock.calls).toEqual([['first'], ['second']])
+    } finally {
+      firstOwner.dispose(['first'])
+      secondOwner.dispose(['second'])
+      clock.mockRestore()
+    }
+  })
+
   it.each(['retire', 'revoke', 'rollback', 'same-owner', 'alias'] as const)(
     'preserves successor credentials during %s cleanup and revokes the final owner',
     async (cleanup) => {
