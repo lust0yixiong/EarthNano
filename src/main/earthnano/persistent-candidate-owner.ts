@@ -770,7 +770,11 @@ export function createPersistentCandidateOwners(
       // Keep the domain's five-Finding limit: one aggregate Finding links the complete frozen
       // assessment artifact. All per-criterion paths/quotes/refs remain in that version and log.
       const finding: NewCheck = {
-        status: checked.outcome === 'pass' ? 'pass' : 'fail',
+        status: checked.checks.some((check) => check.status === 'fail')
+          ? 'fail'
+          : checked.checks.some((check) => check.status === 'warn')
+            ? 'warn'
+            : 'pass',
         claim:
           'Independent semantic assessment of every frozen criterion; model judgment, not factual proof.',
         evidence: JSON.stringify({
