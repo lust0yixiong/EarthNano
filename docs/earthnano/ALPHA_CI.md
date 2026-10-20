@@ -12,7 +12,8 @@ The source matrix independently installs the exact OpenScience commit
 It uses the original `scripts/ci/npm-ci.mjs`, `npm run pretest`, package builds, compiled type checks,
 and original Vitest configuration. macOS and Linux run four full-source shards each. Windows uses
 its original full-test sequencer's eight shards. Both sides receive the same runner OS/image,
-architecture, Node major selection, exact Python 3.12.13, worker limits, timeouts and flags. The
+architecture, Node major selection, exact Python 3.12.10 from `.github/earthnano-python-version`,
+worker limits, timeouts and flags. The
 comparison rejects mismatched actual Node/Electron/image identities and incomplete reports.
 Each source retains its own original lockfile; the report records its hash rather than silently
 replacing upstream dependencies with candidate dependencies. Native runtime URLs and integrity
@@ -99,10 +100,41 @@ triggers, explicit native opt-in, read-only permissions and no-publication polic
 
 Focused local topology tests execute the actual plan and status guard, verify all 32 unique
 shards/four native targets, check dependency isolation, and compare shared step inventories
-against the parsed recipes at `d4b20667d` (normalizing only the matrix-to-input variable context).
+against the parsed recipes at `d4b20667d` (normalizing the matrix-to-input variable context and
+the single common Python input change documented below).
 This covers original commands, immutable action pins, conditions, environments and artifact
 names; it does not constitute a hosted source or native build result. Local YAML/guard tests
 do not replace GitHub's workflow validation or an actual Windows cold build.
+
+## Common hosted Python version
+
+Hosted run `39454904669`, job `118739140883`, failed in setup-python before source tests:
+3.12.13 was unavailable for macOS 15.7.9 arm64. The original raw log remains
+`/tmp/earthnano-usage-pr14-mac-failed.log` (SHA-256
+`70ff6e10235ef9819e7007221092e65f2afc77e4a7aedf21cdd37e389573a0ff`). This is an unavailable
+CI interpreter, not an original/candidate assertion failure.
+
+The reviewed official [Python versions manifest](https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json)
+snapshot has SHA-256 `3bffef7a0fddc945a17a5bb7b924462746844f4a39f7fdd57a318add7df13b21`.
+Its latest 3.12 release with all four required asset families is 3.12.10: Darwin arm64/x64,
+Linux 24.04 x64 and Windows x64. The 3.12.11–3.12.13 entries provide no Darwin/Windows assets.
+The compact projection in `validation/alpha/ci-python-availability-projection.json` records
+the release/asset URLs, snapshot identity and projection time; the complete raw manifest remains
+outside Git. `validation/alpha/ci-python-macos-unavailable-job.json` and
+`validation/alpha/ci-python-macos-unavailable.log.gz` preserve the original job metadata and
+compressed log. These three artifacts are centrally archived with the integration evidence.
+Manifest availability does not certify installation or a successful hosted rerun.
+
+All three Alpha workflows now use the same plain `.github/earthnano-python-version` file via
+`python-version-file`; none supplies a competing literal/range. The unchanged pinned
+[setup-python action interface](https://github.com/actions/setup-python/blob/e797f83bcb11b83ae66e0230d6156d7c80228e7c/action.yml)
+accepts that input, and its [file parser](https://github.com/actions/setup-python/blob/e797f83bcb11b83ae66e0230d6156d7c80228e7c/src/utils.ts#L343-L352)
+routes this filename to the plain-text parser. Both source kinds and both Harness checkouts
+still receive the same resolved interpreter. Full shared recipe hashes change only for this
+explicit setup input; a reverse check restoring that one input still matches the old complete
+recipe hashes. Action pins, resource recipes, timeout budgets, original gates and report
+comparison rules are unchanged. Earlier local and paid 3.12.13 observations below and in historical
+validation records retain their actual version and are not relabeled 3.12.10 evidence.
 
 ## Native Alpha gate
 

@@ -149,14 +149,38 @@ describe('EarthNano runtime dependency split', () => {
       expect(Object.keys(shared.on)).toEqual(['workflow_call'])
       expect(shared.permissions).toEqual({ contents: 'read' })
       expect(Object.keys(shared.jobs)).toEqual([kind])
-      // Parsed original step inventories at d4b20667d, normalizing only inputs→matrix.
-      // Pins, conditions, commands, environments and artifact identities are all covered.
+      // Original d4b20667d inventories plus the single reviewed Python input change:
+      // literal 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset).
+      // Keep the complete new hash AND restore only that input to prove all other steps
+      // still match d4. No pin, condition, command, environment or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
+        kind === 'source'
+          ? '9c710bb6dea916d0e6d92236d1448248ae2efafbe262adf652c6dc2806afc207'
+          : 'ce027e4bfd00597f19507e5a897929d98c23015cefdc89f7bce30dcddcce9087'
+      )
+      const originalSteps = structuredClone(shared.jobs[kind].steps!)
+      const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
+      expect(python).toHaveLength(1)
+      expect(python[0].uses).toBe('actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c')
+      expect(python[0].with).toEqual({ 'python-version-file': '.github/earthnano-python-version' })
+      python[0].with = { 'python-version': '3.12.13' }
+      expect(digest(originalSteps)).toBe(
         kind === 'source'
           ? 'de9ac67cde4f371c609984cd10c4152428fee6018dc230ed70e210c59a9c59a1'
           : '37581731c958b836724b48cc7eaafaba974b63fac4e0b3292a81a8d41cba5cc0'
       )
     }
+    const harnessPython = workflow.jobs.harness.steps!.filter((step) =>
+      step.uses?.startsWith('actions/setup-python@')
+    )
+    expect(harnessPython).toHaveLength(1)
+    expect(harnessPython[0]).toEqual({
+      uses: 'actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c',
+      with: { 'python-version-file': '.github/earthnano-python-version' }
+    })
+    // A single exact patch version, never a range or multiple platform-specific resolutions.
+    const versionFile = readFileSync('.github/earthnano-python-version', 'utf8')
+    expect(versionFile).toBe('3.12.10\n')
     expect(readWorkflow('native').jobs.native.env).toEqual({
       CSC_IDENTITY_AUTO_DISCOVERY: 'false',
       MACOSX_DEPLOYMENT_TARGET: '12.0'
