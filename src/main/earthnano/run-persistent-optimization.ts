@@ -132,7 +132,11 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
     for (const record of records) {
       await owners.exportResult(record)
       const reviews = await owners.readReviews(record)
-      if (!reviews.length) throw new Error('Optimization result lacks a persisted review')
+      if (
+        !reviews.length ||
+        reviews.some((review) => review.lifecycle !== 'complete' || review.outcome !== 'pass')
+      )
+        throw new Error('Optimization result lacks a complete passing integrity review')
     }
     return { optimizationId, methodResult, records }
   } finally {

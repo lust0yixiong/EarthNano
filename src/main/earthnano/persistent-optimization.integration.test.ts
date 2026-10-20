@@ -114,7 +114,7 @@ async function exercise(live: boolean): Promise<void> {
     }
     if (
       request.method !== 'POST' ||
-      request.url !== '/v1/messages' ||
+      new URL(request.url ?? '/', 'http://127.0.0.1').pathname !== '/v1/messages' ||
       request.headers.authorization !== `Bearer ${loopbackKey}`
     )
       return reject()
@@ -246,7 +246,7 @@ async function exercise(live: boolean): Promise<void> {
     }
     await unlock(root)
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
-    initDataRoot(undefined)
+    // This isolated test worker owns the root for its lifetime.
   })
   await migrateApplicationDatabase(client)
   const project = await client.project.create({
