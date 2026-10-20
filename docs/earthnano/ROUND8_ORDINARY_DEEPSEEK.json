@@ -1,0 +1,101 @@
+{
+  "source": "AcpRuntimeCoordinator.startPrompt",
+  "requests": 2,
+  "record": {
+    "executionId": "ad6cd564-8c0b-4381-b3a6-e2e4e7d56a40",
+    "requestKey": "session:bab523b9-efbf-410f-8960-7e34f7d408a7:prompt-attempt-1",
+    "phase": "completed",
+    "identity": {
+      "sessionId": "027bc370-49a1-4488-930c-73356539c76c",
+      "promptMessageId": "ordinary-user-prompt",
+      "promptAttemptId": "prompt-attempt-1",
+      "turnToken": "e6b2a3e0-86ce-4190-a2f8-e3c08538df04"
+    },
+    "request": {
+      "contractVersion": 1,
+      "requestKey": "session:bab523b9-efbf-410f-8960-7e34f7d408a7:prompt-attempt-1",
+      "projectId": "ordinary-project",
+      "taskSnapshotRef": {
+        "id": "session-prompt:027bc370-49a1-4488-930c-73356539c76c",
+        "version": "prompt-attempt-1",
+        "digest": "sha256:608421adecc91109b01f8117fc5d540916ed877d146a6d5dd6e8663da54f9135"
+      },
+      "invocationRef": {
+        "id": "session-invocation:027bc370-49a1-4488-930c-73356539c76c",
+        "version": "prompt-attempt-1",
+        "digest": "sha256:16f8a882802ac9b3730beea6caf722358806c7b749479eab407e7652ee26397b"
+      },
+      "agentSpecRef": {
+        "id": "session-agent:027bc370-49a1-4488-930c-73356539c76c",
+        "version": "2",
+        "digest": "sha256:f12775ae65c0c22cba8351496c55e230322969a2b44eae1d9022ed5996631a9a"
+      },
+      "harnessRevisionRef": {
+        "id": "session-configuration:027bc370-49a1-4488-930c-73356539c76c",
+        "version": "2",
+        "digest": "sha256:f12775ae65c0c22cba8351496c55e230322969a2b44eae1d9022ed5996631a9a"
+      },
+      "environmentSpecRef": {
+        "id": "session-environment:027bc370-49a1-4488-930c-73356539c76c",
+        "version": "prompt-attempt-1",
+        "digest": "sha256:7df113c7ab0b2d8ca8102ab3f9c27de234f3480691d2a4f4f10c2df14f5de723"
+      },
+      "role": "task",
+      "origin": {
+        "kind": "interactive",
+        "sessionId": "027bc370-49a1-4488-930c-73356539c76c",
+        "promptMessageId": "ordinary-user-prompt"
+      },
+      "interactionPolicy": "interactive",
+      "budgetRef": "session:bab523b9-efbf-410f-8960-7e34f7d408a7:prompt-attempt-1",
+      "timeoutMs": 0
+    },
+    "requestDigest": "sha256:56538fb991340b334f995445d54fc7e62f8c5a89556c220bfdc2e148a44f6b14",
+    "createdAt": "2026-10-20T10:46:47.512Z",
+    "updatedAt": "2026-10-20T10:46:50.447Z",
+    "cleanup": "confirmed",
+    "cancellationRequested": false,
+    "evidence": {
+      "status": "complete",
+      "scope": "Original durable Session review-safe turn projection and fixed ArtifactVersion identities",
+      "text": "ORDINARY_COMPLETE",
+      "artifacts": [
+        {
+          "artifactId": "49db4910-b145-4556-8a32-cc77395ef1e0",
+          "versionId": "d7daef0d-23d4-4d2a-8eaa-658257dfba9d",
+          "checksum": "ecf59a2696ca44a417e20e2a7eabb1b26e82c779f8546bea354a2cc80e8e1eed"
+        }
+      ],
+      "references": [
+        {
+          "id": "session-turn:027bc370-49a1-4488-930c-73356539c76c:ordinary-user-prompt",
+          "version": "ordinary-user-prompt",
+          "digest": "sha256:b5c056fd73d74f4f51ba13561b44b5648ceee7b4497af00ba9589ed0ae68086d"
+        }
+      ],
+      "limitations": [
+        "Rich input fingerprint includes transient media; media bytes are not retained as a reproducible snapshot.",
+        "No semantic or deterministic assessment is implied by original turn completion."
+      ]
+    },
+    "usage": {
+      "status": "unknown"
+    },
+    "configuration": {
+      "status": "unknown",
+      "requestedDigest": "sha256:f12775ae65c0c22cba8351496c55e230322969a2b44eae1d9022ed5996631a9a",
+      "backend": "claude-code",
+      "instructions": [],
+      "skills": [],
+      "tools": [],
+      "confirmation": "Original requested Session configuration metadata only; runtime application unobserved."
+    }
+  },
+  "originalTurnOutcome": {
+    "kind": "completed",
+    "settledAt": 1792493209790
+  },
+  "autoReviews": 0,
+  "methodCalls": 0,
+  "artifactsImportedBy": "original ArtifactTurnOwner fixture bridge"
+}

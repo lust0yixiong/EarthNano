@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-20",
+  "implementationCommit": "67195ce8d6081b36a2118ed027e242343891e45e",
+  "baseCommit": "372eba63f630261325790dc3558e0958084c721e",
+  "pullRequestBase": "feat/round7-domain-experience (PR #9 remains open)",
+  "platform": "Darwin arm64",
+  "node": "v26.0.0",
+  "scope": "Actual desktop Send, headless Task API and Harness stages share ExecutionCore; original Reviewer/delegated missions use the same policy and resource recovery. Not full scientific/release acceptance.",
+  "reuse": {
+    "upstreamAlgorithmFilesChanged": false,
+    "harnessChanges": [
+      "shared execution_schema.json minimum timeoutMs=0 for ordinary requests",
+      "shared execution_contract.py retains mandatory positive optimization deadlines"
+    ],
+    "originalOwners": [
+      "SessionRepository on configRoot",
+      "SQLite projection on configRoot",
+      "ArtifactVersion and Review snapshots on dataRoot",
+      "original Reviewer MCP/probe/disposal",
+      "original delegated Frame/Attempt/process cleanup"
+    ],
+    "generationCheck": "python3 scripts/earthnano/generate-contract.py --check"
+  },
+  "validation": {
+    "unit": {
+      "files": 67,
+      "passed": 1556,
+      "skipped": 0,
+      "command": "vitest run src/main/earthnano src/shared/earthnano src/main/acp/{earthnano-execution-driver,runtime-coordinator,runtime-composition,prompt-turn-workflow,runtime-session-plan,runtime-plan-composition,task-prompt-execution}.test.ts src/main/tasks src/main/web-service/task-api.test.ts src/main/reviewer src/main/delegation/{delegated-execution-owner,acp-execution,production-framework-runtime}.test.ts src/main/composition/desktop-optimization.test.ts src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx --project default --maxWorkers=2"
+    },
+    "native": {
+      "files": 3,
+      "passed": 28,
+      "skipped": 6,
+      "command": "vitest run src/main/earthnano/{ordinary-session-execution,persistent-candidate-owner,persistent-optimization}.integration.test.ts --project process --maxWorkers=1",
+      "covers": [
+        "split config/data roots and misleading missing/corrupt Session decoys",
+        "actual native Send and exact Stop without retiring shared runtime",
+        "explicit original Resume with no historical provider replay",
+        "single Harness record/budget/admission/acceptance, no duplicate ordinary journal",
+        "original k1, sequential/parallel k2, anonymous selection, Library/reflection and retries",
+        "fixed artifact and Review reopen/tamper/failure/late-cancel gates"
+      ]
+    },
+    "python": {
+      "passed": 51,
+      "suites": {
+        "test_earthnano*.py": 27,
+        "test_execution_seam.py": 19,
+        "test_workflow.py": 5
+      },
+      "command": "PYTHONPATH=vendor/harness2 python3 -B -m unittest discover -s vendor/harness2/tests -p <suite>"
+    },
+    "desktop": {
+      "passed": 1,
+      "command": "ELECTRON_OVERRIDE_DIST_PATH=/tmp/earthnano-round7-electron OPEN_SCIENCE_E2E_ISOLATE_HOME=1 playwright test e2e/task-optimization-desktop.spec.ts --workers=1",
+      "covers": "Actual renderer/preload/IPC/runtime Send + original response + completed journal, 1 admission/provider event and budget charge; unsupported optimization route fails at 0 optimization admissions",
+      "runtime": "cached Electron 43.4.0; repository pin remains43.7.5; readonly installed Node22.23.3"
+    },
+    "deepseekOrdinary": {
+      "passed": 1,
+      "skipped": 5,
+      "requests": 2,
+      "recordPhase": "completed",
+      "cleanup": "confirmed",
+      "report": "ROUND8_ORDINARY_DEEPSEEK.json",
+      "note": "Native Claude standard tools, actual coordinator.startPrompt, original Session and ArtifactTurnOwner fixture import; split config/data roots; not a full GUI paid workflow"
+    },
+    "deepseekOptimization": {
+      "passed": 1,
+      "skipped": 15,
+      "model": "deepseek-flash",
+      "executions": 21,
+      "requests": 81,
+      "sharedBudget": {
+        "limit": 23,
+        "admitted": 21
+      },
+      "report": "ROUND8_OPTIMIZATION_DEEPSEEK.json",
+      "note": "k1 trivial finals, real original dom1 fallback; both artifacts pass; configurations eligible only; first task NO_ENTRY means no paid successor experience transfer proof"
+    }
+  },
+  "checks": [
+    "Node TypeScript passed",
+    "Web TypeScript passed",
+    "ESLint47 changed TypeScript files passed",
+    "Generated TS/Python contract check passed",
+    "Prettier authored source/documents passed (generated schema JSON checked by generator)",
+    "Backend and Electron bundle built",
+    "git diff --check and secret scan before PR"
+  ],
+  "fixedDuringIntegration": [
+    "Private runtime shutdown must not wait the outer Core whose outcome depends on that physical cleanup",
+    "Original Session/SQLite root is configRoot; ArtifactVersion/Review content root is dataRoot, tested separately",
+    "Same-process recovery-only owners can retry exact witnesses without stealing provider-owned locks",
+    "Canonical Task failure reason survives a prior completed Session commit and restart projection",
+    "Subsequent Send/correction can start after native release while earlier owner commit remains pending; exact execution cancellation never targets the new turn"
+  ],
+  "multiAgent": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "high",
+    "roles": [
+      "platform and Task/ACP controls",
+      "original evidence/host and Harness parity",
+      "Reviewer integration and independent source review"
+    ],
+    "review": "No remaining reproducible P1/P2 reported by final read-only review before final source integration; full crash interleavings are not claimed"
+  },
+  "diagnostics": {
+    "paidRuns": "Initial ordinary2requests + initial domain20executions/69requests passed; final domain21executions/81requests and ordinary2requests passed. Intermediate ordinary rerun before split-root change also passed with2requests. Reports retain final runs. No paid assertions or production gates were waived.",
+    "offline": "Final integration caught private shutdown-cycle and config/data-root failures; repaired production ownership/root binding, then reran native and desktop gates."
+  },
+  "limitations": [
+    "Ordinary live workspace/transient media fingerprints are not reproducible isolated snapshots; application of ordinary config remains unknown without independent runtime facts",
+    "Execution-count budget is not currency/token billing",
+    "Current candidate profile does not cover every rich scientific tool/data/configuration surface",
+    "No default automatic optimization or global experience/config promotion",
+    "No complete scientific correctness, Linux/Windows or signed installation acceptance",
+    "Cached Electron43.4.0 was used; no fixed43.7.5 launch proof",
+    "Directory/process isolation is not an OS security sandbox",
+    "Unknown original cleanup remains fenced until exact original witnesses exist; no paid recovery replay"
+  ]
+}

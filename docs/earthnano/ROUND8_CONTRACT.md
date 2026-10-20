@@ -4,14 +4,14 @@ Base: PR #9, 372eba63f; stacked PR, no automatic merge. Preserve OpenScience use
 
 ## Authority and scope
 
-One agent turn is one shared Execution. Desktop Send, Task API and every Harness² role must enter the same ExecutionCore rules before provider dispatch. An already admitted execution propagates a trusted in-process scope through ACP: never admit it again. Internal provider/tool continuations stay inside their root scope. Explicit separate review/optimization calls get role/parent declarations; generic completion never triggers optimization.
+One logical agent mission is one shared Execution; upstream protocol recovery and declared delegated continuation turns remain inside that mission. Desktop Send, Task API and every Harness² role must enter the same ExecutionCore rules before provider dispatch. An already admitted execution propagates a trusted in-process scope through ACP: never admit it again. Internal provider/tool continuations stay inside their root scope. Explicit separate review/optimization calls get role/parent declarations; generic completion never triggers optimization.
 
 TaskRun/Session/Experiment are workflow views and original owner facts, not alternative model-execution authorities. Task API preserves its existing acceptance/wait/cancellation and Session/artifact/Review commit ordering, but its agent dispatch/cancel enters this same boundary; a task-owned completion barrier keeps canonical execution settlement behind the original durable owner commit. No mirror log written after an independently launched turn counts as unification.
 
 ## Common rules
 
 - Immutable ExecutionRequest/refs describe the original requested task, invocation, selected agent, configuration and resource scope. Rich ACP data remains intact; live workspace/transient images must not be falsely called a reproducible isolated text snapshot. Preserve transient-media nonretention with fingerprints and explicit evidence limitations.
-- One durable admission and one budget reservation per real execution; retries use new request keys, authorized rearmed messages are new attempts. Reuse within a scope verifies Project/Session/turn ownership.
+- One durable admission and one execution-count budget reservation per logical mission (not per API request); retries use new request keys, authorized rearmed messages are new attempts. Reuse within a scope verifies Project/Session/turn ownership.
 - Role/origin/interaction/resource ownership/deadline/budget are declarations consumed by one policy; adapters supply original owner operations, not their own lifecycle policy.
 - `timeoutMs=0` means no imposed execution deadline for ordinary user/automation turns. Optimization requires a positive bounded deadline. Interactive approval/permission waits preserve upstream behavior.
 - Cancellation is a request, not an outcome. An original owner may reject cancellation; rejection does not abort its execution. Accepted cancellation propagates to the exact owned prompt/lease and later owner/Review commit. Earlier provider, Notebook or persistence failures keep precedence.
