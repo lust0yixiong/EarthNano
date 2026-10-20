@@ -372,143 +372,154 @@ const setup = async (
   return { root, core, probes, requests, freeze, terminal }
 }
 
-it('loads frozen native system/Skill configuration and isolates concurrent real Claude candidates', async () => {
-  const rounds = new Map<string, number>()
-  const held: Array<() => void> = []
-  let ready = false
-  const release = (): void => {
-    if (ready && held.length === 2) held.splice(0).forEach((action) => action())
-  }
-  const respond = (label: string, body: RequestBody, response: ServerResponse): void => {
-    const probe = f.probes.get(label)!
-    const other = f.probes.get(label === 'A' ? 'B' : 'A')!
-    const step = rounds.get(label) ?? 0
-    rounds.set(label, step + 1)
-    const actions = [
-      { name: 'Skill', input: { skill: 'earthnano-candidate:probe' } },
-      { name: 'Read', input: { file_path: join(probe.materialized.inputDir, 'input.txt') } },
-      {
-        name: 'Write',
-        input: {
-          file_path: join(probe.materialized.outputDir, 'result.txt'),
-          content: `${label}:FROZEN_TASK_INPUT_BYTES`
-        }
-      },
-      { name: 'Read', input: { file_path: join(other.materialized.outputDir, 'private.txt') } },
-      { name: 'Read', input: { file_path: join(f.root, 'host-private.txt') } },
-      {
-        name: 'Write',
-        input: { file_path: join(probe.materialized.inputDir, 'input.txt'), content: 'MUTATED' }
-      },
-      {
-        name: 'Write',
-        input: { file_path: join(probe.materialized.outputDir, 'dangling'), content: 'ESCAPED' }
-      },
-      { name: 'WebFetch', input: { url: 'http://127.0.0.1:1/forbidden', prompt: 'fetch' } }
-    ]
-    send(response, body, actions[step] ?? { text: `DONE_${label}` }, `${label}_${step}`)
-  }
-  const f = await setup((label, body, response) => {
-    if (!rounds.has(label)) {
-      held.push(() => respond(label, body, response))
-      release()
-    } else respond(label, body, response)
-  })
-  await writeFile(join(f.root, 'host-private.txt'), 'HOST_PRIVATE_SENTINEL')
-  // Synthetic pollution only. The real personal environment/config is never read.
-  vi.stubEnv('ANTHROPIC_API_KEY', 'HOST_CREDENTIAL_SENTINEL')
-  vi.stubEnv('CLAUDE_CODE_OAUTH_TOKEN', 'HOST_OAUTH_SENTINEL')
-  const a = await f.freeze('A', true),
-    b = await f.freeze('B', true)
-  expect(a.taskSnapshotRef).toEqual(b.taskSnapshotRef)
-  expect(a.agentSpecRef).toEqual(b.agentSpecRef)
-  const handles = await Promise.all([f.core.submit(a), f.core.submit(b)])
-  await vi.waitFor(() => expect(f.probes.size).toBe(2), { timeout: 30_000 })
-  for (const [label, probe] of f.probes) {
-    await writeFile(join(probe.materialized.outputDir, 'private.txt'), `PRIVATE_CANDIDATE_${label}`)
-    await symlink(
-      join(f.root, `escaped-${label}.txt`),
-      join(probe.materialized.outputDir, 'dangling')
-    )
-  }
-  ready = true
-  release()
-  const results = await Promise.all(handles.map((handle) => f.terminal(handle.executionId)))
-  expect(results.map((result) => [result.phase, result.cleanup])).toEqual([
-    ['completed', 'confirmed'],
-    ['completed', 'confirmed']
-  ])
-  expect(new Set(results.map((result) => result.identity.sessionId)).size).toBe(2)
-  for (const [label, probe] of f.probes) {
-    expect(probe.reaped).toBe(true)
-    expect(probe.children).toHaveLength(1)
-    expect(probe.children[0]!.exitCode !== null || probe.children[0]!.signalCode !== null).toBe(
-      true
-    )
-    expect(await readFile(join(probe.materialized.inputDir, 'input.txt'), 'utf8')).toBe(
-      'FROZEN_TASK_INPUT_BYTES'
-    )
-    expect(await readFile(join(probe.materialized.outputDir, 'result.txt'), 'utf8')).toBe(
-      `${label}:FROZEN_TASK_INPUT_BYTES`
-    )
-    await expect(readFile(join(f.root, `escaped-${label}.txt`))).rejects.toThrow()
-    const ownRequests = f.requests.filter((record) => record.label === label)
-    expect(ownRequests.length).toBeGreaterThanOrEqual(9)
-    expect(ownRequests.every((record) => record.body.model === 'claude-sonnet-4-5')).toBe(true)
-    const bodies = ownRequests.map((record) => JSON.stringify(record.body)).join('\n')
-    expect(bodies).toContain(`FROZEN_SYSTEM_${label}`)
-    expect(bodies).not.toContain(`FROZEN_SYSTEM_${label === 'A' ? 'B' : 'A'}`)
-    expect(bodies).toContain('FROZEN_SKILL_MARKER')
-    expect(bodies).toContain('FROZEN_TASK_INPUT_BYTES')
-    expect(bodies).not.toContain('HOST_PRIVATE_SENTINEL')
-    expect(bodies).not.toContain(`PRIVATE_CANDIDATE_${label === 'A' ? 'B' : 'A'}`)
-    expect(bodies).not.toContain('HOST_CREDENTIAL_SENTINEL')
-    expect(bodies).not.toContain('UNFROZEN_PROJECT_INSTRUCTIONS')
-    const content = (ownRequests.at(-1)!.body.messages as Array<{ content?: unknown }>).flatMap(
-      (message) => (Array.isArray(message.content) ? message.content : [])
-    ) as Array<{ type: string; tool_use_id?: string; is_error?: boolean; content?: unknown }>
-    const resultOf = (step: number): ToolResult | undefined =>
-      content.find(
-        (block) => block.type === 'tool_result' && block.tool_use_id === `call_${label}_${step}`
+it.skipIf(process.platform === 'win32')(
+  'loads frozen native system/Skill configuration and isolates concurrent real Claude candidates',
+  async () => {
+    const rounds = new Map<string, number>()
+    const held: Array<() => void> = []
+    let ready = false
+    const release = (): void => {
+      if (ready && held.length === 2) held.splice(0).forEach((action) => action())
+    }
+    const respond = (label: string, body: RequestBody, response: ServerResponse): void => {
+      const probe = f.probes.get(label)!
+      const other = f.probes.get(label === 'A' ? 'B' : 'A')!
+      const step = rounds.get(label) ?? 0
+      rounds.set(label, step + 1)
+      const actions = [
+        { name: 'Skill', input: { skill: 'earthnano-candidate:probe' } },
+        { name: 'Read', input: { file_path: join(probe.materialized.inputDir, 'input.txt') } },
+        {
+          name: 'Write',
+          input: {
+            file_path: join(probe.materialized.outputDir, 'result.txt'),
+            content: `${label}:FROZEN_TASK_INPUT_BYTES`
+          }
+        },
+        { name: 'Read', input: { file_path: join(other.materialized.outputDir, 'private.txt') } },
+        { name: 'Read', input: { file_path: join(f.root, 'host-private.txt') } },
+        {
+          name: 'Write',
+          input: { file_path: join(probe.materialized.inputDir, 'input.txt'), content: 'MUTATED' }
+        },
+        {
+          name: 'Write',
+          input: { file_path: join(probe.materialized.outputDir, 'dangling'), content: 'ESCAPED' }
+        },
+        { name: 'WebFetch', input: { url: 'http://127.0.0.1:1/forbidden', prompt: 'fetch' } }
+      ]
+      send(response, body, actions[step] ?? { text: `DONE_${label}` }, `${label}_${step}`)
+    }
+    const f = await setup((label, body, response) => {
+      if (!rounds.has(label)) {
+        held.push(() => respond(label, body, response))
+        release()
+      } else respond(label, body, response)
+    })
+    await writeFile(join(f.root, 'host-private.txt'), 'HOST_PRIVATE_SENTINEL')
+    // Synthetic pollution only. The real personal environment/config is never read.
+    vi.stubEnv('ANTHROPIC_API_KEY', 'HOST_CREDENTIAL_SENTINEL')
+    vi.stubEnv('CLAUDE_CODE_OAUTH_TOKEN', 'HOST_OAUTH_SENTINEL')
+    const a = await f.freeze('A', true),
+      b = await f.freeze('B', true)
+    expect(a.taskSnapshotRef).toEqual(b.taskSnapshotRef)
+    expect(a.agentSpecRef).toEqual(b.agentSpecRef)
+    const handles = await Promise.all([f.core.submit(a), f.core.submit(b)])
+    await vi.waitFor(() => expect(f.probes.size).toBe(2), { timeout: 30_000 })
+    for (const [label, probe] of f.probes) {
+      await writeFile(
+        join(probe.materialized.outputDir, 'private.txt'),
+        `PRIVATE_CANDIDATE_${label}`
       )
-    expect(resultOf(0)?.is_error).not.toBe(true)
-    expect(JSON.stringify(resultOf(0))).toContain('Launching skill: earthnano-candidate:probe')
-    expect(JSON.stringify(ownRequests[0]!.body.messages)).not.toContain('FROZEN_SKILL_MARKER')
-    expect(JSON.stringify(ownRequests[1]!.body.messages)).toContain('FROZEN_SKILL_MARKER')
-    expect(resultOf(1)?.is_error).not.toBe(true)
-    expect(JSON.stringify(resultOf(1))).toContain('FROZEN_TASK_INPUT_BYTES')
-    expect(resultOf(2)?.is_error).not.toBe(true)
-    for (const step of [3, 4, 5, 6, 7]) expect(resultOf(step)?.is_error).toBe(true)
-    for (const forbidden of ['Bash', 'WebFetch', 'Agent', 'Task', 'WebSearch'])
-      expect(ownRequests[0]!.body.tools?.map((tool) => tool.name)).not.toContain(forbidden)
-  }
-  expect(new Set([...f.probes.values()].map((probe) => probe.children[0]!.pid)).size).toBe(2)
-  for (const key of [
-    'HOME',
-    'CLAUDE_CONFIG_DIR',
-    'XDG_CONFIG_HOME',
-    'XDG_CACHE_HOME',
-    'XDG_DATA_HOME',
-    'XDG_STATE_HOME'
-  ])
-    expect(
-      new Set([...f.probes.values()].map((probe) => probe.prepared.backend.env[key])).size
-    ).toBe(2)
-}, 110_000)
+      await symlink(
+        join(f.root, `escaped-${label}.txt`),
+        join(probe.materialized.outputDir, 'dangling')
+      )
+    }
+    ready = true
+    release()
+    const results = await Promise.all(handles.map((handle) => f.terminal(handle.executionId)))
+    expect(results.map((result) => [result.phase, result.cleanup])).toEqual([
+      ['completed', 'confirmed'],
+      ['completed', 'confirmed']
+    ])
+    expect(new Set(results.map((result) => result.identity.sessionId)).size).toBe(2)
+    for (const [label, probe] of f.probes) {
+      expect(probe.reaped).toBe(true)
+      expect(probe.children).toHaveLength(1)
+      expect(probe.children[0]!.exitCode !== null || probe.children[0]!.signalCode !== null).toBe(
+        true
+      )
+      expect(await readFile(join(probe.materialized.inputDir, 'input.txt'), 'utf8')).toBe(
+        'FROZEN_TASK_INPUT_BYTES'
+      )
+      expect(await readFile(join(probe.materialized.outputDir, 'result.txt'), 'utf8')).toBe(
+        `${label}:FROZEN_TASK_INPUT_BYTES`
+      )
+      await expect(readFile(join(f.root, `escaped-${label}.txt`))).rejects.toThrow()
+      const ownRequests = f.requests.filter((record) => record.label === label)
+      expect(ownRequests.length).toBeGreaterThanOrEqual(9)
+      expect(ownRequests.every((record) => record.body.model === 'claude-sonnet-4-5')).toBe(true)
+      const bodies = ownRequests.map((record) => JSON.stringify(record.body)).join('\n')
+      expect(bodies).toContain(`FROZEN_SYSTEM_${label}`)
+      expect(bodies).not.toContain(`FROZEN_SYSTEM_${label === 'A' ? 'B' : 'A'}`)
+      expect(bodies).toContain('FROZEN_SKILL_MARKER')
+      expect(bodies).toContain('FROZEN_TASK_INPUT_BYTES')
+      expect(bodies).not.toContain('HOST_PRIVATE_SENTINEL')
+      expect(bodies).not.toContain(`PRIVATE_CANDIDATE_${label === 'A' ? 'B' : 'A'}`)
+      expect(bodies).not.toContain('HOST_CREDENTIAL_SENTINEL')
+      expect(bodies).not.toContain('UNFROZEN_PROJECT_INSTRUCTIONS')
+      const content = (ownRequests.at(-1)!.body.messages as Array<{ content?: unknown }>).flatMap(
+        (message) => (Array.isArray(message.content) ? message.content : [])
+      ) as Array<{ type: string; tool_use_id?: string; is_error?: boolean; content?: unknown }>
+      const resultOf = (step: number): ToolResult | undefined =>
+        content.find(
+          (block) => block.type === 'tool_result' && block.tool_use_id === `call_${label}_${step}`
+        )
+      expect(resultOf(0)?.is_error).not.toBe(true)
+      expect(JSON.stringify(resultOf(0))).toContain('Launching skill: earthnano-candidate:probe')
+      expect(JSON.stringify(ownRequests[0]!.body.messages)).not.toContain('FROZEN_SKILL_MARKER')
+      expect(JSON.stringify(ownRequests[1]!.body.messages)).toContain('FROZEN_SKILL_MARKER')
+      expect(resultOf(1)?.is_error).not.toBe(true)
+      expect(JSON.stringify(resultOf(1))).toContain('FROZEN_TASK_INPUT_BYTES')
+      expect(resultOf(2)?.is_error).not.toBe(true)
+      for (const step of [3, 4, 5, 6, 7]) expect(resultOf(step)?.is_error).toBe(true)
+      for (const forbidden of ['Bash', 'WebFetch', 'Agent', 'Task', 'WebSearch'])
+        expect(ownRequests[0]!.body.tools?.map((tool) => tool.name)).not.toContain(forbidden)
+    }
+    expect(new Set([...f.probes.values()].map((probe) => probe.children[0]!.pid)).size).toBe(2)
+    for (const key of [
+      'HOME',
+      'CLAUDE_CONFIG_DIR',
+      'XDG_CONFIG_HOME',
+      'XDG_CACHE_HOME',
+      'XDG_DATA_HOME',
+      'XDG_STATE_HOME'
+    ])
+      expect(
+        new Set([...f.probes.values()].map((probe) => probe.prepared.backend.env[key])).size
+      ).toBe(2)
+  },
+  110_000
+)
 
-it('cancels one real candidate through its Session owner while the other completes', async () => {
-  const pending = new Map<string, { body: RequestBody; response: ServerResponse }>()
-  const f = await setup((label, body, response) => {
-    pending.set(label, { body, response })
-  })
-  const [a, b] = await Promise.all([f.freeze('A'), f.freeze('B')])
-  const [ha, hb] = await Promise.all([f.core.submit(a), f.core.submit(b)])
-  await vi.waitFor(() => expect(pending.size).toBe(2), { timeout: 40_000 })
-  expect((await f.core.cancel(ha.executionId)).status).toBe('requested')
-  const pb = pending.get('B')!
-  send(pb.response, pb.body, { text: 'B_SURVIVES_A_CANCELLATION' }, 'B_survives')
-  const [ra, rb] = await Promise.all([f.terminal(ha.executionId), f.terminal(hb.executionId)])
-  expect([ra.phase, ra.cleanup]).toEqual(['cancelled', 'confirmed'])
-  expect([rb.phase, rb.cleanup]).toEqual(['completed', 'confirmed'])
-  expect([...f.probes.values()].every((probe) => probe.reaped)).toBe(true)
-}, 110_000)
+it.skipIf(process.platform === 'win32')(
+  'cancels one real candidate through its Session owner while the other completes',
+  async () => {
+    const pending = new Map<string, { body: RequestBody; response: ServerResponse }>()
+    const f = await setup((label, body, response) => {
+      pending.set(label, { body, response })
+    })
+    const [a, b] = await Promise.all([f.freeze('A'), f.freeze('B')])
+    const [ha, hb] = await Promise.all([f.core.submit(a), f.core.submit(b)])
+    await vi.waitFor(() => expect(pending.size).toBe(2), { timeout: 40_000 })
+    expect((await f.core.cancel(ha.executionId)).status).toBe('requested')
+    const pb = pending.get('B')!
+    send(pb.response, pb.body, { text: 'B_SURVIVES_A_CANCELLATION' }, 'B_survives')
+    const [ra, rb] = await Promise.all([f.terminal(ha.executionId), f.terminal(hb.executionId)])
+    expect([ra.phase, ra.cleanup]).toEqual(['cancelled', 'confirmed'])
+    expect([rb.phase, rb.cleanup]).toEqual(['completed', 'confirmed'])
+    expect([...f.probes.values()].every((probe) => probe.reaped)).toBe(true)
+  },
+  110_000
+)

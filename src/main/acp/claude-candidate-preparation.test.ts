@@ -20,7 +20,11 @@ import {
   type ResolvedCandidateSnapshots,
   type MaterializedCandidate
 } from '../earthnano/candidate-snapshot'
-import { prepareClaudeCandidate, type ClaudeCandidateBinding } from './claude-candidate-preparation'
+import {
+  prepareClaudeCandidate,
+  assertClaudeCandidateText,
+  type ClaudeCandidateBinding
+} from './claude-candidate-preparation'
 
 const roots: string[] = []
 afterEach(async () => {
@@ -95,7 +99,7 @@ const runGate = (root: string, tool: string, args: object): string => {
   return JSON.parse(result.stdout).hookSpecificOutput.permissionDecision
 }
 
-describe('frozen Claude candidate preparation', () => {
+describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate preparation', () => {
   it('uses native framework configuration and replaces inherited process and hook environment', async () => {
     const f = await fixture()
     const prepared = await prepareClaudeCandidate({
@@ -239,12 +243,81 @@ describe('frozen Claude candidate preparation', () => {
     '---\nname: probe\ndescription: Probe\n---\n```!\necho bad\n```'
   ])('rejects executable or extended Skill syntax %s', async (content) => {
     const f = await fixture([{ path: 'probe/SKILL.md', content }])
-    await expect(prepareClaudeCandidate(f)).rejects.toThrow('Skill')
+    await expect(prepareClaudeCandidate(f)).rejects.toThrow(/Skill|dynamic shell/)
   })
 
   it('checks the actual bounded native --version, not only matching binding declarations', async () => {
     const f = await fixture()
     await writeFile(f.binding.executablePath, "#!/bin/sh\necho '0.0.0 (Claude Code)'\n")
     await expect(prepareClaudeCandidate(f)).rejects.toThrow('version differs')
+  })
+  it('explicitly rejects the unsupported Windows command-hook profile', async () => {
+    const f = await fixture()
+    const descriptor = Object.getOwnPropertyDescriptor(process, 'platform')!
+    try {
+      Object.defineProperty(process, 'platform', { value: 'win32' })
+      await expect(prepareClaudeCandidate(f)).rejects.toThrow('POSIX profile')
+    } finally {
+      Object.defineProperty(process, 'platform', descriptor)
+    }
+  })
+  it.each([
+    '@/absolute/file',
+    '@../relative',
+    '@"quoted path"',
+    '(@/punctuation)',
+    'email@example.com'
+  ])('rejects native @ text before any version probe or owner: %s', (text) => {
+    expect(() => assertClaudeCandidateText(text)).toThrow('containing @ is unsupported')
+  })
+
+  it('checks all frozen native text surfaces before materializing runtime resources', async () => {
+    for (const field of ['task', 'invocation', 'harness', 'skills']) {
+      const f = await fixture()
+      const resolved = {
+        ...f.resolved,
+        ...(field === 'task' ? { task: { ...f.resolved.task, prompt: '@../host' } } : {}),
+        ...(field === 'invocation'
+          ? { invocation: { ...f.resolved.invocation, mission: '@../host' } }
+          : {}),
+        ...(field === 'harness'
+          ? { harness: { ...f.resolved.harness, instructions: '@../host' } }
+          : {}),
+        ...(field === 'skills'
+          ? {
+              harness: {
+                ...f.resolved.harness,
+                skills: [{ path: 'probe/SKILL.md', content: '@../host' }]
+              }
+            }
+          : {})
+      }
+      await expect(prepareClaudeCandidate({ ...f, resolved })).rejects.toThrow(
+        'containing @ is unsupported'
+      )
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  })
+
+  it('does not allow Skill arguments to reintroduce native automatic context expansion', async () => {
+    const f = await fixture([
+      { path: 'probe/SKILL.md', content: '---\nname: probe\ndescription: Probe\n---\nStatic text' }
+    ])
+    await prepareClaudeCandidate(f)
+    expect(runGate(f.materialized.root, 'Skill', { skill: 'earthnano-candidate:probe' })).toBe(
+      'allow'
+    )
+    expect(
+      runGate(f.materialized.root, 'Skill', {
+        skill: 'earthnano-candidate:probe',
+        args: '@../host'
+      })
+    ).toBe('deny')
+    expect(
+      runGate(f.materialized.root, 'Skill', {
+        skill: 'earthnano-candidate:probe',
+        args: 'other text'
+      })
+    ).toBe('deny')
   })
 })

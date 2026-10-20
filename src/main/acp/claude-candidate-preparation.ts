@@ -50,6 +50,15 @@ const inside = (root: string, path: string): boolean => {
 }
 const quote = (text: string): string => `'${text.replaceAll("'", "'\\''")}'`
 
+/** The native CLI expands file mentions before tool hooks. This initial profile deliberately
+ * rejects every @ (including email), rather than guessing its tokenizer or silently rewriting text.
+ * Recheck owner-composed prompt text/history with this same policy before dispatch. */
+export const assertClaudeCandidateText = (text: string): void => {
+  if (text.includes('@')) throw new Error('Claude candidate text containing @ is unsupported')
+  if (/!\s*`|`{3,}\s*!/.test(text))
+    throw new Error('Claude candidate dynamic shell context is unsupported')
+}
+
 const verifyMaterialization = async (materialized: MaterializedCandidate): Promise<void> => {
   const { task, harness } = materialized.snapshots
   const expected = new Map([
@@ -130,7 +139,7 @@ process.stdin.on('end', ()=>{
     const fields={Read:['file_path','offset','limit','pages'],Write:['file_path','content'],Edit:['file_path','old_string','new_string','replace_all'],Skill:['skill','args']}[tool];
     if(!fields || Object.keys(args).some(key=>!fields.includes(key))) throw Error('Unsupported tool/input');
     if(tool==='Skill') {
-      if(roots.names.includes(args.skill) && (args.args===undefined || typeof args.args==='string')) decision='allow';
+      if(roots.names.includes(args.skill) && (args.args===undefined || args.args==='')) decision='allow';
     } else {
       if(typeof args.file_path!=='string') throw Error('Missing path');
       const target=checked(args.file_path);
@@ -154,7 +163,16 @@ export const prepareClaudeCandidate = async ({
   binding: ClaudeCandidateBinding
   sourceEnv?: NodeJS.ProcessEnv
 }): Promise<PreparedClaudeCandidate> => {
+  if (process.platform === 'win32')
+    throw new Error('Claude candidate command hooks require the POSIX profile')
   const { agent, harness, environment, invocation } = resolved
+  for (const text of [
+    resolved.task.prompt,
+    invocation.mission,
+    harness.instructions,
+    ...harness.skills.map((skill) => skill.content)
+  ])
+    assertClaudeCandidateText(text)
   if (
     agent.backend !== 'claude-code' ||
     harness.tools !== 'workspace-only' ||
