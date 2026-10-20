@@ -3,7 +3,7 @@
 EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。
 目标是保留现有科研能力，使科研执行与自动优化共享运行、配置和证据体系。
 
-**当前阶段：EarthNano 的普通执行与优化共用执行核心。基线和候选已通过原 Notebook 执行同一固定输入科研任务，原 Harness² 提案、组合、匿名选择及产物审阅、重启读取通过 DeepSeek 桌面验收。科研质量提升、默认自动优化及跨平台发布尚未验收。**
+**第十轮历史验收：EarthNano 的普通执行与优化共用执行核心。基线和候选通过原 Notebook 执行同一固定输入科研任务，原 Harness² 提案、组合、匿名选择及产物审阅、重启读取通过当轮 DeepSeek 桌面验收。科研质量提升、默认自动优化及跨平台发布尚未验收。**
 
 融合项目及应用名称统一为 **EarthNano**。OpenScience 与 Harness² 仅在说明上游来源、模块能力和兼容标识时使用。
 最新模块与验收边界见[第十轮](docs/earthnano/ROUND10.md)，源码试用方式见[当前基线](docs/earthnano/BASELINE.md)。
