@@ -1,3 +1,4 @@
+import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import {
   closeSync,
   existsSync,
@@ -10,9 +11,15 @@ import {
   unlinkSync,
   writeFileSync
 } from 'node:fs'
-import { dirname } from 'node:path'
+import { readFile, readdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { emptyExecutionState, type ExecutionState, type ExecutionStore } from './execution-core'
+import {
+  ExecutionCore,
+  emptyExecutionState,
+  type ExecutionState,
+  type ExecutionStore
+} from './execution-core'
 
 /**
  * Local single-writer journal. A leftover lock after process death requires explicit operator
@@ -113,5 +120,92 @@ export class FileExecutionStore implements ExecutionStore {
   }
   private assertOpen(): void {
     if (this.closed) throw new Error('Execution store closed')
+  }
+}
+
+/** Shared persistence recovery: Core owns state transitions, original hosts supply exact witnesses.
+ * Unknown cleanup retains its lock and blocks this resource; this helper never dispatches a provider. */
+export async function recoverExecutionJournals(options: {
+  directory: string
+  /** Only this resource is being admitted; unrelated unknown resources remain fenced individually. */
+  targetEnvironmentId?: string
+  matches(record: ExecutionRecord): boolean
+  readOriginal?(
+    record: ExecutionRecord,
+    owner: { filename: string; recoveredOwnerPid?: number }
+  ): Promise<Parameters<ExecutionCore['reconcileOriginal']>[1] | undefined>
+}): Promise<void> {
+  const files: string[] = []
+  const walk = async (directory: string): Promise<void> => {
+    let entries: import('node:fs').Dirent[]
+    try {
+      entries = await readdir(directory, { withFileTypes: true })
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
+      throw error
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isSymbolicLink())
+        throw new Error('Linked execution journal boundary is unsupported')
+      const filename = join(directory, entry.name)
+      if (entry.isDirectory()) await walk(filename)
+      else if (entry.isFile() && entry.name.endsWith('.json')) files.push(filename)
+    }
+  }
+  await walk(options.directory)
+  for (const filename of files) {
+    const snapshot = JSON.parse(await readFile(filename, 'utf8')) as ExecutionState
+    const unresolved = Object.values(snapshot.records).filter(
+      (record) =>
+        options.matches(record) &&
+        (record.cleanup !== 'confirmed' ||
+          !['completed', 'failed', 'cancelled', 'interrupted'].includes(record.phase))
+    )
+    if (!unresolved.length) continue
+    const blocksTarget = unresolved.some(
+      (record) =>
+        !options.targetEnvironmentId ||
+        record.request.environmentSpecRef.id === options.targetEnvironmentId
+    )
+    let store: FileExecutionStore
+    try {
+      store = FileExecutionStore.recoverStale(filename)
+    } catch (error) {
+      if (blocksTarget) throw error
+      continue
+    }
+    let core: ExecutionCore | undefined
+    let confirmed = false
+    try {
+      core = new ExecutionCore(store, {
+        execute: async () => {
+          throw new Error('Recovery cannot dispatch a provider')
+        }
+      })
+      for (const previous of unresolved) {
+        const record = await core.get(previous.executionId)
+        const outcome = await options.readOriginal?.(record, {
+          filename,
+          recoveredOwnerPid: store.recoveredOwnerPid
+        })
+        if (!outcome) {
+          if (
+            !options.targetEnvironmentId ||
+            record.request.environmentSpecRef.id === options.targetEnvironmentId
+          )
+            throw new Error(
+              'Execution resource remains fenced pending original-owner reconciliation'
+            )
+          continue
+        }
+        core.reconcileOriginal(record.executionId, outcome)
+      }
+      confirmed = Object.values(store.load().records).every(
+        (record) => record.cleanup === 'confirmed'
+      )
+    } finally {
+      core?.dispose()
+      if (confirmed) store.close()
+    }
   }
 }
