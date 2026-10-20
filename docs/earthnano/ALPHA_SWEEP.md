@@ -55,7 +55,7 @@ Electron43.7.5、Claude Code2.1.232、Python3.12.13；NodeRunner26.0.0 是测试
 
 ## 上游对照与尚未覆盖
 
-- Hosted PR14 的 Ubuntu candidate3/4 在 npm-ci 下载原 onnxruntime-node1.24.3 时 ETIMEDOUT/ENETUNREACH，未进入 pretest/typecheck/tests。锁定依赖与 OpenScience9e18 完全一致，不据此改源码、跳过下载或把任务记成通过。专用 CI 现固定 Host Node24.22.0，并保留严格 image 比较；跨平台最终比较及原生包仍待真实 CI。
+- Hosted PR14 的 Ubuntu candidate3/4 在 npm-ci 下载原 onnxruntime-node1.24.3 时 ETIMEDOUT/ENETUNREACH，未进入 pretest/typecheck/tests。锁定依赖与 OpenScience9e18 完全一致，不据此改源码、跳过下载或把任务记成通过。专用 CI 现固定 Host Node24.22.0，并保留严格 image 比较；跨平台最终比较及原生包仍待真实 CI。新 PR15 run39464594843 又在 runner 分配前被 GitHub 账户付款/支出限额阻止，未运行任何步骤；原始 API 返回已保存。
 - 旧 EarthNano 分支的 host command inventory 测试遗漏既有五个优化命令：原未加 sweep 的独立 worktree 重现 85 对 80 的两个失败。本轮保留上游 80 命令断言与测试身份，并显式核对新六命令、同组接纳/权限及卸载；不删原断言或屏蔽测试。
 - 原 ManagedFileVersion/Notebook 删除语义保留。单次版本 read lease 和 archive admission 不等于持续来源删除锁；正常 Session 删除仍保留可读版本历史，删除进行中或 logical-file tombstone 会拒绝读取。没有新增一个会误拒绝 archived/retained 来源的平行权限规则。
 - 真实 Notebook/model 验收是一个科研任务的双模式 k1；四任务 k2 与两个不同源 Session/runtime 的覆盖分别是离线原调度对照和来源 owner 单测。多来源完整真实桌面实验仍需补齐。

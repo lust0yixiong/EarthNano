@@ -120,3 +120,13 @@ Run [39454904669](https://github.com/lust0yixiong/EarthNano/actions/runs/3945490
 Hosted baseline3 的 18,953 passed/295 skipped/0 failed 是上游单分片原始事实，candidate3 的安装失败没有测试结果；其 Node/runner image 不同，不能据此声称匹配环境的候选回归比较已完成。原失败 run/job/artifact 标识、阶段、环境和其他原文件 SHA 均保留在上述诊断及 source report。
 
 精确 Host Node 官方 release/index 核验记录：`ci-exact-node-official.json`，SHA-256 `04462df9d97b9a2d42a16a436ac8ebfd7f2fdb805c03d16aeeb6d860dfec71ee`。它记录官方发布链接/校验值；本机直连探针超时，未冒充二进制下载或执行。
+
+## PR15 托管 CI 在 runner 分配前被账户限制阻止
+
+Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/39464594843)，固定 head `3b8e6222450a8b40f13f051a7596273f29e1c955`。plan job118772549558 和 Windows runtime job118772549335 的原始 annotation 均报告近期付款失败或需要提高支出限额；plan 的 runner_name 为空、steps 为空。源码、依赖安装、Python/Node 设置与测试均未运行；这不是 Node 固定修复的通过或失败证据。不修改账户费用设置，也不以重复触发替代恢复账户可用性。本轮本机/DeepSeek 证据继续有效，跨平台与原生包验收仍待完成。
+
+| 原始 API 返回                               | SHA-256                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `ci-sweep-account-plan-annotations.json`    | `7f755c7b6906256c87f396c463ee0db865c8ae5564f57ec4915c288ca57b1625` |
+| `ci-sweep-account-windows-annotations.json` | `7f755c7b6906256c87f396c463ee0db865c8ae5564f57ec4915c288ca57b1625` |
+| `ci-sweep-account-plan-job.json`            | `3bf60a04a03984604ee3e736150e9b1aa01367191e6374a6acb226173ae90180` |

@@ -235,3 +235,7 @@ PR14 corrected run `39456512139` 的 candidate Ubuntu3/4 job `118745034481` 在 
 本轮将专用 EarthNano CI 的 Host Node 固定到 `.github/earthnano-node-version` 的 `24.22.0`：source/native/comparison/Harness 共同读取，Windows runtime job 在原 composite 前设置同一 Host Node。版本及所用目标的官方发布链接/校验值已核验（[官方发布页](https://nodejs.org/en/blog/release/v24.22.0)），本机直连探针超时，没有把它写成已下载/运行的证据。
 
 `.nvmrc`、lockfile、原 patched Notebook Node24.21.0 sources/URL、原 native producer workflow 字节和 disabled 状态均保留。recipe 对照只明确允许 setup-node 的精确版本输入和前轮 Python 输入，逆变换后仍要求原完整配方哈希相同。Node/image 不匹配仍被 comparator 拒绝；pin 只解决 Host Node 漂移，不能宣称 runner image 已一致、Hosted 全部通过或原生包已验收。新的 Hosted 结果须重新取得并对照，不盲目重跑/删失败原件/跳过 ONNX。
+
+## PR15：账户限制发生在执行前
+
+新 sweep PR15 的 run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/39464594843) 在 runner 分配前被阻止。GitHub annotation 原文为 “The job was not started because recent account payments have failed or your spending limit needs to be increased.” plan 和 Windows runtime 都没有步骤或 runner，因而没有运行依赖安装、版本设置或源码测试。原始 API 返回及 SHA 见 validation/alpha/README.md。需要仓库所属账户在 Billing & plans 恢复付款或可用支出额度后，才能执行托管验证；保留当前严格原版对照和 draft 状态。
