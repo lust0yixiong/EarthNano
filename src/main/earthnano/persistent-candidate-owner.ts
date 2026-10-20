@@ -744,8 +744,10 @@ export function createPersistentCandidateOwners(
           return row
         })
     },
-    async commitDeterministicReview({ target, checks, signal }) {
-      const frozenChecks = normalizeOutputChecks(checks)!
+    async commitDeterministicReview(input) {
+      const { signal } = input
+      const target = structuredClone(input.target)
+      const frozenChecks = normalizeOutputChecks(input.checks)!
       signal?.throwIfAborted()
       validateRecord(target)
       if (
