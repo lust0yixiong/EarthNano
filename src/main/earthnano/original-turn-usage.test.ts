@@ -80,8 +80,14 @@ describe('readOriginalTurnUsage', () => {
       message('answer-2', 'agent', { turnUsage: secondUsage })
     ])
 
-    expect(readOriginalTurnUsage(source, 'prompt-1')).toEqual({ usage: firstUsage })
-    expect(readOriginalTurnUsage(source, 'prompt-2')).toEqual({ usage: secondUsage })
+    expect(readOriginalTurnUsage(source, 'prompt-1')).toEqual({
+      ownerMessageId: 'answer-1',
+      usage: firstUsage
+    })
+    expect(readOriginalTurnUsage(source, 'prompt-2')).toEqual({
+      ownerMessageId: 'answer-2',
+      usage: secondUsage
+    })
   })
 
   it('uses the prompt admission branch even after another root branch becomes active', () => {
@@ -131,6 +137,7 @@ describe('readOriginalTurnUsage', () => {
     ]
 
     expect(readOriginalTurnUsage(source, 'prompt')).toEqual({
+      ownerMessageId: 'answer',
       usage: originalUsage
     })
   })
@@ -208,7 +215,7 @@ describe('readOriginalTurnUsage', () => {
         session([message('prompt', 'user'), message('answer', 'agent', { turnUsage: zero })]),
         'prompt'
       )
-    ).toEqual({ usage: zero })
+    ).toEqual({ ownerMessageId: 'answer', usage: zero })
 
     const usage = {
       inputTokens: 7,
@@ -230,7 +237,7 @@ describe('readOriginalTurnUsage', () => {
         ]),
         'prompt'
       )
-    ).toEqual({ usage, modelCallUsage })
+    ).toEqual({ ownerMessageId: 'answer', usage, modelCallUsage })
   })
 
   it('does not turn context-window facts into turn usage and drops an inconsistent cache split', () => {
@@ -257,6 +264,7 @@ describe('readOriginalTurnUsage', () => {
     ])
 
     expect(readOriginalTurnUsage(source, 'prompt')).toEqual({
+      ownerMessageId: 'answer',
       usage: { inputTokens: 7, cacheTokens: 5, outputTokens: 4 }
     })
   })
@@ -281,7 +289,7 @@ describe('readExecutionTurnUsage', () => {
         promptMessageId
       })
 
-    expect(read()).toEqual({ usage })
+    expect(read()).toEqual({ ownerMessageId: 'answer', usage })
     expect(read('other-execution')).toBeUndefined()
     expect(read('execution', 'other-session')).toBeUndefined()
     expect(read('execution', 'session', 'other-prompt')).toBeUndefined()
@@ -328,14 +336,17 @@ describe('readExecutionTurnUsage', () => {
         sessionId: source.id,
         promptMessageId: 'prompt'
       })
-    ).toEqual({ usage })
+    ).toEqual({ ownerMessageId: 'original-answer', usage })
     expect(
       readExecutionTurnUsage(source, {
         runtimeExecutionId: 'resumed-execution',
         sessionId: source.id,
         promptMessageId: 'prompt'
       })
-    ).toEqual({ usage: { inputTokens: 99, cacheTokens: 0, outputTokens: 9 } })
+    ).toEqual({
+      ownerMessageId: 'alternate-answer',
+      usage: { inputTokens: 99, cacheTokens: 0, outputTokens: 9 }
+    })
   })
 
   it('does not transfer a historical owner when the same prompt is admitted on a new runtime segment', () => {
@@ -373,7 +384,10 @@ describe('readExecutionTurnUsage', () => {
     })
     graph.branches.find(({ id }) => id === branchId)!.headMessageId = 'current-answer'
 
-    expect(read()).toEqual({ usage: { inputTokens: 31, cacheTokens: 7, outputTokens: 4 } })
+    expect(read()).toEqual({
+      ownerMessageId: 'current-answer',
+      usage: { inputTokens: 31, cacheTokens: 7, outputTokens: 4 }
+    })
   })
 
   it('fails closed when admission or owner runtime segment evidence is absent or unknown', () => {
@@ -452,7 +466,7 @@ describe('readExecutionTurnUsage', () => {
         sessionId: source.id,
         promptMessageId: 'prompt'
       })
-    ).toEqual({ usage })
+    ).toEqual({ ownerMessageId: 'answer', usage })
   })
 
   it('rejects delegated or inherited prompt evidence and ambiguous owners', () => {

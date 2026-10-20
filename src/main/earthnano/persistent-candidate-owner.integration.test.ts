@@ -24,6 +24,11 @@ import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
 import { outputDigest } from './output-checks'
+import { readExecutionTurnUsage } from './original-turn-usage'
+import {
+  persistCandidateOwnerSettlement,
+  readCandidateOwnerSettlement
+} from './candidate-settlement-witness'
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -45,7 +50,12 @@ const send = (
           content: [],
           stop_reason: null,
           stop_sequence: null,
-          usage: { input_tokens: 11, output_tokens: 0 }
+          usage: {
+            input_tokens: 11,
+            cache_read_input_tokens: 5,
+            cache_creation_input_tokens: 2,
+            output_tokens: 0
+          }
         }
       }
     ],
@@ -379,7 +389,17 @@ it
             apiEndpoints: ['messages']
           }
         }),
-        openOwner: owners.openOwner
+        openOwner: owners.openOwner,
+        ...(scenario === 'original'
+          ? {
+              ownerSettled: async (settlement) => {
+                await persistCandidateOwnerSettlement(root, {
+                  ...settlement,
+                  identity: (await core.get(settlement.executionId)).identity
+                })
+              }
+            }
+          : {})
       })
     )
     disposeCore = () => core.dispose()
@@ -491,6 +511,39 @@ it
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
+    const originalUsage = readExecutionTurnUsage(session.session, record.identity)
+    if (scenario === 'proposer-file-only' || scenario === 'proposer-empty') {
+      // The original empty-narrative fixtures lack complete exact usage evidence. Output
+      // publication alone cannot manufacture token counters, even when its Version is complete.
+      expect(originalUsage).toBeUndefined()
+      expect(record.usage).toEqual({ status: 'unknown' })
+    } else {
+      expect(originalUsage).toBeDefined()
+      expect(record.usage).toEqual({
+        status: 'known',
+        inputTokens: originalUsage!.usage.inputTokens,
+        cacheTokens: originalUsage!.usage.cacheTokens,
+        cachedReadTokens: originalUsage!.usage.cachedReadTokens,
+        cachedWriteTokens: originalUsage!.usage.cachedWriteTokens,
+        outputTokens: originalUsage!.usage.outputTokens,
+        ...(originalUsage!.usage.turnCount === undefined
+          ? {}
+          : { modelTurns: originalUsage!.usage.turnCount }),
+        source: {
+          scope: 'logical-prompt',
+          sessionId: session.session.id,
+          promptMessageId: record.identity.promptMessageId!,
+          ownerMessageId: originalUsage!.ownerMessageId
+        }
+      })
+      expect(record.usage.inputTokens).toBeGreaterThan(0)
+      expect(record.usage.cachedReadTokens).toBeGreaterThan(0)
+      expect(record.usage.cachedWriteTokens).toBeGreaterThan(0)
+    }
+    expect(record.usage.apiRequests).toBeUndefined()
+    expect(record.usage.costMicrousd).toBeUndefined()
+    if (scenario === 'original')
+      expect(readCandidateOwnerSettlement(root, record)?.outcome.usage).toEqual(record.usage)
     await expect(
       lstat(join(configRoot, 'sessions', request.projectId, record.identity.sessionId! + '.json'))
     ).resolves.toBeDefined()
@@ -717,6 +770,7 @@ it
         'MUTATED_CWD'
       )
     expect(await owners.exportResult(record)).toEqual(before)
+    expect((await core.get(record.executionId)).usage).toEqual(record.usage)
     const forged = structuredClone(record) as ExecutionRecord
     forged.evidence.artifacts[0].checksum = '0'.repeat(64)
     await expect(owners.exportResult(forged)).rejects.toThrow()

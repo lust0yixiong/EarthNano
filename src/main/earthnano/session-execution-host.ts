@@ -16,6 +16,7 @@ import {
   originalTurnReply
 } from './original-turn-evidence'
 import type { SessionExecutionHost } from './session-execution-host-port'
+import { readOriginalExecutionUsage } from './execution-turn-usage'
 
 export interface SessionExecutionHostOptions {
   dataRoot: string
@@ -115,6 +116,7 @@ export function createSessionExecutionHost(
         return {
           phase: outcome.kind,
           cleanup: 'confirmed',
+          usage: readOriginalExecutionUsage(frozen.session, record.identity),
           evidence: {
             status: outcome.kind === 'interrupted' ? 'partial' : 'complete',
             scope:
@@ -296,6 +298,7 @@ export function createSessionExecutionHost(
                   ? 'completed'
                   : 'failed',
             cleanup: complete ? 'confirmed' : 'unknown',
+            usage: readOriginalExecutionUsage(frozen.session, identity),
             evidence: {
               status: complete ? 'complete' : 'partial',
               scope:

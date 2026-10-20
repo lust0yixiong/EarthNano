@@ -20,6 +20,7 @@ import {
 } from '../../shared/session-persistence'
 
 export type OriginalTurnUsage = Readonly<{
+  ownerMessageId: string
   usage: AcpTurnTokenUsage
   modelCallUsage?: readonly AcpModelCallUsage[]
 }>
@@ -196,6 +197,7 @@ const readTurnUsage = (
   }
   const modelCallUsage = exactModelCallUsage(owner, usage)
   return {
+    ownerMessageId: owner.id,
     usage,
     ...(modelCallUsage ? { modelCallUsage } : {})
   }

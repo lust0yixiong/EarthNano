@@ -9,6 +9,8 @@ import type { PrismaClient } from '@prisma/client'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { AcpExecutionDispatch } from '../acp/execution-boundary-port'
 import type { SessionExecutionSettlement } from './session-execution-host-port'
+import { createLinearConversationGraph } from '../../shared/conversation-graph'
+import type { AcpTurnTokenUsage } from '../../shared/acp-usage-contract'
 const state = vi.hoisted(() => ({ session: {} as PersistedChatSession, archived: false }))
 vi.mock('../session-persistence/projection', () => ({
   SessionProjectionRepository: class {
@@ -130,6 +132,151 @@ const prepare = async (h = host(), i = input()): Promise<Awaited<ReturnType<type
   closes.push(result.close)
   return result
 }
+const installUsage = (usage: AcpTurnTokenUsage, runtimeExecutionId = 'original-runtime'): void => {
+  state.session.messages[1].turnUsage = usage
+  const graph = createLinearConversationGraph({
+    sessionId: state.session.id,
+    messages: state.session.messages,
+    createdAt: 1,
+    updatedAt: 3
+  })
+  state.session.conversationGraph = graph
+  const prompt = graph.messages.find(({ id }) => id === 'prompt')!
+  state.session.runtimeSessionAdmissions = [
+    {
+      executionId: runtimeExecutionId,
+      promptMessageId: 'prompt',
+      promptRuntimeSegmentId: prompt.runtimeSegmentId!,
+      rootFrameId: graph.rootFrameId,
+      agentFrameId: graph.rootFrameId,
+      messageBranchId: prompt.introducedOnBranchId,
+      runtimeSegmentId: prompt.runtimeSegmentId!
+    }
+  ]
+}
+const reportedUsage = {
+  inputTokens: 7,
+  cacheTokens: 5,
+  cachedReadTokens: 3,
+  cachedWriteTokens: 2,
+  outputTokens: 4,
+  turnCount: 2
+}
+const expectedUsage = {
+  status: 'known',
+  inputTokens: 7,
+  cacheTokens: 5,
+  cachedReadTokens: 3,
+  cachedWriteTokens: 2,
+  outputTokens: 4,
+  modelTurns: 2,
+  source: {
+    scope: 'logical-prompt',
+    sessionId: 'session',
+    promptMessageId: 'prompt',
+    ownerMessageId: 'reply'
+  }
+}
+
+it('reads exact original usage only after the host terminal flush without changing its admission', async () => {
+  const prepared = await prepare(
+    host(async () => {
+      installUsage(reportedUsage)
+    })
+  )
+  const result = await prepared.readResult(
+    settlement({
+      identity: {
+        sessionId: 'session',
+        promptMessageId: 'prompt',
+        runtimeExecutionId: 'original-runtime'
+      }
+    })
+  )
+  expect(result.usage).toEqual(expectedUsage)
+  expect(result).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+  expect(prepared.budgetLimit).toBe(1)
+})
+it('persists ordinary usage through the real boundary and Core with one unchanged admission budget', async () => {
+  const { createAcpExecutionBoundary } = await import('./acp-execution-boundary')
+  const boundary = createAcpExecutionBoundary({ host: host() })
+  let linked!: import('../acp/execution-boundary-port').AcpExecutionLink
+  const dispatch: AcpExecutionDispatch = {
+    ...input(),
+    dispatch: vi.fn(async (observer) => {
+      installUsage(reportedUsage)
+      observer.admitted({
+        sessionId: 'session',
+        promptMessageId: 'prompt',
+        runtimeExecutionId: 'original-runtime'
+      })
+      observer.providerAccepted()
+      return { stopReason: 'end_turn' as const }
+    }),
+    ownerCompletion: {
+      committed: Promise.resolve(),
+      linked: (value) => {
+        linked = value
+      }
+    }
+  }
+  await expect(boundary.execute(dispatch)).resolves.toEqual({ stopReason: 'end_turn' })
+  const record = await linked.settled
+  expect(record.usage).toEqual(expectedUsage)
+  expect(record).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+  expect(await boundary.settle()).toBe(true)
+  const journals = join(root, 'executions', 'session-attempts')
+  const generation = join(journals, (await readdir(journals))[0])
+  const file = (await readdir(generation)).find((name) => name.endsWith('.json'))!
+  const saved = JSON.parse(await readFile(join(generation, file), 'utf8'))
+  expect(Object.keys(saved.records)).toEqual([record.executionId])
+  expect(Object.values(saved.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+  expect(saved.records[record.executionId].usage).toEqual(expectedUsage)
+  expect(dispatch.dispatch).toHaveBeenCalledOnce()
+})
+it.each(['failed', 'cancelled'] as const)(
+  'does not replace original counters with zero because the outcome is %s',
+  async (kind) => {
+    state.session.messages[0].turnOutcome =
+      kind === 'failed'
+        ? { kind, settledAt: 3, error: 'original failure' }
+        : { kind, settledAt: 3, recovery: 'resume' }
+    installUsage(reportedUsage)
+    const result = await (
+      await prepare()
+    ).readResult(
+      settlement({
+        identity: {
+          sessionId: 'session',
+          promptMessageId: 'prompt',
+          runtimeExecutionId: 'original-runtime'
+        }
+      })
+    )
+    expect(result.phase).toBe(kind)
+    expect(result.usage).toEqual(expectedUsage)
+  }
+)
+it.each(['missing', 'foreign', 'legacy-alias', 'unavailable', 'error-owner'] as const)(
+  'does not infer counters from %s usage evidence',
+  async (mode) => {
+    installUsage(reportedUsage)
+    const identity: SessionExecutionSettlement['identity'] = {
+      sessionId: 'session',
+      promptMessageId: 'prompt',
+      ...(mode === 'missing' || mode === 'legacy-alias'
+        ? {}
+        : { runtimeExecutionId: mode === 'foreign' ? 'foreign' : 'original-runtime' }),
+      ...(mode === 'legacy-alias' ? { turnToken: 'original-runtime' } : {})
+    }
+    if (mode === 'unavailable')
+      state.session.conversationGraph!.messages[1].turnUsageUnavailable = true
+    if (mode === 'error-owner') state.session.conversationGraph!.messages[1].status = 'error'
+    expect((await (await prepare()).readResult(settlement({ identity }))).usage).toEqual({
+      status: 'unknown'
+    })
+  }
+)
 
 it('freezes the entire rich request before awaiting original owners without dispatching or persisting media/secrets', async () => {
   const dispatch = input()
@@ -317,6 +464,30 @@ const historical = async (dead = true): Promise<{ file: string; record: Executio
   state.session.runtimeTranscriptLastRun = { promptMessageId: 'prompt', startedAt: 1 }
   return { file, record }
 }
+it.each([true, false])(
+  'recovery preserves usage only for the actual original runtime identity: %s',
+  async (exact) => {
+    const old = await historical()
+    installUsage(reportedUsage, 'old-token')
+    if (exact) {
+      const saved = JSON.parse(await readFile(old.file, 'utf8'))
+      saved.records[old.record.executionId].identity.runtimeExecutionId = 'old-token'
+      await writeFile(old.file, JSON.stringify(saved))
+    }
+    const dispatch = { ...input(), attemptId: 'new-attempt' }
+    await prepare(host(), dispatch)
+    const saved = JSON.parse(await readFile(old.file, 'utf8'))
+    expect(saved.records[old.record.executionId].usage).toEqual(
+      exact ? expectedUsage : { status: 'unknown' }
+    )
+    expect(saved.records[old.record.executionId]).toMatchObject({
+      phase: 'completed',
+      cleanup: 'confirmed'
+    })
+    expect(Object.values(saved.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(dispatch.dispatch).not.toHaveBeenCalled()
+  }
+)
 it.each(['completed', 'failed', 'cancelled'] as const)(
   'reconciles a dead original %s owner before fresh admission without replaying or refunding',
   async (kind) => {

@@ -1,4 +1,5 @@
 import { readSemanticSourceVersions, type SemanticSourceEvidence } from './semantic-source-evidence'
+import { readOriginalExecutionUsage } from './execution-turn-usage'
 import type { CandidateSnapshotStore } from './candidate-snapshot'
 import { createAcpNotebookBinding } from '../acp/notebook-binding'
 import { ConversationPermissionGrantStore } from '../acp/permission-broker'
@@ -957,6 +958,11 @@ export function createPersistentCandidateOwners(
                 : settlement.promptError
                   ? 'failed'
                   : 'completed',
+              usage: readOriginalExecutionUsage(frozen.session, {
+                sessionId,
+                promptMessageId,
+                runtimeExecutionId
+              }),
               identity: {
                 sessionId,
                 promptMessageId,
