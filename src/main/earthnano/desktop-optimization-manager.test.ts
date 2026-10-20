@@ -237,7 +237,22 @@ describe('DesktopOptimizationManager', () => {
     ).rejects.toThrow('conflicts')
     expect(options.createOptions).toHaveBeenCalledOnce()
   })
-  it('projects committed role admissions, includes assessment costs and persists readable completion without replay', async () => {
+  it('persists usage coverage and reviewer admissions without replay on reopen', async () => {
+    const measured = record('b', 'baseline', 'completed')
+    measured.identity.promptMessageId = 'prompt'
+    measured.usage = {
+      status: 'known',
+      inputTokens: 7,
+      cacheTokens: 5,
+      outputTokens: 4,
+      modelTurns: 2,
+      source: {
+        scope: 'logical-prompt',
+        sessionId: 'session-b',
+        promptMessageId: 'prompt',
+        ownerMessageId: 'answer'
+      }
+    }
     const run = vi.fn(async (options: PersistentOptimizationOptions) => {
       options.onProgress!({
         optimizationId: 'opt',
@@ -252,7 +267,7 @@ describe('DesktopOptimizationManager', () => {
       await Promise.resolve()
       return {
         ...complete,
-        records: [record('b', 'baseline', 'completed'), record('r', 'reviewer', 'completed')]
+        records: [measured, record('r', 'reviewer', 'completed')]
       }
     })
     const { manager, options, release, root } = fixture(run)
@@ -262,6 +277,19 @@ describe('DesktopOptimizationManager', () => {
     )
     const progress = await manager.get(key(admitted.runId))
     expect(progress.budget).toEqual({ limit: 9, admitted: 2, completed: 2, active: 0 })
+    expect(progress.usage).toMatchObject({
+      admittedExecutions: 2,
+      tokens: {
+        status: 'partial',
+        coveredExecutions: 1,
+        inputTokens: 7,
+        cacheTokens: 5,
+        outputTokens: 4
+      },
+      modelTurns: { status: 'partial', coveredExecutions: 1, total: 2 },
+      apiRequests: { status: 'unknown', coveredExecutions: 0 },
+      costMicrousd: { status: 'unknown', coveredExecutions: 0 }
+    })
     expect(progress.assessments?.candidate.score).toBe(90)
     expect(release).toHaveBeenCalledOnce()
     expect(run.mock.calls[0][0]).toMatchObject({

@@ -2,6 +2,7 @@ import type { NotebookOptimizationSource } from './notebook-source'
 import type { FrozenNotebookInput, FrozenNotebookRuntime } from './notebook-profile'
 import type { OptimizationMethodOptions } from './optimization-method'
 import type { OptimizationArtifactInput } from './optimization-input'
+import type { ExecutionUsageSummary } from './execution-usage'
 import type {
   OutputCheckSpec,
   OptimizationDomainSpec,
@@ -66,6 +67,8 @@ export interface OptimizationProgress {
   method?: OptimizationMethodOptions
   selection?: OptimizationSelectionSummary
   budget: { limit: number; admitted: number; completed: number; active: number }
+  /** Projection of unique Core admissions; each metric reports its own observed coverage. */
+  usage?: ExecutionUsageSummary
   executions: Array<{
     executionId: string
     role: string

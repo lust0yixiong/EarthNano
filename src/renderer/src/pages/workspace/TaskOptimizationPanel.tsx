@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ErrorNotice } from '@/components/error-notice'
+import { OptimizationUsageView } from './OptimizationUsageView'
 import { useTranslation } from 'react-i18next'
 import type {
   DesktopOptimizationApi,
@@ -409,6 +410,7 @@ function OptimizationSessionPanel({
                 active: progress.budget.active
               })}
             </p>
+            {progress.usage && <OptimizationUsageView usage={progress.usage} />}
             {progress.method && (
               <p>
                 {t('Method: {{mode}} · k={{k}} · concurrency={{concurrency}}', {

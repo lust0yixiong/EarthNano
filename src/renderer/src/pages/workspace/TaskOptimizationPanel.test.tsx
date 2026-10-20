@@ -72,6 +72,33 @@ beforeEach(() => {
     resume: vi.fn().mockResolvedValue(progress('queued'))
   }
 })
+it('shows observed token coverage and keeps unknown API/cost separate from execution admissions', async () => {
+  vi.mocked(api.latest).mockResolvedValue({
+    ...progress('completed'),
+    usage: {
+      admittedExecutions: 2,
+      ambiguousExecutions: 0,
+      tokens: {
+        status: 'partial',
+        coveredExecutions: 1,
+        inputTokens: 7,
+        cacheTokens: 5,
+        outputTokens: 4
+      },
+      modelTurns: { status: 'partial', coveredExecutions: 1, total: 2 },
+      apiRequests: { status: 'unknown', coveredExecutions: 0 },
+      costMicrousd: { status: 'unknown', coveredExecutions: 0 }
+    }
+  })
+  await render()
+  const usage = container.querySelector('[data-testid="optimization-usage"]')!
+  expect(usage.textContent).toContain('Input 7 · cache 5 · output 4 tokens')
+  expect(usage.textContent).toContain('Token coverage: 1/2 executions')
+  expect(usage.textContent).toContain('Model turns: 2 (1/2 executions)')
+  expect(usage.textContent).toContain('API requests: Unknown')
+  expect(usage.textContent).toContain('Cost (USD): Unknown')
+  expect(api.start).not.toHaveBeenCalled()
+})
 it('resumes the original experiment key without forwarding edited task or budget controls', async () => {
   vi.mocked(api.latest).mockResolvedValue({ ...progress('cancelled'), resumeAvailable: true })
   await render()

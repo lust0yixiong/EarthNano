@@ -7734,6 +7734,14 @@
     "An expected output check failed.": "Une vérification de la sortie attendue a échoué.",
     "No deterministic output checks were supplied.": "Aucune vérification déterministe de sortie n’a été fournie.",
     "The candidate scored below the baseline.": "Le score du candidat est inférieur à celui de référence.",
-    "Configuration admission needs further review.": "L’admission de la configuration nécessite une revue supplémentaire."
+    "Configuration admission needs further review.": "L’admission de la configuration nécessite une revue supplémentaire.",
+    "Provider usage subtotals": "Sous-totaux d’utilisation du fournisseur",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "Jetons : entrée {{input}} · cache {{cache}} · sortie {{output}}",
+    "Token coverage: {{covered}}/{{total}} executions": "Couverture des jetons : {{covered}}/{{total}} exécutions",
+    "Model turns: {{value}}": "Tours d’inférence du modèle : {{value}}",
+    "API requests: {{value}}": "Requêtes API : {{value}}",
+    "Cost (USD): {{value}}": "Coût (USD) : {{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}} ({{covered}}/{{total}} exécutions)",
+    "Excluded repeated prompt admissions: {{excluded}}": "Exécutions exclues pour prompt répété : {{excluded}}"
   }
 }

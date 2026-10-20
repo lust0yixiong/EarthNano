@@ -11,6 +11,7 @@ import {
   fsyncSync
 } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
+import { summarizeExecutionUsage } from '../../shared/earthnano/execution-usage'
 import type {
   DesktopOptimizationApi,
   OptimizationProgress,
@@ -450,6 +451,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         if (research.outcome) saved.progress.outcome = structuredClone(research.outcome)
         if (research.domain) saved.progress.domain = structuredClone(research.domain)
         const records = progress.records
+        saved.progress.usage = summarizeExecutionUsage(records)
         saved.progress.executions = records.map((record) => ({
           executionId: record.executionId,
           role: record.request.role,

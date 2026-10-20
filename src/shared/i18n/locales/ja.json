@@ -7404,6 +7404,14 @@
     "An expected output check failed.": "期待する出力の検証に不合格でした。",
     "No deterministic output checks were supplied.": "決定的な出力検証が指定されていません。",
     "The candidate scored below the baseline.": "候補のスコアがベースラインを下回りました。",
-    "Configuration admission needs further review.": "構成の受け入れには追加のレビューが必要です。"
+    "Configuration admission needs further review.": "構成の受け入れには追加のレビューが必要です。",
+    "Provider usage subtotals": "プロバイダー使用量の小計",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "入力 {{input}} · キャッシュ {{cache}} · 出力 {{output}} トークン",
+    "Token coverage: {{covered}}/{{total}} executions": "トークン集計対象：{{covered}}/{{total}} 実行",
+    "Model turns: {{value}}": "モデル推論回数：{{value}}",
+    "API requests: {{value}}": "API リクエスト数：{{value}}",
+    "Cost (USD): {{value}}": "費用（米ドル）：{{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}}（{{covered}}/{{total}} 実行）",
+    "Excluded repeated prompt admissions: {{excluded}}": "重複プロンプトの除外された実行：{{excluded}}"
   }
 }

@@ -7874,6 +7874,14 @@
     "An expected output check failed.": "Проверка ожидаемого вывода не пройдена.",
     "No deterministic output checks were supplied.": "Детерминированные проверки вывода не заданы.",
     "The candidate scored below the baseline.": "Оценка кандидата ниже базовой.",
-    "Configuration admission needs further review.": "Допуск конфигурации требует дополнительной проверки."
+    "Configuration admission needs further review.": "Допуск конфигурации требует дополнительной проверки.",
+    "Provider usage subtotals": "Промежуточные итоги использования поставщика",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "Токены: вход {{input}} · кэш {{cache}} · выход {{output}}",
+    "Token coverage: {{covered}}/{{total}} executions": "Охват учёта токенов: {{covered}}/{{total}} выполнений",
+    "Model turns: {{value}}": "Шаги вывода модели: {{value}}",
+    "API requests: {{value}}": "Запросы API: {{value}}",
+    "Cost (USD): {{value}}": "Стоимость (USD): {{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}} ({{covered}}/{{total}} выполнений)",
+    "Excluded repeated prompt admissions: {{excluded}}": "Исключённые выполнения повторного запроса: {{excluded}}"
   }
 }

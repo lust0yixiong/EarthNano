@@ -7404,6 +7404,14 @@
     "An expected output check failed.": "一项预期输出检查未通过。",
     "No deterministic output checks were supplied.": "未提供确定性输出检查。",
     "The candidate scored below the baseline.": "候选评分低于基线评分。",
-    "Configuration admission needs further review.": "配置准入需要进一步评审。"
+    "Configuration admission needs further review.": "配置准入需要进一步评审。",
+    "Provider usage subtotals": "提供商用量小计",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "输入 {{input}} · 缓存 {{cache}} · 输出 {{output}} 词元",
+    "Token coverage: {{covered}}/{{total}} executions": "词元统计覆盖：{{covered}}/{{total}} 次执行",
+    "Model turns: {{value}}": "模型推理轮次：{{value}}",
+    "API requests: {{value}}": "API 请求数：{{value}}",
+    "Cost (USD): {{value}}": "费用（美元）：{{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}}（{{covered}}/{{total}} 次执行）",
+    "Excluded repeated prompt admissions: {{excluded}}": "已排除重复提示的执行记录：{{excluded}}"
   }
 }

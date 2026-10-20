@@ -6,6 +6,9 @@ import { expect } from '@playwright/test'
 import { isArtifactNotebookProducer } from '../src/shared/artifact-provenance'
 import type { PersistedChatSession } from '../src/shared/session-persistence'
 import type { ExecutionState } from '../src/main/earthnano/execution-core'
+import type { ExecutionRecord } from '../src/shared/earthnano/execution-types'
+import { sanitizeAcpTurnTokenUsage } from '../src/shared/acp'
+import { summarizeExecutionUsage } from '../src/shared/earthnano/execution-usage'
 import { test } from './fixtures/electron-app'
 import { createProject, openProjectSession } from './certification/helpers'
 import { submitPromptViaUi } from './fixtures/conversation'
@@ -14,6 +17,28 @@ import { createEarthnanoMessagesProvider } from './fixtures/earthnano-messages-p
 const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
 const resumeAcceptance = process.env.EARTHNANO_E2E_RESUME === '1'
 const optimizationExecutions = live || resumeAcceptance ? 24 : 20
+const verifyOriginalUsage = (record: ExecutionRecord, session: PersistedChatSession): void => {
+  expect(record.usage.status).toBe('known')
+  expect(record.usage.source).toMatchObject({
+    scope: 'logical-prompt',
+    sessionId: session.id,
+    promptMessageId: record.identity.promptMessageId
+  })
+  const owner = session.conversationGraph?.messages.find(
+    (message) => message.id === record.usage.source!.ownerMessageId
+  )
+  expect(owner?.status).toBe('complete')
+  const original = sanitizeAcpTurnTokenUsage(owner?.turnUsage)
+  expect(original).toBeDefined()
+  expect(record.usage).toMatchObject({
+    inputTokens: original!.inputTokens,
+    cacheTokens: original!.cacheTokens,
+    outputTokens: original!.outputTokens,
+    ...(original!.turnCount === undefined ? {} : { modelTurns: original!.turnCount })
+  })
+  expect(record.usage.apiRequests).toBeUndefined()
+  expect(record.usage.costMicrousd).toBeUndefined()
+}
 test('runs the identical scientific task in ordinary Send and isolated Harness baseline/candidates through the original Notebook owners', async ({
   app
 }, testInfo) => {
@@ -205,6 +230,10 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       )
       .toEqual([{ phase: 'completed', cleanup: 'confirmed', artifacts: 1 }])
     console.info('Scientific workflow: ordinary Core verified')
+    const ordinaryRecord = (await readOrdinary()).flatMap((state) =>
+      Object.values(state.records)
+    )[0]
+    verifyOriginalUsage(ordinaryRecord, (await loadSource())!)
     // Only the explicitly interactive ordinary task receives test-user approvals.
     await page.removeLocatorHandler(page.getByTestId('permission-card'))
     const panel = page.getByTestId('task-optimization-panel')
@@ -344,6 +373,34 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     }
     expect(completed.error).toBeUndefined()
     expect(completed.state).toBe('completed')
+    const usageSessions = (await readSessionsForDiagnostics!()) as PersistedChatSession[]
+    const completedRecords = Object.values(methodJournal.records).filter(
+      (record) => record.phase === 'completed'
+    )
+    const knownUsageRecords = completedRecords.filter((record) => record.usage.status === 'known')
+    for (const record of knownUsageRecords) {
+      const session = usageSessions.find((session) => session.id === record.identity.sessionId)
+      expect(session).toBeDefined()
+      verifyOriginalUsage(record, session!)
+    }
+    for (const record of completedRecords.filter((record) => record.usage.status === 'unknown')) {
+      expect(record.usage).toEqual({ status: 'unknown' })
+      // A file-only method turn can legitimately lack a complete original usage owner.
+      expect(['baseline', 'candidate', 'reviewer']).not.toContain(record.request.role)
+    }
+    expect(completed.usage).toEqual(summarizeExecutionUsage(Object.values(methodJournal.records)))
+    expect(completed.usage?.tokens.coveredExecutions).toBe(knownUsageRecords.length)
+    expect(completed.usage?.apiRequests.status).toBe('unknown')
+    expect(completed.usage?.costMicrousd.status).toBe('unknown')
+    report = {
+      ...report,
+      usage: {
+        ordinary: ordinaryRecord.usage,
+        optimization: completed.usage,
+        originalOwnerCountersVerified: knownUsageRecords.length + 1,
+        scope: 'Original root logical-prompt provider facts; incomplete cancellation usage excluded'
+      }
+    }
     expect(completed.selection).toMatchObject({ trivial: false, candidateCount: 2 })
     expect(completed.outcome?.artifact.status).toBe('passed')
     // Integration acceptance must not require the live model to improve its configuration.

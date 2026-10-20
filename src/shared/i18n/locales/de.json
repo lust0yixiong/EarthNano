@@ -7565,6 +7565,14 @@
     "An expected output check failed.": "Eine Prüfung der erwarteten Ausgabe ist fehlgeschlagen.",
     "No deterministic output checks were supplied.": "Es wurden keine deterministischen Ausgabeprüfungen angegeben.",
     "The candidate scored below the baseline.": "Der Kandidat wurde niedriger bewertet als der Basiswert.",
-    "Configuration admission needs further review.": "Die Konfigurationszulassung erfordert weitere Prüfung."
+    "Configuration admission needs further review.": "Die Konfigurationszulassung erfordert weitere Prüfung.",
+    "Provider usage subtotals": "Zwischensummen der Anbieternutzung",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "Tokens: Eingabe {{input}} · Cache {{cache}} · Ausgabe {{output}}",
+    "Token coverage: {{covered}}/{{total}} executions": "Token-Abdeckung: {{covered}}/{{total}} Ausführungen",
+    "Model turns: {{value}}": "Interaktionen des Modells: {{value}}",
+    "API requests: {{value}}": "API-Anfragen: {{value}}",
+    "Cost (USD): {{value}}": "Kosten (USD): {{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}} ({{covered}}/{{total}} Ausführungen)",
+    "Excluded repeated prompt admissions: {{excluded}}": "Ausgeschlossene Ausführungen bei wiederholtem Prompt: {{excluded}}"
   }
 }

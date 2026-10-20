@@ -7404,6 +7404,14 @@
     "An expected output check failed.": "一項預期輸出檢查未通過。",
     "No deterministic output checks were supplied.": "未提供確定性輸出檢查。",
     "The candidate scored below the baseline.": "候選評分低於基準評分。",
-    "Configuration admission needs further review.": "組態准入需要進一步審查。"
+    "Configuration admission needs further review.": "組態准入需要進一步審查。",
+    "Provider usage subtotals": "供應商用量小計",
+    "Input {{input}} · cache {{cache}} · output {{output}} tokens": "輸入 {{input}} · 快取 {{cache}} · 輸出 {{output}} 詞元",
+    "Token coverage: {{covered}}/{{total}} executions": "詞元統計涵蓋：{{covered}}/{{total}} 次執行",
+    "Model turns: {{value}}": "模型推論輪次：{{value}}",
+    "API requests: {{value}}": "API 請求數：{{value}}",
+    "Cost (USD): {{value}}": "費用（美元）：{{value}}",
+    "{{value}} ({{covered}}/{{total}} executions)": "{{value}}（{{covered}}/{{total}} 次執行）",
+    "Excluded repeated prompt admissions: {{excluded}}": "已排除重複提示的執行記錄：{{excluded}}"
   }
 }
