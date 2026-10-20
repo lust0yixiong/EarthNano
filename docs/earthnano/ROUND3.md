@@ -78,3 +78,8 @@ Python 命令在 `vendor/harness2` 执行：`python3 -B -m unittest discover -s 
 下一步是把该组合接到实际应用 owner、生产 Python transport 和 Harness² request factory/result
 reader，再验证一次完整优化；独立评测、科研收益、费用与耗时仍需后续实验。没有运行桌面
 端到端旅程、打包或真实科研模型评测；GitHub Actions 继续关闭。
+
+## 用户授权后的真实远端补测
+
+后续通过 Claude Code 调用 DeepSeek 的两候选测试已通过，见 [真实 DeepSeek 验证](ROUND3_DEEPSEEK.md)。
+上述原始整合记录保持不变；新增远端结果与测试专用配置限制单独记录。
