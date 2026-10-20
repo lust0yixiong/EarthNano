@@ -1,4 +1,9 @@
-import type { StartDesktopSweep, OptimizationSweepSummary } from './optimization-sweep'
+import type {
+  StartDesktopSweep,
+  OptimizationSweepSummary,
+  PreviewDesktopSweep,
+  DesktopSweepPreview
+} from './optimization-sweep'
 import type { NotebookOptimizationSource } from './notebook-source'
 import type { FrozenNotebookInput, FrozenNotebookRuntime } from './notebook-profile'
 import type { OptimizationMethodOptions } from './optimization-method'
@@ -94,6 +99,8 @@ export interface OptimizationProgress {
   updatedAt: number
 }
 export interface DesktopOptimizationApi {
+  /** Original task_stream only: no provider admission, source file reads or Core execution. */
+  previewSweep(request: PreviewDesktopSweep): Promise<DesktopSweepPreview>
   start(request: StartDesktopOptimization): Promise<OptimizationProgress>
   startSweep(request: StartDesktopSweep): Promise<OptimizationProgress>
   get(request: OptimizationRunKey): Promise<OptimizationProgress>

@@ -47,6 +47,20 @@ export interface StartDesktopSweep {
   sweep: OptimizationSweepOptions
   executionLimit: number
 }
+/** Read-only original task_stream preview. Contains identities, never task data or credentials. */
+export interface PreviewDesktopSweep {
+  projectId: string
+  sourceSessionId: string
+  catalog: OptimizationCatalogIdentity[]
+  sweep: OptimizationSweepOptions
+}
+export interface DesktopSweepPreview {
+  planDigest: string
+  order: Array<{ domain: string; taskIds: string[] }>
+  modes: OptimizationSweepMode[]
+  /** First-attempt capacity only; retries still consume the experiment's shared limit. */
+  minimumExecutions: number
+}
 export interface OptimizationSweepSummary {
   planDigest: string
   /** Planned original stream order, independent of domain completion order. */
@@ -148,6 +162,18 @@ export function normalizeOptimizationSweep(value: unknown): OptimizationSweepOpt
       maxTasks: stream.maxTasks as number | null,
       workers: stream.workers as number
     }
+  }
+}
+
+export function normalizeDesktopSweepPreview(value: unknown): PreviewDesktopSweep {
+  const request = fields(value, ['projectId', 'sourceSessionId', 'catalog', 'sweep'])
+  const sessionId = (value: unknown): string =>
+    typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value) ? value : fail()
+  return {
+    projectId: sessionId(request.projectId),
+    sourceSessionId: sessionId(request.sourceSessionId),
+    catalog: normalizeOptimizationCatalog(request.catalog),
+    sweep: normalizeOptimizationSweep(request.sweep)
   }
 }
 
