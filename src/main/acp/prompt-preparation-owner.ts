@@ -91,6 +91,7 @@ type AcpPromptPreparationOwnerOptions = Readonly<{
   }
   isMemoryEnabledForSession?: (sessionId: string) => boolean
   notebook?: Readonly<{
+    hasFrozenTurnInputs?: boolean
     peekHandoffContext?: (sessionId: string) => NotebookHandoffContext | undefined
     registerTurnInputs?: (
       input: NotebookTurnInputs
@@ -560,7 +561,10 @@ class AcpPromptPreparationOwner {
         : prepared.content
       if (await cancelled()) return cancelPrepared()
 
-      if (this.options.notebook?.registerTurnInputs && prepared.turnInputs) {
+      if (
+        this.options.notebook?.registerTurnInputs &&
+        (prepared.turnInputs || this.options.notebook.hasFrozenTurnInputs)
+      ) {
         const notebookInputs = await this.options.notebook.registerTurnInputs({
           projectId: input.projectId,
           appSessionId: input.request.sessionId,
@@ -568,8 +572,8 @@ class AcpPromptPreparationOwner {
             input.request.provenanceContext?.promptMessageId ??
             input.fallbackPromptMessageId ??
             `prompt-unbound-${input.request.sessionId}-${input.skillImportTurnToken}`,
-          uploads: prepared.turnInputs.uploads,
-          references: prepared.turnInputs.references
+          uploads: prepared.turnInputs?.uploads ?? [],
+          references: prepared.turnInputs?.references ?? []
         })
         if (notebookInputs) {
           providerContent = appendNotebookInputPrompt(providerContent, notebookInputs)

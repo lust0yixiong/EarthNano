@@ -203,6 +203,7 @@ const composeAcpRuntimePromptOwners = (
     ...(options.notebook
       ? {
           notebook: {
+            hasFrozenTurnInputs: options.notebook.hasFrozenTurnInputs,
             peekHandoffContext: options.notebook.peekHandoffContext,
             registerTurnInputs: options.notebook.registerTurnInputs
           }

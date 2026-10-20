@@ -175,7 +175,10 @@ const collectOutputs = async (root: string): Promise<Array<{ path: string; conte
           stat.ctimeMs !== after.ctimeMs
         )
           throw new Error('Output changed or exceeded import budget')
-        files.push({ path, content: new TextDecoder('utf-8', { fatal: true }).decode(bytes) })
+        files.push({
+          path,
+          content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
+        })
       } finally {
         await handle.close()
       }
@@ -268,6 +271,9 @@ export function createPersistentCandidateOwners(
     ) ?? false
   ): Promise<PersistentCandidateFile[]> => {
     const files: PersistentCandidateFile[] = []
+    if (record.evidence.artifacts.length > 64)
+      throw new Error('Candidate artifact inventory exceeds text export profile')
+    let total = 0
     for (const artifactRef of record.evidence.artifacts) {
       const lease = await versions.openVersion(
         { source: 'artifact', projectId: record.request.projectId, fileId: artifactRef.artifactId },
@@ -276,6 +282,9 @@ export function createPersistentCandidateOwners(
       try {
         if (lease.version.checksum !== artifactRef.checksum || lease.size > 1024 * 1024)
           throw new Error('Artifact version integrity mismatch')
+        total += lease.size
+        if (total > 4 * 1024 * 1024)
+          throw new Error('Candidate artifacts exceed text export profile')
         const bytes = await lease.readRange(0, lease.size)
         await lease.verifyUnchanged()
         if (digest(bytes) !== 'sha256:' + artifactRef.checksum)
@@ -284,7 +293,7 @@ export function createPersistentCandidateOwners(
           path: scientific
             ? logicalPath(lease.version.filename)
             : decodeName(lease.version.filename),
-          content: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+          content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes),
           digest: digest(bytes),
           artifactRef: structuredClone(artifactRef)
         })
@@ -440,6 +449,7 @@ export function createPersistentCandidateOwners(
                   })
                   return {
                     ...binding,
+                    hasFrozenTurnInputs: true,
                     prepareTurnInputs: async (input) => {
                       await verifyFrozenInputs()
                       return science.rpc.prepareNotebookTurnInputs({
@@ -734,17 +744,18 @@ export function createPersistentCandidateOwners(
                 sizeBytes: input.sizeBytes,
                 checksum: input.checksum
               })
-              if (
-                !runs.some(
-                  (run) =>
-                    run.status === 'completed' &&
-                    run.kernelKind === 'python' &&
-                    run.executionInvocationId &&
-                    (run.runtimeId ?? run.frozenRuntimeTarget?.runtimeId) ===
-                      frozenRuntime!.runtimeId &&
-                    canonical((run.inputFiles ?? []).map(tuple)) === canonical(frozenInputs)
-                )
+              const validRuns = runs.filter(
+                (run) =>
+                  run.status === 'completed' &&
+                  run.kernelKind === 'python' &&
+                  run.executionInvocationId &&
+                  (run.runtimeId ?? run.frozenRuntimeTarget?.runtimeId) ===
+                    frozenRuntime!.runtimeId &&
+                  run.frozenRuntimeTarget?.source === frozenRuntime!.source &&
+                  run.frozenRuntimeTarget?.interpreterPath === frozenRuntime!.interpreterPath &&
+                  canonical((run.inputFiles ?? []).map(tuple)) === canonical(frozenInputs)
               )
+              if (!validRuns.length)
                 throw new Error(
                   'Scientific candidate has no original completed fixed-input Python Run'
                 )
@@ -755,15 +766,7 @@ export function createPersistentCandidateOwners(
                   artifactId: artifact.artifactId,
                   versionId: artifact.versionId
                 })
-                if (
-                  !execution ||
-                  !runs.some(
-                    (run) =>
-                      run.runId === execution.producerRunId &&
-                      run.status === 'completed' &&
-                      run.kernelKind === 'python'
-                  )
-                )
+                if (!execution || !validRuns.some((run) => run.runId === execution.producerRunId))
                   throw new Error('Scientific ArtifactVersion has no original Notebook producer')
               }
               scientificReferences.push({
