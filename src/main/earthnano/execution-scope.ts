@@ -38,6 +38,22 @@ export function findExecutionScope(source: {
     )
   })
 }
+/** Validates explicit internal parent links against a live original Session execution. */
+export function findExecutionScopeById(source: {
+  executionId: string
+  projectId: string
+  sessionId: string
+}): ExecutionScope | undefined {
+  const scope = activeScopes.get(source.executionId)
+  if (
+    !scope ||
+    scope.context.signal.aborted ||
+    scope.request.projectId !== source.projectId ||
+    scope.identity().sessionId !== source.sessionId
+  )
+    return undefined
+  return scope
+}
 export const isPhysicalCancellation = (): boolean => physicalCancellation.getStore() === true
 export const withPhysicalCancellation = <T>(work: () => T): T =>
   physicalCancellation.run(true, work)

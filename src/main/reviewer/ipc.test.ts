@@ -9,6 +9,7 @@ import { REVIEWER_IPC } from '../../shared/reviewer'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { AcpRuntime } from '../acp/runtime'
 import { ReviewerProjectRuntimeOwner } from './project-runtime-owner'
+import { registerExecutionScope, type ExecutionScope } from '../earthnano/execution-scope'
 
 // Distinct roots so a config-vs-data mix-up is unambiguous: artifacts must read from the data root.
 const CONFIG_ROOT = join(tmpdir(), 'open-science-config-root')
@@ -170,6 +171,34 @@ beforeEach(() => {
 afterEach(() => clearMigrationPending())
 
 describe('reviewer IPC handlers', () => {
+  it.each(['matching', 'other-session', 'other-project', 'unknown', 'aborted'] as const)(
+    'accepts only trusted active parent ancestry: %s',
+    async (kind) => {
+      const controller = new AbortController()
+      if (kind === 'aborted') controller.abort()
+      const unregister = registerExecutionScope({
+        request: { projectId: kind === 'other-project' ? 'unrelated-project' : 'project-1' },
+        context: { executionId: 'trusted-parent', signal: controller.signal },
+        identity: () => ({
+          sessionId: kind === 'other-session' ? 'unrelated-session' : 'session-1'
+        })
+      } as ExecutionScope)
+      try {
+        const owner = createReviewerCommandOwner({ acpRuntime })
+        await owner.run({
+          ...createRequest(),
+          parentExecutionId: kind === 'unknown' ? 'forged-parent' : 'trusted-parent'
+        })
+        expect(runReview).toHaveBeenCalledOnce()
+        expect(runReview.mock.calls[0][0].parentExecutionId).toBe(
+          kind === 'matching' ? 'trusted-parent' : undefined
+        )
+      } finally {
+        unregister()
+      }
+    }
+  )
+
   it('rejects Session export conflicts before admitting a model or background review', async () => {
     const modelRuntime = {
       admit: vi.fn(async () => ({ model: 'reviewer', release: async () => undefined }))

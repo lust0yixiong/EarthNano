@@ -193,7 +193,8 @@ class HeadlessTaskApi {
         resolve: (reference) => this.resolveSpecialist(reference)
       },
       reviewer: {
-        review: (session, turnMessageId, signal) => this.review(session, turnMessageId, signal)
+        review: (session, turnMessageId, signal, parentExecutionId) =>
+          this.review(session, turnMessageId, signal, parentExecutionId)
       },
       computePreferences: this.ports.computePreferences ?? {
         withReservation: async (providerIds, operation) => {
@@ -632,7 +633,8 @@ class HeadlessTaskApi {
   private async review(
     session: PersistedChatSession,
     turnMessageId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    parentExecutionId?: string
   ): Promise<TaskRunReview> {
     const reviewSession = { projectId: session.projectId, appSessionId: session.id }
     const throwIfAborted = async (): Promise<void> => {
@@ -665,7 +667,8 @@ class HeadlessTaskApi {
       projectId: session.projectId,
       mainSessionId: session.id,
       model: session.agentModel,
-      origin: 'auto'
+      origin: 'auto',
+      ...(parentExecutionId ? { parentExecutionId } : {})
     })) as ReviewRunResult
     await throwIfAborted()
     if (!started.started) return started

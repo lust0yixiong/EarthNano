@@ -3,6 +3,7 @@
 // broadcaster for push events to Electron windows and optional web clients.
 
 import { ipcMainHandle } from '../ipc-handler-registry'
+import { findExecutionScopeById } from '../earthnano/execution-scope'
 
 import type {
   ReviewWithChecks,
@@ -654,7 +655,13 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
       let releaseFixLoop: (() => void) | undefined
       let fixLoopBroadcastStarted = false
 
+      // Public request ancestry is a hint, never authority. Only an active original Session
+      // execution with matching Project and Session can be linked as this assessment's parent.
+      const parentExecution = request.parentExecutionId
+        ? findExecutionScopeById({ executionId: request.parentExecutionId, projectId, sessionId })
+        : undefined
       void runReview({
+        ...(parentExecution ? { parentExecutionId: parentExecution.context.executionId } : {}),
         correctionResume,
         sessionId,
         turnMessageId,
