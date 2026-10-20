@@ -339,3 +339,25 @@ describe('one ACP execution authority', () => {
     core.dispose()
   })
 })
+
+it('does not retire a runtime after any observed admission, even when dispatch later rejects', async () => {
+  const s = setup()
+  const retireUnadmitted = vi.fn(async () => ({
+    attemptId: 'attempt-1',
+    sessionId: 'session',
+    reaped: true as const
+  }))
+  s.committed.resolve()
+  await expect(
+    s.boundary.execute({
+      ...s.input,
+      retireUnadmitted,
+      dispatch: async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'prompt' })
+        throw new Error('failed after admission')
+      }
+    })
+  ).rejects.toThrow('failed after admission')
+  await s.link().settled
+  expect(retireUnadmitted).not.toHaveBeenCalled()
+})

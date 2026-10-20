@@ -1,5 +1,5 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
-import type { AcpExecutionDispatch } from '../acp/execution-boundary-port'
+import type { AcpExecutionDispatch, PreAdmissionRetirement } from '../acp/execution-boundary-port'
 import type { ExecutionIdentity, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { ExecutionContext, ExecutionOutcome, ExecutionStore } from './execution-core'
 
@@ -8,6 +8,7 @@ export interface SessionExecutionSettlement {
   identity: ExecutionIdentity
   response?: PromptResponse
   error?: unknown
+  preAdmissionRetirement?: PreAdmissionRetirement
   context: ExecutionContext
 }
 
