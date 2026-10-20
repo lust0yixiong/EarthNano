@@ -2,7 +2,7 @@ import { access, realpath } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { resolvePythonCommand, probeInterpreterVersion } from '@aipoch/environment'
 import { delimiter, isAbsolute, join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type {
   DesktopOptimizationApi,
   StartDesktopOptimization
@@ -42,6 +42,26 @@ import { resolveOptimizationArtifactInputs } from '../earthnano/optimization-inp
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 import type { PersistedChatSession } from '../../shared/session-persistence'
+
+const providerRevision = (
+  providerId: string,
+  provider: {
+    type: string
+    model?: string
+    baseUrl?: string
+    apiEndpoints?: readonly string[]
+  }
+): string =>
+  `desktop-provider:${providerId}:${createHash('sha256')
+    .update(
+      JSON.stringify({
+        type: provider.type,
+        model: provider.model,
+        baseUrl: provider.baseUrl,
+        apiEndpoints: [...(provider.apiEndpoints ?? [])].sort()
+      })
+    )
+    .digest('hex')}`
 
 export type DesktopOptimizationLifecycle = Pick<
   DesktopOptimizationManager,
@@ -239,7 +259,9 @@ export async function createDesktopOptimizationOptions(
     // Do not release the original data-root writer on one rejection while sibling version leases
     // are still reading. At most three successor tasks are frozen under this same owner.
     for (const task of domain?.nextTasks ?? []) task.files = await resolveFiles(task.files)
-    const providerRef = `desktop-provider:${selected.providerId}`
+    // The provider row ID alone is mutable. Pin effective non-secret routing so a changed URL
+    // after an app restart cannot reuse baselines from a different endpoint under the same row ID.
+    const providerRef = providerRevision(selected.providerId, provider)
     let released = false
     const releaseAdmission = (): void => {
       if (released) return
@@ -301,6 +323,7 @@ export async function createDesktopOptimizationOptions(
           current.provider.type !== 'custom' ||
           current.provider.model !== agent.model ||
           current.provider.baseUrl !== provider.baseUrl ||
+          providerRevision(current.providerId, current.provider) !== providerRef ||
           !current.provider.apiEndpoints?.includes('messages') ||
           agent.providerRef !== providerRef ||
           agent.runtimeVersion !== runtimeVersion

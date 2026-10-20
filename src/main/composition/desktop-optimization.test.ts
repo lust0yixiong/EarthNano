@@ -173,6 +173,27 @@ it('rejects a changed provider identity during the frozen run', async () => {
   await expect(options.binding(options.input.agent)).rejects.toThrow('provider changed')
   options.releaseAdmission()
 })
+it('pins provider routing across reconstruction while allowing a credential rotation on the same route', async () => {
+  const deps = dependencies()
+  const original = await createDesktopOptimizationOptions(request, deps)
+  original.releaseAdmission()
+  deps.settings.resolveIsolatedClaudeProvider.mockResolvedValue({
+    ...selected(),
+    provider: { ...selected().provider, key: 'rotated-synthetic-key' }
+  })
+  const rotated = await createDesktopOptimizationOptions(request, deps)
+  expect(rotated.input.agent.providerRef).toBe(original.input.agent.providerRef)
+  expect(JSON.stringify(rotated.input)).not.toContain('rotated-synthetic-key')
+  rotated.releaseAdmission()
+  deps.settings.resolveIsolatedClaudeProvider.mockResolvedValue({
+    ...selected(),
+    provider: { ...selected().provider, baseUrl: 'https://different.invalid/anthropic' }
+  })
+  const rerouted = await createDesktopOptimizationOptions(request, deps)
+  expect(rerouted.input.agent.providerRef).not.toBe(original.input.agent.providerRef)
+  expect(JSON.stringify(rerouted.input)).not.toContain('https://different.invalid')
+  rerouted.releaseAdmission()
+})
 it.each(['2.1.118', '2.1.250'])(
   'freezes the selected CLI version %s for every candidate instead of the development version',
   async (version) => {

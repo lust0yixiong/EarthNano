@@ -28,6 +28,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
   let acceptancePassed = false
   let runtime: object = {}
   let executionRoot: string | undefined
+  let ordinaryRoot: string | undefined
   let readSessionsForDiagnostics: (() => Promise<unknown>) | undefined
   try {
     let page = await app.completeOnboarding()
@@ -80,6 +81,17 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       await card.getByTestId('allow-primary').click()
     })
     const projectId = await createProject(page, 'EarthNano Notebook optimization')
+    const dataRoot = await page.evaluate(async () => (await window.api.storage.getInfo()).dataRoot)
+    executionRoot = join(dataRoot, 'earthnano', 'desktop-runs')
+    ordinaryRoot = join(dataRoot, 'executions', 'session-attempts')
+    readSessionsForDiagnostics = () =>
+      page.evaluate(
+        async (projectId) =>
+          (await window.api.sessions.loadAll()).sessions.filter(
+            (entry) => entry.projectId === projectId
+          ),
+        projectId
+      )
     await page.locator('input[type="file"][multiple]').setInputFiles({
       name: 'measurements.csv',
       mimeType: 'text/csv',
@@ -143,24 +155,13 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       )
     ).toBe(true)
     console.info('Scientific workflow: Notebook verified')
-    const dataRoot = await page.evaluate(async () => (await window.api.storage.getInfo()).dataRoot)
-    executionRoot = join(dataRoot, 'earthnano', 'desktop-runs')
-    readSessionsForDiagnostics = () =>
-      page.evaluate(
-        async (projectId) =>
-          (await window.api.sessions.loadAll()).sessions.filter(
-            (entry) => entry.projectId === projectId
-          ),
-        projectId
-      )
     const readOrdinary = async (): Promise<ExecutionState[]> => {
-      const root = join(dataRoot, 'executions', 'session-attempts'),
-        states: ExecutionState[] = []
-      for (const generation of await readdir(root))
-        for (const name of await readdir(join(root, generation)))
+      const states: ExecutionState[] = []
+      for (const generation of await readdir(ordinaryRoot!))
+        for (const name of await readdir(join(ordinaryRoot!, generation)))
           if (name.endsWith('.json')) {
             const state = JSON.parse(
-              await readFile(join(root, generation, name), 'utf8')
+              await readFile(join(ordinaryRoot!, generation, name), 'utf8')
             ) as ExecutionState
             states.push(state)
           }
@@ -638,13 +639,32 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
   } finally {
     // Retain the original facts even when failure occurs before the interruption barrier or any
     // success assertion. Never discard a failed attempt or fabricate an owner outcome for a report.
+    if (ordinaryRoot) {
+      try {
+        for (const generation of await readdir(ordinaryRoot))
+          for (const name of await readdir(join(ordinaryRoot, generation)))
+            if (name.endsWith('.json'))
+              await writeFile(
+                testInfo.outputPath(`final-ordinary-journal-${generation}-${name}`),
+                await readFile(join(ordinaryRoot, generation, name))
+              )
+      } catch {
+        // An absent journal must not suppress the independent Session diagnostics below.
+      }
+    }
     if (executionRoot) {
       try {
         for (const runId of await readdir(executionRoot)) {
           const journal = await readFile(join(executionRoot, runId, 'execution', 'execution.json'))
           await writeFile(testInfo.outputPath(`final-journal-${runId}.json`), journal)
         }
-        const sessions = await readSessionsForDiagnostics?.()
+      } catch {
+        // The optimization directory does not exist if ordinary Send fails first.
+      }
+    }
+    if (readSessionsForDiagnostics) {
+      try {
+        const sessions = await readSessionsForDiagnostics()
         await writeFile(
           testInfo.outputPath('final-scientific-sessions.json'),
           JSON.stringify(sessions, null, 2)
