@@ -1156,7 +1156,7 @@ describe('PR Gate workflow', () => {
     expect(actionlint?.run).toContain('--connect-timeout 30 --max-time 120 --retry 3')
     expect(zizmor).toMatchObject({
       'continue-on-error': true,
-      uses: 'zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482',
+      uses: 'zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e',
       with: {
         'advanced-security': false,
         annotations: true,
