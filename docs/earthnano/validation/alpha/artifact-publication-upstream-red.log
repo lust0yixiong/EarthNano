@@ -1,0 +1,36 @@
+Pinned OpenScience: 9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5; unchanged shared dependency installation; Node26.0.0 darwin/arm64
+
+ RUN  v4.1.11 /private/var/folders/4k/7zdywcj964s64r9xmj0svhth0000gn/T/earthnano-alpha-admission-upstream-rbq3cedl
+
+stdout | src/main/acp/artifact-publication-recovery.integration.test.ts
+🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+ ❯ |process| src/main/acp/artifact-publication-recovery.integration.test.ts (6 tests | 1 failed) 3284ms
+   × keeps prepared Artifact recovery subordinate to the original runtime publication: before-runtime-flush 1508ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |process| src/main/acp/artifact-publication-recovery.integration.test.ts > keeps prepared Artifact recovery subordinate to the original runtime publication: before-runtime-flush
+ArtifactFinalizationProofError: Artifact Version 414d9259-c583-48ab-9c0f-c2d24e7c2cae is already finalized to a different message.
+ ❯ validateArtifactFinalizationProof src/main/artifacts/provenance-message-finalization.ts:215:11
+    213|   )
+    214|   if (conflicting) {
+    215|     throw new ArtifactFinalizationProofError(
+       |           ^
+    216|       'version-message-conflict',
+    217|       `Artifact Version ${conflicting.id} is already finalized to a di…
+ ❯ src/main/artifacts/provenance-message-finalization.ts:496:7
+ ❯ Proxy._transactionWithCallback ../../../../../../tmp/earthnano-round6-validation/node_modules/.prisma/client/runtime/library.js:134:8120
+ ❯ runFinalizationTransaction src/main/artifacts/provenance-message-finalization.ts:77:12
+ ❯ ArtifactProvenanceMessageFinalizer.finalizeVerifiedRun src/main/artifacts/provenance-message-finalization.ts:492:22
+ ❯ finalizeRunArtifacts src/main/artifacts/ipc.ts:502:29
+ ❯ src/main/artifacts/provenance-version-writer.ts:228:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  22:56:53
+   Duration  6.50s (transform 3.50s, setup 461ms, import 2.60s, tests 3.28s, environment 0ms)
+
