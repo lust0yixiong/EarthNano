@@ -8,6 +8,7 @@ const GITHUB_OWNER = 'lust0yixiong'
 const GITHUB_REPO = 'EarthNano'
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`
 const CDN_BASE_URL = 'https://statics.aipoch.com/open-science'
+const ALPHA_UPDATE_URL = `${GITHUB_REPO_URL}/releases/download/alpha`
 
 export const APP = {
   name: 'EarthNano',
@@ -28,8 +29,8 @@ export const APP = {
   },
   copyright: '© 2026 AIPOCH',
   update: {
-    manifestUrl: `${CDN_BASE_URL}/app/stable/version.json`,
-    downloadPage: 'https://www.aipoch.com/open-science'
+    manifestUrl: `${ALPHA_UPDATE_URL}/version.json`,
+    downloadPage: `${GITHUB_REPO_URL}/releases`
   }
 } as const
 

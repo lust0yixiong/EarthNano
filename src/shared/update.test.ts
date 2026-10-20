@@ -4,6 +4,7 @@ import {
   compareVersions,
   formatBytes,
   isNewer,
+  isPublishedReleaseVersion,
   platformDownloadKey,
   selectDownload,
   type UpdateManifest
@@ -32,6 +33,23 @@ describe('compareVersions', () => {
 
 describe('isNewer', () => {
   it.each([
+    ['0.1.0-alpha.2', '0.1.0-alpha.1', true],
+    ['0.1.0-alpha.10', '0.1.0-alpha.9', true],
+    ['0.1.0-alpha.1', '0.1.0-alpha.2', false],
+    ['0.1.0-beta.1', '0.1.0-alpha.99', true],
+    ['0.1.0-rc.1', '0.1.0-beta.99', true],
+    ['0.1.0', '0.1.0-rc.99', true],
+    ['0.1.0-alpha.99', '0.1.0', false],
+    ['0.1.0-alpha.1+build', '0.1.0-alpha.1', false],
+    ['0.1.0-alpha.2', '0.1.0-nightly.abc1234', false],
+    ['0.1.0-nightly.abc1234', '0.1.0-alpha.1', false]
+  ])(
+    'orders numbered preview %s against %s without ordering hash Nightlies',
+    (latest, current, expected) => {
+      expect(isNewer(latest, current)).toBe(expected)
+    }
+  )
+  it.each([
     ['1.1.0', '1.1.0-nightly.abc1234', true],
     ['1.1.0', '1.1.0-nightly.123abcd', true],
     ['1.1.0', '1.1.0-nightly.0001234', true],
@@ -51,6 +69,20 @@ describe('isNewer', () => {
     expect(isNewer('0.2.0', '0.2.0')).toBe(false)
     expect(isNewer('0.1.0', '0.2.0')).toBe(false)
   })
+})
+
+it('accepts canonical numbered previews without loosening stable or runtime version validation', () => {
+  for (const version of ['0.1.0', '0.1.0-alpha.1', '0.1.0-beta.12', '0.1.0-rc.0'])
+    expect(isPublishedReleaseVersion(version)).toBe(true)
+  for (const version of [
+    '0.1.0-alpha',
+    '0.1.0-alpha.01',
+    '0.1.0-nightly.abc1234',
+    '0.1.0-alpha.9007199254740992',
+    '01.1.0',
+    '0.1.0-alpha.1broken'
+  ])
+    expect(isPublishedReleaseVersion(version)).toBe(false)
 })
 
 describe('platformDownloadKey', () => {

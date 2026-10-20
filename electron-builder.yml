@@ -119,7 +119,7 @@ win:
     - '!credential_secret.exe'
   executableName: open-science
   icon: build/icon.ico
-  artifactName: aipoch-${name}-${version}-win-${arch}.${ext}
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
   # AppContainer profiles and firewall rules require a product uninstaller, so Windows ships only
   # through NSIS. A portable ZIP could be deleted without releasing those durable resources.
   target:
@@ -144,7 +144,7 @@ win:
     - from: packages/notebook-network-sandbox/vendor/wsl2/manifest.json
       to: notebook-network-sandbox/wsl2/manifest.json
 nsis:
-  artifactName: aipoch-${name}-${version}-win-${arch}-setup.${ext}
+  artifactName: ${productName}-${version}-win-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -169,7 +169,7 @@ mac:
   # The upstream Icon Composer catalog adds an opaque background and is no longer selected.
   icon: build/icon.icns
   darkModeSupport: true
-  artifactName: aipoch-${name}-${version}-mac-${arch}.${ext}
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
   # Minimum macOS to run the app (written to Info.plist LSMinimumSystemVersion). macOS 12 (Monterey)
   # and up; below this the OS refuses to launch. Independent of the CI build runner's macOS version.
   minimumSystemVersion: '12.0.0'
@@ -222,7 +222,7 @@ dmg:
   # Stable macOS releases require a primary signature on the outer DMG in addition to the signed app
   # and notarization ticket. Nightly and certificate-free builds override this to false in build.yml.
   sign: true
-  artifactName: aipoch-${name}-${version}-mac-${arch}.${ext}
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
 linux:
   # Windows ProgID is a persisted association identity; other platforms use a display name.
   fileAssociations:
@@ -251,13 +251,13 @@ linux:
     - from: build/deb-cli-launcher
       to: open-science-cli
 appImage:
-  artifactName: aipoch-${name}-${version}-linux-${arch}.${ext}
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
 deb:
   fpm:
     - build/deb-copyright=/usr/share/doc/open-science/copyright
   afterInstall: build/deb-after-install.tpl
   afterRemove: build/deb-after-remove.tpl
-  artifactName: aipoch-${name}_${version}_${arch}.${ext}
+  artifactName: ${productName}_${version}_${arch}.${ext}
   depends:
     - libgtk-3-0
     - libnotify4
@@ -270,13 +270,13 @@ deb:
     - libsecret-1-0
     - bubblewrap
 npmRebuild: false
-# electron-updater feed. Win/Linux/macOS auto-update reads app-update.yml (generated from this block)
-# and fetches its feed from <url>. Each installed app uses the default latest channel. macOS
-# builds preserve uniquely named per-arch feed artifacts; release.yml merges them into latest-mac.yml
-# after optional notarization. --publish never means this configuration does not upload anything.
+# EarthNano preview feed. No app update is fetched from the upstream project's stable channel.
+# Release promotion must publish version.json plus alpha*.yml at this EarthNano-only release tag.
+# Until those artifacts exist, discovery reports its ordinary fetch error; it must not fall back to
+# an upstream installer. CI packages with --publish never and cannot promote this channel.
 publish:
   provider: generic
-  url: https://statics.aipoch.com/open-science/app/stable
-  channel: latest
+  url: https://github.com/lust0yixiong/EarthNano/releases/download/alpha
+  channel: alpha
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

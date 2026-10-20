@@ -16,6 +16,14 @@ const valid = {
 }
 
 describe('parseManifest', () => {
+  it('uses the original manifest validation for numbered EarthNano Alpha installers', () => {
+    expect(parseManifest({ ...valid, version: '0.1.0-alpha.1' })).toMatchObject({
+      version: '0.1.0-alpha.1',
+      downloads: valid.downloads
+    })
+    for (const version of ['0.1.0-alpha.01', '0.1.0-alpha', '0.1.0-nightly.abc'])
+      expect(() => parseManifest({ ...valid, version })).toThrow('Invalid update manifest')
+  })
   it('retains both Linux ARM64 installer entries from the published manifest', () => {
     const downloads = {
       'linux-arm64-appimage': {

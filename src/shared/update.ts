@@ -135,6 +135,20 @@ export const compareVersions = (a: string, b: string): -1 | 0 | 1 => {
   return 0
 }
 
+/** Published stable releases and explicitly numbered preview releases. Runtime compatibility keeps
+ * using compareVersions above; hash-based Nightlies intentionally remain unordered. */
+export const isPublishedReleaseVersion = (value: unknown): value is string => {
+  if (typeof value !== 'string') return false
+  const match =
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(alpha|beta|rc)\.(0|[1-9]\d*))?$/u.exec(value)
+  return (
+    !!match &&
+    [match[1], match[2], match[3], match[5] ?? '0'].every((part) =>
+      Number.isSafeInteger(Number(part))
+    )
+  )
+}
+
 // Release eligibility is distinct from the numeric comparison used for runtime compatibility.
 // A stable release supersedes its matching Nightly base; SHA identifiers cannot order Nightlies.
 export const isNewer = (latest: string, current: string): boolean => {
@@ -142,7 +156,18 @@ export const isNewer = (latest: string, current: string): boolean => {
   const currentVersion = current.split('+', 1)[0]
   const compared = compareVersions(latestVersion.split('-', 1)[0], currentVersion.split('-', 1)[0])
   if (compared !== 0) return compared > 0
-  return !latestVersion.includes('-') && currentVersion.includes('-')
+  if (!latestVersion.includes('-')) return currentVersion.includes('-')
+  if (!currentVersion.includes('-')) return false
+  if (isPublishedReleaseVersion(latestVersion) && isPublishedReleaseVersion(currentVersion)) {
+    const preview = (version: string): { rank: number; sequence: number } => {
+      const [name, sequence] = version.split('-')[1].split('.')
+      return { rank: ['alpha', 'beta', 'rc'].indexOf(name), sequence: Number(sequence) }
+    }
+    const a = preview(latestVersion),
+      b = preview(currentVersion)
+    return a.rank > b.rank || (a.rank === b.rank && a.sequence > b.sequence)
+  }
+  return false
 }
 
 // Maps the host to its manifest download key. Linux prefers the deb; selectDownload falls back to

@@ -1,5 +1,6 @@
 import { netFetchStandard } from '../network-fetch'
 import type { LocalizedReleaseNotes, PlatformDownload, UpdateManifest } from '../../shared/update'
+import { isPublishedReleaseVersion } from '../../shared/update'
 
 const LOCALIZED_NOTE_LOCALES = new Set(['zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'ru', 'de', 'es'])
 const DOWNLOAD_KEYS = new Set([
@@ -19,11 +20,6 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' &&
   !Array.isArray(value) &&
   Object.getPrototypeOf(value) === Object.prototype
-
-const isReleaseVersion = (value: unknown): value is string =>
-  typeof value === 'string' &&
-  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(value) &&
-  value.split('.').every((part) => Number.isSafeInteger(Number(part)))
 
 const isHttpsUrl = (value: unknown): value is string => {
   if (typeof value !== 'string') return false
@@ -66,7 +62,11 @@ const parseLocalizedNotes = (value: unknown): LocalizedReleaseNotes | undefined 
 // Validates the untrusted CDN payload into a typed manifest. releaseDate/notes are optional in
 // practice, so they default to '' rather than failing the whole check.
 export const parseManifest = (data: unknown): UpdateManifest => {
-  if (!isPlainObject(data) || !isReleaseVersion(data.version) || !isPlainObject(data.downloads)) {
+  if (
+    !isPlainObject(data) ||
+    !isPublishedReleaseVersion(data.version) ||
+    !isPlainObject(data.downloads)
+  ) {
     throw new Error('Invalid update manifest')
   }
 

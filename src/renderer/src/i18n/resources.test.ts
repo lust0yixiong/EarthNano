@@ -1731,9 +1731,9 @@ describe('mandatory product glossary', () => {
     }
     const rootPackage = JSON.parse(
       readFileSync(join(__dirname, '..', '..', '..', '..', 'package.json'), 'utf8')
-    ) as { version: string }
+    ) as { version: string; productName: string }
     // Track the repo version without requiring an unreleased build to claim publication.
-    expect(readme).toContain(`AIPOCH Open-Science v${rootPackage.version}`)
+    expect(readme).toContain(`${rootPackage.productName} v${rootPackage.version}`)
   })
 
   const chosenGenericTerms = {

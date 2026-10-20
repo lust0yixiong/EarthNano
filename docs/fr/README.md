@@ -1,3 +1,9 @@
+# EarthNano v0.1.0-alpha.1
+
+Cette version en développement intègre OpenScience et Harness². La validation et la publication Alpha restent à effectuer. La documentation originale ci-dessous décrit le projet amont ; ses téléchargements et résultats ne constituent pas une publication ni une validation d’EarthNano.
+
+---
+
 <h1 align="center">AIPOCH Open-Science</h1>
 
 <p align="center">
