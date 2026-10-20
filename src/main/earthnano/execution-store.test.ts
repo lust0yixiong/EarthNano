@@ -115,13 +115,15 @@ it('recovers nested journals through Core, retains unknown fence, never refunds 
   expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
   expect(state.events.old.map((event: { type: string }) => event.type)).toEqual(['phase', 'phase'])
   expect(readFileSync(filename + '.lock', 'utf8')).toBe(String(process.pid))
-  await expect(
-    recoverExecutionJournals({
-      directory: root,
-      matches: () => true,
-      readOriginal: async () => ({ phase: 'completed', cleanup: 'confirmed' })
-    })
-  ).rejects.toThrow('live owner')
+  await recoverExecutionJournals({
+    directory: root,
+    matches: () => true,
+    readOriginal: async () => ({ phase: 'completed', cleanup: 'confirmed' })
+  })
+  expect(JSON.parse(readFileSync(filename, 'utf8')).records.old).toMatchObject({
+    phase: 'completed',
+    cleanup: 'confirmed'
+  })
 })
 it('only original owner witnesses reconcile the selected resource, leaving other resources untouched', async () => {
   const filename = priorJournal()
@@ -166,5 +168,37 @@ it('keeps unknown old resources fenced while allowing a distinct environment ide
       targetEnvironmentId: state.records.old.request.environmentSpecRef.id,
       matches: () => true
     })
-  ).rejects.toThrow('live owner')
+  ).rejects.toThrow('fenced')
+})
+it('serializes concurrent recovery observers without duplicate reconciliation or charge changes', async () => {
+  const filename = priorJournal()
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const firstWitness = vi.fn(async () => {
+    await gate
+    return { phase: 'completed' as const, cleanup: 'confirmed' as const }
+  })
+  const secondWitness = vi.fn(async () => ({
+    phase: 'completed' as const,
+    cleanup: 'confirmed' as const
+  }))
+  const first = recoverExecutionJournals({
+    directory: root,
+    matches: () => true,
+    readOriginal: firstWitness
+  })
+  await vi.waitFor(() => expect(firstWitness).toHaveBeenCalledOnce())
+  const second = recoverExecutionJournals({
+    directory: root,
+    matches: () => true,
+    readOriginal: secondWitness
+  })
+  release()
+  await Promise.all([first, second])
+  expect(secondWitness).not.toHaveBeenCalled()
+  expect(Object.values(JSON.parse(readFileSync(filename, 'utf8')).budgets)).toEqual([
+    { limit: 1, admitted: 1 }
+  ])
 })

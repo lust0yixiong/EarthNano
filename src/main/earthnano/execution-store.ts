@@ -123,6 +123,22 @@ export class FileExecutionStore implements ExecutionStore {
   }
 }
 
+const recoveryOwners = new Map<string, { store: FileExecutionStore; core: ExecutionCore }>()
+const recoveryQueues = new Map<string, Promise<void>>()
+const serializeRecovery = async (
+  filename: string,
+  operation: () => Promise<void>
+): Promise<void> => {
+  const previous = recoveryQueues.get(filename) ?? Promise.resolve()
+  const pending = previous.catch(() => undefined).then(operation)
+  recoveryQueues.set(filename, pending)
+  try {
+    await pending
+  } finally {
+    if (recoveryQueues.get(filename) === pending) recoveryQueues.delete(filename)
+  }
+}
+
 /** Shared persistence recovery: Core owns state transitions, original hosts supply exact witnesses.
  * Unknown cleanup retains its lock and blocks this resource; this helper never dispatches a provider. */
 export async function recoverExecutionJournals(options: {
@@ -154,39 +170,44 @@ export async function recoverExecutionJournals(options: {
   }
   await walk(options.directory)
   for (const filename of files) {
-    const snapshot = JSON.parse(await readFile(filename, 'utf8')) as ExecutionState
-    const unresolved = Object.values(snapshot.records).filter(
-      (record) =>
-        options.matches(record) &&
-        (record.cleanup !== 'confirmed' ||
-          !['completed', 'failed', 'cancelled', 'interrupted'].includes(record.phase))
-    )
-    if (!unresolved.length) continue
-    const blocksTarget = unresolved.some(
-      (record) =>
-        !options.targetEnvironmentId ||
-        record.request.environmentSpecRef.id === options.targetEnvironmentId
-    )
-    let store: FileExecutionStore
-    try {
-      store = FileExecutionStore.recoverStale(filename)
-    } catch (error) {
-      if (blocksTarget) throw error
-      continue
-    }
-    let core: ExecutionCore | undefined
-    let confirmed = false
-    try {
-      core = new ExecutionCore(store, {
-        execute: async () => {
-          throw new Error('Recovery cannot dispatch a provider')
+    await serializeRecovery(filename, async () => {
+      const snapshot =
+        recoveryOwners.get(filename)?.store.load() ??
+        (JSON.parse(await readFile(filename, 'utf8')) as ExecutionState)
+      const unresolved = Object.values(snapshot.records).filter(
+        (record) =>
+          options.matches(record) &&
+          (record.cleanup !== 'confirmed' ||
+            !['completed', 'failed', 'cancelled', 'interrupted'].includes(record.phase))
+      )
+      if (!unresolved.length) return
+      const blocksTarget = unresolved.some(
+        (record) =>
+          !options.targetEnvironmentId ||
+          record.request.environmentSpecRef.id === options.targetEnvironmentId
+      )
+      let owner = recoveryOwners.get(filename)
+      if (!owner) {
+        let store: FileExecutionStore
+        try {
+          store = FileExecutionStore.recoverStale(filename)
+        } catch (error) {
+          if (blocksTarget) throw error
+          return
         }
-      })
+        const core = new ExecutionCore(store, {
+          execute: async () => {
+            throw new Error('Recovery cannot dispatch a provider')
+          }
+        })
+        owner = { store, core }
+        recoveryOwners.set(filename, owner)
+      }
       for (const previous of unresolved) {
-        const record = await core.get(previous.executionId)
+        const record = await owner.core.get(previous.executionId)
         const outcome = await options.readOriginal?.(record, {
           filename,
-          recoveredOwnerPid: store.recoveredOwnerPid
+          recoveredOwnerPid: owner.store.recoveredOwnerPid
         })
         if (!outcome) {
           if (
@@ -198,14 +219,15 @@ export async function recoverExecutionJournals(options: {
             )
           continue
         }
-        core.reconcileOriginal(record.executionId, outcome)
+        owner.core.reconcileOriginal(record.executionId, outcome)
       }
-      confirmed = Object.values(store.load().records).every(
-        (record) => record.cleanup === 'confirmed'
-      )
-    } finally {
-      core?.dispose()
-      if (confirmed) store.close()
-    }
+      if (
+        Object.values(owner.store.load().records).every((record) => record.cleanup === 'confirmed')
+      ) {
+        owner.core.dispose()
+        owner.store.close()
+        recoveryOwners.delete(filename)
+      }
+    })
   }
 }
