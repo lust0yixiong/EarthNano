@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,6 +12,9 @@ import type {
 } from '../../shared/earthnano/desktop-optimization'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
+import { writeResumeJson, type OptimizationResumeIdentity } from './optimization-resume'
+import { outputDigest } from './output-checks'
 
 const roots: string[] = []
 afterEach(() => {
@@ -76,8 +79,113 @@ const key = (runId: string): OptimizationRunKey => ({
   sourceSessionId: task.sourceSessionId,
   runId
 })
+const writeResumeFixture = (
+  options: PersistentOptimizationOptions,
+  cleanup = 'confirmed'
+): void => {
+  mkdirSync(options.workRoot, { recursive: true })
+  const identity: OptimizationResumeIdentity = {
+    projectId: task.projectId,
+    sourceSessionId: task.sourceSessionId,
+    taskId: options.taskId,
+    input: {
+      task: { prompt: task.prompt, files: task.files },
+      harness: { instructions: 'Original harness', tools: 'workspace-only', skills: [] },
+      agent: {
+        backend: 'claude-code',
+        model: 'fixture',
+        providerRef: 'fixture',
+        runtimeVersion: 'fixture'
+      },
+      environment: { isolation: 'directory-process', network: 'provider-only' }
+    },
+    semanticCriteria: task.criteria,
+    executionLimit: task.executionLimit,
+    executionTimeoutMs: 120_000,
+    method: normalizeOptimizationMethod(task.method)
+  }
+  writeResumeJson(join(options.workRoot, 'resume.json'), {
+    schemaVersion: 1,
+    optimizationId: 'opt',
+    identity,
+    identityDigest: outputDigest(identity),
+    methodDigest: `sha256:${'a'.repeat(64)}`
+  })
+  writeFileSync(
+    join(options.workRoot, 'execution.json'),
+    JSON.stringify({
+      records: { prior: { phase: 'completed', cleanup } }
+    })
+  )
+}
 
 describe('DesktopOptimizationManager', () => {
+  it('resumes only the original stopped experiment after reopen, retaining its task, path and budget', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      // This seam tests desktop authority/forwarding; the original runner validates the real
+      // descriptor and owners in its separate native resume integration tests.
+      writeResumeFixture(options)
+      if (!options.resume) {
+        await new Promise<void>((resolve) =>
+          options.signal!.addEventListener('abort', () => resolve(), { once: true })
+        )
+        throw new Error('Stopped original experiment')
+      }
+      return complete
+    })
+    const f = fixture(run)
+    const started = await f.manager.start(task)
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1))
+    const original = run.mock.calls[0]![0]
+    await f.manager.stop(key(started.runId))
+    await vi.waitFor(async () =>
+      expect(await f.manager.get(key(started.runId))).toMatchObject({
+        state: 'cancelled',
+        resumeAvailable: true
+      })
+    )
+    const reopened = new DesktopOptimizationManager(f.options)
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(await reopened.latest(task)).toMatchObject({ resumeAvailable: true })
+    await reopened.resume(key(started.runId))
+    await vi.waitFor(async () =>
+      expect((await reopened.get(key(started.runId))).state).toBe('completed')
+    )
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(run.mock.calls[1]![0]).toMatchObject({
+      resume: true,
+      taskId: original.taskId,
+      workRoot: original.workRoot,
+      executionLimit: task.executionLimit,
+      semanticCriteria: task.criteria
+    })
+    expect(f.options.createOptions).toHaveBeenLastCalledWith(
+      { ...task, method: normalizeOptimizationMethod(task.method) },
+      expect.any(AbortSignal)
+    )
+    expect(await reopened.resume(key(started.runId))).toMatchObject({ state: 'completed' })
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(await reopened.get(key(started.runId)))).not.toContain(task.prompt)
+    expect(readFileSync(join(f.root, started.runId, 'desktop.json'), 'utf8')).not.toContain(
+      task.prompt
+    )
+  })
+
+  it('refuses a stopped experiment whose original physical cleanup is unknown', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      writeResumeFixture(options, 'unknown')
+      throw new Error('Owner evidence unavailable')
+    })
+    const f = fixture(run)
+    const started = await f.manager.start(task)
+    await vi.waitFor(async () =>
+      expect((await f.manager.get(key(started.runId))).state).toBe('failed')
+    )
+    expect((await f.manager.get(key(started.runId))).resumeAvailable).not.toBe(true)
+    await expect(f.manager.resume(key(started.runId))).rejects.toThrow('cannot be resumed safely')
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
   it('retains resolved source provenance and domain files instead of overwriting them with the raw desktop DTO', async () => {
     const inputArtifacts = [
       {

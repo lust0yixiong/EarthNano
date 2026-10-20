@@ -32,7 +32,11 @@ import {
   type ResearchOutcome,
   type DomainOptimizationSummary
 } from '../../shared/earthnano/research-outcome'
-import { runPersistentOptimization } from './run-persistent-optimization'
+import {
+  runPersistentOptimization,
+  readPersistentOptimizationResume
+} from './run-persistent-optimization'
+import type { PersistentOptimizationResume } from './optimization-resume'
 import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 
@@ -40,6 +44,8 @@ export interface DesktopOptimizationManagerOptions {
   root: string
   /** Resolve the current data root only after acquiring its lifetime writer lease. */
   executionRoot?: () => string
+  /** Read only immutable resume metadata while holding the original data-root lifetime lease. */
+  readResume?(runId: string): Promise<DesktopOptimizationResumeData>
   validateSession(projectId: string, sessionId: string): Promise<void>
   createOptions(
     request: StartDesktopOptimization,
@@ -59,6 +65,21 @@ interface SavedRun {
   digest: string
   requestKey: string
   progress: OptimizationProgress
+}
+export interface DesktopOptimizationResumeData {
+  manifest: PersistentOptimizationResume
+  records: Array<{ phase?: string; cleanup?: string }>
+}
+export function readDesktopOptimizationResume(workRoot: string): DesktopOptimizationResumeData {
+  if (existsSync(join(workRoot, 'execution.json.lock')))
+    throw new Error('Original experiment still owns its execution journal')
+  const manifest = readPersistentOptimizationResume(workRoot)
+  const state = JSON.parse(readFileSync(join(workRoot, 'execution.json'), 'utf8')) as {
+    records: Record<string, { phase?: string; cleanup?: string }>
+  }
+  if (!state?.records || typeof state.records !== 'object' || Array.isArray(state.records))
+    throw new Error('Original experiment journal unavailable')
+  return { manifest, records: Object.values(state.records) }
 }
 interface ActiveRun {
   controller: AbortController
@@ -152,6 +173,34 @@ const validate = (request: StartDesktopOptimization): void => {
     validate({ ...request, ...task, checks: task.checks, domain: undefined })
 }
 
+const desktopRequestDigest = (request: StartDesktopOptimization): string =>
+  createHash('sha256')
+    .update(
+      JSON.stringify({
+        projectId: request.projectId,
+        sourceSessionId: request.sourceSessionId,
+        requestKey: request.requestKey,
+        prompt: request.prompt,
+        files: request.files.map((file) => ({ path: file.path, content: file.content })),
+        ...(request.inputArtifacts === undefined
+          ? {}
+          : { inputArtifacts: normalizeOptimizationArtifactInputs(request.inputArtifacts) }),
+        ...(request.notebook === undefined
+          ? {}
+          : { notebook: normalizeNotebookOptimizationSource(request.notebook) }),
+        criteria: request.criteria,
+        executionLimit: request.executionLimit,
+        ...(request.method === undefined
+          ? {}
+          : { method: normalizeOptimizationMethod(request.method) }),
+        ...(request.checks === undefined ? {} : { checks: normalizeOutputChecks(request.checks) }),
+        ...(request.domain === undefined
+          ? {}
+          : { domain: normalizeOptimizationDomain(request.domain) })
+      })
+    )
+    .digest('hex')
+
 /** Desktop authority: one explicit user action starts one bounded method. Status is a projection
  * of the shared execution journal; restarting this owner never submits old work again. */
 export class DesktopOptimizationManager implements DesktopOptimizationApi {
@@ -201,34 +250,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       validate(captured)
       await this.options.validateSession(captured.projectId, captured.sourceSessionId)
       if (this.closing || this.updateGate) throw new Error('Optimization admission is closed')
-      const digest = createHash('sha256')
-        .update(
-          JSON.stringify({
-            projectId: captured.projectId,
-            sourceSessionId: captured.sourceSessionId,
-            requestKey: captured.requestKey,
-            prompt: captured.prompt,
-            files: captured.files.map((file) => ({ path: file.path, content: file.content })),
-            ...(captured.inputArtifacts === undefined
-              ? {}
-              : { inputArtifacts: normalizeOptimizationArtifactInputs(captured.inputArtifacts) }),
-            ...(captured.notebook === undefined
-              ? {}
-              : { notebook: normalizeNotebookOptimizationSource(captured.notebook) }),
-            criteria: captured.criteria,
-            executionLimit: captured.executionLimit,
-            ...(captured.method === undefined
-              ? {}
-              : { method: normalizeOptimizationMethod(captured.method) }),
-            ...(captured.checks === undefined
-              ? {}
-              : { checks: normalizeOutputChecks(captured.checks) }),
-            ...(captured.domain === undefined
-              ? {}
-              : { domain: normalizeOptimizationDomain(captured.domain) })
-          })
-        )
-        .digest('hex')
+      const digest = desktopRequestDigest(captured)
       const prior = [...this.saved.values()].find(
         (entry) =>
           entry.progress.projectId === captured.projectId &&
@@ -283,7 +305,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
 
   async get(request: OptimizationRunKey): Promise<OptimizationProgress> {
     await this.options.validateSession(request.projectId, request.sourceSessionId)
-    return structuredClone(this.require(request).progress)
+    return this.snapshot(this.require(request))
   }
 
   async latest(
@@ -297,7 +319,48 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
           entry.progress.sourceSessionId === request.sourceSessionId
       )
       .sort((a, b) => b.progress.updatedAt - a.progress.updatedAt)
-    return entries[0] ? structuredClone(entries[0].progress) : null
+    return entries[0] ? this.snapshot(entries[0]) : null
+  }
+
+  resume(request: OptimizationRunKey): Promise<OptimizationProgress> {
+    const captured = structuredClone(request)
+    const result = this.admission.then(async () => {
+      await this.options.validateSession(captured.projectId, captured.sourceSessionId)
+      const saved = this.require(captured)
+      if (this.closing || this.updateGate) throw new Error('Optimization admission is closed')
+      if (this.active.has(captured.runId)) return this.snapshot(saved)
+      if (saved.progress.state === 'completed') return this.snapshot(saved)
+      if (!['failed', 'cancelled'].includes(saved.progress.state))
+        throw new Error('Original experiment cannot be resumed safely')
+      const data = await this.resumeData(saved)
+      if (!this.canResume(saved, data))
+        throw new Error('Original experiment cannot be resumed safely')
+      if (
+        [...this.saved.values()].some(
+          (entry) =>
+            entry !== saved &&
+            entry.progress.projectId === captured.projectId &&
+            (!terminal(entry.progress.state) || entry.progress.state === 'interrupted')
+        )
+      )
+        throw new Error('This project has active or unreconciled optimization work')
+      const original = this.resumeRequest(saved, data.manifest)
+      validate(original)
+      saved.progress.state = 'queued'
+      saved.progress.stage = 'queued'
+      delete saved.progress.error
+      this.persist(saved)
+      const controller = new AbortController()
+      const active = { controller, done: Promise.resolve() }
+      this.active.set(captured.runId, active)
+      active.done = this.execute(saved, original, controller, true).catch(() => {
+        saved.progress.state = 'interrupted'
+        saved.progress.stage = 'interrupted'
+      })
+      return this.snapshot(saved)
+    })
+    this.admission = result.catch(() => undefined)
+    return result
   }
 
   async stop(request: OptimizationRunKey): Promise<OptimizationProgress> {
@@ -348,7 +411,8 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
   private async execute(
     saved: SavedRun,
     request: StartDesktopOptimization,
-    controller: AbortController
+    controller: AbortController,
+    resume = false
   ): Promise<void> {
     let prepared:
       Awaited<ReturnType<DesktopOptimizationManagerOptions['createOptions']>> | undefined
@@ -358,9 +422,10 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       controller.signal.throwIfAborted()
       prepared = await this.options.createOptions(request, controller.signal)
       controller.signal.throwIfAborted()
-      if (prepared.inputArtifacts)
+      if (!resume && prepared.inputArtifacts)
         saved.progress.inputArtifacts = structuredClone(prepared.inputArtifacts)
       if (
+        !resume &&
         request.notebook &&
         prepared.input.task.managedInputs &&
         prepared.input.environment.notebook
@@ -411,6 +476,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       }
       const result = await (this.options.run ?? runPersistentOptimization)({
         ...prepared,
+        ...(resume ? { resume: true as const } : {}),
         projectId: request.projectId,
         taskId: saved.progress.runId,
         workRoot,
@@ -484,6 +550,89 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     )
       throw new Error('Unknown optimization in this Session')
     return value
+  }
+  private canResume(saved: SavedRun, data: DesktopOptimizationResumeData): boolean {
+    if (
+      !['failed', 'cancelled'].includes(saved.progress.state) ||
+      this.active.has(saved.progress.runId) ||
+      this.closing ||
+      this.updateGate
+    )
+      return false
+    return data.records.every(
+      (record) =>
+        record &&
+        ['completed', 'failed', 'cancelled'].includes(record.phase ?? '') &&
+        record.cleanup === 'confirmed'
+    )
+  }
+  private async resumeData(saved: SavedRun): Promise<DesktopOptimizationResumeData> {
+    if (this.options.readResume) return this.options.readResume(saved.progress.runId)
+    if (this.options.executionRoot)
+      throw new Error('Moving execution roots require an original lifetime lease')
+    return readDesktopOptimizationResume(join(this.options.root, saved.progress.runId, 'execution'))
+  }
+  private resumeRequest(
+    saved: SavedRun,
+    manifest: PersistentOptimizationResume
+  ): StartDesktopOptimization {
+    const identity = manifest.identity
+    if (
+      identity.projectId !== saved.progress.projectId ||
+      identity.sourceSessionId !== saved.progress.sourceSessionId ||
+      identity.taskId !== saved.progress.runId ||
+      identity.executionLimit !== saved.progress.budget.limit
+    )
+      throw new Error('Original experiment identity differs from its desktop projection')
+    const artifactPaths = new Set(identity.inputArtifacts?.map((entry) => entry.path) ?? [])
+    const rawFiles = (
+      files: readonly { path: string; content: string }[]
+    ): StartDesktopOptimization['files'] =>
+      structuredClone(files.filter((file) => !artifactPaths.has(file.path)))
+    return {
+      projectId: identity.projectId,
+      sourceSessionId: identity.sourceSessionId,
+      requestKey: saved.requestKey,
+      prompt: identity.input.task.prompt,
+      files: rawFiles(identity.input.task.files),
+      criteria: identity.semanticCriteria ?? '',
+      executionLimit: identity.executionLimit,
+      method: identity.method,
+      ...(identity.inputArtifacts
+        ? { inputArtifacts: structuredClone(identity.inputArtifacts) }
+        : {}),
+      ...(identity.sourcePromptMessageId
+        ? { notebook: { promptMessageId: identity.sourcePromptMessageId } }
+        : {}),
+      ...(identity.checks ? { checks: structuredClone(identity.checks) } : {}),
+      ...(identity.domain
+        ? {
+            domain: {
+              ...structuredClone(identity.domain),
+              nextTasks: identity.domain.nextTasks.map((task) => ({
+                ...task,
+                files: rawFiles(task.files)
+              }))
+            }
+          }
+        : {})
+    }
+  }
+  private async snapshot(saved: SavedRun): Promise<OptimizationProgress> {
+    const progress = structuredClone(saved.progress)
+    delete progress.resumeAvailable
+    if (['failed', 'cancelled'].includes(progress.state)) {
+      try {
+        const data = await this.resumeData(saved)
+        if (this.canResume(saved, data)) {
+          validate(this.resumeRequest(saved, data.manifest))
+          progress.resumeAvailable = true
+        }
+      } catch {
+        // Original pre-Alpha runs and missing/unknown evidence stay inspectable, never auto-replayed.
+      }
+    }
+    return progress
   }
   private persist(saved: SavedRun): void {
     saved.progress.updatedAt = Date.now()

@@ -9,7 +9,8 @@ import type {
 } from '../../shared/earthnano/desktop-optimization'
 import {
   DesktopOptimizationManager,
-  DesktopOptimizationSetupError
+  DesktopOptimizationSetupError,
+  readDesktopOptimizationResume
 } from '../earthnano/desktop-optimization-manager'
 import type { PersistentOptimizationOptions } from '../earthnano/run-persistent-optimization'
 import type { SettingsService } from '../settings/service'
@@ -344,6 +345,16 @@ export async function registerDesktopOptimizationComposition(
       manager = new DesktopOptimizationManager({
         root: join(resolveConfigRoot(), 'earthnano-desktop'),
         executionRoot: () => join(resolveDataRoot(), 'earthnano', 'desktop-runs'),
+        readResume: async (runId) => {
+          const releaseWriter = acquireDataRootWriter()
+          try {
+            return readDesktopOptimizationResume(
+              join(resolveDataRoot(), 'earthnano', 'desktop-runs', runId, 'execution')
+            )
+          } finally {
+            releaseWriter()
+          }
+        },
         validateSession,
         createOptions: (request, signal) =>
           createDesktopOptimizationOptions(request, {
@@ -372,6 +383,7 @@ export async function registerDesktopOptimizationComposition(
         get: unavailable,
         latest: unavailable,
         stop: unavailable,
+        resume: unavailable,
         hasActiveWork: () => true,
         shutdown: async () => ({ reaped: false }),
         prepareForUpdateGate: async () => ({ reaped: false }),

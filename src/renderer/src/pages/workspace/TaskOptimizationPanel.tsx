@@ -294,6 +294,27 @@ function OptimizationSessionPanel({
       if (alive.current) setBusy(false)
     }
   }
+  const resume = async (): Promise<void> => {
+    if (!progress?.resumeAvailable) return
+    actionRevision.current += 1
+    setBusy(true)
+    setError(false)
+    try {
+      const result = await api.resume({
+        projectId,
+        sourceSessionId: sessionId,
+        runId: progress.runId
+      })
+      if (alive.current) {
+        actionRevision.current += 1
+        setProgress(result)
+      }
+    } catch {
+      if (alive.current) setError('request')
+    } finally {
+      if (alive.current) setBusy(false)
+    }
+  }
   const attach = async (selected: FileList | null): Promise<void> => {
     if (!selected) return
     setBusy(true)
@@ -491,6 +512,19 @@ function OptimizationSessionPanel({
               >
                 {t('Stop optimization')}
               </button>
+            )}
+            {!active && progress.resumeAvailable && (
+              <div>
+                <p>{t('Resume uses the original task and remaining budget.')}</p>
+                <button
+                  type="button"
+                  className="rounded border border-border px-3 py-2 disabled:opacity-50"
+                  disabled={busy}
+                  onClick={() => void resume()}
+                >
+                  {t('Resume optimization')}
+                </button>
+              </div>
             )}
             {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
             {progress.assessments && !progress.domain && (

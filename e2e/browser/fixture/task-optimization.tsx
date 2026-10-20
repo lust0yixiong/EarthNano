@@ -146,7 +146,8 @@ const api: DesktopOptimizationApi = {
   stop: async () => {
     calls.stop++
     return progress('cancelled')
-  }
+  },
+  resume: async () => progress('running')
 }
 export function Fixture(): React.JSX.Element {
   const [session, setSession] = useState('session')

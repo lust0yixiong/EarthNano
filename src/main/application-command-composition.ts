@@ -167,6 +167,7 @@ const ELECTRON_NATIVE_COMMAND_NAMES = Object.freeze([
   'optimization:get',
   'optimization:latest',
   'optimization:stop',
+  'optimization:resume',
   ...pdfTranslationApplicationCommandGroup.commands.map(({ name }) => name),
   'office-preview:open',
   'office-preview:attach-frame',

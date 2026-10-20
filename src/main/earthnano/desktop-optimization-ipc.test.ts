@@ -36,12 +36,13 @@ beforeEach(() => {
     start: vi.fn().mockResolvedValue({ state: 'queued' }),
     get: vi.fn().mockResolvedValue({ state: 'running' }),
     latest: vi.fn().mockResolvedValue(null),
-    stop: vi.fn().mockResolvedValue({ state: 'stopping' })
+    stop: vi.fn().mockResolvedValue({ state: 'stopping' }),
+    resume: vi.fn().mockResolvedValue({ state: 'queued' })
   }
   registerDesktopOptimizationIpcHandlers(api)
 })
-it('registers typed desktop start/get/latest/stop and forwards only their DTOs', async () => {
-  for (const operation of ['start', 'get', 'latest', 'stop'] as const) {
+it('registers typed desktop start/get/latest/stop/resume and forwards only their DTOs', async () => {
+  for (const operation of ['start', 'get', 'latest', 'stop', 'resume'] as const) {
     const dto =
       operation === 'start'
         ? request
@@ -51,6 +52,12 @@ it('registers typed desktop start/get/latest/stop and forwards only their DTOs',
     await handlers.get(`optimization:${operation}`)!(event(), dto)
     expect(api[operation]).toHaveBeenCalledWith(dto)
   }
+})
+it('resumes only a known run key and rejects replacement input, tools or budget fields', async () => {
+  const key = { projectId: 'p', sourceSessionId: 's', runId: 'r' }
+  for (const extra of [{ executionLimit: 128 }, { prompt: 'Replace task' }, { tools: 'all' }])
+    await expect(invokeDesktopOptimization(api, 'resume', { ...key, ...extra })).rejects.toThrow()
+  expect(api.resume).not.toHaveBeenCalled()
 })
 it('rejects missing/destroyed/subframe callers and does not invoke the manager', async () => {
   const missing = { ...event(), senderFrame: null } as unknown as IpcMainInvokeEvent

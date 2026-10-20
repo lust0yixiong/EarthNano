@@ -7330,6 +7330,8 @@
     "Execution limit (includes two assessments)": "执行次数上限（含两次评估）",
     "Start optimization": "开始优化",
     "Stop optimization": "停止优化",
+    "Resume optimization": "继续优化",
+    "Resume uses the original task and remaining budget.": "继续执行将使用原任务和剩余预算。",
     "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "最多选择 32 个文件名简单的文本文件，单个不超过 64 KB，总计不超过 128 KB。",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "无法完成优化请求，请检查所选模型和运行环境设置。",
     "Used {{used}} of {{limit}} executions · {{active}} active": "已用 {{used}} / {{limit}} 次执行 · {{active}} 项进行中",

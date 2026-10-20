@@ -325,7 +325,12 @@ const optimizationCommands = Object.freeze({
     'optimization:stop',
     readonly [request: Parameters<DesktopOptimizationApi['stop']>[0]],
     Awaited<ReturnType<DesktopOptimizationApi['stop']>>
-  >('optimization:stop')
+  >('optimization:stop'),
+  resume: defineApplicationCommand<
+    'optimization:resume',
+    readonly [request: Parameters<DesktopOptimizationApi['resume']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['resume']>>
+  >('optimization:resume')
 })
 
 const storageCommands = Object.freeze({
@@ -992,6 +997,11 @@ const registerHostApplicationCommands = (
         requireDesktopCaller(callerContext)
         if (!dependencies.optimization) throw new Error('Optimization is unavailable')
         return invokeDesktopOptimization(dependencies.optimization, 'stop', args[0])
+      },
+      'optimization:resume': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'resume', args[0])
       }
     })
     return scope.complete()

@@ -17,5 +17,9 @@ export const contracts = {
   'optimization.stop': callable<DesktopOptimizationApi['stop']>()('optimization', [
     'optimization:stop',
     ELECTRON
+  ]),
+  'optimization.resume': callable<DesktopOptimizationApi['resume']>()('optimization', [
+    'optimization:resume',
+    ELECTRON
   ])
 } as const

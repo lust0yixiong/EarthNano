@@ -62,7 +62,7 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
 
 /** Desktop-only, top-frame admission. Requests never accept credentials, executable paths or URLs. */
 export function registerDesktopOptimizationIpcHandlers(api: DesktopOptimizationApi): void {
-  for (const operation of ['start', 'get', 'latest', 'stop'] as const) {
+  for (const operation of ['start', 'get', 'latest', 'stop', 'resume'] as const) {
     ipcMainHandle(
       `optimization:${operation}`,
       async (event: IpcMainInvokeEvent, request: unknown) => {

@@ -84,6 +84,8 @@ export interface OptimizationProgress {
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
   error?: string
+  /** Explicit resume can be requested; main revalidates original snapshots and owners first. */
+  resumeAvailable?: boolean
   updatedAt: number
 }
 export interface DesktopOptimizationApi {
@@ -93,4 +95,6 @@ export interface DesktopOptimizationApi {
     request: Pick<OptimizationRunKey, 'projectId' | 'sourceSessionId'>
   ): Promise<OptimizationProgress | null>
   stop(request: OptimizationRunKey): Promise<OptimizationProgress>
+  /** Continue the original frozen experiment and remaining original budget, never a new task. */
+  resume(request: OptimizationRunKey): Promise<OptimizationProgress>
 }

@@ -7800,6 +7800,8 @@
     "Execution limit (includes two assessments)": "Лимит запусков (включая две оценки)",
     "Start optimization": "Начать оптимизацию",
     "Stop optimization": "Остановить оптимизацию",
+    "Resume optimization": "Продолжить оптимизацию",
+    "Resume uses the original task and remaining budget.": "Продолжение использует исходную задачу и оставшийся бюджет.",
     "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "Выберите до 32 текстовых файлов с простыми именами: до 64 КБ каждый и 128 КБ суммарно.",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "Не удалось выполнить запрос оптимизации. Проверьте выбранную модель и настройки среды выполнения.",
     "Used {{used}} of {{limit}} executions · {{active}} active": "Использовано {{used}} из {{limit}} запусков · активных: {{active}}",

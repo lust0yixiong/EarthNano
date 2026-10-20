@@ -7330,6 +7330,8 @@
     "Execution limit (includes two assessments)": "執行次數上限（含兩次評估）",
     "Start optimization": "開始最佳化",
     "Stop optimization": "停止最佳化",
+    "Resume optimization": "繼續最佳化",
+    "Resume uses the original task and remaining budget.": "繼續執行將使用原任務和剩餘預算。",
     "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "最多選擇 32 個檔名簡單的文字檔案，單個不超過 64 KB，總計不超過 128 KB。",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "無法完成最佳化請求，請檢查所選模型和執行環境設定。",
     "Used {{used}} of {{limit}} executions · {{active}} active": "已用 {{used}} / {{limit}} 次執行 · {{active}} 項進行中",

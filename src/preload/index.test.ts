@@ -479,6 +479,7 @@ describe('preload bridge — public surface inventory', () => {
       'officePreview.reportState',
       'optimization.get',
       'optimization.latest',
+      'optimization.resume',
       'optimization.start',
       'optimization.stop',
       'packagePresentation.cancelTransfer',
@@ -1911,7 +1912,7 @@ describe('preload bridge — sessions + agent-framework IPC channels', () => {
 })
 
 describe('desktop optimization preload protocol', () => {
-  it('forwards start/get/latest/stop over desktop-only typed channels', async () => {
+  it('forwards start/get/latest/stop/resume over desktop-only typed channels', async () => {
     const input = {
       projectId: 'p',
       sourceSessionId: 's',
@@ -1933,5 +1934,7 @@ describe('desktop optimization preload protocol', () => {
     })
     await api.optimization.stop(key)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:stop', key)
+    await api.optimization.resume(key)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:resume', key)
   })
 })

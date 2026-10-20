@@ -68,8 +68,22 @@ beforeEach(() => {
     start: vi.fn().mockResolvedValue(progress()),
     get: vi.fn().mockResolvedValue(progress()),
     latest: vi.fn().mockResolvedValue(null),
-    stop: vi.fn().mockResolvedValue(progress('cancelled'))
+    stop: vi.fn().mockResolvedValue(progress('cancelled')),
+    resume: vi.fn().mockResolvedValue(progress('queued'))
   }
+})
+it('resumes the original experiment key without forwarding edited task or budget controls', async () => {
+  vi.mocked(api.latest).mockResolvedValue({ ...progress('cancelled'), resumeAvailable: true })
+  await render()
+  await input('Task description', 'A different task')
+  await input('Execution limit (includes two assessments)', '128')
+  await click('Resume optimization')
+  expect(api.resume).toHaveBeenCalledExactlyOnceWith({
+    projectId: 'project',
+    sourceSessionId: 'session',
+    runId: 'run'
+  })
+  expect(api.start).not.toHaveBeenCalled()
 })
 it('selects a fixed saved version without copying content or trusting a host path', async () => {
   await render('session', [

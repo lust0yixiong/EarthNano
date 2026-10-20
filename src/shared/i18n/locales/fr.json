@@ -7660,6 +7660,8 @@
     "Execution limit (includes two assessments)": "Limite d’exécutions (deux évaluations incluses)",
     "Start optimization": "Démarrer l’optimisation",
     "Stop optimization": "Arrêter l’optimisation",
+    "Resume optimization": "Reprendre l’optimisation",
+    "Resume uses the original task and remaining budget.": "La reprise utilise la tâche initiale et le budget restant.",
     "Choose up to 32 text files with simple names, at most 64 KB each and 128 KB total.": "Choisissez jusqu’à 32 fichiers texte aux noms simples, de 64 Ko chacun et 128 Ko au total maximum.",
     "Optimization request could not be completed. Check the selected model and runtime settings.": "La demande d’optimisation n’a pas abouti. Vérifiez le modèle sélectionné et les paramètres d’exécution.",
     "Used {{used}} of {{limit}} executions · {{active}} active": "{{used}} exécutions utilisées sur {{limit}} · {{active}} actives",

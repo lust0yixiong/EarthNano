@@ -951,10 +951,14 @@ it.each([false, true])(
 
 it('dispatches optimization through the real desktop inventory while rejecting web callers and unexpected fields', async () => {
   const start = vi.fn().mockResolvedValue({ runId: 'synthetic' })
+  const resume = vi.fn().mockResolvedValue({ runId: 'synthetic', state: 'queued' })
   const deps = dependencies()
   const composition = createApplicationCommandComposition({
     ...deps,
-    host: { ...deps.host, optimization: { start, get: vi.fn(), latest: vi.fn(), stop: vi.fn() } }
+    host: {
+      ...deps.host,
+      optimization: { start, get: vi.fn(), latest: vi.fn(), stop: vi.fn(), resume }
+    }
   })
   const request = {
     projectId: 'p',
@@ -969,7 +973,8 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     'optimization:start',
     'optimization:get',
     'optimization:latest',
-    'optimization:stop'
+    'optimization:stop',
+    'optimization:resume'
   ]) {
     expect(composition.desktop.commandNames()).toContain(channel)
     expect(composition.localWeb.commandNames()).not.toContain(channel)
@@ -992,6 +997,29 @@ it('dispatches optimization through the real desktop inventory while rejecting w
     })
   ).resolves.toEqual({ runId: 'synthetic' })
   expect(start).toHaveBeenCalledWith(request)
+  const runKey = { projectId: 'p', sourceSessionId: 's', runId: 'synthetic' }
+  await expect(
+    composition.desktop.invoke('optimization:resume', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [runKey]
+    })
+  ).resolves.toEqual({ runId: 'synthetic', state: 'queued' })
+  expect(resume).toHaveBeenCalledWith(runKey)
+  await expect(
+    composition.desktop.invoke('optimization:resume', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [{ ...runKey, executionLimit: 128 }]
+    })
+  ).rejects.toThrow('Optimization request could not')
+  await expect(
+    composition.desktop.invoke('optimization:resume', {
+      ...invocation(),
+      args: [runKey]
+    })
+  ).rejects.toThrow()
+  expect(resume).toHaveBeenCalledOnce()
   await expect(
     composition.desktop.invoke('optimization:start', { ...invocation(), args: [request] })
   ).rejects.toThrow()
