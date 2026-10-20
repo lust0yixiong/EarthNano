@@ -290,3 +290,77 @@ it('shows persisted upstream selection, method and exact stage identifiers', asy
   expect(container.textContent).toContain('Selector recovery reason')
   expect(container.textContent).toContain('Stage: select_final')
 })
+
+it.each(['snapshot', 'error'] as const)(
+  'discards a pre-Stop polling %s after Stop is acknowledged and keeps polling',
+  async (kind) => {
+    vi.mocked(api.latest).mockResolvedValue(progress())
+    vi.mocked(api.stop).mockResolvedValue(progress('stopping'))
+    let resolve!: (value: OptimizationProgress) => void
+    let reject!: (error: Error) => void
+    vi.mocked(api.get)
+      .mockReturnValueOnce(
+        new Promise((done, fail) => {
+          resolve = done
+          reject = fail
+        })
+      )
+      .mockResolvedValue(progress('cancelled'))
+    await render()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(api.get).toHaveBeenCalledOnce()
+    await click('Stop optimization')
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+    await act(async () => {
+      if (kind === 'snapshot') resolve(progress())
+      else reject(new Error('Old poll failed'))
+    })
+    const button = [...container.querySelectorAll('button')].find(
+      (node) => node.textContent === 'Stop optimization'
+    )!
+    expect(button.disabled).toBe(true)
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+    expect(container.querySelector('[role=alert]')).toBeNull()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Cancelled')
+  }
+)
+it('also discards a snapshot requested while Stop was pending after its acknowledgement', async () => {
+  vi.mocked(api.latest).mockResolvedValue(progress())
+  let finishStop!: (value: OptimizationProgress) => void
+  vi.mocked(api.stop).mockReturnValue(
+    new Promise((done) => {
+      finishStop = done
+    })
+  )
+  let finishPoll!: (value: OptimizationProgress) => void
+  vi.mocked(api.get)
+    .mockReturnValueOnce(
+      new Promise((done) => {
+        finishPoll = done
+      })
+    )
+    .mockResolvedValue(progress('cancelled'))
+  await render()
+  await click('Stop optimization')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(api.get).toHaveBeenCalledOnce()
+  await act(async () => {
+    finishStop(progress('stopping'))
+  })
+  await act(async () => {
+    finishPoll(progress())
+  })
+  expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(container.querySelector('[role=status]')?.textContent).toContain('Cancelled')
+})

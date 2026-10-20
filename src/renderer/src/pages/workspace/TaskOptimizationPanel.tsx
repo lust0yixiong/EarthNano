@@ -79,7 +79,7 @@ function OptimizationSessionPanel({
         if (!disposed && revision === actionRevision.current) setProgress(value)
       })
       .catch(() => {
-        if (!disposed) setError('request')
+        if (!disposed && revision === actionRevision.current) setError('request')
       })
     return () => {
       disposed = true
@@ -96,17 +96,22 @@ function OptimizationSessionPanel({
     let timer: ReturnType<typeof setTimeout> | undefined
     const poll = (): void => {
       timer = setTimeout(() => {
+        const revision = actionRevision.current
         void api
           .get({ projectId, sourceSessionId: sessionId, runId: runningRunId })
           .then((value) => {
             if (disposed) return
+            if (revision !== actionRevision.current) {
+              poll()
+              return
+            }
             setProgress(value)
             setError(false)
             if (!terminal(value.state)) poll()
           })
           .catch(() => {
             if (!disposed) {
-              setError('request')
+              if (revision === actionRevision.current) setError('request')
               poll()
             }
           })
@@ -154,6 +159,7 @@ function OptimizationSessionPanel({
         method
       })
       if (alive.current) {
+        actionRevision.current += 1
         setProgress(result)
         requestKey.current = null
       }
@@ -174,7 +180,10 @@ function OptimizationSessionPanel({
         sourceSessionId: sessionId,
         runId: progress.runId
       })
-      if (alive.current) setProgress(result)
+      if (alive.current) {
+        actionRevision.current += 1
+        setProgress(result)
+      }
     } catch {
       if (alive.current) setError('request')
     } finally {

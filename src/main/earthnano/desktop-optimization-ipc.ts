@@ -1,5 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import type { DesktopOptimizationApi } from '../../shared/earthnano/desktop-optimization'
+import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
 import { callerContextForEvent, requireDesktopCaller } from '../caller-context'
 import { ipcMainHandle } from '../ipc-handler-registry'
 
@@ -11,7 +12,7 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
   try {
     if (!request || typeof request !== 'object' || Array.isArray(request))
       throw new Error('Invalid optimization request')
-    const allowed =
+    const required =
       operation === 'start'
         ? [
             'projectId',
@@ -25,11 +26,14 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
         : operation === 'latest'
           ? ['projectId', 'sourceSessionId']
           : ['projectId', 'sourceSessionId', 'runId']
+    const allowed = operation === 'start' ? [...required, 'method'] : required
     if (
-      Object.keys(request).length !== allowed.length ||
+      required.some((key) => !Object.hasOwn(request, key)) ||
       Object.keys(request).some((key) => !allowed.includes(key))
     )
       throw new Error('Unexpected optimization fields')
+    if (operation === 'start' && Object.hasOwn(request, 'method'))
+      normalizeOptimizationMethod((request as Record<string, unknown>).method)
     // The manager owns full bounded DTO validation and Project/Session authorization.
     return await (
       api[operation] as (input: unknown) => Promise<Awaited<ReturnType<DesktopOptimizationApi[K]>>>
