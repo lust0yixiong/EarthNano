@@ -15,6 +15,7 @@ import {
   type OptimizationResumeIdentity
 } from './optimization-resume'
 import { outputDigest } from './output-checks'
+import { createHarnessBindingV2Identity } from './harness-binding-v2'
 
 const roots: string[] = []
 const cores: ExecutionCore[] = []
@@ -152,4 +153,67 @@ it('pins method source bytes and immutable descriptor identity while excluding g
   const value = JSON.parse(readFileSync(join(directory, 'resume.json'), 'utf8'))
   writeResumeJson(join(directory, 'resume.json'), { ...value, identity: { taskId: 'changed' } })
   expect(() => readPersistentOptimizationResume(directory)).toThrow('changed')
+})
+
+it('pins v2 mode routing before cache lookup and keeps shared bases in both exact mode views', async () => {
+  const { record } = await completed()
+  const descriptor = createHarnessBindingV2Identity({ k: 2, seed: 0, modes: ['agg', 'seq'] })
+  const filename = join(root(), 'routing.json')
+  const index = new OptimizationResumeIndex(filename, false, descriptor)
+  const base = {
+    ...record,
+    requestKey: 'base',
+    request: { ...record.request, role: 'baseline' as const, requestKey: 'base' }
+  }
+  const agg = {
+    ...record,
+    executionId: 'agg',
+    requestKey: 'agg',
+    request: { ...record.request, role: 'candidate' as const, requestKey: 'agg' }
+  }
+  const seq = {
+    ...record,
+    executionId: 'seq',
+    requestKey: 'seq',
+    request: { ...record.request, role: 'candidate' as const, requestKey: 'seq' }
+  }
+  index.remember('task', base.request, 'base-slot', descriptor.baseScope)
+  index.remember('task', agg.request, 'agg-slot', descriptor.modeScopes.agg)
+  index.remember('task', seq.request, 'seq-slot', descriptor.modeScopes.seq)
+  expect(index.recordsForScope('task', descriptor.modeScopes.agg!, [base, agg, seq])).toEqual([
+    base,
+    agg
+  ])
+  expect(index.recordsForScope('task', descriptor.modeScopes.seq!, [base, agg, seq])).toEqual([
+    base,
+    seq
+  ])
+  expect(
+    index.recordsForScope('different-task', descriptor.modeScopes.seq!, [base, agg, seq])
+  ).toEqual([])
+  expect(() => index.remember('task', agg.request, 'agg-slot', descriptor.modeScopes.seq)).toThrow()
+  expect(() =>
+    index.remember(
+      'task',
+      { ...base.request, requestKey: 'bad-base' },
+      'x',
+      descriptor.modeScopes.seq
+    )
+  ).toThrow()
+  expect(new OptimizationResumeIndex(filename, true, descriptor).scope('seq')).toBe(
+    descriptor.modeScopes.seq
+  )
+  expect(() => new OptimizationResumeIndex(filename, true)).toThrow()
+  expect(
+    () =>
+      new OptimizationResumeIndex(
+        filename,
+        true,
+        createHarnessBindingV2Identity({ k: 2, seed: 1, modes: ['agg', 'seq'] })
+      )
+  ).toThrow()
+  const value = JSON.parse(readFileSync(filename, 'utf8'))
+  value.bindingIdentity.digest = `sha256:${'b'.repeat(64)}`
+  writeResumeJson(filename, value)
+  expect(() => new OptimizationResumeIndex(filename, true, descriptor)).toThrow()
 })

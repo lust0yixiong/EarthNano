@@ -13,10 +13,12 @@ import { dirname, join } from 'node:path'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { canonicalOutput, outputDigest } from './output-checks'
 import { requestDigest, validateRecord } from './execution-contract'
-import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import type { PersistentSingleOptimizationOptions } from './run-persistent-optimization'
+import type { ResolvedOptimizationSweep } from './sweep-contract'
+import { assertHarnessBindingV2Identity, type HarnessBindingV2Identity } from './harness-binding-v2'
 
-export type OptimizationResumeIdentity = Pick<
-  PersistentOptimizationOptions,
+export type SingleOptimizationResumeIdentity = Pick<
+  PersistentSingleOptimizationOptions,
   | 'projectId'
   | 'sourceSessionId'
   | 'sourcePromptMessageId'
@@ -27,12 +29,23 @@ export type OptimizationResumeIdentity = Pick<
   | 'checks'
   | 'domain'
 > & {
-  method: NonNullable<PersistentOptimizationOptions['method']>
+  sweep?: never
+  method: NonNullable<PersistentSingleOptimizationOptions['method']>
   executionLimit: number
   executionTimeoutMs: number
 }
+export interface SweepOptimizationResumeIdentity {
+  projectId: string
+  sourceSessionId?: string
+  taskId: string
+  sweep: ResolvedOptimizationSweep
+  executionLimit: number
+  executionTimeoutMs: number
+}
+export type OptimizationResumeIdentity =
+  SingleOptimizationResumeIdentity | SweepOptimizationResumeIdentity
 export interface PersistentOptimizationResume {
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   optimizationId: string
   identity: OptimizationResumeIdentity
   identityDigest: string
@@ -90,7 +103,7 @@ export function readPersistentOptimizationResume(workRoot: string): PersistentOp
     readFileSync(join(workRoot, 'resume.json'), 'utf8')
   ) as PersistentOptimizationResume
   if (
-    value.schemaVersion !== 1 ||
+    ![1, 2].includes(value.schemaVersion) ||
     !value.identity ||
     typeof value.optimizationId !== 'string' ||
     !value.optimizationId ||
@@ -99,26 +112,44 @@ export function readPersistentOptimizationResume(workRoot: string): PersistentOp
     value.identityDigest !== outputDigest(value.identity)
   )
     throw new Error('Optimization resume manifest is unavailable or changed')
+  if (value.schemaVersion === 2) {
+    if (!value.identity.sweep) throw new Error('Sweep resume identity is unavailable')
+    assertHarnessBindingV2Identity(
+      value.identity.sweep.plan.bindingIdentity,
+      value.identity.sweep.plan.bindingIdentity
+    )
+  } else if (value.identity.sweep) {
+    throw new Error('Legacy resume identity cannot acquire sweep authority')
+  }
   return value
 }
 
 /** A task/request routing index, never an execution or completion authority. Journal records and
  * original fixed-version owners must independently validate every cache hit. */
 export class OptimizationResumeIndex {
-  private readonly entries: Record<string, { taskId: string; slot: string }>
+  private readonly entries: Record<string, { taskId: string; slot: string; scope?: string }>
   constructor(
     private readonly filename: string,
-    resume: boolean
+    resume: boolean,
+    private readonly bindingIdentity?: HarnessBindingV2Identity
   ) {
     const saved = resume ? JSON.parse(readFileSync(filename, 'utf8')) : undefined
     if (
       resume &&
       (!saved ||
-        saved.schemaVersion !== 1 ||
+        saved.schemaVersion !== (bindingIdentity ? 2 : 1) ||
         !saved.entries ||
         saved.digest !== outputDigest(saved.entries))
     )
       throw new Error('Optimization request routing index changed')
+    if (bindingIdentity) {
+      assertHarnessBindingV2Identity(
+        bindingIdentity,
+        resume ? saved.bindingIdentity : bindingIdentity
+      )
+    } else if (saved?.bindingIdentity !== undefined) {
+      throw new Error('Legacy request index cannot acquire sweep authority')
+    }
     this.entries = saved?.entries ?? {}
     if (
       !this.entries ||
@@ -130,22 +161,38 @@ export class OptimizationResumeIndex {
           typeof entry.taskId !== 'string' ||
           !entry.taskId ||
           typeof entry.slot !== 'string' ||
-          !entry.slot
+          !entry.slot ||
+          (bindingIdentity
+            ? typeof entry.scope !== 'string' ||
+              ![bindingIdentity.baseScope, ...Object.values(bindingIdentity.modeScopes)].includes(
+                entry.scope
+              )
+            : entry.scope !== undefined)
       )
     )
       throw new Error('Invalid optimization request routing index')
     if (!resume) this.persist()
   }
-  remember(taskId: string, request: ExecutionRequest, slot: string): void {
+  remember(taskId: string, request: ExecutionRequest, slot: string, scope?: string): void {
+    if (this.bindingIdentity) {
+      const allowed =
+        request.role === 'baseline'
+          ? [this.bindingIdentity.baseScope]
+          : Object.values(this.bindingIdentity.modeScopes)
+      if (!scope || !allowed.includes(scope))
+        throw new Error('Optimization scope ownership changed')
+    } else if (scope !== undefined)
+      throw new Error('Legacy optimization cannot acquire scope authority')
     const prior = this.entries[request.requestKey]
-    if (prior && (prior.taskId !== taskId || prior.slot !== slot))
+    if (prior && (prior.taskId !== taskId || prior.slot !== slot || prior.scope !== scope))
       throw new Error('Optimization task ownership changed')
-    this.entries[request.requestKey] = { taskId, slot }
+    this.entries[request.requestKey] = { taskId, slot, ...(scope ? { scope } : {}) }
     this.persist()
   }
   private persist(): void {
     writeResumeJson(this.filename, {
-      schemaVersion: 1,
+      schemaVersion: this.bindingIdentity ? 2 : 1,
+      ...(this.bindingIdentity ? { bindingIdentity: this.bindingIdentity } : {}),
       entries: this.entries,
       digest: outputDigest(this.entries)
     })
@@ -155,6 +202,19 @@ export class OptimizationResumeIndex {
   }
   slot(requestKey: string): string | undefined {
     return this.entries[requestKey]?.slot
+  }
+  scope(requestKey: string): string | undefined {
+    return this.entries[requestKey]?.scope
+  }
+  recordsForScope(taskId: string, scope: string, records: ExecutionRecord[]): ExecutionRecord[] {
+    if (!this.bindingIdentity || !Object.values(this.bindingIdentity.modeScopes).includes(scope))
+      throw new Error('Optimization mode scope is unavailable')
+    return this.recordsForTask(taskId, records).filter(
+      (record) =>
+        this.scope(record.requestKey) === scope ||
+        (record.request.role === 'baseline' &&
+          this.scope(record.requestKey) === this.bindingIdentity!.baseScope)
+    )
   }
   validate(records: ExecutionRecord[]): void {
     for (const record of records) {

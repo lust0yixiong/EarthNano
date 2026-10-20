@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   minimumSweepExecutions,
+  assertSweepExecutionLimit,
   normalizeOptimizationCatalog,
   normalizeOptimizationSweep
 } from './optimization-sweep'
@@ -41,6 +42,15 @@ describe('shared original sweep contract', () => {
     expect(normalized).toEqual(catalog)
     catalog[0]!.domain = 'changed'
     expect(normalized[0]!.domain).toBe('B')
+  })
+  it('enforces one global cap after original filtering and refuses oversized first-attempt plans', () => {
+    const normalized = normalizeOptimizationSweep(options())
+    expect(() => assertSweepExecutionLimit(normalized, 4, 132)).not.toThrow()
+    for (const limit of [131, 513, Infinity, 132.5])
+      expect(() => assertSweepExecutionLimit(normalized, 4, limit)).toThrow()
+    expect(minimumSweepExecutions({ ...normalized, k: 8 }, 32)).toBe(3552)
+    expect(() => assertSweepExecutionLimit({ ...normalized, k: 8 }, 32, 512)).toThrow()
+    expect(() => assertSweepExecutionLimit({ ...normalized, k: 8 }, 1, 512)).not.toThrow()
   })
   it.each([
     { ...options(), modes: [] },

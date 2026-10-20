@@ -55,7 +55,8 @@ vi.mock('./semantic-evaluation', async (original) => ({
 vi.mock('./research-verification', () => ({ evaluateResearchOutcome: f.outcome }))
 import {
   runPersistentOptimization,
-  type PersistentOptimizationOptions
+  type PersistentOptimizationOptions,
+  type PersistentSingleOptimizationOptions
 } from './run-persistent-optimization'
 import {
   MAX_TIMER_TIMEOUT_MS,
@@ -73,7 +74,7 @@ afterEach(async () => {
   vi.clearAllMocks()
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
-const options = async (): Promise<PersistentOptimizationOptions> => {
+const options = async (): Promise<PersistentSingleOptimizationOptions> => {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-deadline-'))
   roots.push(root)
   return {

@@ -170,3 +170,17 @@ export function minimumSweepExecutions(
     (k + modes.length * (6 * k + (k > 1 ? 1 : 0) + 1) + (assessments ? 1 + modes.length : 0))
   )
 }
+
+/** One experiment-wide admission cap. Call after original task_stream resolves selected IDs. */
+export function assertSweepExecutionLimit(
+  options: OptimizationSweepOptions,
+  selectedTaskCount: number,
+  limit: number
+): void {
+  if (
+    !Number.isSafeInteger(limit) ||
+    limit > MAX_SWEEP_EXECUTIONS ||
+    limit < minimumSweepExecutions(options, selectedTaskCount)
+  )
+    throw new Error('Sweep execution limit cannot cover the selected original task stream')
+}

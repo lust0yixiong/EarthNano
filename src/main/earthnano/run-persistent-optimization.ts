@@ -67,6 +67,14 @@ import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
 } from './persistent-candidate-owner'
+import type { ResolvedOptimizationSweep } from './sweep-contract'
+import {
+  MAX_SWEEP_EXECUTIONS,
+  type OptimizationSweepSummary
+} from '../../shared/earthnano/optimization-sweep'
+import { sweepTasks } from './sweep-input'
+import { previewOptimizationSweep } from './sweep-plan'
+import { prepareSweepSummary, sweepModeToken, type SweepMethodResult } from './sweep-results'
 
 export interface PersistentOptimizationProgress {
   optimizationId: string
@@ -74,9 +82,11 @@ export interface PersistentOptimizationProgress {
   records: ExecutionRecord[]
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
+  sweep?: OptimizationSweepSummary
 }
 
-export interface PersistentOptimizationOptions {
+export interface PersistentSingleOptimizationOptions {
+  sweep?: never
   /** Existing project identity in the original OpenScience repositories. */
   projectId: string
   sourceSessionId?: string
@@ -106,6 +116,29 @@ export interface PersistentOptimizationOptions {
   /** Projection of committed execution facts, including reviewer admissions. */
   onProgress?: (progress: PersistentOptimizationProgress) => void
 }
+/** Same lifecycle, journal, owners and Core; the catalog replaces the single-task payload. */
+export type PersistentSweepOptimizationOptions = Omit<
+  PersistentSingleOptimizationOptions,
+  | 'sweep'
+  | 'input'
+  | 'inputArtifacts'
+  | 'sourcePromptMessageId'
+  | 'method'
+  | 'semanticCriteria'
+  | 'checks'
+  | 'domain'
+> & {
+  sweep: ResolvedOptimizationSweep
+  input?: never
+  inputArtifacts?: never
+  sourcePromptMessageId?: never
+  method?: never
+  semanticCriteria?: never
+  checks?: never
+  domain?: never
+}
+export type PersistentOptimizationOptions =
+  PersistentSingleOptimizationOptions | PersistentSweepOptimizationOptions
 
 /** Opt-in production composition. Existing Session/Artifact/Review owners remain authoritative.
  * A fresh invocation is required; interruption never silently replays a paid model request. */
@@ -116,6 +149,7 @@ export interface PersistentOptimizationResult {
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
+  sweep?: OptimizationSweepSummary
 }
 export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
@@ -123,8 +157,36 @@ export async function runPersistentOptimization(
   if (options.resume !== undefined && options.resume !== true)
     throw new Error('Optimization resume requires explicit true')
   options.signal?.throwIfAborted()
-  const method = normalizeOptimizationMethod(options.method)
-  const input = structuredClone(options.input)
+  const sweep = options.sweep ? structuredClone(options.sweep) : undefined
+  if (
+    sweep &&
+    (sweep.request.projectId !== options.projectId ||
+      sweep.request.sourceSessionId !== options.sourceSessionId ||
+      sweep.request.executionLimit !== options.executionLimit)
+  )
+    throw new Error('Sweep request belongs to another experiment authority')
+  if (
+    sweep &&
+    [
+      options.input,
+      options.method,
+      options.domain,
+      options.semanticCriteria,
+      options.checks,
+      options.inputArtifacts,
+      options.sourcePromptMessageId
+    ].some((item) => item !== undefined)
+  )
+    throw new Error('Sweep replaces the single task definition; mixed authorities refused')
+  const method = sweep
+    ? {
+        mode: sweep.plan.options.modes[0],
+        k: sweep.plan.options.k,
+        concurrency: sweep.plan.options.concurrency
+      }
+    : normalizeOptimizationMethod(options.method)
+  const selectedTasks = sweep ? sweepTasks(sweep) : undefined
+  const input = structuredClone(selectedTasks ? selectedTasks[0]!.input : options.input!)
   const inputArtifacts = normalizeOptimizationArtifactInputs(options.inputArtifacts)
   const sourceSessionId = options.sourceSessionId
   if (
@@ -137,18 +199,20 @@ export async function runPersistentOptimization(
   const domain = normalizeOptimizationDomain(options.domain)
   const scientific = input.harness.tools === 'notebook-python'
   if (
+    !sweep &&
     scientific &&
     (!options.sourcePromptMessageId ||
       !/^[A-Za-z0-9_-]{1,128}$/.test(options.sourcePromptMessageId))
   )
     throw new Error('Notebook source message identity missing')
   if (
+    !sweep &&
     scientific &&
     (!input.task.managedInputs?.length ||
       !input.environment.notebook ||
       input.task.files.length ||
       inputArtifacts?.length ||
-      domain ||
+      (!sweep && domain) ||
       !sourceSessionId ||
       !options.ownerOptions.notebook)
   )
@@ -159,17 +223,19 @@ export async function runPersistentOptimization(
     throw new Error('Invalid optimization task identifier')
   if (domain && semanticCriteria === undefined)
     throw new Error('Domain optimization requires independent criteria')
-  const tasks = domain
-    ? [
-        { taskId: options.taskId + '-0001', input, criteria: semanticCriteria!, checks },
-        ...domain.nextTasks.map((task, index) => ({
-          taskId: `${options.taskId}-${String(index + 2).padStart(4, '0')}`,
-          input: { ...input, task: { prompt: task.prompt, files: task.files } },
-          criteria: task.criteria,
-          checks: task.checks
-        }))
-      ]
-    : [{ taskId: options.taskId, input, criteria: semanticCriteria, checks }]
+  const tasks =
+    selectedTasks ??
+    (domain
+      ? [
+          { taskId: options.taskId + '-0001', input, criteria: semanticCriteria!, checks },
+          ...domain.nextTasks.map((task, index) => ({
+            taskId: `${options.taskId}-${String(index + 2).padStart(4, '0')}`,
+            input: { ...input, task: { prompt: task.prompt, files: task.files } },
+            criteria: task.criteria,
+            checks: task.checks
+          }))
+        ]
+      : [{ taskId: options.taskId, input, criteria: semanticCriteria, checks }])
   for (const task of tasks)
     for (const ref of inputArtifacts ?? []) {
       const file = task.input.task.files.find((file) => file.path === ref.path)
@@ -183,7 +249,7 @@ export async function runPersistentOptimization(
   const executionTimeoutMs = options.executionTimeoutMs ?? 120_000
   const timeoutMs = options.timeoutMs ?? 600_000
   if (
-    limit > MAX_OPTIMIZATION_EXECUTIONS ||
+    limit > (sweep ? MAX_SWEEP_EXECUTIONS : MAX_OPTIMIZATION_EXECUTIONS) ||
     ![limit, executionTimeoutMs, timeoutMs].every(
       (value) => Number.isSafeInteger(value) && value > 0
     )
@@ -194,21 +260,48 @@ export async function runPersistentOptimization(
   assertExecutionTimeout(executionTimeoutMs, MAX_HARNESS_EXECUTION_TIMEOUT_MS)
   const deadline = AbortSignal.timeout(timeoutMs)
   const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
-  const identity = JSON.parse(
-    JSON.stringify({
-      projectId: options.projectId,
-      sourceSessionId: options.sourceSessionId,
-      sourcePromptMessageId: options.sourcePromptMessageId,
-      taskId: options.taskId,
-      input,
-      inputArtifacts,
-      method,
-      semanticCriteria,
-      checks,
-      domain,
-      executionLimit: limit,
-      executionTimeoutMs
+  if (sweep) {
+    if (
+      sweep.tasks.some((task) => task.input.harness.tools === 'notebook-python') &&
+      !options.ownerOptions.notebook
+    )
+      throw new Error('Sweep Notebook tasks require the original runtime owner')
+    const currentPlan = await previewOptimizationSweep({
+      catalog: sweep.plan.catalog,
+      options: sweep.plan.options,
+      python: options.python ?? 'python3',
+      harnessRoot: options.harnessRoot,
+      signal
     })
+    if (canonicalOutput(currentPlan) !== canonicalOutput(sweep.plan))
+      throw new Error('Original sweep plan changed before admission')
+  }
+  const identity = JSON.parse(
+    JSON.stringify(
+      sweep
+        ? {
+            projectId: options.projectId,
+            sourceSessionId: options.sourceSessionId,
+            taskId: options.taskId,
+            sweep,
+            executionLimit: limit,
+            executionTimeoutMs
+          }
+        : {
+            projectId: options.projectId,
+            sourceSessionId: options.sourceSessionId,
+            sourcePromptMessageId: options.sourcePromptMessageId,
+            taskId: options.taskId,
+            input,
+            inputArtifacts,
+            method,
+            semanticCriteria,
+            checks,
+            domain,
+            executionLimit: limit,
+            executionTimeoutMs
+          }
+    )
   ) as OptimizationResumeIdentity
   const methodDigest = optimizationMethodDigest(options.harnessRoot)
   const saved = options.resume ? readPersistentOptimizationResume(options.workRoot) : undefined
@@ -222,7 +315,7 @@ export async function runPersistentOptimization(
   const optimizationId = saved?.optimizationId ?? randomUUID()
   if (!saved)
     writeResumeJson(join(options.workRoot, 'resume.json'), {
-      schemaVersion: 1,
+      schemaVersion: sweep ? 2 : 1,
       optimizationId,
       identity,
       identityDigest: outputDigest(identity),
@@ -239,13 +332,15 @@ export async function runPersistentOptimization(
         library: { scope: 'experiment', entries: [], digest: outputDigest([]) }
       }
     : undefined
+  let sweepSummary: OptimizationSweepSummary | undefined
   const publish = (): void => {
     options.onProgress?.({
       optimizationId,
       stage,
       records: Object.values(store.load().records),
       ...(outcome ? { outcome: structuredClone(outcome) } : {}),
-      ...(domainSummary ? { domain: structuredClone(domainSummary) } : {})
+      ...(domainSummary ? { domain: structuredClone(domainSummary) } : {}),
+      ...(sweepSummary ? { sweep: structuredClone(sweepSummary) } : {})
     })
   }
   let resumeIndex: OptimizationResumeIndex
@@ -267,7 +362,8 @@ export async function runPersistentOptimization(
   try {
     resumeIndex = new OptimizationResumeIndex(
       join(options.workRoot, 'request-tasks.json'),
-      !!options.resume
+      !!options.resume,
+      sweep?.plan.bindingIdentity
     )
     previousRecords = Object.values(store.load().records)
     if (options.resume) {
@@ -287,7 +383,23 @@ export async function runPersistentOptimization(
       signal.throwIfAborted()
     }
     failureStage = 'input-projection'
-    if (scientific)
+    if (sweep)
+      await writeProjection(
+        join(options.workRoot, 'sweep-sources.json'),
+        canonicalOutput({
+          schemaVersion: 2,
+          tasks: selectedTasks!.map((task) => ({
+            taskId: task.taskId,
+            domain: task.domain,
+            sourceSessionId: task.sourceSessionId,
+            sourcePromptMessageId: task.sourcePromptMessageId,
+            inputArtifacts: task.inputArtifacts,
+            task: task.input.task,
+            environment: task.input.environment
+          }))
+        })
+      )
+    if (!sweep && scientific)
       await writeProjection(
         join(options.workRoot, 'notebook-task.json'),
         canonicalOutput({
@@ -313,16 +425,20 @@ export async function runPersistentOptimization(
           }))
         })
       )
-    if (semanticCriteria !== undefined)
+    if (sweep || semanticCriteria !== undefined)
       await writeProjection(
         join(options.workRoot, 'assessment-plan.json'),
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: sweep ? 2 : 1,
           ...(method.k > 1 ? { baselineStageId: 'base1' } : {}),
-          criteria: semanticCriteria,
-          criteriaDigest: semanticDigest(semanticCriteria),
+          ...(semanticCriteria === undefined
+            ? {}
+            : {
+                criteria: semanticCriteria,
+                criteriaDigest: semanticDigest(semanticCriteria)
+              }),
           ...(checks ? { checks } : {}),
-          ...(domain
+          ...(domain || sweep
             ? {
                 tasks: tasks.map((task) => ({
                   taskId: task.taskId,
@@ -353,6 +469,9 @@ export async function runPersistentOptimization(
       root: join(options.workRoot, 'snapshots'),
       candidatesRoot: join(options.workRoot, 'candidates')
     })
+    // Freeze every selected payload before the first paid admission. One invalid late task
+    // must not be discovered after sibling domains have already consumed model calls.
+    if (sweep) for (const task of tasks) await snapshots.freeze(task.input)
     if (options.resume)
       for (const record of previousRecords) {
         signal.throwIfAborted()
@@ -397,25 +516,46 @@ export async function runPersistentOptimization(
       ...bindingOptions,
       input: task.input,
       taskId: task.taskId,
+      ...(sweep
+        ? {
+            bindingIdentity: sweep.plan.bindingIdentity,
+            coreConcurrency: sweep.plan.options.concurrency,
+            resumeScope: (key: string) => resumeIndex.scope(key)
+          }
+        : {}),
       ...(options.resume
         ? { resumeRecords: resumeIndex.recordsForTask(task.taskId, previousRecords) }
         : {}),
       resumeSlot: (key) => resumeIndex.slot(key),
-      onFreeze: (request, slot) => resumeIndex.remember(task.taskId, request, slot)
+      onFreeze: (request, slot, scope?: string) =>
+        resumeIndex.remember(task.taskId, request, slot, scope)
     })
-    binding = domain
-      ? new HarnessDomainBinding(tasks.map(taskBindingOptions))
-      : new HarnessOptimizationBinding(taskBindingOptions(tasks[0]))
+    binding =
+      domain || sweep
+        ? new HarnessDomainBinding(tasks.map(taskBindingOptions))
+        : new HarnessOptimizationBinding(taskBindingOptions(tasks[0]))
     const config = {
-      configVersion: 1,
+      configVersion: sweep ? 2 : 1,
       ...(options.resume ? { resume: true } : {}),
-      method,
-      ...(domain
+      ...(sweep
         ? {
-            domain: domain.name,
-            tasks: tasks.map((task) => ({ taskId: task.taskId, task: task.input.task }))
+            bindingIdentity: sweep.plan.bindingIdentity,
+            catalog: sweep.plan.catalog,
+            tasks: selectedTasks!.map((task) => ({ taskId: task.taskId, task: task.input.task })),
+            stream: sweep.plan.options.stream,
+            expectedDomains: sweep.plan.domains,
+            catalogDigest: sweep.plan.catalogDigest,
+            planDigest: sweep.plan.digest
           }
-        : { taskId: options.taskId, task: input.task }),
+        : {
+            method,
+            ...(domain
+              ? {
+                  domain: domain.name,
+                  tasks: tasks.map((task) => ({ taskId: task.taskId, task: task.input.task }))
+                }
+              : { taskId: options.taskId, task: input.task })
+          }),
       baseHarnessFiles: [
         { path: 'instructions.md', content: input.harness.instructions },
         ...input.harness.skills.map((file) => ({
@@ -437,7 +577,11 @@ export async function runPersistentOptimization(
       args: [
         '-B',
         '-m',
-        domain ? 'harness2.earthnano_domain' : 'harness2.earthnano',
+        sweep
+          ? 'harness2.earthnano_sweep'
+          : domain
+            ? 'harness2.earthnano_domain'
+            : 'harness2.earthnano',
         '--config',
         configPath
       ],
@@ -451,13 +595,13 @@ export async function runPersistentOptimization(
       },
       timeoutMs,
       signal,
-      ...(domain ? { acceptPartial: true } : {})
+      ...(domain || sweep ? { acceptPartial: true } : {})
     })
     failureStage = 'method-result'
     if (
       !methodResult ||
       typeof methodResult !== 'object' ||
-      !['ok', ...(domain ? ['partial'] : [])].includes(
+      !['ok', ...(domain || sweep ? ['partial'] : [])].includes(
         (methodResult as { status?: string }).status ?? ''
       )
     )
@@ -500,7 +644,38 @@ export async function runPersistentOptimization(
       )
         throw new Error('Optimization result lacks a complete passing integrity review')
     }
-    if (domain) {
+    if (sweep) {
+      failureStage = 'domain-summary'
+      const taskRecords = (taskId: string): ExecutionRecord[] =>
+        records.filter((record) =>
+          (binding as HarnessDomainBinding).executionIdsForTask(taskId).includes(record.executionId)
+        )
+      sweepSummary = await prepareSweepSummary({
+        result: methodResult,
+        plan: sweep.plan,
+        recordsForTask: taskRecords,
+        recordsForMode: (taskId, mode) =>
+          resumeIndex.recordsForScope(
+            taskId,
+            sweep.plan.bindingIdentity.modeScopes[sweepModeToken(mode)]!,
+            taskRecords(taskId)
+          ),
+        snapshots,
+        owners
+      })
+      await writeProjection(
+        join(options.workRoot, 'experiment-libraries.json'),
+        canonicalOutput({
+          schemaVersion: 2,
+          scope: 'experiment',
+          libraries: (methodResult as SweepMethodResult).libraries,
+          provenance: sweepSummary
+        })
+      )
+      publish()
+      if ((methodResult as SweepMethodResult).status !== 'ok')
+        throw new Error('Sweep retained partial evidence; configuration adoption blocked')
+    } else if (domain) {
       const domainBinding = binding as HarnessDomainBinding
       const recordsForTask = (taskId: string): ExecutionRecord[] => {
         const ids = domainBinding.executionIdsForTask(taskId)
@@ -530,26 +705,43 @@ export async function runPersistentOptimization(
     }
     let assessments:
       { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
-    if (semanticCriteria !== undefined) {
+    if (sweep || semanticCriteria !== undefined) {
       signal.throwIfAborted()
       stage = 'assessing'
       publish()
-      for (const task of tasks) {
-        const ownRecords = domain
-          ? records.filter((record) =>
-              (binding as HarnessDomainBinding)
-                .executionIdsForTask(task.taskId)
-                .includes(record.executionId)
+      const evaluations = sweep
+        ? selectedTasks!.flatMap((task) => sweep.plan.options.modes.map((mode) => ({ task, mode })))
+        : tasks.map((task) => ({ task, mode: undefined }))
+      for (const { task, mode } of evaluations) {
+        const taskRecords =
+          domain || sweep
+            ? records.filter((record) =>
+                (binding as HarnessDomainBinding)
+                  .executionIdsForTask(task.taskId)
+                  .includes(record.executionId)
+              )
+            : records
+        const ownRecords = sweep
+          ? resumeIndex.recordsForScope(
+              task.taskId,
+              sweep.plan.bindingIdentity.modeScopes[sweepModeToken(mode!)]!,
+              taskRecords
             )
-          : records
-        const ownMethod = domain
-          ? (methodResult as DomainMethodResult).tasks.find((row) => row.taskId === task.taskId)!
-          : methodResult
+          : taskRecords
+        const ownMethod = sweep
+          ? (methodResult as SweepMethodResult).tasks.find((row) => row.taskId === task.taskId)!
+              .modes[sweepModeToken(mode!)]!
+          : domain
+            ? (methodResult as DomainMethodResult).tasks.find((row) => row.taskId === task.taskId)!
+            : methodResult
         failureStage = 'semantic-assessment'
         const taskAssessments = await evaluateOptimizationSemantics({
           core,
-          ...(options.resume
-            ? { reuseRequest: (request) => reuseAssessmentRequest(previousRecords, request) }
+          ...(options.resume || sweep
+            ? {
+                reuseRequest: (request) =>
+                  reuseAssessmentRequest(Object.values(store.load().records), request)
+              }
             : {}),
           snapshots,
           owners,
@@ -578,15 +770,30 @@ export async function runPersistentOptimization(
           summary.assessments = taskAssessments
           summary.outcome = taskOutcome
         }
-        if (!domain && task === tasks[0]) {
+        if (sweepSummary) {
+          const summary = sweepSummary.domains
+            .find(
+              (entry) =>
+                entry.mode === mode &&
+                entry.summary.name === ('domain' in task ? task.domain : undefined)
+            )!
+            .summary.tasks.find((entry) => entry.taskId === task.taskId)!
+          summary.assessments = taskAssessments
+          summary.outcome = taskOutcome
+        }
+        if (!domain && !sweep && task === tasks[0]) {
           assessments = taskAssessments
           outcome = taskOutcome
         }
         failureStage = 'result-projection'
         await writeProjection(
-          join(options.workRoot, `outcome-${task.taskId}.json`),
+          join(
+            options.workRoot,
+            `outcome-${task.taskId}${mode ? `-${sweepModeToken(mode)}` : ''}.json`
+          ),
           canonicalOutput({
             taskId: task.taskId,
+            ...(mode ? { mode } : {}),
             assessments: taskAssessments,
             outcome: taskOutcome,
             configurationPublication: 'not-published'
@@ -601,7 +808,8 @@ export async function runPersistentOptimization(
       records: Object.values(store.load().records),
       ...(assessments ? { assessments } : {}),
       ...(outcome ? { outcome } : {}),
-      ...(domainSummary ? { domain: domainSummary } : {})
+      ...(domainSummary ? { domain: domainSummary } : {}),
+      ...(sweepSummary ? { sweep: sweepSummary } : {})
     }
   } catch (error) {
     recordOptimizationFailure(
