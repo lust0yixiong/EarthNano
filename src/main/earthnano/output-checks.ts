@@ -35,7 +35,11 @@ export function checkOutputFiles(
     const pinned = { ...base, artifactRef: structuredClone(file.artifactRef) }
     let value: unknown
     try {
-      value = JSON.parse(file.content)
+      value = JSON.parse(file.content, (_key, entry: unknown): unknown => {
+        if (typeof entry === 'number' && !Number.isFinite(entry))
+          throw new Error('JSON number exceeds finite numeric representation')
+        return entry
+      })
     } catch {
       return { ...pinned, status: 'fail', reason: 'invalid-json' }
     }

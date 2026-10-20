@@ -58,6 +58,17 @@ it('rejects changed bytes or ambiguous output versions', () => {
   expect(() => checkOutputFiles([changed], [check])).toThrow('checksum')
   expect(() => checkOutputFiles([file('{}'), file('{}')], [check])).toThrow('Ambiguous')
 })
+it.each(['{"sum":1e400}', '{"sum":-1e400}', '{"sum":{"nested":[1e400]}}'])(
+  'rejects overflowing JSON numbers rather than canonicalizing them to null: %s',
+  (content) => {
+    expect(
+      checkOutputFiles(
+        [file(content)],
+        [{ kind: 'json-value', path: 'result.json', pointer: '/sum', expected: null }]
+      )[0]
+    ).toMatchObject({ status: 'fail', reason: 'invalid-json' })
+  }
+)
 it('only traverses canonical JSON array indices and keeps plain object keys valid', () => {
   const inspect = (pointer: string, expected: number): OutputCheckResult =>
     checkOutputFiles(
