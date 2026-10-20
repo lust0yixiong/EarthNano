@@ -604,7 +604,9 @@ describe('AcpRuntimeCoordinator', () => {
       expect.objectContaining({
         sessionId: 'session-1',
         promptMessageId: 'prompt-1',
-        promptAttemptId: input.attemptId
+        promptAttemptId: input.attemptId,
+        turnToken: 'turn-1',
+        runtimeExecutionId: 'turn-1'
       })
     )
     await vi.waitFor(() => expect(providerAccepted).toHaveBeenCalledOnce())

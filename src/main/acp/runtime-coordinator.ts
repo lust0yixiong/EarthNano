@@ -2352,6 +2352,7 @@ class AcpRuntimeCoordinator {
                 sessionId,
                 promptMessageId: promptId,
                 promptAttemptId: attempt.id,
+                runtimeExecutionId: turnToken,
                 turnToken
               })
               this.delegatedWork?.rootExecutionStarted?.(sessionId, promptId, turnToken)
