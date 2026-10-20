@@ -15,6 +15,8 @@ import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
+import { outputDigest } from './output-checks'
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -84,7 +86,12 @@ it
     'six-outputs-and-skills',
     'uppercase-invalid-json',
     'submission-failure',
-    'stop-during-submission'
+    'stop-during-submission',
+    'checks-abort-during-commit',
+    'checks-abort-after-commit',
+    'checks-submission-failure',
+    'checks-freeze-before-await',
+    'checks-mismatch'
   ] as const)(
   'persists original owners with bounded integrity checks and review cleanup: %s',
   async (scenario) => {
@@ -335,6 +342,127 @@ it
       })
     expect(await client.reviewScopeSnapshot.count()).toBe(1)
     expect(await client.artifactVersion.count()).toBe(outputs.length)
+    if (scenario.startsWith('checks-')) {
+      const controller = new AbortController()
+      const checks: OutputCheckSpec[] = [
+        {
+          kind: 'json-value',
+          path: 'result.json',
+          pointer: '/answer',
+          expected: scenario === 'checks-mismatch' ? 43 : 42
+        }
+      ]
+      const originalChecks = structuredClone(checks)
+      const target = structuredClone(record)
+      const repository = new ReviewRepository(async () => client, { snapshotStorageRoot: root })
+      let committedId: string | undefined
+      if (
+        scenario === 'checks-submission-failure' ||
+        scenario === 'checks-abort-during-commit' ||
+        scenario === 'checks-abort-after-commit'
+      )
+        vi.spyOn(ReviewRepository.prototype, 'commitScopedSubmission').mockImplementationOnce(
+          async function (this: ReviewRepository, input) {
+            if (scenario === 'checks-submission-failure')
+              throw new Error('Synthetic deterministic check submission failure')
+            // Exercise the real SQLite transaction. Stop may arrive while it is pending,
+            // or after it has durably committed a passing Review but before returning.
+            const pending = originalSubmission.call(this, input)
+            if (scenario === 'checks-abort-during-commit') controller.abort()
+            const committed = await pending
+            committedId = committed.id
+            expect(committed).toMatchObject({ lifecycle: 'complete', outcome: 'pass' })
+            if (scenario === 'checks-abort-after-commit') controller.abort()
+            return committed
+          }
+        )
+      const pending = owners.commitDeterministicReview!({
+        target,
+        checks,
+        signal: controller.signal
+      })
+      if (scenario === 'checks-freeze-before-await') {
+        // These synchronous mutations run after the API's first await, before either the
+        // pinned turn or file reads settle. Neither may change persisted check provenance.
+        checks[0]!.expected = -1
+        checks[0]!.path = 'missing.json'
+        checks.push({ kind: 'json-value', path: 'result.json', pointer: '/answer', expected: -1 })
+        target.executionId = 'forged-after-call'
+        target.request.projectId = 'another-project'
+        target.evidence.artifacts[0]!.versionId = 'uncommitted-after-call'
+      }
+      if (
+        scenario === 'checks-submission-failure' ||
+        scenario === 'checks-abort-during-commit' ||
+        scenario === 'checks-abort-after-commit'
+      ) {
+        await expect(pending).rejects.toThrow()
+        const persisted = await client.review.findMany({
+          where: { model: 'deterministic-json-value-v1' }
+        })
+        expect(persisted).toHaveLength(1)
+        expect(persisted[0]).toMatchObject({
+          lifecycle: 'error',
+          outcome: null,
+          errorMessage: 'Output checks could not be completed.'
+        })
+        if (committedId) expect(persisted[0]!.id).toBe(committedId)
+        expect(
+          await client.review.count({
+            where: { model: 'deterministic-json-value-v1', outcome: 'pass' }
+          })
+        ).toBe(0)
+        // Failed check publication must not rewrite the original target's integrity Review.
+        expect(await owners.readReviews(record)).toEqual([integrity])
+      } else {
+        const committed = await pending
+        const expectedOutcome = scenario === 'checks-mismatch' ? 'flagged' : 'pass'
+        expect(committed.outcome).toBe(expectedOutcome)
+        const reviews = await repository.getReviewsForProjectSession(
+          request.projectId,
+          record.identity.sessionId!
+        )
+        const checked = reviews.find((review) => review.id === committed.reviewId)!
+        expect(checked).toMatchObject({
+          lifecycle: 'complete',
+          outcome: expectedOutcome,
+          model: 'deterministic-json-value-v1'
+        })
+        const file = before.files.find((file) => file.path === 'result.json')!
+        expect(checked.checks).toHaveLength(1)
+        expect(checked.checks[0]).toMatchObject({
+          status: expectedOutcome === 'pass' ? 'pass' : 'fail',
+          artifactVersionId: file.artifactRef.versionId
+        })
+        const log = checked.reviewerLog.find(
+          (entry) => entry.kind === 'tool' && entry.toolName === 'earthnano.output-checks'
+        )
+        if (!log || log.kind !== 'tool' || !log.rawInput || !log.rawOutput)
+          throw new Error('Missing frozen output-check evidence')
+        const metadata = JSON.parse(log.rawInput)
+        expect(metadata).toMatchObject({
+          kind: 'earthnano-output-checks',
+          targetExecutionId: record.executionId,
+          targetArtifacts: record.evidence.artifacts,
+          expectationsDigest: outputDigest(originalChecks),
+          checks: originalChecks,
+          results: [
+            {
+              path: 'result.json',
+              pointer: '/answer',
+              status: expectedOutcome === 'pass' ? 'pass' : 'fail',
+              artifactRef: file.artifactRef
+            }
+          ]
+        })
+        expect(JSON.parse(log.rawOutput)).toEqual(metadata.results)
+        expect(checked.scope.artifactVersionIds).toContain(file.artifactRef.versionId)
+        expect(await owners.readReviews(record)).toEqual([integrity])
+      }
+      expect(await client.artifactVersion.count()).toBe(outputs.length)
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
     expect(await owners.shutdown()).toEqual({ reaped: true })
     expect(await owners.shutdown()).toEqual({ reaped: true })
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
