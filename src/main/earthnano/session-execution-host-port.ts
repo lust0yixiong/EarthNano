@@ -1,9 +1,11 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import type { AcpExecutionDispatch } from '../acp/execution-boundary-port'
-import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { ExecutionIdentity, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { ExecutionContext, ExecutionOutcome, ExecutionStore } from './execution-core'
 
 export interface SessionExecutionSettlement {
+  /** Exact identity committed by the original admission callback; never inferred from latest turn. */
+  identity: ExecutionIdentity
   response?: PromptResponse
   error?: unknown
   context: ExecutionContext
