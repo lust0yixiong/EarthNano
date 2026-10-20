@@ -232,25 +232,34 @@ export function createPersistentCandidateOwners(
     loadSession: (projectId, appSessionId) => load(projectId, appSessionId)
   })
   const notebookRuns = new NotebookRunRepository(options.dataRoot)
-  const notebookSessions = new Map<AcpRuntimeCoordinator, () => string | undefined>()
+  const notebookSessions = new Map<
+    AcpRuntimeCoordinator,
+    () => { projectId: string; sessionId: string; workspaceCwd: string } | undefined
+  >()
+  const notebookPolicyReleases = new Map<AcpRuntimeCoordinator, () => void>()
   const runtimes = new Set<AcpRuntimeCoordinator>()
   const shutdowns = new Map<AcpRuntimeCoordinator, Promise<{ reaped: boolean }>>()
   let closing = false
   const stop = (runtime: AcpRuntimeCoordinator): Promise<{ reaped: boolean }> => {
     let pending = shutdowns.get(runtime)
     if (!pending) {
-      const sessionId = notebookSessions.get(runtime)?.()
+      const notebookScope = notebookSessions.get(runtime)?.()
       pending = Promise.allSettled([
         runtime.shutdownForQuit(),
-        ...(sessionId && options.notebook
-          ? [options.notebook.service.shutdownSession(sessionId)]
+        ...(notebookScope && options.notebook
+          ? [options.notebook.service.shutdown(notebookScope)]
           : [])
-      ]).then((results) => ({
-        reaped:
+      ]).then((results) => {
+        const reaped =
           results.every((result) => result.status === 'fulfilled') &&
           results[0].status === 'fulfilled' &&
           (results[0].value as { reaped: boolean }).reaped
-      }))
+        if (reaped) {
+          notebookPolicyReleases.get(runtime)?.()
+          notebookPolicyReleases.delete(runtime)
+        }
+        return { reaped }
+      })
       shutdowns.set(runtime, pending)
     }
     return pending
@@ -513,7 +522,12 @@ export function createPersistentCandidateOwners(
       })
     )
     runtimes.add(runtime)
-    if (science) notebookSessions.set(runtime, () => sessionId)
+    if (science)
+      notebookSessions.set(runtime, () =>
+        sessionId
+          ? { projectId: request.projectId, sessionId, workspaceCwd: materialized.cwd }
+          : undefined
+      )
     const agent = createAcpTaskAgentPort(
       runtime,
       createAcpCreateSessionWorkflow(runtime),
@@ -541,6 +555,14 @@ export function createPersistentCandidateOwners(
         })
         sessionId = created.sessionId
         if (science && frozenRuntime) {
+          notebookPolicyReleases.set(
+            runtime,
+            science.service.registerHostPermissionPolicy({
+              projectId: request.projectId,
+              sessionId,
+              permissionPrompts: 'none'
+            })
+          )
           const scope = { projectId: request.projectId, sessionId, workspaceCwd: materialized.cwd }
           const { runtimes: available } = await science.service.listRuntimes(scope)
           const same = (

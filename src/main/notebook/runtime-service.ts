@@ -435,6 +435,26 @@ class NotebookRuntimeService {
   private executionApproval: NotebookExecutionApproval | undefined
   private runtimeBindingApproval: NotebookRuntimeBindingApproval | undefined
   private readonly runtimeBindingPermissionPolicies = new WeakMap<AbortSignal, 'none'>()
+  private readonly hostPermissionPolicies = new Map<string, symbol>()
+
+  /** Main-only restriction for unattended private Sessions; this never authorizes execution. */
+  registerHostPermissionPolicy(scope: {
+    projectId: string
+    sessionId: string
+    permissionPrompts: 'none'
+  }): () => void {
+    if (scope.permissionPrompts !== 'none')
+      throw new Error('Unsupported Notebook host permission policy.')
+    const key = JSON.stringify([scope.projectId, scope.sessionId])
+    if (this.hostPermissionPolicies.has(key))
+      throw new Error('Notebook host permission policy already exists.')
+    const token = Symbol(key)
+    this.hostPermissionPolicies.set(key, token)
+    return () => {
+      if (this.hostPermissionPolicies.get(key) === token) this.hostPermissionPolicies.delete(key)
+    }
+  }
+
   private readonly hostBindingPermits = new Map<
     string,
     {
@@ -710,7 +730,14 @@ class NotebookRuntimeService {
     context: NotebookSourceFileAccessContext | undefined,
     signal?: AbortSignal
   ): Promise<void> {
-    if (!this.executionApproval || (run.source === 'user' && !run.promptMessageId)) return
+    const denyUnresolved = this.hostPermissionPolicies.has(
+      JSON.stringify([session.projectId, session.sessionId])
+    )
+    if (
+      (!this.executionApproval && !denyUnresolved) ||
+      (run.source === 'user' && !run.promptMessageId)
+    )
+      return
     signal?.throwIfAborted()
     const document = run.kernelEpochId
       ? await this.repository.findExisting(session.projectId, session.sessionId, session.lane)
@@ -754,6 +781,8 @@ class NotebookRuntimeService {
           )
     signal?.throwIfAborted()
     if (!risks.length) return
+    if (denyUnresolved || !this.executionApproval)
+      throw new Error('Notebook execution declined: this code requires one-time approval.')
     const approved = await this.executionApproval({
       sessionId: session.sessionId,
       title: (this.options.translate ?? englishNativeTranslator)(
