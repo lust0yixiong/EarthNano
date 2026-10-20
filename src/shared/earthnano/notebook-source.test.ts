@@ -1,7 +1,10 @@
 import { expect, it } from 'vitest'
 import { createLinearConversationGraph } from '../conversation-graph'
 import type { PersistedChatMessage, PersistedChatSession } from '../session-persistence'
-import { notebookOptimizationSourceMessages } from './notebook-source'
+import {
+  notebookOptimizationSourceMessages,
+  normalizeNotebookOptimizationSource
+} from './notebook-source'
 
 const message = (id: string): PersistedChatMessage => ({
   id,
@@ -62,4 +65,26 @@ it('retains version-bound references whose original file owner differs from the 
     }
   ]
   expect(notebookOptimizationSourceMessages(session)).toHaveLength(1)
+})
+
+it('preserves old source request bytes and accepts only explicitly declared supported languages', () => {
+  expect(JSON.stringify(normalizeNotebookOptimizationSource({ promptMessageId: 'old' }))).toBe(
+    '{"promptMessageId":"old"}'
+  )
+  for (const language of ['python', 'r'] as const)
+    expect(normalizeNotebookOptimizationSource({ promptMessageId: 'task', language })).toEqual({
+      promptMessageId: 'task',
+      language
+    })
+  for (const language of ['R', 'javascript', '', null, undefined])
+    expect(() =>
+      normalizeNotebookOptimizationSource({ promptMessageId: 'task', language })
+    ).toThrow()
+  expect(() =>
+    normalizeNotebookOptimizationSource({
+      promptMessageId: 'task',
+      language: 'r',
+      interpreterPath: '/R'
+    })
+  ).toThrow()
 })

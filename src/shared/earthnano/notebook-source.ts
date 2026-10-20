@@ -1,9 +1,12 @@
+import type { NotebookLanguage } from '../notebook-language-contract'
 import { resolveActiveConversationMessages } from '../conversation-graph'
 import type { PersistedChatMessage, PersistedChatSession } from '../session-persistence'
 
 /** A source-message identity, never renderer-supplied paths, inputs or runtime authority. */
 export interface NotebookOptimizationSource {
   promptMessageId: string
+  /** Absent only on compatible Python requests; never infer language from prompt text. */
+  language?: NotebookLanguage
 }
 export function normalizeNotebookOptimizationSource(
   value: unknown
@@ -13,13 +16,24 @@ export function normalizeNotebookOptimizationSource(
     !value ||
     typeof value !== 'object' ||
     Array.isArray(value) ||
-    Object.keys(value).length !== 1 ||
+    Object.keys(value).some((key) => !['promptMessageId', 'language'].includes(key)) ||
+    (Object.hasOwn(value, 'language') &&
+      !['python', 'r'].includes((value as NotebookOptimizationSource).language as string)) ||
     !Object.hasOwn(value, 'promptMessageId') ||
     typeof (value as NotebookOptimizationSource).promptMessageId !== 'string' ||
     !/^[A-Za-z0-9_-]{1,128}$/.test((value as NotebookOptimizationSource).promptMessageId)
   )
     throw new Error('Invalid Notebook source message')
-  return { promptMessageId: (value as NotebookOptimizationSource).promptMessageId }
+  const source = value as NotebookOptimizationSource
+  return {
+    promptMessageId: source.promptMessageId,
+    ...(Object.hasOwn(source, 'language') ? { language: source.language } : {})
+  }
+}
+
+/** Read the legacy default without adding a field to old request/snapshot identities. */
+export function notebookOptimizationLanguage(source: NotebookOptimizationSource): NotebookLanguage {
+  return source.language ?? 'python'
 }
 
 /** Exact source-message metadata rule shared by the picker and Main. Version bytes and runtime

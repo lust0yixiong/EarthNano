@@ -66,7 +66,7 @@ describe('host-frozen Notebook metadata', () => {
       expect(() => normalizeFrozenNotebookInputs(value)).toThrow()
   })
   it.each([
-    { language: 'r' },
+    { language: 'javascript' },
     { source: 'remote' },
     { provenance: 'unknown' },
     { source: 'managed' },
@@ -85,4 +85,18 @@ describe('host-frozen Notebook metadata', () => {
         normalizeFrozenNotebookRuntime({ ...runtime(), source: 'managed', provenance }).source
       ).toBe('managed')
   })
+})
+
+it('preserves Python descriptor bytes and retains the original explicit R descriptor', () => {
+  expect(JSON.stringify(normalizeFrozenNotebookRuntime(runtime()))).toBe(
+    '{"language":"python","runtimeId":"/original/python","source":"external","provenance":"user-own","interpreterPath":"/original/python","version":"3.12"}'
+  )
+  const r = {
+    ...runtime(),
+    language: 'r',
+    runtimeId: '/original/R',
+    interpreterPath: '/original/R',
+    version: '4.4.3'
+  }
+  expect(normalizeFrozenNotebookRuntime(r)).toEqual(r)
 })

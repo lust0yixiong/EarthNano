@@ -1,3 +1,4 @@
+import type { NotebookLanguage } from '../notebook-language-contract'
 import type { NotebookRuntimeBinding } from '../notebook-runtime'
 
 /** Exact, path-free source identity captured by the original immutable input owner. */
@@ -12,13 +13,13 @@ export type FrozenNotebookInput = Readonly<{
   checksum: string
 }>
 
-/** Host-selected Python target. Discovery and admission remain with the Notebook owner. */
+/** Host-selected original language target. Discovery and admission remain with the Notebook owner. */
 export type FrozenNotebookRuntime = Readonly<
   Pick<
     NotebookRuntimeBinding,
     'runtimeId' | 'source' | 'provenance' | 'interpreterPath' | 'version'
   > & {
-    language: 'python'
+    language: NotebookLanguage
   }
 >
 
@@ -116,22 +117,31 @@ export function normalizeFrozenNotebookRuntime(value: unknown): FrozenNotebookRu
     ['version']
   )
   if (
-    entry.language !== 'python' ||
+    (entry.language !== 'python' && entry.language !== 'r') ||
     !['managed', 'external'].includes(entry.source as string) ||
     !['app-managed', 'user-own', 'agent-created'].includes(entry.provenance as string) ||
     (entry.source === 'external') !== (entry.provenance === 'user-own')
   )
-    throw new Error('Notebook profile requires an original Python runtime descriptor')
+    throw new Error('Notebook profile requires an original Python or R runtime descriptor')
   const runtimeId = text(entry.runtimeId)
   const interpreterPath = text(entry.interpreterPath)
   if (![runtimeId, interpreterPath].every((path) => /^(?:\/|[a-zA-Z]:[\\/])/.test(path)))
     throw new Error('Notebook runtime requires absolute discovered identities')
   return {
-    language: 'python',
+    language: entry.language as NotebookLanguage,
     runtimeId,
     source: entry.source as FrozenNotebookRuntime['source'],
     provenance: entry.provenance as FrozenNotebookRuntime['provenance'],
     interpreterPath,
     ...(Object.hasOwn(entry, 'version') ? { version: text(entry.version, 256) } : {})
   }
+}
+
+/** A single shared discriminant for native capability preparation, method transport and owners. */
+export type NotebookToolsProfile = 'notebook-python' | 'notebook-r'
+export function notebookLanguageForTools(tools: unknown): NotebookLanguage | undefined {
+  return tools === 'notebook-python' ? 'python' : tools === 'notebook-r' ? 'r' : undefined
+}
+export function notebookToolsForLanguage(language: NotebookLanguage): NotebookToolsProfile {
+  return language === 'python' ? 'notebook-python' : 'notebook-r'
 }

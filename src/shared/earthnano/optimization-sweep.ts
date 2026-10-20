@@ -1,4 +1,5 @@
 import { MAX_OPTIMIZATION_CONCURRENCY, MAX_OPTIMIZATION_K } from './optimization-method'
+import type { NotebookOptimizationSource } from './notebook-source'
 import type { OptimizationArtifactInput } from './optimization-input'
 import type { OutputCheckSpec, DomainOptimizationSummary } from './research-outcome'
 
@@ -27,7 +28,7 @@ export interface OptimizationSweepTask extends OptimizationCatalogIdentity {
   /** Each source is authorized independently in the existing project. */
   sourceSessionId: string
   source:
-    | { kind: 'notebook'; promptMessageId: string }
+    | ({ kind: 'notebook' } & NotebookOptimizationSource)
     | {
         kind: 'text'
         prompt: string

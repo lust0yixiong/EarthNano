@@ -7,6 +7,8 @@ import type { ExecutionRequest, Ref } from '../../shared/earthnano/execution-por
 import { defaultFileDurability } from '@aipoch/durable-files'
 import {
   normalizeFrozenNotebookInputs,
+  notebookLanguageForTools,
+  type NotebookToolsProfile,
   normalizeFrozenNotebookRuntime,
   type FrozenNotebookInput,
   type FrozenNotebookRuntime
@@ -21,7 +23,7 @@ export type CandidateTask = Readonly<{
 export type CandidateHarness = Readonly<{
   instructions: string
   skills: readonly CandidateTextFile[]
-  tools: 'workspace-only' | 'notebook-python'
+  tools: 'workspace-only' | NotebookToolsProfile
 }>
 export type CandidateAgent = Readonly<{
   backend: 'claude-code'
@@ -202,12 +204,12 @@ const normalize = (kind: Kind, value: unknown): unknown => {
   }
   if (kind === 'harness') {
     const entry = object(value, ['instructions', 'skills', 'tools'])
-    if (entry.tools !== 'workspace-only' && entry.tools !== 'notebook-python')
+    if (entry.tools !== 'workspace-only' && notebookLanguageForTools(entry.tools) === undefined)
       throw new Error('Unsupported candidate tools profile')
     return {
       instructions: text(entry.instructions),
       skills: files(entry.skills, true),
-      tools: entry.tools
+      tools: entry.tools as CandidateHarness['tools']
     } satisfies CandidateHarness
   }
   if (kind === 'agent') {
@@ -252,9 +254,12 @@ const validateProfile = (
   harness: CandidateHarness,
   environment: CandidateEnvironment
 ): void => {
-  const scientific = harness.tools === 'notebook-python'
+  const language = notebookLanguageForTools(harness.tools)
+  const scientific = language !== undefined
   if (scientific !== Boolean(environment.notebook) || (scientific && !task.managedInputs?.length))
     throw new Error('Notebook tools require fixed managed inputs and a frozen runtime')
+  if (scientific && environment.notebook?.runtime.language !== language)
+    throw new Error('Notebook tools/runtime language mismatch')
 }
 
 const freezeDeep = <T>(value: T): T => {

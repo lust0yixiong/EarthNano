@@ -490,3 +490,57 @@ describe('frozen original Notebook profile', () => {
     ).rejects.toThrow('fixed managed inputs')
   })
 })
+
+describe('Notebook language/profile identity', () => {
+  it('retains exact pre-R Python snapshot identities', async () => {
+    const { store } = await fixture()
+    const refs = await store.freeze(scientificInput())
+    expect(refs.taskSnapshotRef.digest).toBe(
+      'sha256:c22deb32e4840733259a2888773a7f540245fa4c541eb75542f120b3b3cfdac1'
+    )
+    expect(refs.harnessRevisionRef.digest).toBe(
+      'sha256:ba655cc746f6c88ef4ad5b6677a6b6858754dbf1f7460fb26fce605a913222c1'
+    )
+    expect(refs.environmentSpecRef.digest).toBe(
+      'sha256:28a91c743fe77697cb7f1d783723c90c12e0dd2cd9fabc83fe5275108d752a46'
+    )
+  })
+  it('keeps one task across Python/R profiles but rejects profile/runtime crossover before writing', async () => {
+    const { root, store } = await fixture()
+    const python = scientificInput()
+    const r = {
+      ...python,
+      harness: { ...python.harness, tools: 'notebook-r' as const },
+      environment: {
+        ...python.environment,
+        notebook: {
+          runtime: {
+            ...python.environment.notebook!.runtime,
+            language: 'r' as const,
+            runtimeId: '/original/R',
+            interpreterPath: '/original/R',
+            version: '4.4.3'
+          }
+        }
+      }
+    }
+    for (const bad of [
+      { ...r, harness: python.harness },
+      { ...python, harness: r.harness }
+    ])
+      await expect(store.freeze(bad)).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'store/objects'))).toEqual([])
+    const pRefs = await freeze(store, python)
+    const rRefs = await freeze(store, r)
+    expect(pRefs.taskSnapshotRef).toEqual(rRefs.taskSnapshotRef)
+    expect(pRefs.environmentSpecRef).not.toEqual(rRefs.environmentSpecRef)
+    expect(pRefs.harnessRevisionRef).not.toEqual(rRefs.harnessRevisionRef)
+    expect((await store.resolve(rRefs)).environment.notebook?.runtime.language).toBe('r')
+    await expect(
+      store.resolve({ ...rRefs, environmentSpecRef: pRefs.environmentSpecRef })
+    ).rejects.toThrow('language')
+    await expect(
+      store.resolve({ ...pRefs, environmentSpecRef: rRefs.environmentSpecRef })
+    ).rejects.toThrow('language')
+  })
+})
