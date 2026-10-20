@@ -1616,6 +1616,7 @@ const ConversationPanel = ({
             <TaskOptimizationPanel
               projectId={activeSession.projectId}
               sessionId={activeSession.id}
+              artifacts={activeSession.artifacts}
               initialPrompt={
                 activeSession.messages.filter((message) => message.role === 'user').at(-1)
                   ?.content ?? ''

@@ -1,0 +1,276 @@
+{
+  "status": "passed",
+  "optimizationState": "completed",
+  "live": true,
+  "progress": {
+    "runId": "dd5aed07-e6e5-4211-9ca5-4c40dec08d77",
+    "projectId": "cmvgmmlql0000xjrn8iptu4zq",
+    "sourceSessionId": "8a1e556b-b4b8-4094-b1dd-c7278b5bcac8",
+    "method": {
+      "mode": "parallel",
+      "k": 2,
+      "concurrency": 2
+    },
+    "state": "completed",
+    "stage": "completed",
+    "updatedAt": 1792497443923,
+    "executions": [
+      {
+        "executionId": "1b7a9d10-198f-4280-84dd-dc809e0384b1",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "bd2d4498-216e-40dc-a6b1-343d4c90ac86"
+      },
+      {
+        "executionId": "28fe3bc4-1275-4f11-95ef-58abb6da346b",
+        "role": "baseline",
+        "stageId": "base2",
+        "phase": "completed",
+        "sessionId": "a4224fd7-a2e5-4cab-b709-79752e132937"
+      },
+      {
+        "executionId": "975dd083-2a13-4575-984c-4eeb2ee0b921",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "dfad93eb-ac0c-43a7-96d8-c430765fad0c"
+      },
+      {
+        "executionId": "3f91c025-5aa5-4e16-b895-a0bee70df416",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "c22de995-81d6-4486-935d-7e33c37dc728"
+      },
+      {
+        "executionId": "5f152037-8dd6-4993-b4e1-8e9749dd92d6",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "40ae3738-f603-4ad0-b03a-714f18e5b286"
+      },
+      {
+        "executionId": "03402080-38ae-4b3e-bdd0-7ab6fbb33092",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "8a505756-82bb-47e3-8779-cd08dc77cab8"
+      },
+      {
+        "executionId": "92fb3219-b596-47b4-a31a-087918cc42f7",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "17fc1e5d-3747-4ddb-9d3e-12930c2b3d9e"
+      },
+      {
+        "executionId": "e8e7b990-3d8e-4df6-b5e2-47e97c60bd2d",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "5d52a066-123e-48c0-95c4-05df08d9c17b"
+      },
+      {
+        "executionId": "d37435e3-da30-4f40-ae90-57dd4b6304fb",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "93246ae6-868a-4d08-b51c-a585c021b530"
+      },
+      {
+        "executionId": "e0c449b6-f64e-440a-8fae-4400b9969b9f",
+        "role": "candidate",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "34e97470-c8b6-4945-b501-efc0c29f103c"
+      },
+      {
+        "executionId": "2091adb8-5150-4c7e-a901-4ca44acc8a50",
+        "role": "candidate",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "a230e59e-61e3-4b35-a7d0-e8accbdbd23c"
+      },
+      {
+        "executionId": "022e1194-f4bd-4cf8-85ab-4c5af07a5114",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "7ae86cfa-51ac-4c6e-a47f-7360b16fb0d4"
+      },
+      {
+        "executionId": "840b2abb-9d45-4162-8ee0-e21155a4d73c",
+        "role": "composer",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "243023d7-d958-4ffc-9a41-145eba0978c3"
+      },
+      {
+        "executionId": "335e0621-5c1e-44d7-9cc9-380756fbcae9",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "b2593198-535f-434e-a12e-4fd5def4515b"
+      },
+      {
+        "executionId": "587360e9-fce3-4f81-87a5-ae994face464",
+        "role": "candidate",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "97f0efc5-df04-4ec8-a81d-87c2eeec9ab0"
+      },
+      {
+        "executionId": "3e26ecd1-0627-4603-bc49-6455cc813513",
+        "role": "selector",
+        "stageId": "select.agg2",
+        "phase": "completed",
+        "sessionId": "7809b9f3-4016-440a-87a7-98e8c53ffe58"
+      },
+      {
+        "executionId": "d49f6739-6344-4da8-8af4-668313c86824",
+        "role": "reviewer",
+        "stageId": "semantic:6c377f4f-27a0-4058-b810-e453cf40c5dd",
+        "phase": "completed",
+        "sessionId": "e39754d8-40b6-42b3-a6f3-41bf0a5bcdeb"
+      },
+      {
+        "executionId": "e15f0084-8c69-44b3-bbb2-d5d2d9381fe1",
+        "role": "reviewer",
+        "stageId": "semantic:2a93026f-25ae-40c0-b9ca-3ac06a61a2fe",
+        "phase": "completed",
+        "sessionId": "0101d3cb-1dcb-40a5-85ed-291f30b82f19"
+      }
+    ],
+    "budget": {
+      "limit": 20,
+      "admitted": 18,
+      "completed": 18,
+      "active": 0
+    },
+    "inputArtifacts": [
+      {
+        "artifactId": "23ad835e-2bdf-4219-92e9-981fdc54d28d",
+        "versionId": "e7fb4fcf-b46a-46c2-ad2d-9444fbc4c307",
+        "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6",
+        "path": "research-results.json"
+      }
+    ],
+    "outcome": {
+      "artifact": {
+        "status": "passed",
+        "checks": [
+          {
+            "path": "result.json",
+            "pointer": "",
+            "artifactRef": {
+              "artifactId": "e1c6aa7b-bb78-4035-8940-0aa8ca2d4c8c",
+              "versionId": "4f2e2697-5caa-4d27-b677-ba46a14731f1",
+              "checksum": "066944643a696d4950d63426c4623191be750216ba7da66049d1d321c0d5d3e5"
+            },
+            "status": "pass",
+            "reason": "matched"
+          }
+        ],
+        "reviewId": "cmvgmp3jo0015xjrnjfapdrts"
+      },
+      "configuration": {
+        "status": "eligible",
+        "reasons": [],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:75cfb5699523bd034ba0e28e5224caef78297c5b3054da8119c58398bef7cdf3",
+          "version": "1",
+          "digest": "sha256:75cfb5699523bd034ba0e28e5224caef78297c5b3054da8119c58398bef7cdf3"
+        }
+      }
+    },
+    "selection": {
+      "chosenLabel": "agg2",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Both candidates are byte-identical ({\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}), match the source exactly, and contain only the three required fields with correct arithmetic (12.0 / 3 = 4.0). No criterion separates them; ties are broken by the first-listed id, so A is picked over B."
+    },
+    "assessments": {
+      "baseline": {
+        "executionId": "d49f6739-6344-4da8-8af4-668313c86824",
+        "targetExecutionId": "1b7a9d10-198f-4280-84dd-dc809e0384b1",
+        "reviewId": "cmvgmoyim000zxjrnehgsaenz",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "The frozen source (task.json embedded research-results.json) fixes count=3, sum=12.0, mean=4.0. The single target artifact (result.json, artifactId 4185bbea-2ee7-4e01-8bc5-a39b3854d839, versionId 79d977b3-cd0f-4ff1-8df4-ef390a0a6a8e, checksum 066944643a696d4950d63426c4623191be750216ba7da66049d1d321c0d5d3e5) contains exactly these three key-value pairs and nothing else, so no observations are invented or altered and the required exactly-count/sum/mean contract holds. Arithmetic check: sum/count = 12.0/3 = 4.0, which equals the stated mean, satisfying mean = sum / count. Value types are consistent with the source (integer count, float sum and mean). The output matches the source semantically and (modulo trailing newline) byte-for-byte. No additional claims or fields were introduced. Assessment is based solely on the supplied artifact content, not on any completion claim."
+      },
+      "candidate": {
+        "executionId": "e15f0084-8c69-44b3-bbb2-d5d2d9381fe1",
+        "targetExecutionId": "587360e9-fce3-4f81-87a5-ae994face464",
+        "reviewId": "cmvgmp3jb0013xjrnc8vlibbq",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "The task asked the executor to preserve the three numeric fields (count, sum, mean) from the frozen source research-results.json and ensure mean = sum / count. The source record contains count=3, sum=12.0, mean=4.0. The single target artifact (result.json, artifactId e1c6aa7b-bb78-4035-8940-0aa8ca2d4c8c, versionId 4f2e2697-5caa-4d27-b677-ba46a14731f1) contains exactly count=3, sum=12.0, mean=4.0, with no extra keys and no value alterations. Arithmetic check: 12.0 / 3 = 4.0, which matches the reported mean, so the internal consistency requirement holds. The source values were compared from task.json's embedded file content, not treated as a target artifact. The output is a valid JSON object with exactly the three numeric values; all checks pass. Limitation: the assessment verifies only the supplied frozen evidence and cannot confirm provenance beyond the provided checksum."
+      }
+    }
+  },
+  "sourceArtifact": {
+    "artifactId": "23ad835e-2bdf-4219-92e9-981fdc54d28d",
+    "versionId": "e7fb4fcf-b46a-46c2-ad2d-9444fbc4c307",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792497337344-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "reopened": true,
+  "noPaidReplay": true,
+  "sourceProducerVerified": true,
+  "ordinaryCoreVerified": true,
+  "independentReviewsReopened": true,
+  "acceptancePassed": true,
+  "provider": {
+    "requests": 70,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 18,
+    "nativeTitleRequests": 1,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 6,
+      "proposer": 18,
+      "candidate": 22,
+      "composer": 7,
+      "selector": 5,
+      "reviewer": 6
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Read",
+      "Write",
+      "Edit",
+      "Skill"
+    ],
+    "usage": {
+      "input": 199608,
+      "cacheRead": 556928,
+      "output": 23552
+    }
+  },
+  "bounds": {
+    "apiRequests": 120,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 20
+  },
+  "runtime": {
+    "electron": "43.4.0",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

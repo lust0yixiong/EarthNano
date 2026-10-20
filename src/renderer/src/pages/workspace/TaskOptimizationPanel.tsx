@@ -26,11 +26,18 @@ import {
   IndependentAssessmentsView
 } from './OptimizationResearchResults'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../../shared/web-event-connection'
+import type { PersistedArtifact } from '../../../../shared/session-persistence'
+import {
+  isOptimizationTextPath,
+  normalizeOptimizationArtifactInputs,
+  type OptimizationArtifactInput
+} from '../../../../shared/earthnano/optimization-input'
 
 type Props = {
   projectId: string
   sessionId: string
   initialPrompt: string
+  artifacts?: PersistedArtifact[]
   onOpenSession?: (id: string) => void
   onOpenReview?: (sessionId: string, reviewId: string) => void
   /** Protocol test seam; production always uses the typed preload API. */
@@ -55,6 +62,7 @@ function OptimizationSessionPanel({
   projectId,
   sessionId,
   initialPrompt,
+  artifacts = [],
   api,
   onOpenSession,
   onOpenReview
@@ -63,6 +71,42 @@ function OptimizationSessionPanel({
   const [prompt, setPrompt] = useState(initialPrompt)
   const [criteria, setCriteria] = useState('')
   const [files, setFiles] = useState<Array<{ path: string; content: string }>>([])
+  const [selectedVersions, setSelectedVersions] = useState<string[]>([])
+  const availableArtifacts = artifacts.filter(
+    (file) =>
+      file.artifactId &&
+      file.versionId &&
+      file.sha256 &&
+      file.size !== undefined &&
+      file.size <= 64_000 &&
+      file.name !== undefined &&
+      isOptimizationTextPath(file.name)
+  )
+  const inputArtifacts = (): OptimizationArtifactInput[] => {
+    const selected = normalizeOptimizationArtifactInputs(
+      selectedVersions.map((versionId) => {
+        const file = availableArtifacts.find((file) => file.versionId === versionId)
+        if (!file) throw new Error('Selected source version unavailable')
+        return {
+          artifactId: file.artifactId!,
+          versionId: file.versionId!,
+          checksum: file.sha256!,
+          path: file.name!
+        }
+      })
+    )!
+    if (
+      selected.length + files.length > 32 ||
+      selected.some((ref) =>
+        files.some(
+          (file) =>
+            file.path.normalize('NFC').toLowerCase() === ref.path.normalize('NFC').toLowerCase()
+        )
+      )
+    )
+      throw new Error('Optimization input paths collide')
+    return selected
+  }
   const [limit, setLimit] = useState(12)
   const [method, setMethod] = useState<OptimizationMethodOptions>({
     ...DEFAULT_OPTIMIZATION_METHOD
@@ -206,6 +250,7 @@ function OptimizationSessionPanel({
         prompt,
         criteria,
         files,
+        ...(selectedVersions.length ? { inputArtifacts: inputArtifacts() } : {}),
         executionLimit: limit,
         method,
         ...(research.checks === undefined ? {} : { checks: research.checks }),
@@ -290,6 +335,7 @@ function OptimizationSessionPanel({
   let researchValid = true
   try {
     researchInputs()
+    inputArtifacts()
   } catch {
     researchValid = false
   }
@@ -479,6 +525,32 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
+        {availableArtifacts.length > 0 && (
+          <fieldset className="space-y-1" data-testid="optimization-source-artifacts">
+            <legend>{t('Use saved artifact versions as inputs')}</legend>
+            {availableArtifacts.map((file) => (
+              <label key={file.versionId} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  disabled={active || busy}
+                  checked={selectedVersions.includes(file.versionId!)}
+                  onChange={(event) => {
+                    setSelectedVersions(
+                      event.target.checked
+                        ? [...selectedVersions, file.versionId!]
+                        : selectedVersions.filter((id) => id !== file.versionId)
+                    )
+                    requestKey.current = null
+                  }}
+                />
+                {t('{{name}} · version {{version}}', {
+                  name: file.name,
+                  version: file.versionNumber ?? file.versionId
+                })}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <label className="block">
           {t('Text input files')}
           <input

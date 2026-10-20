@@ -156,6 +156,8 @@
     "This encrypted data format is not supported by this app version. Use a compatible app version or restore the original profile. Existing credentials have not been replaced.": "このアプリのバージョンは、この暗号化データ形式に対応していません。対応するバージョンを使用するか、元のプロファイルを復元してください。既存の認証情報は置き換えられていません。"
   },
   "renderer": {
+    "Use saved artifact versions as inputs": "保存済みの成果物バージョンを入力として使用",
+    "{{name}} · version {{version}}": "{{name}} · バージョン {{version}}",
     "Could not load Reviewer log.": "レビュアーログを読み込めませんでした。",
     "Preparing to receive package…": "パッケージの受信を準備中…",
     "Unable to prepare browser import. Resolve the startup error and try again.": "ブラウザーからのインポートを準備できません。起動エラーを解決してから再試行してください。",

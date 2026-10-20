@@ -8,6 +8,7 @@ import type {
 } from '../../../../shared/earthnano/desktop-optimization'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../../shared/web-event-connection'
 import { TaskOptimizationPanel } from './TaskOptimizationPanel'
+import type { PersistedArtifact } from '../../../../shared/session-persistence'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) =>
@@ -28,13 +29,14 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
   ],
   updatedAt: 1
 })
-const render = async (sessionId = 'session'): Promise<void> => {
+const render = async (sessionId = 'session', artifacts?: PersistedArtifact[]): Promise<void> => {
   await act(async () =>
     root.render(
       <TaskOptimizationPanel
         projectId="project"
         sessionId={sessionId}
         initialPrompt={`Task ${sessionId}`}
+        artifacts={artifacts}
         api={api}
       />
     )
@@ -67,6 +69,41 @@ beforeEach(() => {
     latest: vi.fn().mockResolvedValue(null),
     stop: vi.fn().mockResolvedValue(progress('cancelled'))
   }
+})
+it('selects a fixed saved version without copying content or trusting a host path', async () => {
+  await render('session', [
+    {
+      id: 'version',
+      artifactId: 'artifact',
+      versionId: 'version',
+      versionNumber: 1,
+      kind: 'managed-file',
+      path: '/private/source.json',
+      name: 'source.json',
+      sha256: 'a'.repeat(64),
+      size: 12
+    }
+  ])
+  const checkbox = container.querySelector(
+    '[data-testid="optimization-source-artifacts"] input'
+  ) as HTMLInputElement
+  await act(async () => checkbox.click())
+  await input('Acceptance criteria (one per line)', 'Preserve source values')
+  await click('Start optimization')
+  expect(api.start).toHaveBeenCalledWith(
+    expect.objectContaining({
+      inputArtifacts: [
+        {
+          artifactId: 'artifact',
+          versionId: 'version',
+          path: 'source.json',
+          checksum: 'a'.repeat(64)
+        }
+      ],
+      files: []
+    })
+  )
+  expect(JSON.stringify(vi.mocked(api.start).mock.calls)).not.toContain('/private/source.json')
 })
 afterEach(async () => {
   await act(async () => root.unmount())

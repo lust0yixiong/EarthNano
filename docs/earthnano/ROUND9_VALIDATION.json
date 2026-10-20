@@ -1,0 +1,151 @@
+{
+  "round": 9,
+  "baseCommit": "9aeb742cab7d5dbce94fca94c33279cd6659f89a",
+  "status": "passed",
+  "scope": "Representative scientific desktop workflow and source-backed upstream coverage; not certification of all scientific domains, tools or platforms",
+  "multiAgent": {
+    "primary": "core contract, controlled ArtifactVersion inputs, integration, actual desktop, DeepSeek and PR",
+    "platform": "gpt-6.1-sol / high: original Notebook/Artifact/Review production-tool chain and OpenScience audit",
+    "method": "gpt-6.1-sol / high: original Harness2 equivalence, evidence transport and read-only integration review",
+    "commits": ["fb44a58c9", "05d5e0f2362031a4b6b2dcb213dec577cfbbe885"]
+  },
+  "checks": {
+    "coreAndOriginalWorkflowRegression": {
+      "passed": 1579,
+      "files": 69,
+      "log": "/tmp/earthnano-round9-regression.log"
+    },
+    "i18nAndInputRegression": {
+      "passed": 831,
+      "files": 4,
+      "note": "Earlier targeted group, overlapping with core suite; do not sum as unique coverage",
+      "log": "/tmp/earthnano-round9-input-tests.log"
+    },
+    "finalInputOwnershipAndProvenance": {
+      "passed": 54,
+      "files": 3,
+      "overlapsCoreSuite": true,
+      "log": "/tmp/earthnano-round9-input-final.log"
+    },
+    "methodAndLargeEvidence": {
+      "passed": 58,
+      "files": 5,
+      "overlapsCoreSuite": true,
+      "log": "/tmp/earthnano-round9-method.log"
+    },
+    "nativeOriginalSessionCandidateAndDomain": {
+      "passed": 28,
+      "skipped": 6,
+      "files": 3,
+      "note": "Live cases are separately opt-in; this round explicitly runs the desktop live scientific workflow",
+      "log": "/tmp/earthnano-round9-native.log"
+    },
+    "nativeResearchAndReviewerArchitecture": {
+      "passed": 9,
+      "files": 2,
+      "python": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+      "log": "/tmp/earthnano-round9-research-native.log"
+    },
+    "python": {
+      "passed": 53,
+      "command": "PYTHONPATH=vendor/harness2 python3 -B -m unittest discover -s vendor/harness2/tests",
+      "log": "/tmp/earthnano-round9-python.log"
+    },
+    "desktopOffline": {
+      "passed": 1,
+      "report": "ROUND9_OFFLINE_DESKTOP.json",
+      "log": "/tmp/earthnano-round9-research-e2e.log"
+    },
+    "desktopDeepSeek": {
+      "passed": 1,
+      "report": "ROUND9_DEEPSEEK.json",
+      "log": "/tmp/earthnano-round9-live-e2e.log"
+    },
+    "typecheckNode": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round9-node.log"
+    },
+    "typecheckWeb": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round9-web.log"
+    },
+    "backendBuild": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round9-backend.log"
+    },
+    "electronBuild": {
+      "status": "passed",
+      "log": "/tmp/earthnano-round9-desktop-build.log"
+    },
+    "lint": {
+      "status": "passed",
+      "files": 25,
+      "maxWarnings": 0,
+      "log": "/tmp/earthnano-round9-lint.log"
+    },
+    "format": {
+      "status": "passed",
+      "files": 43,
+      "log": "/tmp/earthnano-round9-format-final.log"
+    },
+    "credentialScan": {
+      "status": "passed",
+      "scope": "working diff and all 46 changed files matched against the authorized key without printing it"
+    },
+    "diffCheck": {
+      "status": "passed"
+    }
+  },
+  "live": {
+    "model": "deepseek-flash",
+    "nativeClaudeCodeVersion": "2.1.232",
+    "electron": "43.4.0",
+    "ordinaryScientificExecutions": 1,
+    "optimization": {
+      "limit": 20,
+      "admitted": 18,
+      "completed": 18,
+      "active": 0
+    },
+    "apiRequests": 70,
+    "nativeTitleRequests": 1,
+    "usageAsReturned": {
+      "input": 199608,
+      "cacheRead": 556928,
+      "output": 23552
+    },
+    "sourceProducerVerified": true,
+    "sameCoreAndNoDuplicateCandidateJournalVerified": true,
+    "anonymousSelection": {
+      "chosenLabel": "agg2",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Both candidates are byte-identical ({\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}), match the source exactly, and contain only the three required fields with correct arithmetic (12.0 / 3 = 4.0). No criterion separates them; ties are broken by the first-listed id, so A is picked over B."
+    },
+    "assessments": {
+      "baseline": {
+        "score": 100,
+        "outcome": "pass"
+      },
+      "candidate": {
+        "score": 100,
+        "outcome": "pass"
+      }
+    },
+    "artifact": "passed",
+    "configuration": "eligible-not-published",
+    "reopenedWithoutPaidReplay": true,
+    "improvementDemonstrated": false,
+    "billingCost": "not-calculated"
+  },
+  "limitations": [
+    "Representative CSV computation only; R, remote Compute, literature workflows and all provider routes were not exhaustively exercised this round",
+    "Optimizer candidate tools and data remain claude-text: fixed small UTF8 sources, no Notebook/Compute/binary profile",
+    "Original runmark/cache/sweep/substrate source remains; safe platform experiment resume and all desktop controls are not yet integrated",
+    "Library remains experiment-local; live round9 is single-task, real cross-task transfer is not newly demonstrated",
+    "Independent semantic context uses the same model; original partial file evidence and external environment limitations remain",
+    "Electron43.4.0 host cache used; declared43.7.5 dependency unchanged; signed/cross-platform release validation pending",
+    "Candidate Sessions can fill Home recent rows; original project navigation retains the source Session"
+  ]
+}

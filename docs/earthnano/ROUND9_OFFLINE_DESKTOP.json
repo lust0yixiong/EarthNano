@@ -1,0 +1,266 @@
+{
+  "status": "passed",
+  "optimizationState": "completed",
+  "live": false,
+  "progress": {
+    "runId": "9ea83f2a-1e87-4fdb-b810-e1d5a7efbd66",
+    "projectId": "cmvgml1260000xjvz45ewi82u",
+    "sourceSessionId": "5cff924e-da71-470c-af55-48f716713a3c",
+    "method": {
+      "mode": "parallel",
+      "k": 2,
+      "concurrency": 2
+    },
+    "state": "completed",
+    "stage": "completed",
+    "updatedAt": 1792497271923,
+    "executions": [
+      {
+        "executionId": "048774b7-aadd-4fc2-affc-c2694b22747d",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "91c33420-67eb-4c9d-96fc-fe9a37f7c7d4"
+      },
+      {
+        "executionId": "7f6805c3-4351-41b7-ab79-d852f86575cf",
+        "role": "baseline",
+        "stageId": "base2",
+        "phase": "completed",
+        "sessionId": "665d4210-d501-4c9b-8dbb-50eac82c41ca"
+      },
+      {
+        "executionId": "d3e3edbc-5b6c-4a89-9d3c-c7baf9e1d9fe",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "bb478907-ec6d-4454-a22a-087a099cd412"
+      },
+      {
+        "executionId": "dfa0411b-46bf-401d-90c4-a715ec30904e",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "049e634f-19aa-40e3-bf19-a5422f620989"
+      },
+      {
+        "executionId": "a0e8cbce-2d9f-4463-9405-e94f9ade4ca6",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "94bacadf-b586-45a0-9383-280b519455dc"
+      },
+      {
+        "executionId": "843b149d-d81d-44df-b85c-1c6ddb75d2ac",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "861a5498-3f8d-476d-be28-5a094b52339c"
+      },
+      {
+        "executionId": "1d4e37d1-3e30-4007-8620-6848e59194c7",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "848bab16-a386-432d-bb56-05738c1179e8"
+      },
+      {
+        "executionId": "451daec2-f1d6-4490-976d-c321fa104eaf",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "81a6df8c-0c7a-4272-885f-1bf6e07d5344"
+      },
+      {
+        "executionId": "1b112a8e-58b8-48b1-bc56-ec3f7939ed77",
+        "role": "candidate",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "d59e3d3d-5a2a-498b-a720-28fa9c2154bb"
+      },
+      {
+        "executionId": "a91e89a8-2d74-4ba1-a0ac-2184fa0e0b38",
+        "role": "candidate",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "fc61f4e8-8d09-4c15-850d-c7d602498244"
+      },
+      {
+        "executionId": "940357b2-01d8-4e8f-97bc-323d711b6b17",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "d43f1c87-a990-4699-8708-1297268283f3"
+      },
+      {
+        "executionId": "939cca0f-f805-4211-9ad4-c898adc1a15b",
+        "role": "composer",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "a3b2bc26-3977-4ff6-8176-50964890bd90"
+      },
+      {
+        "executionId": "5f647dab-6026-46ce-bdd2-a3457d88c8ad",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "c67a68e6-084d-41b4-b3d9-8d034b964be8"
+      },
+      {
+        "executionId": "be77f8b1-6ee3-476b-8e89-dbdb478c6328",
+        "role": "candidate",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "7d6bb4df-97c7-4041-af88-08ea7c12a5f0"
+      },
+      {
+        "executionId": "0be29167-1fd4-485b-9ce1-1a37bbb4233a",
+        "role": "selector",
+        "stageId": "select.agg2",
+        "phase": "completed",
+        "sessionId": "9b4eda83-2890-4d54-8619-faa294dedbc8"
+      },
+      {
+        "executionId": "7bfce846-326a-47bb-b578-41ffbf4325f3",
+        "role": "reviewer",
+        "stageId": "semantic:1d71f67e-1e86-4f5b-be87-bbe2d1964c45",
+        "phase": "completed",
+        "sessionId": "172e43e1-4ada-4585-aa31-468ca1c805ac"
+      },
+      {
+        "executionId": "156f0351-0dc5-4841-a036-3dc13cac37bb",
+        "role": "reviewer",
+        "stageId": "semantic:a22a8bec-3717-48b0-9446-6dca9396657d",
+        "phase": "completed",
+        "sessionId": "f89eb380-6542-477d-8afb-3f0b514737a4"
+      }
+    ],
+    "budget": {
+      "limit": 20,
+      "admitted": 17,
+      "completed": 17,
+      "active": 0
+    },
+    "inputArtifacts": [
+      {
+        "artifactId": "1045b3c1-8492-49e1-afc2-5f0421663f46",
+        "versionId": "54843227-f3e1-4824-a355-0df9ffd6569f",
+        "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6",
+        "path": "research-results.json"
+      }
+    ],
+    "outcome": {
+      "artifact": {
+        "status": "passed",
+        "checks": [
+          {
+            "path": "result.json",
+            "pointer": "",
+            "artifactRef": {
+              "artifactId": "368b13a0-1112-47f4-9319-0aa8602f74bc",
+              "versionId": "debab94d-3cba-45c4-99b3-df50c167de35",
+              "checksum": "f8a20d9e426c3e4a6fa49ef3e36d5c64e593942837696fe2d37ac838bf4326d9"
+            },
+            "status": "pass",
+            "reason": "matched"
+          }
+        ],
+        "reviewId": "cmvgmletx0013xjvz74of5hqg"
+      },
+      "configuration": {
+        "status": "eligible",
+        "reasons": [],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:2d5327e4fb0ded7c0d39c06f5ae27e85df14cea3c6c2674de2abc04996073473",
+          "version": "1",
+          "digest": "sha256:2d5327e4fb0ded7c0d39c06f5ae27e85df14cea3c6c2674de2abc04996073473"
+        }
+      }
+    },
+    "selection": {
+      "chosenLabel": "agg1",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Both finals satisfy the frozen research input."
+    },
+    "assessments": {
+      "baseline": {
+        "executionId": "7bfce846-326a-47bb-b578-41ffbf4325f3",
+        "targetExecutionId": "048774b7-aadd-4fc2-affc-c2694b22747d",
+        "reviewId": "cmvgmle57000xxjvzubfw3p2g",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "Recomputed arithmetic and checked the fixed result bytes."
+      },
+      "candidate": {
+        "executionId": "156f0351-0dc5-4841-a036-3dc13cac37bb",
+        "targetExecutionId": "5f647dab-6026-46ce-bdd2-a3457d88c8ad",
+        "reviewId": "cmvgmletb0011xjvz7ltwvji5",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "Recomputed arithmetic and checked the fixed result bytes."
+      }
+    }
+  },
+  "sourceArtifact": {
+    "artifactId": "1045b3c1-8492-49e1-afc2-5f0421663f46",
+    "versionId": "54843227-f3e1-4824-a355-0df9ffd6569f",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792497259480-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "reopened": true,
+  "noPaidReplay": true,
+  "sourceProducerVerified": true,
+  "ordinaryCoreVerified": true,
+  "independentReviewsReopened": true,
+  "acceptancePassed": true,
+  "provider": {
+    "requests": 40,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 17,
+    "nativeTitleRequests": 1,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 4,
+      "proposer": 8,
+      "candidate": 12,
+      "composer": 4,
+      "selector": 2,
+      "reviewer": 4
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Write"
+    ],
+    "usage": {
+      "input": 0,
+      "cacheRead": 0,
+      "output": 0
+    }
+  },
+  "bounds": {
+    "apiRequests": 120,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 20
+  },
+  "runtime": {
+    "electron": "43.4.0",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

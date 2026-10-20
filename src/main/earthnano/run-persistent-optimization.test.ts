@@ -1,6 +1,7 @@
 import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const f = vi.hoisted(() => ({
   method: vi.fn(),
@@ -151,6 +152,46 @@ it('freezes the criteria and input before the method runs and keeps the plan out
   const outcome = JSON.parse(await readFile(join(o.workRoot, 'outcome-t.json'), 'utf8'))
   expect(outcome.configurationPublication).toBe('not-published')
   expect(outcome.outcome.configuration.status).toBe('unverified')
+})
+
+it('binds source provenance to the actual frozen input and rejects mismatches before allocating or executing', async () => {
+  const o = await options()
+  o.sourceSessionId = 'source'
+  o.inputArtifacts = [
+    { artifactId: 'artifact', versionId: 'version', checksum: 'a'.repeat(64), path: 'source.txt' }
+  ]
+  await expect(runPersistentOptimization(o)).rejects.toThrow('differs from its source')
+  await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+  expect(f.method).not.toHaveBeenCalled()
+})
+it('captures exact source identities before the method can mutate caller options', async () => {
+  const o = await options(),
+    content = 'fixed source'
+  o.sourceSessionId = 'source'
+  o.input = { ...o.input, task: { prompt: 'Task', files: [{ path: 'source.txt', content }] } }
+  o.inputArtifacts = [
+    {
+      artifactId: 'artifact',
+      versionId: 'version',
+      path: 'source.txt',
+      checksum: createHash('sha256').update(content).digest('hex')
+    }
+  ]
+  f.method.mockImplementation(async () => {
+    o.inputArtifacts![0].versionId = 'changed'
+    o.sourceSessionId = 'changed'
+    return { status: 'ok' }
+  })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await runPersistentOptimization(o)
+  expect(
+    JSON.parse(await readFile(join(o.workRoot, 'input-artifacts.json'), 'utf8'))
+  ).toMatchObject({
+    sourceSessionId: 'source',
+    artifacts: [{ versionId: 'version' }],
+    tasks: [{ taskId: 't', inputDigest: expect.stringMatching(/^sha256:/) }]
+  })
 })
 
 it('retains the declared domain order without claiming results when its method fails early', async () => {

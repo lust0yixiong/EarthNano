@@ -11,6 +11,8 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import type { ActiveSession } from '@agentclientprotocol/sdk'
 import type { AcpRuntimeEvent } from '../../shared/acp'
+import type { PersistedChatSession } from '../../shared/session-persistence'
+import type { ReviewWithChecks } from '../../shared/reviewer'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import {
   createLinearConversationGraph,
@@ -115,7 +117,7 @@ export async function createResearchWorkflowFixture() {
   )
   const files = new ManagedFileIndexRepository(async () => fixture.client, root, versions, uploads)
   const coordinator = new SessionPersistenceCoordinator(sessions, files)
-  const load = async () => {
+  const load = async (): Promise<PersistedChatSession> => {
     const loaded = await loadSessionMutationAuthority(sessions, projectId, sessionId)
     if (loaded.status !== 'found') throw new Error('Research Session unavailable')
     return loaded.session
@@ -284,7 +286,7 @@ export async function createResearchWorkflowFixture() {
   })
   const connection = await rpc.issueSessionConnection(sessionId, projectId, context.agentFrameId!)
   const connectionInfo = await rpc.ensureStarted()
-  const connect = async (server: ReturnType<typeof createNotebookMcpServer>) => {
+  const connect = async (server: ReturnType<typeof createNotebookMcpServer>): Promise<Client> => {
     const client = new Client({ name: 'offline-research-agent', version: '1' })
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     await server.connect(serverTransport)
@@ -305,7 +307,7 @@ export async function createResearchWorkflowFixture() {
   })
   let taskExecutionId: string | undefined
   let reply = ''
-  const execute = async () => {
+  const execute = async (): Promise<PersistedChatSession> => {
     await boundary.execute({
       attemptId: 'research-attempt',
       request: { sessionId, text: research.researchPrompt, provenanceContext: context },
@@ -395,7 +397,12 @@ export async function createResearchWorkflowFixture() {
     if (!(await boundary.settle())) throw new Error('Research shared execution failed to settle')
     return load()
   }
-  const review = async () => {
+  const review = async (): Promise<{
+    result: { review: ReviewWithChecks }
+    readContent: unknown
+    readTrace: unknown
+    readSource: unknown
+  }> => {
     const current = await load()
     let reviewerClient: Client | undefined
     let decision: Promise<void> | undefined

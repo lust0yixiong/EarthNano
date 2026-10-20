@@ -93,6 +93,23 @@ it('accepts old callers without adding a method field or changing request identi
   expect(api.start).toHaveBeenCalledWith(request)
   expect(vi.mocked(api.start).mock.calls[0][0]).not.toHaveProperty('method')
 })
+it('accepts only bounded immutable artifact identities, never a source host path', async () => {
+  const inputArtifacts = [
+    { artifactId: 'artifact', versionId: 'version', path: 'source.json', checksum: 'a'.repeat(64) }
+  ]
+  await invokeDesktopOptimization(api, 'start', { ...request, inputArtifacts })
+  expect(api.start).toHaveBeenCalledWith({ ...request, inputArtifacts })
+  vi.mocked(api.start).mockClear()
+  for (const ref of [
+    { ...inputArtifacts[0], path: '/host/key.md' },
+    { ...inputArtifacts[0], sourcePath: '/host/key.md' },
+    { ...inputArtifacts[0], checksum: undefined }
+  ])
+    await expect(
+      invokeDesktopOptimization(api, 'start', { ...request, inputArtifacts: [ref] })
+    ).rejects.toThrow()
+  expect(api.start).not.toHaveBeenCalled()
+})
 it.each([
   null,
   { mode: 'other', k: 2, concurrency: 2 },

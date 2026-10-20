@@ -28,6 +28,11 @@ import { resolveConfigRoot, resolveDataRoot } from '../storage-root'
 import { getProjectDbClient } from '../projects/prisma-client'
 import { runtimeMetadata } from '../runtime-metadata'
 import { registerDesktopOptimizationIpcHandlers } from '../desktop-surface-declarations'
+import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
+import { resolveOptimizationArtifactInputs } from '../earthnano/optimization-input'
+import { ManagedFileVersionService } from '../managed-file-versions/service'
+import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
+import type { PersistedChatSession } from '../../shared/session-persistence'
 
 export type DesktopOptimizationLifecycle = Pick<
   DesktopOptimizationManager,
@@ -91,6 +96,8 @@ export async function createDesktopOptimizationOptions(
     harnessRoot: string
     resolvePython?: () => Promise<string>
     probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
+    loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
+    versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
   }
 ): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
   const releaseWriter = acquireDataRootWriter()
@@ -131,6 +138,31 @@ export async function createDesktopOptimizationOptions(
       )
     const dataRoot = resolveDataRoot(),
       configRoot = resolveConfigRoot()
+    const inputArtifacts = normalizeOptimizationArtifactInputs(request.inputArtifacts)
+    const resolveFiles = async (
+      files: Array<{ path: string; content: string }>
+    ): Promise<typeof files> => {
+      if (!inputArtifacts?.length) return structuredClone(files)
+      if (!dependencies.loadSession) throw new Error('Original Session reader unavailable')
+      return resolveOptimizationArtifactInputs({
+        projectId: request.projectId,
+        sourceSessionId: request.sourceSessionId,
+        artifacts: inputArtifacts,
+        files,
+        loadSession: () => dependencies.loadSession!(request.projectId, request.sourceSessionId),
+        versions:
+          dependencies.versions ??
+          new ManagedFileVersionService({
+            storageRoot: dataRoot,
+            getClient: () => getProjectDbClient(configRoot)
+          })
+      })
+    }
+    const files = await resolveFiles(request.files)
+    const domain = request.domain ? structuredClone(request.domain) : undefined
+    // Do not release the original data-root writer on one rejection while sibling version leases
+    // are still reading. At most three successor tasks are frozen under this same owner.
+    for (const task of domain?.nextTasks ?? []) task.files = await resolveFiles(task.files)
     const providerRef = `desktop-provider:${selected.providerId}`
     let released = false
     const releaseAdmission = (): void => {
@@ -141,6 +173,7 @@ export async function createDesktopOptimizationOptions(
     }
     return {
       projectId: request.projectId,
+      sourceSessionId: request.sourceSessionId,
       taskId: `desktop-task-${randomUUID()}`,
       workRoot: join(dataRoot, 'earthnano', 'runs', randomUUID()),
       harnessRoot: dependencies.harnessRoot,
@@ -149,10 +182,11 @@ export async function createDesktopOptimizationOptions(
       semanticCriteria: request.criteria,
       ...(request.method === undefined ? {} : { method: structuredClone(request.method) }),
       ...(request.checks === undefined ? {} : { checks: structuredClone(request.checks) }),
-      ...(request.domain === undefined ? {} : { domain: structuredClone(request.domain) }),
+      ...(domain === undefined ? {} : { domain }),
+      ...(inputArtifacts?.length ? { inputArtifacts } : {}),
       ownerOptions: { dataRoot, configRoot, getClient: () => getProjectDbClient(configRoot) },
       input: {
-        task: { prompt: request.prompt, files: structuredClone(request.files) },
+        task: { prompt: request.prompt, files },
         harness: {
           instructions:
             'Read the frozen task inputs carefully. Follow the task requirements, verify the deliverables and write the requested files under OUTPUT.',
@@ -232,6 +266,11 @@ export async function registerDesktopOptimizationComposition(
             validateSession,
             admitSessionWork: (projectId, sessionId) =>
               options.archive.admitSessionWork(projectId, sessionId, true),
+            loadSession: async (projectId, sessionId) => {
+              const session = await options.sessions.readSessionSnapshot(projectId, sessionId)
+              if (!session) throw new Error('Original Session unavailable')
+              return session
+            },
             harnessRoot: runtimeMetadata().packaged
               ? join(runtimeMetadata().resourcesPath, 'earthnano', 'harness2')
               : join(runtimeMetadata().applicationPath, 'vendor', 'harness2')
