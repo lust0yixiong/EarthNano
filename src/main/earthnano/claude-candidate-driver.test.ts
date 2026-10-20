@@ -116,6 +116,20 @@ describe('Claude candidate lifecycle composition', () => {
     expect(f.owner.shutdown).toHaveBeenCalledOnce()
   })
 
+  it('reaps a retained owner when real Session preparation fails', async () => {
+    const f = fixture()
+    f.owner.preparePlan = async () => {
+      throw new Error('startup failed after spawn')
+    }
+    const driver = createClaudeCandidateDriver({ ...f, binding, openOwner: async () => f.owner })
+    expect(await driver.execute(f.request, f.context)).toMatchObject({
+      phase: 'failed',
+      cleanup: 'confirmed'
+    })
+    expect(f.owner.shutdown).toHaveBeenCalledOnce()
+    expect(f.owner.agent.prompt).not.toHaveBeenCalled()
+  })
+
   it('keeps ambiguous owner construction fenced and never serializes binding secrets', async () => {
     const f = fixture()
     const driver = createClaudeCandidateDriver({

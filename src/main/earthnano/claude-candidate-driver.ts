@@ -42,7 +42,9 @@ export interface ClaudeCandidateDriverOptions {
 /** Explicit internal composition. Desktop bootstrap is unchanged. Each accepted execution gets a
  * fresh snapshot projection and runtime; lifecycle/result handling stays in the round-two ACP driver.
  * Candidate files are retained for inspection. Deletion is never treated as process cleanup. */
-export function createClaudeCandidateDriver(options: ClaudeCandidateDriverOptions): ExecutionDriver {
+export function createClaudeCandidateDriver(
+  options: ClaudeCandidateDriverOptions
+): ExecutionDriver {
   return {
     async execute(request, context) {
       let owner: ClaudeCandidateOwner | undefined
