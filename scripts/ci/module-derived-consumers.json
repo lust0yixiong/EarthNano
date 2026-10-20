@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "modules": {
     "acp_runtime": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -29,6 +30,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "acp_session_policy": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -58,6 +60,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_content_contracts": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -99,6 +102,7 @@
       "src/main/session-package/literature-source.test.ts"
     ],
     "artifact_provenance": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -139,6 +143,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_publication_request": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -166,6 +171,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_reproducibility_contract": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -263,6 +269,7 @@
       "src/renderer/src/pages/workspace/replay/ReplayToolRecord.test.tsx"
     ],
     "artifact_storage": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -303,6 +310,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "artifact_storage_validation": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -347,6 +355,7 @@
       "src/main/session-package/desktop.test.ts"
     ],
     "compute_domain_contracts": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -417,6 +426,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "compute_session_access": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -499,6 +509,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "delegation_execution_contracts": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -533,6 +544,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "durable_files": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -581,6 +593,7 @@
       "src/main/update/windows-update-handoff.test.ts"
     ],
     "environment_contracts": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -648,6 +661,7 @@
       "src/shared/earthnano/research-outcome.test.ts"
     ],
     "environment_engine": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -689,6 +703,7 @@
       "src/main/session-package/literature-source.test.ts"
     ],
     "framework_installation": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -717,6 +732,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "framework_process_launch": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -745,6 +761,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_bounded_io": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -776,6 +793,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_command_runtime": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -826,6 +844,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_file_publisher": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -853,6 +872,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_http_transport": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -884,6 +904,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "host_managed_preview": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -910,6 +931,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_process_runtime": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -938,6 +960,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_rpc_transport": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -966,6 +989,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "host_runtime_lifecycle": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -996,6 +1020,7 @@
       "src/main/update/windows-update-handoff.test.ts"
     ],
     "host_runtime_ports": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1027,6 +1052,7 @@
       "src/main/update/windows-update-handoff.test.ts"
     ],
     "host_value_guards": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1060,6 +1086,7 @@
       "src/main/update/windows-update-handoff.test.ts"
     ],
     "i18n_main_adapter": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1094,6 +1121,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "i18n_shared_runtime": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1152,6 +1180,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "immutable_input_authority": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1210,6 +1239,7 @@
       "src/renderer/src/pages/workspace/literature-save-contract.test.tsx"
     ],
     "main_agent_framework": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1264,6 +1294,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_archive": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1324,6 +1355,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "main_database": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1351,6 +1383,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_delegation": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1378,6 +1411,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_diagnostics": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
       "src/main/earthnano/desktop-optimization-ipc.test.ts",
       "src/main/earthnano/research-workflow.integration.test.ts"
@@ -1464,6 +1498,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_managed_file_versions": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1682,6 +1717,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "main_storage": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1751,6 +1787,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "managed_version_files": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1814,6 +1851,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "native_file_publisher": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1841,6 +1879,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "native_process_tree": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1869,6 +1908,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_analysis": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -1930,6 +1970,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "notebook_analysis_engine": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2098,6 +2139,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_execution_model": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2164,6 +2206,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_input_materialization": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2204,6 +2247,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_network_sandbox": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2233,6 +2277,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_repository": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2303,6 +2348,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "notebook_syntax": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2343,6 +2389,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "package_journal_catalog": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2383,6 +2430,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "package_literature_citations": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2429,6 +2477,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "package_literature_discovery": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2471,6 +2520,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "package_literature_library": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2523,6 +2573,7 @@
       "src/main/settings/codex-bridge-tools.test.ts"
     ],
     "package_literature_screening": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2669,6 +2720,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "pdf_annotations": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2711,6 +2763,7 @@
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx"
     ],
     "pdf_document_source": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2766,6 +2819,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "pdf_documents": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2900,6 +2954,7 @@
       "src/renderer/src/pages/workspace/replay/ReplayToolRecord.test.tsx"
     ],
     "pdf_text": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -2940,6 +2995,7 @@
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx"
     ],
     "project_database": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
       "src/main/earthnano/ordinary-session-execution.integration.test.ts",
       "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
@@ -2952,6 +3008,7 @@
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx"
     ],
     "project_files_repository": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3009,6 +3066,7 @@
       "src/main/reviewer/reviewer-fix-loop-owner.test.ts"
     ],
     "provider_credentials": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3037,6 +3095,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "provider_transport": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3065,6 +3124,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "providers_package": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3414,6 +3474,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "reproducibility_contracts": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3476,6 +3537,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "reproducibility_engine": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3516,6 +3578,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "resilient_download": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3573,6 +3636,7 @@
       "src/shared/earthnano/release-identity.test.ts"
     ],
     "reviewer_evidence": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3612,6 +3676,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "reviewer_orchestrator": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3652,6 +3717,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "reviewer_repository": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3775,6 +3841,7 @@
       "src/renderer/src/pages/workspace/replay/ReplayToolRecord.test.tsx"
     ],
     "session_persistence": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3803,6 +3870,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "session_plan_delivery": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3841,6 +3909,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "settings_backend_resolution": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -3944,6 +4013,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "settings_proxy_runtime": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4153,6 +4223,7 @@
       "src/main/composition/desktop-optimization.test.ts"
     ],
     "skill_package": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4214,6 +4285,7 @@
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
     "skill_runtime_transport": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4242,6 +4314,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "specialist_package": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4312,6 +4385,7 @@
       "src/renderer/src/pages/workspace/previews/LibraryPreview.test.tsx"
     ],
     "storage_location": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4344,6 +4418,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "storage_state": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4384,6 +4459,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "upload_file_transport": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",
@@ -4423,6 +4499,7 @@
       "src/main/notebook/host-binding-permit.test.ts"
     ],
     "upload_repository": [
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.integration.test.ts",
       "src/main/acp/claude-candidate-preparation.test.ts",
       "src/main/acp/claude-deepseek-live.integration.test.ts",

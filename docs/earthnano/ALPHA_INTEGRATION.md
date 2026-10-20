@@ -39,7 +39,7 @@
 - 桌面 resume 命令漏注册：已复现、修复并补回归。
 - 并行任务曾报告 `Runtime Session turn is unknown or superseded`：已确定为候选私有 authority 与应用原 authority 分离导致活跃接纳被原重启调和逻辑清除。现复用原应用 Session repository/coordinator，注册实际 runtime 的存活探针；保留原接纳/重启语义。确定性回归及同环境原上游 controls 通过，见 `ALPHA_SESSION_ADMISSION.md`。
 - 恢复后的 method 严格缓存曾拒绝原请求：已确定私有 managed-inputs JSON 键序改变字节与 invocationRef。仅固定私有 adapter 的序列化顺序，原 schedule 严格缓存规则不变。版本、摘要或数组顺序实际变化仍拒绝，见 `ALPHA_METHOD_RESUME.md`。
-- 最新 DeepSeek 普通任务失败为原 `ArtifactFinalizationProofError / version-message-conflict`：产物已关联另一消息。现有日志不足以确认第一次认领者，正在做上游原路径确定性对照；禁止覆写版本归属或降低证明。
+- 最新 DeepSeek 普通任务失败为原 `ArtifactFinalizationProofError / version-message-conflict`：产物已关联另一消息。已在固定上游确定性重现同一窗口：兼容 marker 产生后、最终运行消息 flush 前，hydration 把唯一前置消息误认为最终归属。最小修复仅阻止同一 active prompt 的无 claim 推断，原 proof/finalizer 不改；相同六场景上游 1 失败 / 5 通过，修复后六场景与原 237 项共 243 通过，见 [原路径对照](ALPHA_ARTIFACT_FINALIZATION.md)。真实模型复验仍待完成，历史数据库缺失不补造。
 
 两次付费尝试和离线通过报告已逐字节保存在 [validation/alpha](validation/alpha/README.md)，包含 SHA-256、用量观测、缺失证据和失败归因边界。旧代理不能区分主动停止与异常上游拒绝；现已补真实 HTTP 控制测试，只有自身取消且客户端已断开的请求才单列取消，异常拒绝仍失败。该修复不能追认第一次失败为通过。
 
