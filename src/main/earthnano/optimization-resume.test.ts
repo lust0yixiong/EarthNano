@@ -124,6 +124,10 @@ it('keeps the routing index separate from confirmed journal settlement and dupli
   altered.entries[record.requestKey].taskId = 'different-owner'
   writeResumeJson(filename, altered)
   expect(() => new OptimizationResumeIndex(filename, true)).toThrow('routing index changed')
+  for (const malformed of [null, [], {}, { schemaVersion: 1 }]) {
+    writeResumeJson(filename, malformed)
+    expect(() => new OptimizationResumeIndex(filename, true)).toThrow()
+  }
 })
 
 it('pins method source bytes and immutable descriptor identity while excluding generated Python cache files', () => {

@@ -111,7 +111,13 @@ export class OptimizationResumeIndex {
     resume: boolean
   ) {
     const saved = resume ? JSON.parse(readFileSync(filename, 'utf8')) : undefined
-    if (saved && (saved.schemaVersion !== 1 || saved.digest !== outputDigest(saved.entries)))
+    if (
+      resume &&
+      (!saved ||
+        saved.schemaVersion !== 1 ||
+        !saved.entries ||
+        saved.digest !== outputDigest(saved.entries))
+    )
       throw new Error('Optimization request routing index changed')
     this.entries = saved?.entries ?? {}
     if (
