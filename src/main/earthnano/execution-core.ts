@@ -273,14 +273,20 @@ export class ExecutionCore implements ExecutionPort {
 
   /** Trusted recovery adapter only: original durable owners attest exact turn and resource release.
    * Reconciliation never invokes the driver, refunds a budget, or steals a live resource owner. */
-  reconcileOriginal(id: string, outcome: ExecutionOutcome & { cleanup: 'confirmed' }): void {
+  reconcileOriginal(
+    id: string,
+    outcome: Omit<ExecutionOutcome, 'phase' | 'cleanup'> & {
+      phase: 'completed' | 'failed' | 'cancelled' | 'interrupted'
+      cleanup: 'confirmed'
+    }
+  ): void {
     this.assertOpen()
     const record = this.require(id)
     if (!terminal(record.phase) || record.cleanup !== 'unknown' || this.controllers.has(id))
       throw new Error('Only a recovered execution with unknown cleanup can be reconciled')
     if (
       outcome.cleanup !== 'confirmed' ||
-      !['completed', 'failed', 'cancelled'].includes(outcome.phase)
+      !['completed', 'failed', 'cancelled', 'interrupted'].includes(outcome.phase)
     )
       throw new Error('Reconciliation requires original terminal and resource-release witnesses')
     this.finish(id, outcome)
