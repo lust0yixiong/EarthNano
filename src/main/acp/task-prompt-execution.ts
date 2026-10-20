@@ -49,7 +49,7 @@ export const createAcpTaskPromptExecution = (
           observer.onProviderPromptAccepted ?? (() => undefined),
           observer.onPromptAdmitted,
           'task',
-          observer.ownerCompletion
+          ...(observer.ownerCompletion ? ([observer.ownerCompletion] as const) : [])
         )
       } else {
         await runtime.sendPrompt(acpRequest)

@@ -34,6 +34,8 @@ import { ArtifactRepository } from '../artifacts/repository'
 import type { ArtifactRunRegistry } from '../artifacts/run-registry'
 import { resolveAllowedImportFilePath } from '../artifacts/storage-access'
 import type { RootDelegatedWorkControl } from '../delegation/production-composition'
+import { createAcpExecutionBoundary } from '../earthnano/acp-execution-boundary'
+import { createSessionExecutionHost } from '../earthnano/session-execution-host'
 import type { LiteratureAttachmentAuthority } from '../literature/attachment-authority'
 import type { LiteratureCatalog } from '../literature/catalog'
 import { LiteratureCitationDocument } from '../literature/citation-document'
@@ -82,6 +84,7 @@ import { AcpRuntime } from './runtime'
 import { composeAcpRuntimeBaseOwners } from './runtime-base-composition'
 import type { AcpRuntimeCallbacks, AcpRuntimeOptions } from './runtime-contract'
 import { AcpRuntimeCoordinator } from './runtime-coordinator'
+import type { TrustedDelegatedExecutionOwner } from './execution-boundary-port'
 import { createAcpRuntimeEventBroadcastCoalescer } from './runtime-event-broadcast-coalescer'
 import { composeAcpRuntimeSessionOwners } from './runtime-session-composition'
 
@@ -211,6 +214,7 @@ type AcpRuntimeCompositionOptions = AcpRuntimeArtifacts & {
     ReturnType<NonNullable<AcpSettingsCapabilities['prepareDelegatedSkills']>>
   >
   delegatedNotebookConnection?: NotebookRpcConnection
+  delegatedExecutionOwner?: Omit<TrustedDelegatedExecutionOwner, 'ownsSession'>
   // Disposable delegated framework homes contain copied authentication and Skill material.
   // Keep the per-attempt home protected even when a parent data directory is granted.
   delegatedRuntimeHome?: string
@@ -295,6 +299,7 @@ const createAcpRuntime = ({
   runtimeCallbacks,
   preparedSkills,
   delegatedNotebookConnection,
+  delegatedExecutionOwner,
   delegatedRuntimeHome,
   delegatedArtifactCurrentRunFile,
   spawnAgent,
@@ -1052,6 +1057,32 @@ const createAcpRuntime = ({
       ? () => projectRegistrySessionGrants(permissionGrantRegistry.listCached())
       : undefined,
     delegatedWork
+  )
+  runtimeCoordinator.setExecutionBoundary(
+    createAcpExecutionBoundary({
+      ...(delegatedExecutionOwner
+        ? {
+            delegatedOwner: {
+              ...delegatedExecutionOwner,
+              ownsSession: (sessionId: string) =>
+                runtimeCoordinator.getSnapshot().sessionIds.includes(sessionId) &&
+                runtimeCoordinator.liveSessionProjectId(sessionId) ===
+                  delegatedExecutionOwner.projectId
+            }
+          }
+        : {}),
+      host: createSessionExecutionHost({
+        dataRoot,
+        configRoot,
+        getClient: () => getProjectDbClient(configRoot),
+        ...(runtimeSessionOwner
+          ? {
+              flush: (sessionId, promptMessageId) =>
+                runtimeSessionOwner.flush(sessionId, promptMessageId)
+            }
+          : {})
+      })
+    })
   )
   runtimeCoordinatorRef.current = runtimeCoordinator
   return runtimeCoordinator

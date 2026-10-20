@@ -1,3 +1,4 @@
+import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
 // Pins the production Agent Context resolver separately from the runtime composition so the lookup
 // policy stays covered against a fake repository.
 
@@ -11,12 +12,31 @@ import {
 } from '../../shared/conversation-graph'
 import type { PersistedChatMessage } from '../../shared/session-persistence'
 
+configureTestRuntimeMetadata()
+
 vi.mock('electron', () => ({
   app: { getVersion: () => '0.0.0-test' },
   BrowserWindow: { getAllWindows: () => [] }
 }))
 
-const { createProjectAgentContextResolver, sessionHasReplayableImageHistory } =
+const execution = vi.hoisted(() => {
+  const boundary = { execute: vi.fn(), cancel: vi.fn(), settle: vi.fn() }
+  const host = { prepare: vi.fn() }
+  return {
+    boundary,
+    host,
+    createBoundary: vi.fn(() => boundary),
+    createHost: vi.fn(() => host)
+  }
+})
+vi.mock('../earthnano/acp-execution-boundary', () => ({
+  createAcpExecutionBoundary: execution.createBoundary
+}))
+vi.mock('../earthnano/session-execution-host', () => ({
+  createSessionExecutionHost: execution.createHost
+}))
+
+const { createAcpRuntime, createProjectAgentContextResolver, sessionHasReplayableImageHistory } =
   await import('./runtime-composition')
 
 const message = (
@@ -99,5 +119,40 @@ describe('sessionHasReplayableImageHistory', () => {
         conversationGraph: activateConversationBranch(edited, originalBranchId)
       })
     ).toBe(true)
+  })
+})
+
+describe('production shared execution composition', () => {
+  it('installs the original Session host and sends ordinary prompts through the boundary', async () => {
+    const runtime = createAcpRuntime({
+      appVersion: '0.0.0-test',
+      mcpEntryPath: '/tmp/test-mcp.js',
+      repository: {},
+      runRegistry: {},
+      uploadRepository: {},
+      notebookRpcServer: {},
+      settingsService: { captureActiveAgentBackendSelection: vi.fn() }
+    } as never)
+    expect(execution.createHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataRoot: expect.any(String),
+        configRoot: expect.any(String),
+        getClient: expect.any(Function)
+      })
+    )
+    expect(execution.createBoundary).toHaveBeenCalledWith({ host: execution.host })
+    const failure = new Error('durable admission unavailable')
+    execution.boundary.execute.mockRejectedValueOnce(failure)
+    await expect(
+      runtime.sendPrompt({ sessionId: 'session-1', text: 'ordinary Send' })
+    ).rejects.toBe(failure)
+    expect(execution.boundary.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({ sessionId: 'session-1', text: 'ordinary Send' }),
+        operation: 'sendPrompt',
+        runtimeReviewOwner: 'renderer'
+      })
+    )
+    runtime.shutdown()
   })
 })

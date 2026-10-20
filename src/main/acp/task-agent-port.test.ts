@@ -328,8 +328,7 @@ describe('ACP Task Agent port', () => {
       expect.objectContaining({ permissionPrompts: 'none' }),
       expect.any(Function),
       onPromptAdmitted,
-      'task',
-      undefined
+      'task'
     )
     expect(onPromptAdmitted).toHaveBeenCalledOnce()
     expect(onProviderPromptAccepted).toHaveBeenCalledOnce()

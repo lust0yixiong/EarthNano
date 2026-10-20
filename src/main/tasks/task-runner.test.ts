@@ -1941,7 +1941,12 @@ describe('TaskRunner', () => {
       sessionId: 'session-controlled',
       frameworkId: 'codex' as const
     }))
-    const prompt = vi.fn(async () => {
+    const prompt = vi.fn(async (_request, observer: Parameters<TaskAgentPort['prompt']>[1]) => {
+      const completion = observer!.ownerCompletion!
+      completion.linked!({
+        executionId: 'execution-controlled',
+        settled: completion.committed.then(() => ({ phase: 'completed' }) as ExecutionRecord)
+      })
       emitEvent?.({
         id: 'plan-event',
         timestamp: 9,
@@ -2047,7 +2052,8 @@ describe('TaskRunner', () => {
     expect(review).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'session-controlled' }),
       'assistant-controlled',
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
+      'execution-controlled'
     )
     expect(completed.review).toEqual({
       started: true,

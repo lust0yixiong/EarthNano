@@ -234,7 +234,8 @@ type TaskReviewerPort = {
   review(
     session: PersistedChatSession,
     turnMessageId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    parentExecutionId?: string
   ): Promise<TaskRunReview>
 }
 
@@ -2304,7 +2305,8 @@ class TaskRunner {
           run.review = await this.dependencies.reviewer.review(
             completed!.session,
             reviewedMessage.id,
-            reviewAbortController.signal
+            reviewAbortController.signal,
+            ...(run.executionId ? ([run.executionId] as const) : [])
           )
         } catch (error) {
           if (!reviewAbortController.signal.aborted) {

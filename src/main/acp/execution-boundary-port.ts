@@ -1,5 +1,6 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import type { AcpPromptRequest, AcpRuntimeState, AcpSessionAgentTarget } from '../../shared/acp'
+import type { ExecutionScope } from '../earthnano/execution-scope'
 import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/execution-port'
 
 export interface AcpExecutionObservation {
@@ -41,4 +42,17 @@ export interface AcpExecutionBoundary {
     readState: () => AcpRuntimeState
   ): Promise<AcpRuntimeState>
   settle(): Promise<boolean>
+}
+
+/** Main-process owner declaration, constructed only from an admitted delegated Attempt. */
+export interface TrustedDelegatedExecutionOwner {
+  readonly projectId: string
+  readonly sourceSessionId: string
+  readonly parentPromptMessageId: string
+  readonly frameId: string
+  readonly runtimeSegmentId: string
+  readonly attemptId: string
+  readonly parentScope?: ExecutionScope
+  /** Checks attachment to the exact private child coordinator, never a renderer claim. */
+  ownsSession(sessionId: string): boolean
 }
