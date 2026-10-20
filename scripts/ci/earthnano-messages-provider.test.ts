@@ -185,3 +185,62 @@ it.each([true, false])(
     expect(provider.stats.upstreamRequests).toBe(0)
   }
 )
+
+it('offline R decisions bind the explicit R target and execute real R source instead of Python', async () => {
+  const provider = await createEarthnanoMessagesProvider(false, true, false, {
+    scientificLanguage: 'r'
+  })
+  cleanups.push(() => provider.close())
+  const tools = ['list_notebook_runtimes', 'notebook_bind_runtime', 'notebook_execute'].map(
+    (suffix) => ({ name: `mcp__open-science-notebook__${suffix}` })
+  )
+  const messages = [
+    {
+      role: 'user',
+      content:
+        '<open_science_notebook_inputs>[{"filename":"measurements.csv","notebookPath":"/fixed/source.csv"}]</open_science_notebook_inputs>'
+    },
+    { role: 'assistant', content: [{ type: 'tool_use', name: tools[0].name }] },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          content: JSON.stringify({
+            runtimes: [
+              {
+                language: 'python',
+                source: 'external',
+                runnable: true,
+                runtimeId: '/original/python'
+              },
+              { language: 'r', source: 'external', runnable: true, runtimeId: '/original/R' }
+            ]
+          })
+        }
+      ]
+    }
+  ]
+  const send = async (): Promise<Record<string, unknown>> => {
+    const response = await fetch(`${provider.url}/v1/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ...body, messages, tools })
+    })
+    expect(response.status).toBe(200)
+    const event = (await response.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)))
+      .find((event) => event.delta?.partial_json)
+    return JSON.parse(event.delta.partial_json)
+  }
+  expect(await send()).toEqual({ language: 'r', runtimeId: '/original/R' })
+  messages.push({ role: 'assistant', content: [{ type: 'tool_use', name: tools[1].name }] })
+  const execute = await send()
+  expect(execute.language).toBe('r')
+  expect(execute.code).toContain('utils::read.csv("/fixed/source.csv"')
+  expect(execute.code).toContain('jsonlite::write_json')
+  expect(execute.code).not.toContain('import csv')
+  expect(provider.stats.upstreamRequests).toBe(0)
+})

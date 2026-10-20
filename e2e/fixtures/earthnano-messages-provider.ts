@@ -1,3 +1,4 @@
+import type { NotebookLanguage } from '../../src/shared/notebook-language-contract'
 import { randomUUID } from 'node:crypto'
 import { createServer, type ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
@@ -97,6 +98,8 @@ export async function createEarthnanoMessagesProvider(
   scientificOptimization = false,
   pauseFirstProposer = false,
   testOptions: {
+    /** Offline decision fixture only; live requests and tools remain untouched. */
+    scientificLanguage?: NotebookLanguage
     keyFile?: string
     upstreamFetch?: typeof fetch
     /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
@@ -121,6 +124,9 @@ export async function createEarthnanoMessagesProvider(
   }
   close(): Promise<void>
 }> {
+  const scientificLanguage = testOptions.scientificLanguage ?? 'python'
+  if (scientificLanguage !== 'python' && scientificLanguage !== 'r')
+    throw new Error('Unsupported acceptance scientific language')
   const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
   if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
     throw new Error('Invalid bounded acceptance request limit')
@@ -330,12 +336,17 @@ export async function createEarthnanoMessagesProvider(
             blocks.filter((block) => block.type === 'tool_result'),
             'runtimes'
           ) as Array<{ language: string; source: string; runnable: boolean; runtimeId: string }>
-          const python = runtimes?.find(
+          const target = runtimes?.find(
             (runtime) =>
-              runtime.language === 'python' && runtime.source === 'external' && runtime.runnable
+              runtime.language === scientificLanguage &&
+              runtime.source === 'external' &&
+              runtime.runnable
           )
-          if (!python) throw new Error('Explicit Python interpreter unavailable')
-          return call('notebook_bind_runtime', { language: 'python', runtimeId: python.runtimeId })
+          if (!target) throw new Error('Explicit scientific interpreter unavailable')
+          return call('notebook_bind_runtime', {
+            language: scientificLanguage,
+            runtimeId: target.runtimeId
+          })
         }
         if (!called('notebook_execute')) {
           const inputs =
@@ -349,8 +360,11 @@ export async function createEarthnanoMessagesProvider(
             )
           if (!source) throw new Error('Uploaded scientific input unavailable')
           return call('notebook_execute', {
-            language: 'python',
-            code: `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
+            language: scientificLanguage,
+            code:
+              scientificLanguage === 'r'
+                ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(jsonlite::toJSON(report, auto_unbox=TRUE, digits=NA))`
+                : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
           })
         }
         if (!called('write_artifact_file')) {
@@ -396,7 +410,9 @@ export async function createEarthnanoMessagesProvider(
         return write(
           join(output, 'context/harness/instructions.md'),
           scientificOptimization
-            ? `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+            ? scientificLanguage === 'r'
+              ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+              : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
             : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
       if (role === 'reviewer') {
