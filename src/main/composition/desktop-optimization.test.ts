@@ -128,7 +128,7 @@ it('rejects unsupported backend/subscription/endpoints and releases leases witho
     if (variant === 'subscription')
       deps.settings.resolveIsolatedClaudeProvider.mockResolvedValue({
         ...selected(),
-        provider: { ...selected().provider, type: 'claude-subscription' }
+        provider: { ...selected().provider, type: 'claude-shared' }
       })
     if (variant === 'endpoint')
       deps.settings.resolveIsolatedClaudeProvider.mockResolvedValue({

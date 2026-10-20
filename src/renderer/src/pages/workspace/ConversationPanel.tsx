@@ -1609,27 +1609,30 @@ const ConversationPanel = ({
           </button>
         </header>
         <PackageOperationIndicator />
-        {activeSession && !isImported && !activeSession.archivedAt && (
-          <TaskOptimizationPanel
-            projectId={activeSession.projectId}
-            sessionId={activeSession.id}
-            initialPrompt={
-              activeSession.messages.filter((message) => message.role === 'user').at(-1)?.content ??
-              ''
-            }
-            onOpenSession={sessionTools.openSession}
-            onOpenReview={(sessionId, reviewId) =>
-              usePreviewWorkbenchStore.getState().upsertAndActivateItem(
-                createSessionReviewerPreviewItem({
-                  sessionId,
-                  reviewId,
-                  findingId: undefined,
-                  locator: undefined
-                })
-              )
-            }
-          />
-        )}
+        {activeSession &&
+          activeSession.contentLoaded !== false &&
+          !isImported &&
+          !activeSession.archivedAt && (
+            <TaskOptimizationPanel
+              projectId={activeSession.projectId}
+              sessionId={activeSession.id}
+              initialPrompt={
+                activeSession.messages.filter((message) => message.role === 'user').at(-1)
+                  ?.content ?? ''
+              }
+              onOpenSession={sessionTools.openSession}
+              onOpenReview={(sessionId, reviewId) =>
+                usePreviewWorkbenchStore.getState().upsertAndActivateItem(
+                  createSessionReviewerPreviewItem({
+                    sessionId,
+                    reviewId,
+                    findingId: undefined,
+                    locator: undefined
+                  })
+                )
+              }
+            />
+          )}
 
         {isNewConversation ? null : activeSession?.contentLoaded === false ? (
           <SessionSwitchSkeleton />

@@ -2316,7 +2316,7 @@ it.each(['subscription', 'endpoint', 'backend'] as const)(
   'isolated Claude policy rejects %s before secret-aware provider projection or runtime preparation',
   async (variant) => {
     const provider = makeStoredProvider('provider-a', 'model-a')
-    if (variant === 'subscription') provider.type = 'claude-subscription'
+    if (variant === 'subscription') provider.type = 'claude-shared'
     if (variant === 'endpoint') provider.apiEndpoints = ['responses']
     const harness = makeHarness({ settings: makeSettings({ providers: [provider] }) })
     harness.resolveRuntimeTarget.mockClear()

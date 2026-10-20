@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ErrorNotice } from '@/components/error-notice'
 import { useTranslation } from 'react-i18next'
 import type {
   DesktopOptimizationApi,
@@ -38,14 +39,18 @@ function OptimizationSessionPanel({
   const [prompt, setPrompt] = useState(initialPrompt)
   const [criteria, setCriteria] = useState('')
   const [files, setFiles] = useState<Array<{ path: string; content: string }>>([])
-  const [limit, setLimit] = useState(9)
+  const [limit, setLimit] = useState(12)
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<false | 'request' | 'files'>(false)
   const alive = useRef(true)
   const actionRevision = useRef(0)
   const requestKey = useRef<string | null>(null)
+  const promptEdited = useRef(false)
   const active = !!progress && !terminal(progress.state)
+  useEffect(() => {
+    if (!promptEdited.current) setPrompt(initialPrompt)
+  }, [initialPrompt])
   const message = t(
     'Optimization request could not be completed. Check the selected model and runtime settings.'
   )
@@ -59,7 +64,7 @@ function OptimizationSessionPanel({
         if (!disposed && revision === actionRevision.current) setProgress(value)
       })
       .catch(() => {
-        if (!disposed) setError(true)
+        if (!disposed) setError('request')
       })
     return () => {
       disposed = true
@@ -83,7 +88,7 @@ function OptimizationSessionPanel({
           })
           .catch(() => {
             if (!disposed) {
-              setError(true)
+              setError('request')
               poll()
             }
           })
@@ -133,7 +138,7 @@ function OptimizationSessionPanel({
         requestKey.current = null
       }
     } catch {
-      if (alive.current) setError(true)
+      if (alive.current) setError('request')
     } finally {
       if (alive.current) setBusy(false)
     }
@@ -151,7 +156,7 @@ function OptimizationSessionPanel({
       })
       if (alive.current) setProgress(result)
     } catch {
-      if (alive.current) setError(true)
+      if (alive.current) setError('request')
     } finally {
       if (alive.current) setBusy(false)
     }
@@ -191,7 +196,7 @@ function OptimizationSessionPanel({
         requestKey.current = null
       }
     } catch {
-      if (alive.current) setError(true)
+      if (alive.current) setError('files')
     } finally {
       if (alive.current) setBusy(false)
     }
@@ -231,6 +236,7 @@ function OptimizationSessionPanel({
             value={prompt}
             disabled={active || busy}
             onChange={(event) => {
+              promptEdited.current = true
               setPrompt(event.target.value)
               requestKey.current = null
             }}
@@ -322,9 +328,17 @@ function OptimizationSessionPanel({
           )}
         </div>
         {error && (
-          <p role="alert" className="text-destructive">
-            {message}
-          </p>
+          <ErrorNotice
+            role="alert"
+            level="error"
+            description={
+              error === 'files'
+                ? t(
+                    'Choose up to 32 text files with simple names, at most 1 MB each and 4 MB total.'
+                  )
+                : message
+            }
+          />
         )}
         {progress && (
           <div role="status" aria-live="polite" className="space-y-2">
@@ -336,7 +350,7 @@ function OptimizationSessionPanel({
                 active: progress.budget.active
               })}
             </p>
-            {progress.error && <p>{message}</p>}
+            {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
             {progress.assessments && (
               <>
                 <p className="text-xs text-text-400">

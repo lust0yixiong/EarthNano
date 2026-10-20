@@ -22,7 +22,7 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
   sourceSessionId: 'session',
   state,
   stage: 'baseline',
-  budget: { limit: 9, admitted: 1, completed: 0, active: 1 },
+  budget: { limit: 12, admitted: 1, completed: 0, active: 1 },
   executions: [
     { executionId: 'baseline', role: 'baseline', phase: 'running', sessionId: 'result-session' }
   ],
@@ -102,7 +102,7 @@ it('starts a bounded task using edited inputs, polls typed progress and stops', 
     sourceSessionId: 'session',
     runId: 'run'
   })
-  expect(container.textContent).toContain('Used 1 of 9 executions')
+  expect(container.textContent).toContain('Used 1 of 12 executions')
   await click('Stop optimization')
   expect(api.stop).toHaveBeenCalledWith({
     projectId: 'project',
@@ -140,7 +140,7 @@ it('discards a previous Session response after switching and cleans up polling',
   await render()
   await render('next')
   await act(async () => resolve(progress()))
-  expect(container.textContent).not.toContain('Used 1 of 9')
+  expect(container.textContent).not.toContain('Used 1 of 12')
   expect(
     (container.querySelector('[aria-label="Task description"]') as HTMLTextAreaElement).value
   ).toBe('Task next')
