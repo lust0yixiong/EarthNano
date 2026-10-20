@@ -89,6 +89,7 @@ describe('shared wire contract', () => {
       { ...request(), extra: 1 },
       { ...request(), timeoutMs: true },
       { ...request(), timeoutMs: 1.5 },
+      { ...request(), timeoutMs: 0, origin: { kind: 'optimization', optimizationId: 'o', stageId: 's' } },
       { ...request(), role: 'judge' },
       { ...request(), requestKey: '\uD800' },
       { ...request(), origin: { kind: 'optimization' } },

@@ -49,6 +49,9 @@ export function validateRequest(value: unknown): asserts value is ExecutionReque
       'Optimization requires optimizationId and stageId'
     )
   }
+  if (request.origin.kind === 'optimization' && request.timeoutMs === 0) {
+    throw new ExecutionContractError('invalid-request', 'Optimization requires a bounded deadline')
+  }
   // The wire format uses Unicode scalar strings, safe integers and ASCII property names.
   // In particular reject lone UTF-16 surrogates rather than hashing replacement characters.
   const visit = (input: unknown): void => {
