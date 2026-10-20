@@ -333,4 +333,36 @@ describe('ACP Task Agent port', () => {
     expect(onPromptAdmitted).toHaveBeenCalledOnce()
     expect(onProviderPromptAccepted).toHaveBeenCalledOnce()
   })
+  it('passes the original Task owner completion barrier without awaiting it before prompt return', async () => {
+    const ownerCompletion = { committed: new Promise<void>(() => undefined), linked: vi.fn() }
+    const sendPromptObserved = vi.fn(async () => undefined)
+    const port = createAcpTaskAgentPort(
+      {
+        getSnapshot: () => ({ sessionIds: [] }),
+        resumeSession: vi.fn(),
+        setPermissionProfile: vi.fn(),
+        setMemoryEnabled: vi.fn(),
+        sendPrompt: vi.fn(),
+        sendPromptObserved,
+        cancelPrompt: vi.fn()
+      },
+      { create: vi.fn() }
+    )
+    await port.prompt(
+      {
+        sessionId: 'session-1',
+        promptMessageId: 'prompt-1',
+        provenanceContext: taskProvenanceContext('prompt-1'),
+        text: 'Research this.'
+      },
+      { ownerCompletion }
+    )
+    expect(sendPromptObserved).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: 'session-1' }),
+      expect.any(Function),
+      undefined,
+      'task',
+      ownerCompletion
+    )
+  })
 })

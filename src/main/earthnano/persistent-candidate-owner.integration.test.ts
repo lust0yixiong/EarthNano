@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import { createServer, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { chmod, lstat, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { chmod, lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -99,10 +99,12 @@ it
   async (scenario) => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-persistent-')))
     initDataRoot(root)
-    const client = createProjectDbClient(root)
+    const configRoot = join(root, 'config')
+    await mkdir(configRoot)
+    const client = createProjectDbClient(configRoot)
     let owners = createPersistentCandidateOwners({
       dataRoot: root,
-      configRoot: root,
+      configRoot,
       getClient: async () => client
     })
     let disposeCore = (): void => undefined
@@ -300,7 +302,7 @@ it
       expect(await client.artifactVersion.count()).toBe(0)
       expect(await client.review.count({ where: { outcome: 'pass' } })).toBe(0)
       const original = await loadSessionMutationAuthority(
-        new SessionRepository(root),
+        new SessionRepository(configRoot),
         request.projectId,
         record.identity.sessionId!
       )
@@ -343,7 +345,7 @@ it
     })
     expect(record.evidence.artifacts).toHaveLength(expectedOutputs.length)
     const session = await loadSessionMutationAuthority(
-      new SessionRepository(root),
+      new SessionRepository(configRoot),
       request.projectId,
       record.identity.sessionId!
     )
@@ -351,6 +353,27 @@ it
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
+    await expect(
+      lstat(join(configRoot, 'sessions', request.projectId, record.identity.sessionId! + '.json'))
+    ).resolves.toBeDefined()
+    await expect(
+      lstat(join(root, 'sessions', request.projectId, record.identity.sessionId! + '.json'))
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+    // The actual ACP coordinator inherits the outer Core authority. A second host admission
+    // would create a private ordinary journal and reserve a second budget for this same turn.
+    expect(Object.keys(state.records)).toEqual([record.executionId])
+    expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(
+      state.events[record.executionId]!.filter((event) => event.type === 'session-admitted')
+    ).toHaveLength(1)
+    expect(
+      state.events[record.executionId]!.filter((event) => event.type === 'provider-accepted')
+    ).toHaveLength(1)
+    expect(session.session.runtimeSessionAdmissions).toHaveLength(1)
+    await expect(lstat(join(root, 'executions', 'session-attempts'))).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
+
     expect(session.session.artifacts).toHaveLength(expectedOutputs.length)
     const before = await owners.exportResult(record)
     expect(
@@ -522,7 +545,7 @@ it
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
     owners = createPersistentCandidateOwners({
       dataRoot: root,
-      configRoot: root,
+      configRoot,
       getClient: async () => client
     })
     await writeFile(

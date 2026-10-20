@@ -1,3 +1,11 @@
+import { AsyncResource } from 'node:async_hooks'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { createDelegatedExecutionOwner } from '../delegation/delegated-execution-owner'
+import { createAcpExecutionBoundary } from '../earthnano/acp-execution-boundary'
+import { currentExecutionScope } from '../earthnano/execution-scope'
+import type { AcpExecutionDispatch, AcpExecutionOwnerCompletion } from './execution-boundary-port'
 import { readFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -408,6 +416,247 @@ const createFakeRuntime = (options: {
 }
 
 describe('AcpRuntimeCoordinator', () => {
+  it('keeps private delegated turns in one mission outside ALS and rejects a different active turn', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'private-delegate-boundary-'))
+    const outside = new AsyncResource('original-sdk-callback')
+    try {
+      const owner = createDelegatedExecutionOwner(dataRoot, {
+        projectId: 'project',
+        sourceSessionId: 'source',
+        parentPromptMessageId: 'root-prompt',
+        frameId: 'child-frame',
+        attemptId: 'attempt',
+        runtimeSegmentId: 'initial-segment',
+        task: 'delegate',
+        inputs: [],
+        workspaceCwd: dataRoot,
+        frameworkId: 'claude-code'
+      })
+      let fake!: ReturnType<typeof createFakeRuntime>
+      const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+        fake = createFakeRuntime({
+          frameworkId: 'claude-code',
+          sessionIds: ['private-child'],
+          callbacks
+        })
+        return fake.runtime
+      })
+      const prepare = vi.fn(async () => {
+        throw new Error('Ordinary Session host must not prepare a delegated turn')
+      })
+      coordinator.setExecutionBoundary(
+        createAcpExecutionBoundary({
+          host: { prepare },
+          delegatedOwner: {
+            projectId: 'project',
+            sourceSessionId: 'source',
+            parentPromptMessageId: 'root-prompt',
+            frameId: 'child-frame',
+            runtimeSegmentId: 'initial-segment',
+            attemptId: 'attempt',
+            ownsSession: (id) => id === 'private-child',
+            ownsExecution: owner.ownsExecution,
+            ownsTurn: owner.ownsTurn
+          }
+        })
+      )
+      const first = {
+        promptMessageId: 'first',
+        agentFrameId: 'child-frame',
+        runtimeSegmentId: 'initial-segment'
+      }
+      const second = {
+        promptMessageId: 'second',
+        agentFrameId: 'child-frame',
+        runtimeSegmentId: 'next-segment'
+      }
+      const record = await owner.run(
+        async (context) => {
+          context.identity({ sessionId: 'private-child', promptMessageId: 'first' })
+          context.running()
+          for (const provenanceContext of [first, second]) {
+            owner.activateTurn(provenanceContext)
+            await outside.runInAsyncScope(() => {
+              expect(currentExecutionScope()).toBeUndefined()
+              return coordinator.sendAppContinuation({
+                sessionId: 'private-child',
+                text: provenanceContext.promptMessageId,
+                provenanceContext
+              })
+            })
+          }
+          await expect(
+            outside.runInAsyncScope(() =>
+              coordinator.sendAppContinuation({
+                sessionId: 'private-child',
+                text: 'wrong prompt',
+                provenanceContext: { ...second, promptMessageId: 'foreign' }
+              })
+            )
+          ).rejects.toThrow('original private turn owner')
+          expect(fake.sendAppContinuation).toHaveBeenCalledTimes(2)
+        },
+        () => ({ phase: 'completed', cleanup: 'confirmed' }),
+        async () => undefined
+      )
+      expect(record).toMatchObject({
+        phase: 'completed',
+        identity: { sessionId: 'private-child', promptMessageId: 'first' }
+      })
+      expect(prepare).not.toHaveBeenCalled()
+      const directory = join(dataRoot, 'delegation', 'executions')
+      const [mission] = await readdir(directory)
+      const [filename] = (await readdir(join(directory, mission))).filter((name) =>
+        name.endsWith('.json')
+      )
+      const journal = JSON.parse(await readFile(join(directory, mission, filename), 'utf8'))
+      const events = journal.events[record.executionId] as Array<{ type: string }>
+      expect(events.filter((event) => event.type === 'session-admitted')).toHaveLength(1)
+      expect(events.filter((event) => event.type === 'provider-accepted')).toHaveLength(1)
+    } finally {
+      outside.emitDestroy()
+      await rm(dataRoot, { recursive: true, force: true })
+    }
+  })
+
+  it.each(['shutdownForQuit', 'shutdownForUpdateGate'] as const)(
+    'waits for canonical owner settlement and preserves unknown cleanup at %s',
+    async (operation) => {
+      const ownerSettled = createDeferred<boolean>()
+      const coordinator = new AcpRuntimeCoordinator(
+        (callbacks) =>
+          createFakeRuntime({
+            frameworkId: 'claude-code',
+            sessionIds: [],
+            callbacks
+          }).runtime
+      )
+      const settle = vi.fn(() => ownerSettled.promise)
+      coordinator.setExecutionBoundary({ execute: vi.fn(), cancel: vi.fn(), settle })
+      let returned = false
+      const closing = coordinator[operation]().then((value) => {
+        returned = true
+        return value
+      })
+      await vi.waitFor(() => expect(settle).toHaveBeenCalledOnce())
+      expect(returned).toBe(false)
+      ownerSettled.resolve(false)
+      expect(await closing).toEqual({ reaped: false })
+    }
+  )
+
+  it('admits rich desktop Send through the boundary before native dispatch and observes durable start', async () => {
+    const durableAdmission = createDeferred()
+    const admission = createDeferred()
+    const admitted = vi.fn()
+    const providerAccepted = vi.fn()
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session-1'],
+        callbacks,
+        beforePromptStart: () => durableAdmission.promise
+      })
+      return fake.runtime
+    })
+    let input!: AcpExecutionDispatch
+    coordinator.setExecutionBoundary({
+      execute: vi.fn(async (value) => {
+        input = value
+        await admission.promise
+        return value.dispatch({ admitted, providerAccepted })
+      }),
+      cancel: async (_sessionId, original) => original(),
+      settle: async () => true
+    })
+    const request = {
+      sessionId: 'session-1',
+      text: 'Analyze the attached image.',
+      currentImages: [{ id: 'image-1', data: 'data', mimeType: 'image/png' }],
+      historyPreamble: 'Existing conversation',
+      contextReset: true,
+      parts: [{ type: 'text', text: 'Keep this rich part' }],
+      referencedArtifacts: [{ artifactId: 'artifact-1', versionId: 'version-1' }],
+      referencedSessions: [{ sessionId: 'other-session' }],
+      forcedSkillIds: ['skill-1'],
+      memoryEnabled: false,
+      turnIntent: 'plan-first',
+      provenanceContext: { promptMessageId: 'prompt-1' }
+    } as unknown as AcpPromptRequest
+    const started = coordinator.startPrompt(request)
+    let accepted = false
+    void started.then(() => {
+      accepted = true
+    })
+    await vi.waitFor(() => expect(input).toBeDefined())
+    expect(fake.sendPrompt).not.toHaveBeenCalled()
+    expect(input.request).toEqual(request)
+    expect(input.operation).toBe('sendPrompt')
+    expect(input.runtimeReviewOwner).toBe('renderer')
+    admission.resolve()
+    await vi.waitFor(() => expect(fake.sendPrompt).toHaveBeenCalledOnce())
+    expect(admitted).not.toHaveBeenCalled()
+    expect(accepted).toBe(false)
+    durableAdmission.resolve()
+    await started
+    expect(admitted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session-1',
+        promptMessageId: 'prompt-1',
+        promptAttemptId: input.attemptId
+      })
+    )
+    await vi.waitFor(() => expect(providerAccepted).toHaveBeenCalledOnce())
+    expect(fake.sendPrompt.mock.calls[0][0]).toEqual(request)
+  })
+
+  it('forwards Task completion linkage and pins boundary cancellation to the original attempt', async () => {
+    const second = createDeferred<unknown>()
+    let count = 0
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session-1'],
+        callbacks,
+        prompt: () => (++count === 1 ? Promise.resolve({ stopReason: 'end_turn' }) : second.promise)
+      })
+      return fake.runtime
+    })
+    const inputs: AcpExecutionDispatch[] = []
+    const cancel = vi.fn(async (_sessionId, original) => original())
+    coordinator.setExecutionBoundary({
+      execute: async (input) => {
+        inputs.push(input)
+        return input.dispatch({ admitted: () => undefined, providerAccepted: () => undefined })
+      },
+      cancel,
+      settle: async () => true
+    })
+    const completion: AcpExecutionOwnerCompletion = {
+      committed: Promise.resolve(),
+      linked: vi.fn()
+    }
+    await coordinator.sendPromptObserved(
+      { sessionId: 'session-1', text: 'first' },
+      () => undefined,
+      undefined,
+      'task',
+      completion
+    )
+    expect(inputs[0].ownerCompletion).toBe(completion)
+    const pending = coordinator.sendPrompt({ sessionId: 'session-1', text: 'second' })
+    await vi.waitFor(() => expect(inputs).toHaveLength(2))
+    await inputs[0].cancelOwned()
+    expect(fake.cancelPrompt).not.toHaveBeenCalled()
+    await coordinator.cancelPrompt({ sessionId: 'session-1' })
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(fake.cancelPrompt).toHaveBeenCalledOnce()
+    second.resolve({ stopReason: 'cancelled' })
+    await pending
+  })
+
   it.each([false, true])(
     'updates Codex effort on the existing writer (draining: %s)',
     async (draining) => {
@@ -6971,3 +7220,45 @@ it('retains a reused runtime while a newly admitted Session is still being creat
   await expect(coordinator.shutdownForQuit()).resolves.toEqual({ reaped: true })
   expect(owner.runtime.shutdownForQuit).toHaveBeenCalledOnce()
 })
+
+it.each(['reaped', 'degraded', 'busy'] as const)(
+  'provides pre-admission resource evidence only after exact idle runtime retirement: %s',
+  async (mode) => {
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session'],
+        callbacks,
+        beforePromptStart: async () => {
+          throw new Error('startup failed')
+        }
+      })
+      return fake.runtime
+    })
+    const shutdown = vi
+      .spyOn(fake.runtime, 'shutdownForQuit')
+      .mockResolvedValue({ reaped: mode !== 'degraded' })
+    let witness: unknown
+    coordinator.setExecutionBoundary({
+      execute: async (input) => {
+        try {
+          return await input.dispatch({ admitted: vi.fn(), providerAccepted: vi.fn() })
+        } catch (error) {
+          if (mode === 'busy')
+            fake.setStateSilently({ promptInFlight: true, promptInFlightSessionIds: ['sibling'] })
+          witness = await input.retireUnadmitted?.()
+          throw error
+        }
+      },
+      cancel: vi.fn(),
+      settle: vi.fn(async () => true)
+    })
+    await expect(coordinator.sendPrompt({ sessionId: 'session', text: 'task' })).rejects.toThrow(
+      'startup failed'
+    )
+    if (mode === 'reaped') expect(witness).toMatchObject({ sessionId: 'session', reaped: true })
+    else expect(witness).toBeUndefined()
+    expect(shutdown).toHaveBeenCalledTimes(mode === 'busy' ? 0 : 1)
+  }
+)

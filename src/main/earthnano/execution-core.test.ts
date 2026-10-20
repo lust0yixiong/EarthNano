@@ -61,6 +61,85 @@ const replay = async (core: ExecutionCore, id: string, cursor = 0): Promise<Exec
   return events
 }
 
+describe('common owner control policy', () => {
+  it('reconciles only recovered unknown records from original witnesses without replaying or refunding', async () => {
+    const s = setup()
+    const h = await s.core.submit(request())
+    await waitStarted(s)
+    expect(() =>
+      s.core.reconcileOriginal(
+        h.executionId,
+        successful as typeof successful & { cleanup: 'confirmed' }
+      )
+    ).toThrow('recovered')
+    s.core.dispose()
+    const recovered = new ExecutionCore(s.store, { execute: s.execute })
+    cores.push(recovered)
+    expect((await recovered.get(h.executionId)).phase).toBe('interrupted')
+    recovered.reconcileOriginal(h.executionId, { phase: 'completed', cleanup: 'confirmed' })
+    expect((await recovered.get(h.executionId)).phase).toBe('completed')
+    expect(s.execute).toHaveBeenCalledOnce()
+    expect(Object.values(s.store.load().budgets)[0].admitted).toBe(1)
+    expect(() =>
+      recovered.reconcileOriginal(h.executionId, { phase: 'completed', cleanup: 'confirmed' })
+    ).toThrow('recovered')
+  })
+  it('keeps ordinary interactive waits unbounded while optimization deadlines remain mandatory', async () => {
+    const s = setup()
+    const q = { ...request(), timeoutMs: 0 }
+    const h = await s.core.submit(q)
+    await waitStarted(s)
+    await new Promise((resolve) => setTimeout(resolve, 25))
+    expect((await s.core.get(h.executionId)).phase).toBe('running')
+    expect(s.contexts.get('one')!.signal.aborted).toBe(false)
+    s.completions.get('one')!(successful)
+    expect((await s.core.waitForTerminal(h.executionId)).phase).toBe('completed')
+  })
+
+  it('waits for original cancellation acknowledgment and allows retry after rejection', async () => {
+    const s = setup()
+    const h = await s.core.submit(request())
+    await waitStarted(s)
+    const context = s.contexts.get('one')!
+    let reject!: (error: Error) => void
+    const ack = new Promise<void>((_yes, no) => {
+      reject = no
+    })
+    const handler = vi.fn(() => ack)
+    const release = context.onCancellation!(handler)
+    const cancelled = s.core.cancel(h.executionId)
+    const duplicate = s.core.cancel(h.executionId)
+    expect(context.signal.aborted).toBe(false)
+    expect((await s.core.get(h.executionId)).cancellationRequested).toBe(false)
+    reject(new Error('owner declined'))
+    await expect(cancelled).rejects.toThrow('owner declined')
+    await expect(duplicate).rejects.toThrow('owner declined')
+    expect(handler).toHaveBeenCalledOnce()
+    expect(context.signal.aborted).toBe(false)
+    release()
+    await s.core.cancel(h.executionId)
+    expect(context.signal.aborted).toBe(true)
+    s.completions.get('one')!({ phase: 'cancelled', cleanup: 'confirmed' })
+    expect((await s.core.waitForTerminal(h.executionId)).phase).toBe('cancelled')
+  })
+
+  it('fences only the uncertain resource scope while an unrelated Session can execute', async () => {
+    const s = setup(10, 256, 2)
+    const first = await s.core.submit(request('one'))
+    await waitStarted(s)
+    s.completions.get('one')!({ phase: 'failed', cleanup: 'unknown' })
+    await s.core.waitForTerminal(first.executionId)
+    const other = {
+      ...request('two'),
+      environmentSpecRef: { ...request().environmentSpecRef, id: 'another-session' }
+    }
+    const second = await s.core.submit(other)
+    await waitStarted(s, 'two')
+    s.completions.get('two')!(successful)
+    expect((await s.core.waitForTerminal(second.executionId)).phase).toBe('completed')
+  })
+})
+
 describe('shared wire contract', () => {
   it('generates both language types without drift', () => {
     expect(() =>
@@ -89,6 +168,11 @@ describe('shared wire contract', () => {
       { ...request(), extra: 1 },
       { ...request(), timeoutMs: true },
       { ...request(), timeoutMs: 1.5 },
+      {
+        ...request(),
+        timeoutMs: 0,
+        origin: { kind: 'optimization', optimizationId: 'o', stageId: 's' }
+      },
       { ...request(), role: 'judge' },
       { ...request(), requestKey: '\uD800' },
       { ...request(), origin: { kind: 'optimization' } },

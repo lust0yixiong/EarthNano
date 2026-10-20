@@ -1,15 +1,17 @@
-import { createHash } from 'node:crypto'
+import { createAcpExecutionBoundary } from './acp-execution-boundary'
+import { createSessionExecutionHost } from './session-execution-host'
+import {
+  createOriginalTurnEvidenceReader,
+  originalEvidenceCanonical as canonical,
+  originalEvidenceDigest as digest,
+  originalTurnReply as turnReply
+} from './original-turn-evidence'
 import { constants, realpathSync } from 'node:fs'
 import { lstat, open, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { PrismaClient } from '@prisma/client'
 import type { ArtifactReference, ExecutionRecord, Ref } from '../../shared/earthnano/execution-port'
-import type {
-  NewCheck,
-  ReviewWithChecks,
-  TurnScope,
-  ReviewScopeSnapshotBlock
-} from '../../shared/reviewer'
+import type { NewCheck, ReviewWithChecks } from '../../shared/reviewer'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import {
   createLinearConversationGraph,
@@ -31,9 +33,7 @@ import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { resolveDataRoot } from '../storage-root'
 import { ProjectRepository } from '../projects/repository'
 import { ManagedFileIndexRepository } from '../project-files/repository'
-import { resolveTurnScopeWithArtifactDigests } from '../reviewer/artifact-digest'
 import { ReviewRepository } from '../reviewer/repository'
-import { buildReviewScopeSnapshot } from '../reviewer/scope-snapshot'
 import { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
 import { SessionProjectionRepository } from '../session-persistence/projection'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
@@ -94,27 +94,6 @@ export interface PersistentCandidateOwners {
   }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
 }
-type FrozenTurn = {
-  session: PersistedChatSession
-  scope: TurnScope
-  blocks: ReviewScopeSnapshotBlock[]
-  reference: Ref
-}
-const canonical = (value: unknown): string => {
-  const sort = (entry: unknown): unknown => {
-    if (Array.isArray(entry)) return entry.map(sort)
-    if (entry && typeof entry === 'object')
-      return Object.fromEntries(
-        Object.entries(entry)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([k, v]) => [k, sort(v)])
-      )
-    return entry
-  }
-  return JSON.stringify(sort(JSON.parse(JSON.stringify(value))))
-}
-const digest = (value: string | Uint8Array): string =>
-  'sha256:' + createHash('sha256').update(value).digest('hex')
 const filenamePrefix = 'candidate-output--'
 const logicalPath = (path: string): string => {
   if (
@@ -138,12 +117,6 @@ const decodeName = (name: string): string => {
   if (encodeName(path) !== name) throw new Error('Noncanonical candidate output path')
   return path
 }
-const turnReply = (turn: FrozenTurn): string =>
-  turn.blocks
-    .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
-    .map((block) => String(block.payload.content ?? ''))
-    .join('\n')
-
 /** Import only bounded, ordinary UTF-8 outputs. Immutable ArtifactVersion bytes become the authority. */
 const collectOutputs = async (root: string): Promise<Array<{ path: string; content: string }>> => {
   const files: Array<{ path: string; content: string }> = []
@@ -220,7 +193,7 @@ export function createPersistentCandidateOwners(
     uploads
   )
   const sessions = new SessionRepository(
-    options.dataRoot,
+    options.configRoot,
     {},
     new SessionProjectionRepository(options.getClient)
   )
@@ -251,61 +224,15 @@ export function createPersistentCandidateOwners(
     }
     return pending
   }
-  const scopeSnapshot = async (
-    projectId: string,
-    sessionId: string,
-    promptId: string
-  ): Promise<FrozenTurn> => {
-    const session = await load(projectId, sessionId)
-    const scope = await resolveTurnScopeWithArtifactDigests(
-      session,
-      promptId,
-      options.dataRoot,
-      async (request) => {
-        if (!request.fileId) throw new Error('Artifact logical identity missing')
-        const lease = await versions.openVersion(
-          { source: 'artifact', projectId, fileId: request.fileId },
-          request.versionId
-        )
-        return { ...lease, filename: lease.version.filename, checksum: lease.version.checksum }
-      }
-    )
-    const blocks = buildReviewScopeSnapshot(session, scope)
-    return {
-      session,
-      scope,
-      blocks,
-      reference: {
-        id: `session-turn:${sessionId}:${promptId}`,
-        version: promptId,
-        digest: digest(canonical({ scope, blocks }))
-      }
-    }
-  }
-  const pinnedTurn = async (record: ExecutionRecord): Promise<FrozenTurn> => {
-    const { sessionId, promptMessageId } = record.identity
-    if (!sessionId || !promptMessageId) throw new Error('Execution has no durable turn identity')
-    const result = await scopeSnapshot(record.request.projectId, sessionId, promptMessageId)
-    if (!record.evidence.references.some((ref) => canonical(ref) === canonical(result.reference)))
-      throw new Error('Durable Session turn changed or is not pinned by execution')
-    const attached = new Map((result.session.artifacts ?? []).map((file) => [file.versionId, file]))
-    if (
-      result.scope.artifactVersionIds.length !== record.evidence.artifacts.length ||
-      new Set(record.evidence.artifacts.map((ref) => ref.versionId)).size !==
-        record.evidence.artifacts.length
-    )
-      throw new Error('Execution Artifact inventory differs from pinned turn')
-    for (const ref of record.evidence.artifacts) {
-      const file = attached.get(ref.versionId)
-      if (
-        !file ||
-        file.artifactId !== ref.artifactId ||
-        !result.scope.artifactVersionIds.includes(ref.versionId)
-      )
-        throw new Error('Artifact version does not belong to pinned turn')
-    }
-    return result
-  }
+  const {
+    scopeSnapshot,
+    pinnedTurn,
+    artifacts: turnArtifacts
+  } = createOriginalTurnEvidenceReader({
+    dataRoot: options.dataRoot,
+    load,
+    versions
+  })
   const readFiles = async (
     record: Pick<ExecutionRecord, 'request' | 'evidence'>
   ): Promise<PersistentCandidateFile[]> => {
@@ -433,6 +360,16 @@ export function createPersistentCandidateOwners(
         },
         onEvent: () => undefined
       }
+    )
+    runtime.setExecutionBoundary(
+      createAcpExecutionBoundary({
+        host: createSessionExecutionHost({
+          dataRoot: options.dataRoot,
+          configRoot: options.configRoot,
+          getClient: options.getClient,
+          flush: (sessionId, promptId) => runtimeSessions.flush(sessionId, promptId)
+        })
+      })
     )
     runtimes.add(runtime)
     const agent = createAcpTaskAgentPort(
@@ -593,26 +530,7 @@ export function createPersistentCandidateOwners(
               throw new Error('Reflection reply changed during artifact publication')
             if (frozen.session.activeRun?.promptMessageId === promptMessageId)
               throw new Error('Original Session terminal commit is incomplete')
-            const artifacts: ArtifactReference[] = []
-            for (const id of frozen.scope.artifactVersionIds) {
-              const file = frozen.session.artifacts?.find((entry) => entry.versionId === id)
-              if (!file?.artifactId || !file.versionId)
-                throw new Error('Finalized Artifact version identity unavailable')
-              const lease = await versions.openVersion(
-                { source: 'artifact', projectId: request.projectId, fileId: file.artifactId },
-                id
-              )
-              try {
-                await lease.verifyUnchanged()
-                artifacts.push({
-                  artifactId: file.artifactId,
-                  versionId: id,
-                  checksum: lease.version.checksum
-                })
-              } finally {
-                await lease.close()
-              }
-            }
+            const artifacts = await turnArtifacts(frozen)
             const files = await readFiles({ request, evidence: { artifacts } } as Pick<
               ExecutionRecord,
               'request' | 'evidence'

@@ -193,7 +193,8 @@ class HeadlessTaskApi {
         resolve: (reference) => this.resolveSpecialist(reference)
       },
       reviewer: {
-        review: (session, turnMessageId, signal) => this.review(session, turnMessageId, signal)
+        review: (session, turnMessageId, signal, parentExecutionId) =>
+          this.review(session, turnMessageId, signal, parentExecutionId)
       },
       computePreferences: this.ports.computePreferences ?? {
         withReservation: async (providerIds, operation) => {
@@ -632,7 +633,8 @@ class HeadlessTaskApi {
   private async review(
     session: PersistedChatSession,
     turnMessageId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    parentExecutionId?: string
   ): Promise<TaskRunReview> {
     const reviewSession = { projectId: session.projectId, appSessionId: session.id }
     const throwIfAborted = async (): Promise<void> => {
@@ -659,14 +661,28 @@ class HeadlessTaskApi {
       })
 
     await throwIfAborted()
-    const started = (await this.invoke('reviewer:run', {
-      sessionId: session.id,
-      turnMessageId,
-      projectId: session.projectId,
-      mainSessionId: session.id,
-      model: session.agentModel,
-      origin: 'auto'
-    })) as ReviewRunResult
+    const cancelWaitingReviewer = (): void => {
+      void this.commandClient
+        .invoke(this.ports.commands, 'reviewer:abort', TASK_CALLER_CONTEXT, [reviewSession])
+        .catch(() => undefined)
+    }
+    signal.addEventListener('abort', cancelWaitingReviewer, { once: true })
+    let started: ReviewRunResult
+    try {
+      await throwIfAborted()
+      started = (await this.invoke('reviewer:run', {
+        sessionId: session.id,
+        turnMessageId,
+        projectId: session.projectId,
+        mainSessionId: session.id,
+        model: session.agentModel,
+        origin: 'auto',
+        waitForCompletion: true,
+        ...(parentExecutionId ? { parentExecutionId } : {})
+      })) as ReviewRunResult
+    } finally {
+      signal.removeEventListener('abort', cancelWaitingReviewer)
+    }
     await throwIfAborted()
     if (!started.started) return started
 

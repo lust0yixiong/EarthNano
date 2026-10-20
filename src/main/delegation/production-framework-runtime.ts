@@ -1,3 +1,4 @@
+import { createDelegatedExecutionOwner } from './delegated-execution-owner'
 import { resolveEffectiveSpecialistSkills } from '@aipoch/specialists'
 import { OPEN_SCIENCE_SKILL_RUNTIME_SESSION_OPTION } from '../skills/runtime-mcp-server'
 import { DelegatedProcessOwnership } from './process-ownership'
@@ -115,6 +116,7 @@ const createProductionDelegatedFrameworkRuntime = (
         Readonly<{
           backend: ResolvedAgentBackend
           connection: NotebookRpcConnection
+          parentPromptMessageId: string
           preparedSkills?: AcpRuntimeCompositionOptions['preparedSkills']
         }>
       >()
@@ -171,6 +173,13 @@ const createProductionDelegatedFrameworkRuntime = (
           )
           if (!durable || !graph || !frame || !branch || !prompt) {
             throw new Error('Delegated Attempt has no durable Frame provenance.')
+          }
+          const attempt = durable.runtimeContext?.delegatedWork?.records
+            .find((record) => record.agentFrameId === input.frameId)
+            ?.attempts.find((candidate) => candidate.id === input.attemptId)
+          const parentPromptMessageId = attempt?.initiatingTurnMessageId
+          if (!parentPromptMessageId) {
+            throw new Error('Delegated Attempt has no originating root prompt identity.')
           }
           if (frameworkId === 'opencode') {
             openCodeRuntime = await prepareOpenCodeRuntime(backend, runtimeHome)
@@ -281,10 +290,26 @@ const createProductionDelegatedFrameworkRuntime = (
           preparedAttempts.set(input.attemptId, {
             backend: runtimeBackend,
             preparedSkills,
-            connection: capability
+            connection: capability,
+            parentPromptMessageId
           })
           const base: PreparedDelegateExecution = {
             executionId: input.attemptId,
+            executionOwner: createDelegatedExecutionOwner(options.dataRoot, {
+              projectId: input.session.projectId,
+              sourceSessionId: input.session.sessionId,
+              parentPromptMessageId,
+              frameId: input.frameId,
+              attemptId: input.attemptId,
+              runtimeSegmentId: input.runtimeSegmentId,
+              permissionPrompts,
+              task: input.task,
+              inputs: input.inputs,
+              outputSchema: input.outputSchema,
+              workspaceCwd: input.workspaceCwd,
+              frameworkId,
+              model: input.executionModel
+            }),
             provenance: {
               projectId: input.session.projectId,
               sessionId: input.session.sessionId,
@@ -422,6 +447,19 @@ const createProductionDelegatedFrameworkRuntime = (
           preparedSkills: owned.preparedSkills,
           runtimeCallbacks: callbacks,
           delegatedNotebookConnection: owned.connection,
+          delegatedExecutionOwner: Object.freeze({
+            projectId: scope.provenance.projectId,
+            sourceSessionId: scope.provenance.sessionId,
+            parentPromptMessageId: owned.parentPromptMessageId,
+            frameId: scope.provenance.agentFrameId,
+            runtimeSegmentId: scope.provenance.runtimeSegmentId,
+            attemptId: scope.executionId,
+            ownsExecution: (executionId: string) =>
+              scope.executionOwner?.ownsExecution(executionId) === true,
+            ownsTurn: (
+              provenance: import('../../shared/acp').AcpPromptRequest['provenanceContext']
+            ) => scope.executionOwner?.ownsTurn(provenance) === true
+          }),
           delegatedRuntimeHome: scope.runtimeHome,
           permissionGrantContext: {
             projectId: scope.provenance.projectId,

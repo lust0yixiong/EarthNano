@@ -108,8 +108,30 @@ const backend = (frameworkId: AgentFrameworkId): ResolvedAgentBackend => {
   }
 }
 
-const delegatedSession = (frameworkId: AgentFrameworkId): PersistedChatSession => ({
+const delegatedSession = (
+  frameworkId: AgentFrameworkId,
+  attemptIds = ['attempt-1']
+): PersistedChatSession => ({
   ...session(frameworkId),
+  runtimeContext: {
+    version: 1,
+    revision: 1,
+    delegatedWork: {
+      records: [
+        {
+          agentFrameId: 'child-frame',
+          attempts: attemptIds.map((id) => ({
+            id,
+            initiatingTurnMessageId: 'root-prompt',
+            status: 'running',
+            resolvedAgent: { kind: 'main' },
+            runtimeSegmentIds: ['runtime-1'],
+            startedAt: 2
+          }))
+        }
+      ]
+    }
+  },
   conversationGraph: {
     schemaVersion: 1,
     rootFrameId: 'root-frame',
@@ -318,7 +340,7 @@ describe('production delegated framework runtime bridge', () => {
                 }
               }
             }) as never,
-          readSession: async () => delegatedSession(frameworkId)
+          readSession: async () => delegatedSession(frameworkId, ['bound-attempt'])
         })
         const selected = await frameworks.forSession(session(frameworkId))
         const reservation = await selected.execution.reserve(1)
@@ -490,7 +512,7 @@ describe('production delegated framework runtime bridge', () => {
                 }
               }
             }) as never,
-          readSession: async () => delegatedSession('opencode')
+          readSession: async () => delegatedSession('opencode', ['copied-attempt'])
         })
         const selected = await frameworks.forSession(session('opencode'))
         const reservation = await selected.execution.reserve(1)
@@ -919,6 +941,7 @@ describe('production delegated framework runtime bridge', () => {
               attempts: [
                 {
                   id: 'attempt-1',
+                  initiatingTurnMessageId: 'root-prompt',
                   status: 'running',
                   resolvedAgent: { kind: 'main' },
                   runtimeSegmentIds: ['runtime-1'],
@@ -1076,7 +1099,8 @@ it('isolates concurrent OpenCode Attempts and a continuation without releasing s
             revoke: async () => undefined
           })
         }) as never,
-      readSession: async () => delegatedSession('opencode')
+      readSession: async () =>
+        delegatedSession('opencode', ['isolation-0', 'isolation-1', 'isolation-2', 'isolation-3'])
     })
     const selected = await frameworks.forSession(session('opencode'))
     const reservation = await selected.execution.reserve(3)
@@ -1301,7 +1325,7 @@ it.each([
         dataRoot,
         runtime: { settingsService: {} } as never,
         notebookRpcServer: () => ({ issueDelegatedNotebookConnection: capability }) as never,
-        readSession: async () => delegatedSession('opencode')
+        readSession: async () => delegatedSession('opencode', ['failed-preparation'])
       })
       const selected = await frameworks.forSession(session('opencode'))
       const reservation = await selected.execution.reserve(1)
@@ -1474,7 +1498,7 @@ it('settles owned CodeBuddy processes when ACP runtime construction throws', asy
             revoke: async () => undefined
           })
         }) as never,
-      readSession: async () => delegatedSession('codebuddy')
+      readSession: async () => delegatedSession('codebuddy', ['failed-start'])
     })
     const selected = await frameworks.forSession(session('codebuddy'), owner)
     const reservation = await selected.execution.reserve(1)
@@ -1503,6 +1527,15 @@ it('settles owned CodeBuddy processes when ACP runtime construction throws', asy
     await expect(running.completion).rejects.toThrow('controlled ACP construction failure')
     expect(spawnSpy).toHaveBeenCalledOnce()
     expect(createRuntime).toHaveBeenCalledOnce()
+    expect(createRuntime.mock.calls[0][0].delegatedExecutionOwner).toMatchObject({
+      projectId: 'project-1',
+      sourceSessionId: 'session-codebuddy',
+      parentPromptMessageId: 'root-prompt',
+      frameId: 'child-frame',
+      runtimeSegmentId: 'runtime-1',
+      attemptId: 'failed-start'
+    })
+    expect(Object.isFrozen(createRuntime.mock.calls[0][0].delegatedExecutionOwner)).toBe(true)
     // Windows confirms the native Job is empty before its ChildProcess exit poll runs.
     await expect.poll(() => child?.exitCode !== null || child?.signalCode !== null).toBe(true)
     expect(owner.receipts(key)).toEqual([])
@@ -1556,7 +1589,7 @@ it('cleans copied read-only OpenCode Skills after successful execution without c
             revoke: async () => undefined
           })
         }) as never,
-      readSession: async () => delegatedSession('opencode')
+      readSession: async () => delegatedSession('opencode', ['readonly-attempt'])
     })
     const selected = await frameworks.forSession(session('opencode'))
     const reservation = await selected.execution.reserve(1)

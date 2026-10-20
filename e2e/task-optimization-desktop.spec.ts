@@ -1,4 +1,7 @@
 import { expect } from '@playwright/test'
+import { readFile, readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import type { ExecutionState } from '../src/main/earthnano/execution-core'
 import { test } from './fixtures/electron-app'
 import { createProjectViaUi } from './fixtures/project'
 import { sendPrompt } from './certification/helpers'
@@ -14,6 +17,60 @@ test('exposes Session task optimization on the desktop and rejects unsupported m
   await createProjectViaUi(page, 'Desktop optimization validation')
   const prompt = 'Synthetic task for desktop optimization validation'
   await sendPrompt(page, prompt, 'Deterministic reply:')
+  const dataRoot = await page.evaluate(async () => (await window.api.storage.getInfo()).dataRoot)
+  // The real renderer Send must enter Core, not just reach the old physical backend path.
+  await expect
+    .poll(
+      async () => {
+        const directory = join(dataRoot, 'executions', 'session-attempts')
+        let generations: string[]
+        try {
+          generations = await readdir(directory)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+          throw error
+        }
+        const matched: object[] = []
+        for (const generation of generations) {
+          for (const file of await readdir(join(directory, generation))) {
+            if (!file.endsWith('.json')) continue
+            const state = JSON.parse(
+              await readFile(join(directory, generation, file), 'utf8')
+            ) as ExecutionState
+            for (const record of Object.values(state.records)) {
+              if (!record.evidence.text.includes('Deterministic reply:')) continue
+              matched.push({
+                phase: record.phase,
+                cleanup: record.cleanup,
+                role: record.request.role,
+                admitted: Object.values(state.budgets).reduce(
+                  (sum, budget) => sum + budget.admitted,
+                  0
+                ),
+                sessionAdmissions: state.events[record.executionId].filter(
+                  (event) => event.type === 'session-admitted'
+                ).length,
+                providerAcceptances: state.events[record.executionId].filter(
+                  (event) => event.type === 'provider-accepted'
+                ).length
+              })
+            }
+          }
+        }
+        return matched
+      },
+      { timeout: 30_000 }
+    )
+    .toEqual([
+      {
+        phase: 'completed',
+        cleanup: 'confirmed',
+        role: 'task',
+        admitted: 1,
+        sessionAdmissions: 1,
+        providerAcceptances: 1
+      }
+    ])
   const panel = page.getByTestId('task-optimization-panel')
   await expect(panel).toBeVisible()
   await panel.locator('summary').click()

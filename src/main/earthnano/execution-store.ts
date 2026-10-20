@@ -1,7 +1,9 @@
+import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -9,16 +11,26 @@ import {
   unlinkSync,
   writeFileSync
 } from 'node:fs'
-import { dirname } from 'node:path'
+import { readFile, readdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { emptyExecutionState, type ExecutionState, type ExecutionStore } from './execution-core'
+import {
+  ExecutionCore,
+  emptyExecutionState,
+  type ExecutionState,
+  type ExecutionStore
+} from './execution-core'
 
 /**
- * Local single-writer journal. A leftover lock after process death requires explicit operator
- * reconciliation; opening a second owner must never silently steal live runtime ownership.
+ * Local single-writer journal. Recovery requires a verified dead owner and original result witnesses;
+ * opening a second owner must never silently steal live runtime ownership.
  */
 export class FileExecutionStore implements ExecutionStore {
   private closed = false
+  private recoveredPid?: number
+  get recoveredOwnerPid(): number | undefined {
+    return this.recoveredPid
+  }
   private readonly lock: string
   constructor(private readonly filename: string) {
     mkdirSync(dirname(filename), { recursive: true })
@@ -29,6 +41,42 @@ export class FileExecutionStore implements ExecutionStore {
       fsyncSync(fd)
     } finally {
       closeSync(fd)
+    }
+  }
+  /** Trusted restart recovery only. Never steal a live, inaccessible or malformed PID lock. */
+  static recoverStale(filename: string): FileExecutionStore {
+    const lock = `${filename}.lock`
+    if (!existsSync(lock)) return new FileExecutionStore(filename)
+    const recoveryLock = `${lock}.recovery`
+    const recovery = openSync(recoveryLock, 'wx', 0o600)
+    try {
+      const before = lstatSync(lock)
+      if (!before.isFile() || before.isSymbolicLink())
+        throw new Error('Invalid execution owner lock')
+      const contents = readFileSync(lock, 'utf8')
+      const pid = Number(contents)
+      if (!/^\d+$/.test(contents) || !Number.isSafeInteger(pid) || pid <= 0)
+        throw new Error('Invalid execution owner PID')
+      try {
+        process.kill(pid, 0)
+        throw new Error('Execution store still has a live owner')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+      }
+      const after = lstatSync(lock)
+      if (
+        before.ino !== after.ino ||
+        before.dev !== after.dev ||
+        contents !== readFileSync(lock, 'utf8')
+      )
+        throw new Error('Execution owner lock changed during recovery')
+      unlinkSync(lock)
+      const store = new FileExecutionStore(filename)
+      store.recoveredPid = pid
+      return store
+    } finally {
+      closeSync(recovery)
+      unlinkSync(recoveryLock)
     }
   }
   load(): ExecutionState {
@@ -72,5 +120,114 @@ export class FileExecutionStore implements ExecutionStore {
   }
   private assertOpen(): void {
     if (this.closed) throw new Error('Execution store closed')
+  }
+}
+
+const recoveryOwners = new Map<string, { store: FileExecutionStore; core: ExecutionCore }>()
+const recoveryQueues = new Map<string, Promise<void>>()
+const serializeRecovery = async (
+  filename: string,
+  operation: () => Promise<void>
+): Promise<void> => {
+  const previous = recoveryQueues.get(filename) ?? Promise.resolve()
+  const pending = previous.catch(() => undefined).then(operation)
+  recoveryQueues.set(filename, pending)
+  try {
+    await pending
+  } finally {
+    if (recoveryQueues.get(filename) === pending) recoveryQueues.delete(filename)
+  }
+}
+
+/** Shared persistence recovery: Core owns state transitions, original hosts supply exact witnesses.
+ * Unknown cleanup retains its lock and blocks this resource; this helper never dispatches a provider. */
+export async function recoverExecutionJournals(options: {
+  directory: string
+  /** Only this resource is being admitted; unrelated unknown resources remain fenced individually. */
+  targetEnvironmentId?: string
+  matches(record: ExecutionRecord): boolean
+  readOriginal?(
+    record: ExecutionRecord,
+    owner: { filename: string; recoveredOwnerPid?: number }
+  ): Promise<Parameters<ExecutionCore['reconcileOriginal']>[1] | undefined>
+}): Promise<void> {
+  const files: string[] = []
+  const walk = async (directory: string): Promise<void> => {
+    let entries: import('node:fs').Dirent[]
+    try {
+      entries = await readdir(directory, { withFileTypes: true })
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
+      throw error
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isSymbolicLink())
+        throw new Error('Linked execution journal boundary is unsupported')
+      const filename = join(directory, entry.name)
+      if (entry.isDirectory()) await walk(filename)
+      else if (entry.isFile() && entry.name.endsWith('.json')) files.push(filename)
+    }
+  }
+  await walk(options.directory)
+  for (const filename of files) {
+    await serializeRecovery(filename, async () => {
+      const snapshot =
+        recoveryOwners.get(filename)?.store.load() ??
+        (JSON.parse(await readFile(filename, 'utf8')) as ExecutionState)
+      const unresolved = Object.values(snapshot.records).filter(
+        (record) =>
+          options.matches(record) &&
+          (record.cleanup !== 'confirmed' ||
+            !['completed', 'failed', 'cancelled', 'interrupted'].includes(record.phase))
+      )
+      if (!unresolved.length) return
+      const blocksTarget = unresolved.some(
+        (record) =>
+          !options.targetEnvironmentId ||
+          record.request.environmentSpecRef.id === options.targetEnvironmentId
+      )
+      let owner = recoveryOwners.get(filename)
+      if (!owner) {
+        let store: FileExecutionStore
+        try {
+          store = FileExecutionStore.recoverStale(filename)
+        } catch (error) {
+          if (blocksTarget) throw error
+          return
+        }
+        const core = new ExecutionCore(store, {
+          execute: async () => {
+            throw new Error('Recovery cannot dispatch a provider')
+          }
+        })
+        owner = { store, core }
+        recoveryOwners.set(filename, owner)
+      }
+      for (const previous of unresolved) {
+        const record = await owner.core.get(previous.executionId)
+        const outcome = await options.readOriginal?.(record, {
+          filename,
+          recoveredOwnerPid: owner.store.recoveredOwnerPid
+        })
+        if (!outcome) {
+          if (
+            !options.targetEnvironmentId ||
+            record.request.environmentSpecRef.id === options.targetEnvironmentId
+          )
+            throw new Error(
+              'Execution resource remains fenced pending original-owner reconciliation'
+            )
+          continue
+        }
+        owner.core.reconcileOriginal(record.executionId, outcome)
+      }
+      if (
+        Object.values(owner.store.load().records).every((record) => record.cleanup === 'confirmed')
+      ) {
+        owner.core.dispose()
+        owner.store.close()
+        recoveryOwners.delete(filename)
+      }
+    })
   }
 }

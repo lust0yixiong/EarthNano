@@ -2,6 +2,8 @@
 
 import { homedir } from 'node:os'
 
+import { runReviewerExecution } from '../earthnano/reviewer-execution-owner'
+
 import type { ActiveSession } from '@agentclientprotocol/sdk'
 
 import type {
@@ -59,6 +61,7 @@ type CommonAssessmentOptions = {
   reviewerTimeoutMs: number
   reviewerMaxUpdates: number
   abortSignal?: AbortSignal
+  parentExecutionId?: string
   recordUsage?: (record: SessionAuxiliaryTurnUsageRecord) => Promise<unknown>
 }
 
@@ -178,6 +181,7 @@ type ReviewerCleanupResult = {
   rejectedToolCalls: number
   reviewerBridgeScoped: boolean | undefined
   runtimeCleanupFailed: boolean
+  mcpCleanupFailed: boolean
   runtimeCleanupError?: unknown
 }
 
@@ -190,6 +194,7 @@ const cleanupReviewerResources = async (
   let rejectedToolCalls = 0
   let reviewerBridgeScoped: boolean | undefined
   let runtimeCleanupFailed = false
+  let mcpCleanupFailed = false
   let runtimeCleanupError: unknown
 
   if (reviewerSession) {
@@ -206,6 +211,7 @@ const cleanupReviewerResources = async (
   try {
     await mcpServer?.stop()
   } catch (error) {
+    mcpCleanupFailed = true
     log.error('reviewer MCP server cleanup failed', {
       error: error instanceof Error ? error.message : String(error)
     })
@@ -215,6 +221,7 @@ const cleanupReviewerResources = async (
     rejectedToolCalls,
     reviewerBridgeScoped,
     runtimeCleanupFailed,
+    mcpCleanupFailed,
     ...(runtimeCleanupError === undefined ? {} : { runtimeCleanupError })
   }
 }
@@ -267,326 +274,375 @@ export const runReviewAssessment = async (
       : {})
   }
   const scopeSnapshot = buildReviewScopeSnapshot(session, enrichedScope, turnEvidence)
-  let review = await runReviewMutation(runSessionMutation, () =>
-    reviewRepository.createReview({
+  return runReviewerExecution(
+    {
+      artifactStorageRoot,
       projectId,
       sessionId,
       turnMessageId,
-      scope: enrichedScope,
-      lifecycle: 'running',
+      parentExecutionId: options.parentExecutionId,
+      reviewerTimeoutMs,
+      abortSignal,
+      scope: { enrichedScope, scopeSnapshot, trackedChecks },
+      prompt: buildReviewerPrompt(enrichedScope, options.mode, trackedChecks),
+      recoveryPrompt: REVIEWER_PROTOCOL_RECOVERY_PROMPT,
+      systemPrompt: REVIEWER_RUBRIC_SYSTEM_PROMPT_APPEND,
+      mode: options.mode,
       model,
-      scopeSnapshot
-    })
-  )
-
-  const runningReview: ReviewWithChecks = { ...review, checks: [], submittedChecks: [] }
-  onReviewUpdate?.(runningReview)
-  options.onStarted?.()
-
-  log.info(options.mode === 'tracked' ? 'scoped re-review created' : 'review created', {
-    reviewId: review.id,
-    blocks: scope.blocks.length
-  })
-
-  let reviewerSession: ActiveSession | undefined
-  let mcpServer: ReviewerMcpServer | undefined
-  let checksReceived: NewCheck[] = []
-  let checksSubmitted = false
-  let rejectedToolCalls = 0
-  let reviewerBridgeScoped: boolean | undefined
-  let reviewerSessionFailed = false
-  let reviewerSessionError: unknown
-  const capturedLog: ReviewerLogEntry[] = []
-  const reviewerLogDriveCallbacks: ReviewerLogDriveCallbacks = {
-    onUpdate: (entry: ReviewerLogEntry): void => {
-      capturedLog.push(entry)
+      cwd: session.cwd || homedir()
     },
-    logState: {}
-  }
-  initializeReviewerLogBudget(reviewerLogDriveCallbacks, {
-    finalLogEntryReserveBytes: REVIEWER_COVERAGE_LOG_RESERVE_BYTES
-  })
-
-  try {
-    const evidence = new ReviewerHostServer(
-      session,
-      enrichedScope,
-      artifactStorageRoot,
-      artifactVersionResolvers?.content,
-      scopeSnapshot,
-      {},
-      artifactVersionResolvers?.trace,
-      artifactVersionResolvers?.pagedContent,
-      turnEvidence.sourceDocumentEvidence
-    )
-    mcpServer = new ReviewerMcpServer(
-      enrichedScope,
-      async (checks: NewCheck[]) => {
-        checksReceived = checks
-        checksSubmitted = true
-        if (options.mode === 'initial') {
-          log.info('submit_findings received by MCP handler', { count: checks.length })
-        }
-      },
-      evidence,
-      options.mode,
-      trackedChecks.map((check) => check.id),
-      {
-        command: process.execPath,
-        entryPath: reviewerMcpEntryPath,
-        // The Reviewer backend is captured after its session is built but before it can invoke a
-        // tool, so capability is resolved lazily at the content-read boundary.
-        supportsImageInput: () => acpRuntime.captureBackend?.()?.context.supportsImageInput === true
-      }
-    )
-    await mcpServer.start()
-
-    const reviewerPrompt = buildReviewerPrompt(enrichedScope, options.mode, trackedChecks)
-    const reviewerCwd = session.cwd || homedir()
-    const built = await acpRuntime.buildReviewerSession({
-      cwd: reviewerCwd,
-      mcpServers: [mcpServer.toAcpMcpServerConfig()],
-      systemPromptAppend: REVIEWER_RUBRIC_SYSTEM_PROMPT_APPEND
-    })
-    reviewerSession = built.session
-    const backend = acpRuntime.captureBackend?.()
-    // Codex bridge Sessions intentionally advertise a catalog-only model (currently gpt-5.4) so
-    // Codex enables classic function tools. The bridge rewrites requests to the configured upstream
-    // model, which is retained as the context model. Persisting the catalog alias here makes Review
-    // attribution claim GPT ran the audit even when the actual Reviewer was GLM or another provider.
-    const runtimeModel =
-      backend?.modelRoute === 'codex-bridge'
-        ? (backend.context.model ?? model)
-        : (backend?.session.model ?? backend?.context.model)
-    if (runtimeModel && runtimeModel !== review.model) {
-      review = await runReviewMutation(runSessionMutation, () =>
-        reviewRepository.updateReview(review.id, { model: runtimeModel })
-      )
-      onReviewUpdate?.({ ...review, checks: [] })
-    }
-    if (options.mode === 'initial') {
-      log.info('reviewer session started', { sessionId: reviewerSession.sessionId })
-    }
-
-    const reviewerPromptText = built.promptPrefix
-      ? `${built.promptPrefix}\n\n${reviewerPrompt}`
-      : reviewerPrompt
-    const runReviewerTurn = async (
-      prompt: string,
-      eventId: string
-    ): Promise<string | undefined> => {
-      let probe: AcpProviderTurnProbe | undefined
-      let response: Parameters<AcpProviderTurnProbe['finalize']>[0]['response'] | undefined
-      try {
-        probe = await acpRuntime.beginProviderTurnObservation?.({
-          providerSessionId: reviewerSession!.sessionId,
-          cwd: built.cwd
+    async (execution) => {
+      const abortSignal = execution.signal
+      let review = await runReviewMutation(runSessionMutation, () =>
+        reviewRepository.createReview({
+          projectId,
+          sessionId,
+          turnMessageId,
+          scope: enrichedScope,
+          lifecycle: 'running',
+          model,
+          scopeSnapshot
         })
-        if (abortSignal?.aborted) throw new Error('reviewer session was aborted before stopping')
-        const promptRequest = reviewerSession!.prompt([{ type: 'text', text: prompt }])
-        void Promise.resolve(promptRequest).catch(() => undefined)
-        const stopReason = await driveReviewerToStop(
-          reviewerSession!,
-          { timeoutMs: reviewerTimeoutMs, maxUpdates: reviewerMaxUpdates, signal: abortSignal },
-          {
-            ...reviewerLogDriveCallbacks,
-            onNotification: (notification) => probe?.observe?.(notification),
-            onStop: (value) => {
-              response = value
+      )
+
+      const runningReview: ReviewWithChecks = { ...review, checks: [], submittedChecks: [] }
+      onReviewUpdate?.(runningReview)
+      options.onStarted?.()
+
+      log.info(options.mode === 'tracked' ? 'scoped re-review created' : 'review created', {
+        reviewId: review.id,
+        blocks: scope.blocks.length
+      })
+
+      let reviewerSession: ActiveSession | undefined
+      let mcpServer: ReviewerMcpServer | undefined
+      let checksReceived: NewCheck[] = []
+      let checksSubmitted = false
+      let rejectedToolCalls = 0
+      let reviewerBridgeScoped: boolean | undefined
+      let reviewerSessionFailed = false
+      let reviewerSessionError: unknown
+      const capturedLog: ReviewerLogEntry[] = []
+      const reviewerLogDriveCallbacks: ReviewerLogDriveCallbacks = {
+        onUpdate: (entry: ReviewerLogEntry): void => {
+          capturedLog.push(entry)
+        },
+        logState: {}
+      }
+      initializeReviewerLogBudget(reviewerLogDriveCallbacks, {
+        finalLogEntryReserveBytes: REVIEWER_COVERAGE_LOG_RESERVE_BYTES
+      })
+
+      try {
+        const evidence = new ReviewerHostServer(
+          session,
+          enrichedScope,
+          artifactStorageRoot,
+          artifactVersionResolvers?.content,
+          scopeSnapshot,
+          {},
+          artifactVersionResolvers?.trace,
+          artifactVersionResolvers?.pagedContent,
+          turnEvidence.sourceDocumentEvidence
+        )
+        mcpServer = new ReviewerMcpServer(
+          enrichedScope,
+          async (checks: NewCheck[]) => {
+            checksReceived = checks
+            checksSubmitted = true
+            if (options.mode === 'initial') {
+              log.info('submit_findings received by MCP handler', { count: checks.length })
             }
+          },
+          evidence,
+          options.mode,
+          trackedChecks.map((check) => check.id),
+          {
+            command: process.execPath,
+            entryPath: reviewerMcpEntryPath,
+            // The Reviewer backend is captured after its session is built but before it can invoke a
+            // tool, so capability is resolved lazily at the content-read boundary.
+            supportsImageInput: () =>
+              acpRuntime.captureBackend?.()?.context.supportsImageInput === true
           }
         )
-        if (probe && response) {
-          const facts = await probe.finalize({ response })
-          probe = undefined
-          if (facts.turnUsage && recordUsage && backend) {
-            await recordUsage({
-              projectId,
-              sessionId,
-              eventId,
-              source: 'reviewer',
-              frameworkId: backend.framework.id,
-              ...(backend.providerId ? { providerId: backend.providerId } : {}),
-              model: runtimeModel ?? (review.model || undefined),
-              completedAtMs: Date.now(),
-              usage: {
-                ...facts.turnUsage,
-                ...(facts.modelTurnCount === undefined ? {} : { turnCount: facts.modelTurnCount })
+        await mcpServer.start()
+
+        const reviewerPrompt = buildReviewerPrompt(enrichedScope, options.mode, trackedChecks)
+        const reviewerCwd = session.cwd || homedir()
+        const built = await acpRuntime.buildReviewerSession({
+          cwd: reviewerCwd,
+          mcpServers: [mcpServer.toAcpMcpServerConfig()],
+          systemPromptAppend: REVIEWER_RUBRIC_SYSTEM_PROMPT_APPEND
+        })
+        reviewerSession = built.session
+        execution.providerSession(reviewerSession.sessionId)
+        const backend = acpRuntime.captureBackend?.()
+        // Codex bridge Sessions intentionally advertise a catalog-only model (currently gpt-5.4) so
+        // Codex enables classic function tools. The bridge rewrites requests to the configured upstream
+        // model, which is retained as the context model. Persisting the catalog alias here makes Review
+        // attribution claim GPT ran the audit even when the actual Reviewer was GLM or another provider.
+        const runtimeModel =
+          backend?.modelRoute === 'codex-bridge'
+            ? (backend.context.model ?? model)
+            : (backend?.session.model ?? backend?.context.model)
+        if (runtimeModel && runtimeModel !== review.model) {
+          review = await runReviewMutation(runSessionMutation, () =>
+            reviewRepository.updateReview(review.id, { model: runtimeModel })
+          )
+          onReviewUpdate?.({ ...review, checks: [] })
+        }
+        if (options.mode === 'initial') {
+          log.info('reviewer session started', { sessionId: reviewerSession.sessionId })
+        }
+
+        const reviewerPromptText = built.promptPrefix
+          ? `${built.promptPrefix}\n\n${reviewerPrompt}`
+          : reviewerPrompt
+        const runReviewerTurn = async (
+          prompt: string,
+          eventId: string
+        ): Promise<string | undefined> => {
+          let probe: AcpProviderTurnProbe | undefined
+          let response: Parameters<AcpProviderTurnProbe['finalize']>[0]['response'] | undefined
+          try {
+            probe = await acpRuntime.beginProviderTurnObservation?.({
+              providerSessionId: reviewerSession!.sessionId,
+              cwd: built.cwd
+            })
+            if (abortSignal?.aborted)
+              throw new Error('reviewer session was aborted before stopping')
+            const promptRequest = reviewerSession!.prompt([{ type: 'text', text: prompt }])
+            void Promise.resolve(promptRequest).catch(() => undefined)
+            const stopReason = await driveReviewerToStop(
+              reviewerSession!,
+              { timeoutMs: reviewerTimeoutMs, maxUpdates: reviewerMaxUpdates, signal: abortSignal },
+              {
+                ...reviewerLogDriveCallbacks,
+                onNotification: (notification) => {
+                  // Dispatch alone is not provider acceptance. Observe only actual provider work
+                  // or the valid final response below, using Core's shared acceptance event.
+                  if (
+                    [
+                      'agent_message_chunk',
+                      'agent_thought_chunk',
+                      'tool_call',
+                      'tool_call_update'
+                    ].includes(notification.update.sessionUpdate)
+                  )
+                    execution.providerAccepted()
+                  probe?.observe?.(notification)
+                },
+                onStop: (value) => {
+                  execution.providerAccepted()
+                  response = value
+                }
               }
-            }).catch((error) =>
-              log.warn('Reviewer Usage persistence failed', errorLogFields(error))
             )
+            if (probe && response) {
+              const facts = await probe.finalize({ response })
+              probe = undefined
+              if (facts.turnUsage && recordUsage && backend) {
+                await recordUsage({
+                  projectId,
+                  sessionId,
+                  eventId,
+                  source: 'reviewer',
+                  frameworkId: backend.framework.id,
+                  ...(backend.providerId ? { providerId: backend.providerId } : {}),
+                  model: runtimeModel ?? (review.model || undefined),
+                  completedAtMs: Date.now(),
+                  usage: {
+                    ...facts.turnUsage,
+                    ...(facts.modelTurnCount === undefined
+                      ? {}
+                      : { turnCount: facts.modelTurnCount })
+                  }
+                }).catch((error) =>
+                  log.warn('Reviewer Usage persistence failed', errorLogFields(error))
+                )
+              }
+            }
+            return stopReason
+          } finally {
+            await Promise.resolve(probe?.cancel()).catch(() => undefined)
           }
         }
-        return stopReason
+        const stopReason = await runReviewerTurn(reviewerPromptText, `${review.id}:initial`)
+        if (options.mode === 'initial') {
+          log.info('reviewer session stopped', { reviewId: review.id, stopReason })
+        }
+        if (stopReason === 'end_turn' && !checksSubmitted && !mcpServer.submissionAttempted) {
+          log.warn('reviewer protocol incomplete; requesting one recovery turn', {
+            reviewId: review.id,
+            stopReason
+          })
+          const recoveryStopReason = await runReviewerTurn(
+            REVIEWER_PROTOCOL_RECOVERY_PROMPT,
+            `${review.id}:recovery`
+          )
+          log.info('reviewer recovery session stopped', {
+            reviewId: review.id,
+            stopReason: recoveryStopReason
+          })
+        }
+      } catch (error) {
+        reviewerSessionFailed = true
+        reviewerSessionError = error
       } finally {
-        await Promise.resolve(probe?.cancel()).catch(() => undefined)
+        if (mcpServer) {
+          const coverage = serializeReviewerEvidenceCoverage(mcpServer.evidenceCoverage)
+          appendFinalReviewerLogEntry(reviewerLogDriveCallbacks, (maxEntryBytes) =>
+            buildBoundedCoverageLogEntry(coverage, maxEntryBytes)
+          )
+        }
+        const cleanup = await cleanupReviewerResources(acpRuntime, reviewerSession, mcpServer)
+        execution.resourcesDisposed(!cleanup.runtimeCleanupFailed && !cleanup.mcpCleanupFailed)
+        rejectedToolCalls = cleanup.rejectedToolCalls
+        reviewerBridgeScoped = cleanup.reviewerBridgeScoped
+        if (cleanup.runtimeCleanupFailed) {
+          if (reviewerSessionFailed) {
+            log.error(
+              options.mode === 'tracked'
+                ? 'scoped re-review session cleanup also failed'
+                : 'reviewer session cleanup also failed',
+              {
+                reviewId: review.id,
+                error:
+                  cleanup.runtimeCleanupError instanceof Error
+                    ? cleanup.runtimeCleanupError.message
+                    : String(cleanup.runtimeCleanupError)
+              }
+            )
+          } else {
+            reviewerSessionFailed = true
+            reviewerSessionError = cleanup.runtimeCleanupError
+          }
+        }
       }
-    }
-    const stopReason = await runReviewerTurn(reviewerPromptText, `${review.id}:initial`)
-    if (options.mode === 'initial') {
-      log.info('reviewer session stopped', { reviewId: review.id, stopReason })
-    }
-    if (stopReason === 'end_turn' && !checksSubmitted && !mcpServer.submissionAttempted) {
-      log.warn('reviewer protocol incomplete; requesting one recovery turn', {
-        reviewId: review.id,
-        stopReason
-      })
-      const recoveryStopReason = await runReviewerTurn(
-        REVIEWER_PROTOCOL_RECOVERY_PROMPT,
-        `${review.id}:recovery`
-      )
-      log.info('reviewer recovery session stopped', {
-        reviewId: review.id,
-        stopReason: recoveryStopReason
-      })
-    }
-  } catch (error) {
-    reviewerSessionFailed = true
-    reviewerSessionError = error
-  } finally {
-    if (mcpServer) {
-      const coverage = serializeReviewerEvidenceCoverage(mcpServer.evidenceCoverage)
-      appendFinalReviewerLogEntry(reviewerLogDriveCallbacks, (maxEntryBytes) =>
-        buildBoundedCoverageLogEntry(coverage, maxEntryBytes)
-      )
-    }
-    const cleanup = await cleanupReviewerResources(acpRuntime, reviewerSession, mcpServer)
-    rejectedToolCalls = cleanup.rejectedToolCalls
-    reviewerBridgeScoped = cleanup.reviewerBridgeScoped
-    if (cleanup.runtimeCleanupFailed) {
+
+      const fail = async (
+        errorMessage: string,
+        includeReviewerLog = true
+      ): Promise<ReviewAssessmentResult> => {
+        review = await runReviewMutation(runSessionMutation, () =>
+          reviewRepository.updateReview(review.id, {
+            lifecycle: 'error',
+            errorMessage,
+            ...(includeReviewerLog ? { reviewerLog: capturedLog } : {})
+          })
+        )
+        const errorReview: ReviewWithChecks = { ...review, checks: [], submittedChecks: [] }
+        onReviewUpdate?.(errorReview)
+        return { review: errorReview, submittedChecks: [] }
+      }
+
       if (reviewerSessionFailed) {
+        const details = (reviewerSessionError as { data?: { details?: unknown } } | null)?.data
+          ?.details
+        const errorMessage =
+          reviewerSessionError instanceof Error &&
+          reviewerSessionError.name === 'RequestError' &&
+          reviewerSessionError.message === 'Internal error' &&
+          typeof details === 'string' &&
+          details.trim()
+            ? details
+            : reviewerSessionError instanceof Error
+              ? reviewerSessionError.message
+              : String(reviewerSessionError)
         log.error(
           options.mode === 'tracked'
-            ? 'scoped re-review session cleanup also failed'
-            : 'reviewer session cleanup also failed',
-          {
-            reviewId: review.id,
-            error:
-              cleanup.runtimeCleanupError instanceof Error
-                ? cleanup.runtimeCleanupError.message
-                : String(cleanup.runtimeCleanupError)
-          }
+            ? 'scoped re-review session failed'
+            : 'reviewer session failed',
+          { reviewId: review.id, ...errorLogFields(reviewerSessionError) }
         )
-      } else {
-        reviewerSessionFailed = true
-        reviewerSessionError = cleanup.runtimeCleanupError
+        return fail(errorMessage)
       }
-    }
-  }
 
-  const fail = async (
-    errorMessage: string,
-    includeReviewerLog = true
-  ): Promise<ReviewAssessmentResult> => {
-    review = await runReviewMutation(runSessionMutation, () =>
-      reviewRepository.updateReview(review.id, {
-        lifecycle: 'error',
-        errorMessage,
-        ...(includeReviewerLog ? { reviewerLog: capturedLog } : {})
-      })
-    )
-    const errorReview: ReviewWithChecks = { ...review, checks: [], submittedChecks: [] }
-    onReviewUpdate?.(errorReview)
-    return { review: errorReview, submittedChecks: [] }
-  }
-
-  if (reviewerSessionFailed) {
-    const details = (reviewerSessionError as { data?: { details?: unknown } } | null)?.data?.details
-    const errorMessage =
-      reviewerSessionError instanceof Error &&
-      reviewerSessionError.name === 'RequestError' &&
-      reviewerSessionError.message === 'Internal error' &&
-      typeof details === 'string' &&
-      details.trim()
-        ? details
-        : reviewerSessionError instanceof Error
-          ? reviewerSessionError.message
-          : String(reviewerSessionError)
-    log.error(
-      options.mode === 'tracked' ? 'scoped re-review session failed' : 'reviewer session failed',
-      { reviewId: review.id, ...errorLogFields(reviewerSessionError) }
-    )
-    return fail(errorMessage)
-  }
-
-  if (reviewerBridgeScoped === false) {
-    log.error(
-      options.mode === 'tracked'
-        ? 'scoped re-review bridge isolation failed'
-        : 'reviewer bridge isolation failed',
-      { reviewId: review.id }
-    )
-    return fail(REVIEWER_BRIDGE_SCOPE_ERROR)
-  }
-
-  if (!checksSubmitted) {
-    const errorMessage = incompleteReviewMessage(rejectedToolCalls)
-    log.error(
-      options.mode === 'tracked'
-        ? 'scoped re-review protocol incomplete'
-        : 'review protocol incomplete',
-      { reviewId: review.id, error: errorMessage }
-    )
-    return fail(errorMessage)
-  }
-
-  let finalReview: ReviewWithChecks
-  try {
-    finalReview = await runReviewMutation(runSessionMutation, () =>
-      reviewRepository.commitScopedSubmission({
-        mode: options.mode,
-        reviewId: review.id,
-        checks: checksReceived,
-        expectedSourceFindingIds: trackedChecks.map((check) => check.id),
-        ...(options.mode === 'tracked' && options.resumedSourceFindingIds
-          ? { resumedSourceFindingIds: options.resumedSourceFindingIds }
-          : {}),
-        reviewerLog: capturedLog,
-        keepFlaggedReviewRunning:
-          options.mode === 'initial' && options.keepFlaggedReviewRunning === true
-      })
-    )
-    review = finalReview
-    log.info(options.mode === 'tracked' ? 'scoped re-review complete' : 'review complete', {
-      reviewId: review.id,
-      outcome: finalReview.outcome,
-      checkCount: checksReceived.length,
-      model: finalReview.model,
-      assessmentKind:
-        options.mode === 'initial' && checksReceived.length === 0
-          ? 'no_checkable_claims'
-          : 'assessed'
-    })
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    log.error(
-      options.mode === 'tracked'
-        ? 'scoped re-review persistence failed'
-        : 'review persistence failed',
-      { reviewId: review.id, error: errorMessage }
-    )
-    return fail(errorMessage, options.mode === 'tracked')
-  }
-
-  if (options.mode === 'tracked') {
-    const trackedById = new Map(trackedChecks.map((check) => [check.id, check]))
-    const mutatedSourceReviewIds = new Set(
-      checksReceived.flatMap((check) => {
-        const source = check.sourceFindingId ? trackedById.get(check.sourceFindingId) : undefined
-        return source ? [source.reviewId] : []
-      })
-    )
-    if (mutatedSourceReviewIds.size > 0) {
-      const allReviews = await reviewRepository.getReviewsForProjectSession(projectId, sessionId)
-      for (const sourceReview of allReviews) {
-        if (mutatedSourceReviewIds.has(sourceReview.id)) onReviewUpdate?.(sourceReview)
+      if (reviewerBridgeScoped === false) {
+        log.error(
+          options.mode === 'tracked'
+            ? 'scoped re-review bridge isolation failed'
+            : 'reviewer bridge isolation failed',
+          { reviewId: review.id }
+        )
+        return fail(REVIEWER_BRIDGE_SCOPE_ERROR)
       }
-    }
-    onReviewUpdate?.(finalReview)
-  }
 
-  return { review: finalReview, submittedChecks: checksReceived }
+      if (!checksSubmitted) {
+        const errorMessage = incompleteReviewMessage(rejectedToolCalls)
+        log.error(
+          options.mode === 'tracked'
+            ? 'scoped re-review protocol incomplete'
+            : 'review protocol incomplete',
+          { reviewId: review.id, error: errorMessage }
+        )
+        return fail(errorMessage)
+      }
+
+      let finalReview: ReviewWithChecks
+      try {
+        finalReview = await runReviewMutation(runSessionMutation, () =>
+          reviewRepository.commitScopedSubmission({
+            mode: options.mode,
+            reviewId: review.id,
+            checks: checksReceived,
+            expectedSourceFindingIds: trackedChecks.map((check) => check.id),
+            ...(options.mode === 'tracked' && options.resumedSourceFindingIds
+              ? { resumedSourceFindingIds: options.resumedSourceFindingIds }
+              : {}),
+            reviewerLog: capturedLog,
+            keepFlaggedReviewRunning:
+              options.mode === 'initial' && options.keepFlaggedReviewRunning === true
+          })
+        )
+        review = finalReview
+        log.info(options.mode === 'tracked' ? 'scoped re-review complete' : 'review complete', {
+          reviewId: review.id,
+          outcome: finalReview.outcome,
+          checkCount: checksReceived.length,
+          model: finalReview.model,
+          assessmentKind:
+            options.mode === 'initial' && checksReceived.length === 0
+              ? 'no_checkable_claims'
+              : 'assessed'
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        log.error(
+          options.mode === 'tracked'
+            ? 'scoped re-review persistence failed'
+            : 'review persistence failed',
+          { reviewId: review.id, error: errorMessage }
+        )
+        return fail(errorMessage, options.mode === 'tracked')
+      }
+
+      if (options.mode === 'tracked') {
+        const trackedById = new Map(trackedChecks.map((check) => [check.id, check]))
+        const mutatedSourceReviewIds = new Set(
+          checksReceived.flatMap((check) => {
+            const source = check.sourceFindingId
+              ? trackedById.get(check.sourceFindingId)
+              : undefined
+            return source ? [source.reviewId] : []
+          })
+        )
+        if (mutatedSourceReviewIds.size > 0) {
+          const allReviews = await reviewRepository.getReviewsForProjectSession(
+            projectId,
+            sessionId
+          )
+          for (const sourceReview of allReviews) {
+            if (mutatedSourceReviewIds.has(sourceReview.id)) onReviewUpdate?.(sourceReview)
+          }
+        }
+        onReviewUpdate?.(finalReview)
+      }
+
+      return { review: finalReview, submittedChecks: checksReceived }
+    }
+  )
 }
 
 export const buildReviewerPrompt = (

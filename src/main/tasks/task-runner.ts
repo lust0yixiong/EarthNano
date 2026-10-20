@@ -1,3 +1,4 @@
+import type { AcpExecutionLink, AcpExecutionOwnerCompletion } from '../acp/execution-boundary-port'
 import { constants } from 'node:fs'
 import { access, realpath, stat } from 'node:fs/promises'
 import { isAbsolute } from 'node:path'
@@ -194,6 +195,7 @@ type TaskAgentPromptRequest = {
 }
 
 type TaskAgentPromptObserver = {
+  ownerCompletion?: AcpExecutionOwnerCompletion
   onPromptAdmitted?: () => Promise<AgentTurnProvenanceContext | undefined>
   onProviderPromptAccepted?: () => void
 }
@@ -232,7 +234,8 @@ type TaskReviewerPort = {
   review(
     session: PersistedChatSession,
     turnMessageId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    parentExecutionId?: string
   ): Promise<TaskRunReview>
 }
 
@@ -271,6 +274,8 @@ type TaskRunEventAccumulator = {
 
 type MutableTaskRun = TaskRun & {
   eventAccumulator?: TaskRunEventAccumulator
+  executionPending?: boolean
+  cancelExecution?: () => Promise<unknown>
   completion: Promise<void>
   promptMessageId: string
   progressPhase: TaskRunProgressPhase
@@ -429,14 +434,15 @@ const createTaskRunActivities = (
 
 const cloneRun = (run: MutableTaskRun): TaskRun => ({
   id: run.id,
+  ...(run.executionId ? { executionId: run.executionId } : {}),
   sessionId: run.sessionId,
   projectId: run.projectId,
   cwd: run.cwd,
-  status: run.status,
+  status: run.executionPending ? 'running' : run.status,
   startedAt: run.startedAt,
   cancelRequestedAt: run.cancelRequestedAt,
-  cancelledAt: run.cancelledAt,
-  completedAt: run.completedAt,
+  cancelledAt: run.executionPending ? undefined : run.cancelledAt,
+  completedAt: run.executionPending ? undefined : run.completedAt,
   output: run.output,
   error: run.error,
   failureCode: run.failureCode,
@@ -448,9 +454,12 @@ const cloneRun = (run: MutableTaskRun): TaskRun => ({
 
 const cloneRunForJournal = (run: MutableTaskRun): TaskRunJournalEntry => {
   const sessionCommit = run.sessionCommit
+  const status = run.terminalStatus ?? run.status
   return {
     ...cloneRun(run),
-    status: run.terminalStatus ?? run.status,
+    status,
+    completedAt: run.completedAt,
+    cancelledAt: run.cancelledAt,
     ...(run.promptMessageId ? { promptMessageId: run.promptMessageId } : {}),
     ...(sessionCommit
       ? {
@@ -460,10 +469,13 @@ const cloneRunForJournal = (run: MutableTaskRun): TaskRunJournalEntry => {
             ? { cancelledAt: sessionCommit.completedAt }
             : {}),
           output: sessionCommit.output,
-          error: sessionCommit.error,
-          failureCode: sessionCommit.failureCode,
+          error: status === 'failed' ? (run.error ?? sessionCommit.error) : sessionCommit.error,
+          failureCode:
+            status === 'failed'
+              ? (run.failureCode ?? sessionCommit.failureCode)
+              : sessionCommit.failureCode,
           artifacts: [...sessionCommit.artifacts],
-          attention: sessionCommit.attention
+          attention: status === 'completed' ? sessionCommit.attention : undefined
         }
       : {})
   }
@@ -1570,7 +1582,10 @@ class TaskRunner {
   async cancelRun(runId: string): Promise<TaskRun> {
     const run = this.runs.get(runId)
     if (!run) throw new TaskRunnerError('run_not_found', `Run not found: ${runId}`)
-    if (run.status !== 'running') return cloneRun(run)
+    if (run.status !== 'running') {
+      if (run.executionPending) await run.completion
+      return cloneRun(run)
+    }
     if (run.terminalStatus) {
       await run.completion
       return cloneRun(run)
@@ -1594,7 +1609,8 @@ class TaskRunner {
         await queuedJournalWrites
         const sessionCommitBarrier = run.sessionCommitBarrier
         if (sessionCommitBarrier) await sessionCommitBarrier
-        await this.dependencies.agent.cancelPrompt(run.sessionId)
+        if (run.cancelExecution) await run.cancelExecution()
+        else await this.dependencies.agent.cancelPrompt(run.sessionId)
       })
       .then(async () => {
         if (run.sessionCommit && run.sessionCommit.status !== 'failed') {
@@ -1984,6 +2000,90 @@ class TaskRunner {
     resumeFallback?: TaskAgentPromptRequest['resumeFallback'],
     persistOnPromptAdmission = false
   ): Promise<void> {
+    let resolveCommitted!: () => void
+    let rejectCommitted!: (error: unknown) => void
+    const committed = new Promise<void>((resolve, reject) => {
+      resolveCommitted = resolve
+      rejectCommitted = reject
+    })
+    // A rejected owner commit is consumed by the boundary when linked. Test/legacy ports may not
+    // provide a boundary; always observe it locally as well.
+    void committed.catch(() => undefined)
+    let link: AcpExecutionLink | undefined
+    let linkPersisted = Promise.resolve()
+    const ownerCompletion: AcpExecutionOwnerCompletion = {
+      committed,
+      linked: (value) => {
+        if (link && link.executionId !== value.executionId) {
+          throw new Error('Task prompt execution identity cannot be replaced')
+        }
+        link = value
+        run.executionId = value.executionId
+        run.cancelExecution = value.cancel
+        run.executionPending = true
+        linkPersisted = this.persistRuns()
+        void linkPersisted.catch(() => undefined)
+      }
+    }
+    try {
+      await this.executeOwnerRun(
+        run,
+        session,
+        request,
+        prompt,
+        historyPreamble,
+        contextReset,
+        resumeFallback,
+        persistOnPromptAdmission,
+        ownerCompletion
+      )
+      await linkPersisted
+      if (run.status === 'failed')
+        rejectCommitted(new Error(run.error ?? 'Task owner commit failed.'))
+      else resolveCommitted()
+    } catch (error) {
+      rejectCommitted(error)
+      throw error
+    } finally {
+      if (link) {
+        try {
+          const canonical = await link.settled
+          if (canonical.phase === 'failed' || canonical.phase === 'interrupted') {
+            run.error = canonical.error?.message ?? run.error ?? 'Execution did not complete.'
+            run.completedAt ??= this.dependencies.now()
+            run.cancelledAt = undefined
+            run.attention = undefined
+            await this.persistTerminalRun(run, 'failed')
+          } else if (canonical.phase === 'cancelled' && run.status !== 'failed') {
+            run.completedAt ??= this.dependencies.now()
+            run.cancelledAt = run.completedAt
+            run.attention = undefined
+            await this.persistTerminalRun(run, 'cancelled')
+          }
+        } catch (error) {
+          run.error = toErrorMessage(error)
+          run.completedAt ??= this.dependencies.now()
+          await this.persistTerminalRun(run, 'failed')
+        } finally {
+          run.executionPending = false
+          run.cancelExecution = undefined
+          this.publishProgress(run, run.status === 'running' ? 'failed' : run.status)
+        }
+      }
+    }
+  }
+
+  private async executeOwnerRun(
+    run: MutableTaskRun,
+    session: PersistedChatSession,
+    request: StartTaskRunRequest,
+    prompt: string,
+    historyPreamble?: string,
+    contextReset?: boolean,
+    resumeFallback?: TaskAgentPromptRequest['resumeFallback'],
+    persistOnPromptAdmission = false,
+    ownerCompletion?: AcpExecutionOwnerCompletion
+  ): Promise<void> {
     let promptError: unknown
     let admissionPersistenceError: unknown
     let cancellationAtPromptFailure: MutableTaskRun['cancellation'] = undefined
@@ -2011,6 +2111,7 @@ class TaskRunner {
           ...(resumeFallback ? { resumeFallback } : {})
         },
         {
+          ownerCompletion,
           ...(persistOnPromptAdmission
             ? {
                 onPromptAdmitted: async () => {
@@ -2212,7 +2313,8 @@ class TaskRunner {
           run.review = await this.dependencies.reviewer.review(
             completed!.session,
             reviewedMessage.id,
-            reviewAbortController.signal
+            reviewAbortController.signal,
+            ...(run.executionId ? ([run.executionId] as const) : [])
           )
         } catch (error) {
           if (!reviewAbortController.signal.aborted) {
@@ -2547,6 +2649,7 @@ class TaskRunner {
     phase: TaskRunProgressPhase,
     heartbeat = false
   ): void {
+    if (run.executionPending && ['completed', 'cancelled', 'failed'].includes(phase)) return
     const timestamp = this.dependencies.now()
     if (!heartbeat) run.progressPhase = phase
     const event: TaskRunProgressEvent = Object.freeze({
@@ -2570,7 +2673,7 @@ class TaskRunner {
   private pruneRuns(): void {
     if (this.runs.size < MAX_RETAINED_RUNS) return
     const completed = [...this.runs.values()]
-      .filter((run) => run.status !== 'running')
+      .filter((run) => run.status !== 'running' && !run.executionPending)
       .sort((left, right) => left.startedAt - right.startedAt)
     for (const run of completed) {
       this.runs.delete(run.id)

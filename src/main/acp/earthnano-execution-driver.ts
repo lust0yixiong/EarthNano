@@ -12,6 +12,7 @@ import {
   type ExecutionOutcome,
   type ExecutionStore
 } from '../earthnano/execution-core'
+import { withPhysicalCancellation } from '../earthnano/execution-scope'
 import type { TaskAgentPort, TaskAgentPromptRequest } from '../tasks/task-runner'
 
 export interface AcpPromptSettlement {
@@ -132,15 +133,24 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
     let providerAccepted = false
     let cancellation: Promise<void> | undefined
     let cancellationError: unknown
-    const cancel = (): void => {
+    const cancelOwned = (): Promise<void> => {
       // Before admission another desktop turn may own this Session. Never cancel it.
-      if (!admitted || settled || cancellation) return
-      cancellation = Promise.resolve()
-        .then(() => plan.cancelOwnedPrompt(() => agent.cancelPrompt(prompt.sessionId)))
-        .catch((error: unknown) => {
-          cancellationError = error
-        })
+      if (!admitted || settled) return Promise.resolve()
+      if (cancellation) return cancellation
+      const pending = withPhysicalCancellation(() =>
+        plan.cancelOwnedPrompt(() => agent.cancelPrompt(prompt.sessionId))
+      )
+      cancellation = pending
+      void pending.catch((error: unknown) => {
+        cancellationError = error
+        if (cancellation === pending) cancellation = undefined
+      })
+      return pending
     }
+    const cancel = (): void => {
+      void cancelOwned().catch(() => undefined)
+    }
+    const releaseCancellation = context.onCancellation?.(cancelOwned)
     context.signal.addEventListener('abort', cancel, { once: true })
     let promptError: unknown
     try {
@@ -181,7 +191,7 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
       settled = true
       context.signal.removeEventListener('abort', cancel)
     }
-    await cancellation
+    await cancellation?.catch(() => undefined)
     try {
       const result = await plan.readResult({
         promptError,
@@ -221,6 +231,8 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
         cleanup: 'unknown',
         error: { code: 'owner-result-unavailable', message: message(error) }
       }
+    } finally {
+      releaseCancellation?.()
     }
   }
 })

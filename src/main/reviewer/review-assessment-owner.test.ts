@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -8,6 +8,8 @@ import { RequestError } from '@agentclientprotocol/sdk'
 import type { PrismaClient } from '@prisma/client'
 
 import type { AcpRuntime } from '../acp/runtime'
+import { currentExecutionScope } from '../earthnano/execution-scope'
+import type { ExecutionState } from '../earthnano/execution-core'
 import type { AcpBackendGenerationView } from '../acp/backend-generation-owner'
 import { getAgentFramework } from '../agent-framework'
 import type {
@@ -893,6 +895,97 @@ describe('review assessment owner', () => {
     expect(published.findLast((candidate) => candidate.id === 'assessment-review')).toEqual(
       commandRead.find((candidate) => candidate.id === 'assessment-review')
     )
+  })
+
+  it.each([
+    'commit-failure',
+    'drive-timeout',
+    'protocol-recovery',
+    'provider-observation'
+  ] as const)('runs the actual assessment %s under one shared Core admission', async (scenario) => {
+    const storageRoot = await mkdtemp(join(tmpdir(), 'reviewer-core-owner-'))
+    const reviewRepository = makeRepository()
+    const acpRuntime = runtime()
+    const build = acpRuntime.buildReviewerSession.bind(acpRuntime)
+    const executions: string[] = []
+    acpRuntime.buildReviewerSession = async (request) => {
+      const built = await build(request)
+      const prompt = built.session.prompt.bind(built.session)
+      built.session.prompt = (...args) => {
+        const execution = currentExecutionScope()!
+        expect(execution.request.role).toBe('reviewer')
+        executions.push(execution.context.executionId)
+        return prompt(...args)
+      }
+      return built
+    }
+    if (scenario === 'commit-failure') {
+      vi.mocked(reviewRepository.commitScopedSubmission).mockRejectedValue(
+        new Error('original Review commit failed')
+      )
+    } else if (scenario === 'drive-timeout') {
+      harness.nextUpdate = () => new Promise(() => {})
+    } else if (scenario === 'protocol-recovery') {
+      harness.submission = undefined
+      let turns = 0
+      harness.nextUpdate = async () => {
+        if (++turns === 2)
+          await harness.submit?.([{ status: 'pass', claim: 'Recovered', evidence: 'Verified' }])
+        return { kind: 'stop', stopReason: 'end_turn' }
+      }
+    } else {
+      let updates = 0
+      harness.nextUpdate = async () =>
+        ++updates <= 2
+          ? {
+              kind: 'session_update',
+              notification: {
+                sessionId: 'reviewer-session',
+                update: { sessionUpdate: 'agent_message_chunk' }
+              }
+            }
+          : { kind: 'stop', stopReason: 'end_turn', response: { stopReason: 'end_turn' } }
+    }
+    try {
+      const assessment = await runReviewAssessment({
+        ...commonOptions(reviewRepository),
+        artifactStorageRoot: storageRoot,
+        acpRuntime,
+        reviewerTimeoutMs: scenario === 'drive-timeout' ? 10 : 1000,
+        parentExecutionId: 'actual-parent-execution',
+        mode: 'initial'
+      })
+      const directory = join(storageRoot, 'earthnano', 'reviewer-executions')
+      const names = await readdir(directory)
+      expect(names).toHaveLength(1)
+      const journal = JSON.parse(
+        await readFile(join(directory, names[0]), 'utf8')
+      ) as ExecutionState
+      const [record] = Object.values(journal.records)
+      expect(Object.values(journal.records)).toHaveLength(1)
+      expect(Object.values(journal.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+      expect(record.request.origin.parentExecutionId).toBe('actual-parent-execution')
+      expect(record.cleanup).toBe('confirmed')
+      expect(record.identity).toEqual({ providerSessionId: 'reviewer-session' })
+      expect(new Set(executions).size).toBe(1)
+      const providerAcceptedEvents = journal.events[record.executionId].filter(
+        (event) => event.type === 'provider-accepted'
+      )
+      expect(providerAcceptedEvents).toHaveLength(scenario === 'provider-observation' ? 1 : 0)
+      if (scenario === 'protocol-recovery' || scenario === 'provider-observation') {
+        expect(executions).toHaveLength(scenario === 'protocol-recovery' ? 2 : 1)
+        expect(record.phase).toBe('completed')
+        expect(assessment.review.lifecycle).toBe('complete')
+      } else {
+        expect(record.phase).toBe('failed')
+        expect(assessment.review.lifecycle).toBe('error')
+        expect(record.error?.message).toBe(assessment.review.errorMessage)
+      }
+      expect(harness.events).toContain('acp:dispose')
+      expect(harness.events).toContain('mcp:stop')
+    } finally {
+      await rm(storageRoot, { recursive: true, force: true })
+    }
   })
 
   it('keeps a committed Review complete when the post-commit projection read is unavailable', async () => {

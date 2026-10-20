@@ -66,6 +66,8 @@ def validate_request(value: object) -> ExecutionRequest:
     origin = value["origin"]
     if origin["kind"] == "optimization" and not (origin.get("optimizationId") and origin.get("stageId")):
         raise ValueError("Optimization requires optimizationId and stageId")
+    if origin["kind"] == "optimization" and value["timeoutMs"] == 0:
+        raise ValueError("Optimization requires a bounded deadline")
     return value
 
 

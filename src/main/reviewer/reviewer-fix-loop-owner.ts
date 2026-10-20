@@ -72,6 +72,7 @@ type ReviewerFixLoopOptions = {
   sessionRefreshTimeoutMs: number
   // Cancels loads, correction admission, and active tracked assessments.
   abortSignal?: AbortSignal
+  parentExecutionId?: string
   recordUsage?: (record: SessionAuxiliaryTurnUsageRecord) => Promise<unknown>
 }
 
@@ -82,6 +83,7 @@ const waitForCorrectionAgentMessage = async (options: {
   getSession: SessionProvider
   timeoutMs: number
   abortSignal?: AbortSignal
+  parentExecutionId?: string
 }): Promise<
   | {
       session: PersistedChatSession
@@ -397,6 +399,7 @@ export const runReviewerFixLoop = async (options: ReviewerFixLoopOptions): Promi
     log.info('fix loop: running re-review', { sessionId, round, correctionTurnMessageId })
 
     const scopedResult = await runReviewAssessment({
+      parentExecutionId: options.parentExecutionId,
       mode: 'tracked',
       ...(options.resumeCorrection?.round === round
         ? { resumedSourceFindingIds: openChecks.map((check) => check.id) }

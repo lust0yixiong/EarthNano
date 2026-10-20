@@ -362,6 +362,10 @@ export type ReviewRunRequest = {
   // bypasses that check so the user can force a fresh review. Defaults to 'manual' when omitted.
   origin?: ReviewRunOrigin
   evidenceScope?: DelegatedReviewEvidenceScope
+  // Optional ancestry hint. Main validates against a live Session execution before accepting it.
+  parentExecutionId?: string
+  // Headless owners join the complete assessment/cleanup; renderer callers retain early start.
+  waitForCompletion?: boolean
 }
 
 // Distinguishes an automatic post-turn review from a user-initiated one — see ReviewRunRequest.origin.

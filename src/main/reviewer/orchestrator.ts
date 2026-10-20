@@ -38,6 +38,7 @@ const runReviewMutation = <Result>(
 ): Promise<Result> => (runner ? runner(mutation) : mutation())
 
 export type RunReviewOptions = {
+  parentExecutionId?: string
   correctionResume?: CorrectionResume
   sessionId: string
   // The turn to review: the agent message id (or user message id) for that turn. This is also the
@@ -167,6 +168,7 @@ const runReviewWithSession = async (
   const assessment = options.correctionResume
     ? { review: options.correctionResume.sourceReview }
     : await runReviewAssessment({
+        parentExecutionId: options.parentExecutionId,
         mode: 'initial',
         session,
         sessionId,
@@ -206,6 +208,7 @@ const runReviewWithSession = async (
     let terminalReview: ReviewWithChecks | undefined
     try {
       await runReviewerFixLoop({
+        parentExecutionId: options.parentExecutionId,
         sessionId,
         originalTurnMessageId: turnMessageId,
         correctionScope: finalReview.scope,

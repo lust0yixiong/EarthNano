@@ -1214,10 +1214,14 @@ describe('HeadlessTaskApi adapter', () => {
         },
         text: 'Continue research.'
       },
-      {
+      expect.objectContaining({
         onPromptAdmitted: expect.any(Function),
-        onProviderPromptAccepted: expect.any(Function)
-      }
+        onProviderPromptAccepted: expect.any(Function),
+        ownerCompletion: expect.objectContaining({
+          committed: expect.any(Promise),
+          linked: expect.any(Function)
+        })
+      })
     )
     expect(invoke.mock.calls.every(([channel]) => !String(channel).startsWith('acp:'))).toBe(true)
     expect(invoke).toHaveBeenCalledWith('artifacts:finalize-run', taskCallerContext(), [
@@ -1429,7 +1433,13 @@ describe('HeadlessTaskApi adapter', () => {
         },
         text: 'Research with remote context.'
       },
-      { onProviderPromptAccepted: expect.any(Function) }
+      expect.objectContaining({
+        onProviderPromptAccepted: expect.any(Function),
+        ownerCompletion: expect.objectContaining({
+          committed: expect.any(Promise),
+          linked: expect.any(Function)
+        })
+      })
     )
     expect(context.isAuthorizationCurrent()).toBe(false)
 
@@ -1623,6 +1633,85 @@ describe('HeadlessTaskApi adapter', () => {
     expect(authorizationCurrent).toBe(false)
     await api.dispose()
   })
+
+  it.each(['failure', 'cancel'] as const)(
+    'joins canonical Reviewer completion and handles %s while waiting',
+    async (scenario) => {
+      let emitEvent: ((event: AcpRuntimeEvent) => void) | undefined
+      const finishReview = Promise.withResolvers<void>()
+      const enteredReview = Promise.withResolvers<void>()
+      const invoke = vi.fn(
+        async (channel: string, _callerContext: CallerContext, args: unknown[]) => {
+          if (channel === 'projects:list') return [project]
+          if (channel === 'sessions:load-all') return { sessions: [], manifest: { version: 1 } }
+          if (channel === 'sessions:save-session') return args[0]
+          if (channel === 'reviewer:run') {
+            expect(args[0]).toMatchObject({ waitForCompletion: true })
+            enteredReview.resolve()
+            await finishReview.promise
+            if (scenario === 'failure') throw new Error('canonical Reviewer cleanup unconfirmed')
+            return { started: true }
+          }
+          if (channel === 'reviewer:abort') {
+            finishReview.resolve()
+            return undefined
+          }
+          if (channel === 'reviewer:get-for-session')
+            throw new Error('Must not publish original Review as canonical success')
+          throw new Error(`Unexpected Task command: ${channel}`)
+        }
+      )
+      const agent = createAgent({
+        createSession: vi.fn(async () => ({ sessionId: 'session-review-canonical' })),
+        prompt: vi.fn(async () => {
+          emitEvent?.({
+            id: 'canonical-message-event',
+            timestamp: 10,
+            kind: 'message',
+            level: 'info',
+            sessionId: 'session-review-canonical',
+            role: 'assistant',
+            text: 'Review canonical output.'
+          })
+        })
+      })
+      const ids = ['canonical-user', 'canonical-run', 'canonical-agent']
+      const api = new HeadlessTaskApi(
+        { commands: commandsFrom(invoke), agent },
+        {
+          createId: () => ids.shift() ?? 'generated-id',
+          subscribeEvents: (listener) => {
+            emitEvent = listener
+            return () => undefined
+          }
+        }
+      )
+      const run = await api.startRun({
+        project: project.id,
+        prompt: 'Produce and review canonical output.',
+        autoReviewEnabled: true
+      })
+      await enteredReview.promise
+      if (scenario === 'failure') {
+        finishReview.resolve()
+        await expect(api.waitForRun(run.id)).resolves.toMatchObject({
+          review: {
+            started: false,
+            reason: 'run-failed',
+            errorMessage: 'canonical Reviewer cleanup unconfirmed'
+          }
+        })
+      } else {
+        await api.cancelRun(run.id)
+        await expect(api.waitForRun(run.id)).resolves.toMatchObject({ status: 'cancelled' })
+        expect(invoke.mock.calls.some(([channel]) => channel === 'reviewer:abort')).toBe(true)
+      }
+      expect(invoke.mock.calls.some(([channel]) => channel === 'reviewer:get-for-session')).toBe(
+        false
+      )
+      await api.dispose()
+    }
+  )
 
   it('awaits Reviewer cleanup before completing Task API disposal', async () => {
     let emitEvent: ((event: AcpRuntimeEvent) => void) | undefined

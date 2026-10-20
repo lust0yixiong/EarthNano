@@ -28,6 +28,13 @@ const setup = async (): Promise<{ journal: FileTaskRunJournal; path: string }> =
 }
 
 describe('Task Run journal validation', () => {
+  it('roundtrips the canonical execution identity alongside a legacy entry', async () => {
+    const { journal } = await setup()
+    const linked = { ...fixture(), id: 'run-linked', executionId: 'execution-1' }
+    await journal.replace([fixture(), linked])
+    await expect(journal.load()).resolves.toEqual([fixture(), linked])
+  })
+
   it('roundtrips a valid run', async () => {
     const { journal } = await setup()
     await journal.replace([fixture()])
@@ -56,6 +63,8 @@ describe('Task Run journal validation', () => {
     ['missing approval plan', { attention: { kind: 'plan-approval' } }],
     ['invalid review flag', { review: { started: 'yes' } }],
     ['empty run identity', { id: '' }],
+    ['empty execution identity', { executionId: ' ' }],
+    ['nonstring execution identity', { executionId: 42 }],
     ['empty session identity', { sessionId: ' ' }],
     ['empty project identity', { projectId: '' }],
     ['commit without prompt identity', { sessionCommitStatus: 'completed' }],

@@ -15,6 +15,11 @@ import type {
 } from '../../shared/earthnano/execution-port'
 import { assertExecutionTimeout } from './execution-timeout'
 import {
+  registerExecutionScope,
+  withExecutionScope,
+  withPhysicalCancellation
+} from './execution-scope'
+import {
   ExecutionContractError,
   requestDigest,
   validateRequest,
@@ -36,6 +41,8 @@ export interface ExecutionContext {
   running(): void
   identity(value: ExecutionIdentity): void
   emit(type: 'provider-accepted' | 'session-admitted'): void
+  /** Original owner may reject cancellation. No abort is published before its acknowledgment. */
+  onCancellation?(handler: () => Promise<void>): () => void
 }
 /** Resolves only after original owners have committed their result; never owns Session/Review state. */
 export interface ExecutionDriver {
@@ -127,6 +134,13 @@ export class ExecutionCore implements ExecutionPort {
   private readonly concurrency: number
   private drainScheduled = false
   private readonly drivers = new Set<Promise<void>>()
+  private readonly cancellationOwners = new Map<string, () => Promise<void>>()
+  private readonly cancellations = new Map<string, Promise<CancellationReceipt>>()
+  private readonly observations = new Map<string, Set<string>>()
+  private readonly terminalWaiters = new Map<
+    string,
+    Set<{ resolve(record: ExecutionRecord): void; reject(error: Error): void }>
+  >()
 
   constructor(
     private readonly store: ExecutionStore,
@@ -248,14 +262,71 @@ export class ExecutionCore implements ExecutionPort {
     return clone(this.require(id))
   }
 
+  /** Internal owner barrier; unlike event replay this waits without polling or provider work. */
+  waitForTerminal(id: string): Promise<ExecutionRecord> {
+    this.assertOpen()
+    const record = this.require(id)
+    if (terminal(record.phase)) return Promise.resolve(clone(record))
+    return new Promise((resolve, reject) => {
+      const waiters = this.terminalWaiters.get(id) ?? new Set()
+      waiters.add({ resolve, reject })
+      this.terminalWaiters.set(id, waiters)
+    })
+  }
+
+  /** Trusted recovery adapter only: original durable owners attest exact turn and resource release.
+   * Reconciliation never invokes the driver, refunds a budget, or steals a live resource owner. */
+  reconcileOriginal(
+    id: string,
+    outcome: Omit<ExecutionOutcome, 'phase' | 'cleanup'> & {
+      phase: 'completed' | 'failed' | 'cancelled' | 'interrupted'
+      cleanup: 'confirmed'
+    }
+  ): void {
+    this.assertOpen()
+    const record = this.require(id)
+    if (!terminal(record.phase) || record.cleanup !== 'unknown' || this.controllers.has(id))
+      throw new Error('Only a recovered execution with unknown cleanup can be reconciled')
+    if (
+      outcome.cleanup !== 'confirmed' ||
+      !['completed', 'failed', 'cancelled', 'interrupted'].includes(outcome.phase)
+    )
+      throw new Error('Reconciliation requires original terminal and resource-release witnesses')
+    this.finish(id, outcome)
+  }
+
   async cancel(id: string): Promise<CancellationReceipt> {
     this.assertOpen()
     const record = this.require(id)
+    if (record.cancellationRequested && !terminal(record.phase))
+      return { executionId: id, status: 'requested', cleanup: record.cleanup }
     if (terminal(record.phase))
       return {
         executionId: id,
         status: record.phase === 'cancelled' ? 'cancelled' : 'already-terminal',
         cleanup: record.cleanup
+      }
+    const pending = this.cancellations.get(id)
+    if (pending) return pending
+    const cancellation = this.cancelOwned(id)
+    this.cancellations.set(id, cancellation)
+    try {
+      return await cancellation
+    } finally {
+      this.cancellations.delete(id)
+    }
+  }
+
+  private async cancelOwned(id: string): Promise<CancellationReceipt> {
+    const owner = this.cancellationOwners.get(id)
+    if (owner) await withPhysicalCancellation(owner)
+    // The owner may have completed while its cancellation acknowledgment was in flight.
+    const settled = this.require(id)
+    if (terminal(settled.phase))
+      return {
+        executionId: id,
+        status: settled.phase === 'cancelled' ? 'cancelled' : 'already-terminal',
+        cleanup: settled.cleanup
       }
     this.change((state) => {
       const current = state.records[id]
@@ -319,6 +390,10 @@ export class ExecutionCore implements ExecutionPort {
   /** Retires this owner for controlled restart. Late driver callbacks cannot write to the store. */
   dispose(): void {
     this.disposed = true
+    for (const waiters of this.terminalWaiters.values())
+      for (const waiter of waiters)
+        waiter.reject(new Error('Execution owner retired before terminal commit'))
+    this.terminalWaiters.clear()
     for (const timer of this.timers.values()) clearTimeout(timer)
     for (const controller of this.controllers.values()) controller.abort()
     this.controllers.clear()
@@ -354,6 +429,12 @@ export class ExecutionCore implements ExecutionPort {
       throw error
     }
     this.state = next
+    for (const [id, waiters] of this.terminalWaiters) {
+      const record = next.records[id]
+      if (!record || !terminal(record.phase)) continue
+      this.terminalWaiters.delete(id)
+      for (const waiter of waiters) waiter.resolve(clone(record))
+    }
   }
   private append(
     state: ExecutionState,
@@ -376,15 +457,18 @@ export class ExecutionCore implements ExecutionPort {
     setImmediate(() => {
       this.drainScheduled = false
       if (this.disposed) return
-      // Cleanup uncertainty fences the owner, including admissions already waiting in its queue.
-      if (Object.values(this.state.records).some((record) => record.cleanup === 'unknown')) return
       for (const record of Object.values(this.state.records)) {
-        if (
-          this.controllers.size >= this.concurrency ||
-          Object.values(this.state.records).some((entry) => entry.cleanup === 'unknown')
-        )
-          break
+        if (this.controllers.size >= this.concurrency) break
         if (this.require(record.executionId).phase !== 'queued') continue
+        if (
+          Object.values(this.state.records).some(
+            (entry) =>
+              entry.cleanup === 'unknown' &&
+              entry.request.projectId === record.request.projectId &&
+              entry.request.environmentSpecRef.id === record.request.environmentSpecRef.id
+          )
+        )
+          continue
         const driver = this.drive(record.executionId)
         this.drivers.add(driver)
         void driver.then(
@@ -395,6 +479,7 @@ export class ExecutionCore implements ExecutionPort {
     })
   }
   private async drive(id: string): Promise<void> {
+    let releaseScope: (() => void) | undefined
     const controller = new AbortController()
     this.controllers.set(id, controller)
     try {
@@ -402,23 +487,24 @@ export class ExecutionCore implements ExecutionPort {
         state.records[id].phase = 'preparing'
         this.append(state, state.records[id], { type: 'phase', phase: 'preparing' })
       })
-      this.timers.set(
-        id,
-        setTimeout(() => {
-          if (!this.active(id)) return
-          try {
-            this.finish(id, {
-              phase: 'interrupted',
-              cleanup: 'unknown',
-              error: { code: 'timeout', message: 'Deadline exceeded; cleanup unconfirmed' }
-            })
-          } catch {
-            // change() has retired the owner on persistence failure; callers must reconcile storage.
-          } finally {
-            controller.abort()
-          }
-        }, this.require(id).request.timeoutMs)
-      )
+      if (this.require(id).request.timeoutMs > 0)
+        this.timers.set(
+          id,
+          setTimeout(() => {
+            if (!this.active(id)) return
+            try {
+              this.finish(id, {
+                phase: 'interrupted',
+                cleanup: 'unknown',
+                error: { code: 'timeout', message: 'Deadline exceeded; cleanup unconfirmed' }
+              })
+            } catch {
+              // change() has retired the owner on persistence failure; callers must reconcile storage.
+            } finally {
+              controller.abort()
+            }
+          }, this.require(id).request.timeoutMs)
+        )
       const context: ExecutionContext = {
         executionId: id,
         signal: controller.signal,
@@ -443,11 +529,31 @@ export class ExecutionCore implements ExecutionPort {
           })
         },
         emit: (type) => {
-          if (this.active(id))
+          const observed = this.observations.get(id) ?? new Set<string>()
+          if (this.active(id) && !observed.has(type)) {
             this.change((state) => this.append(state, state.records[id], { type }))
+            observed.add(type)
+            this.observations.set(id, observed)
+          }
+        },
+        onCancellation: (handler) => {
+          if (this.cancellationOwners.has(id))
+            throw new Error('Execution already has a cancellation owner')
+          this.cancellationOwners.set(id, handler)
+          return () => {
+            if (this.cancellationOwners.get(id) === handler) this.cancellationOwners.delete(id)
+          }
         }
       }
-      const outcome = await this.driver.execute(clone(this.require(id).request), context)
+      const request = clone(this.require(id).request)
+      const scope = {
+        core: this,
+        request,
+        context,
+        identity: () => clone(this.require(id).identity)
+      }
+      releaseScope = registerExecutionScope(scope)
+      const outcome = await withExecutionScope(scope, () => this.driver.execute(request, context))
       if (!this.active(id)) return
       if (!['completed', 'failed', 'cancelled'].includes(outcome.phase)) {
         throw new Error('Driver returned a nonterminal outcome')
@@ -466,8 +572,11 @@ export class ExecutionCore implements ExecutionPort {
           }
         })
     } finally {
+      releaseScope?.()
       clearTimeout(this.timers.get(id))
       this.timers.delete(id)
+      this.cancellationOwners.delete(id)
+      this.observations.delete(id)
       // A terminal record with unknown cleanup still occupies capacity. A late success cannot
       // reconcile a timeout: that requires explicit owner-level reconciliation.
       if (!this.disposed && this.require(id).cleanup === 'confirmed') this.controllers.delete(id)

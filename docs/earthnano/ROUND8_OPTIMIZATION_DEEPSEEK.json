@@ -1,0 +1,222 @@
+{
+  "status": "passed",
+  "model": "deepseek-flash",
+  "executions": 21,
+  "roles": [
+    "baseline",
+    "proposer",
+    "proposer",
+    "candidate",
+    "candidate",
+    "composer",
+    "candidate",
+    "reflection",
+    "baseline",
+    "proposer",
+    "proposer",
+    "proposer",
+    "candidate",
+    "candidate",
+    "composer",
+    "candidate",
+    "reflection",
+    "reviewer",
+    "reviewer",
+    "reviewer",
+    "reviewer"
+  ],
+  "sessions": 21,
+  "versionCount": 30,
+  "reviewCount": 27,
+  "verifiedInputReads": 8,
+  "successorEditingContexts": 4,
+  "verifiedSuccessorExperienceContexts": 0,
+  "reopened": true,
+  "configurationChanged": true,
+  "fallbackStages": ["dom1"],
+  "methodTasks": [
+    {
+      "taskId": "1ce3b82f-f2de-43a5-8990-c6509925eb27-0001",
+      "configurationChanged": true,
+      "fallbackStages": []
+    },
+    {
+      "taskId": "1ce3b82f-f2de-43a5-8990-c6509925eb27-0002",
+      "configurationChanged": true,
+      "fallbackStages": ["dom1"]
+    }
+  ],
+  "domain": {
+    "name": "csv-analysis",
+    "order": [
+      "1ce3b82f-f2de-43a5-8990-c6509925eb27-0001",
+      "1ce3b82f-f2de-43a5-8990-c6509925eb27-0002"
+    ],
+    "tasks": [
+      {
+        "taskId": "1ce3b82f-f2de-43a5-8990-c6509925eb27-0001",
+        "selection": {
+          "chosenLabel": "c1",
+          "candidateCount": 1,
+          "trivial": true,
+          "fallback": false,
+          "reason": "trivial pool: single final at k=1; delivered without a selector session"
+        },
+        "assessments": {
+          "baseline": {
+            "executionId": "7e7cd631-5783-4cc5-b396-c8f0af11b572",
+            "targetExecutionId": "a0cb0cf0-c54d-4f1b-b2c0-9fd398787aa1",
+            "reviewId": "cmvgjth1q0011xj930iy46htc",
+            "outcome": "pass",
+            "score": 100,
+            "rationale": "The task required reading values.csv (header id,value plus three data rows: one,1 / two,2 / three,3), counting data rows excluding the header, summing the value column, and writing only a JSON object with count and sum to OUTPUT/result.json. The single supplied target artifact (result.json) contains {\"count\": 3, \"sum\": 6}. Compared against the source file: three non-header rows is the correct count, and 1+2+3=6 is the correct arithmetic sum. Both keys requested by the task are present and contain the correct values; no incorrect extra claim is present. The output is a single JSON object consistent with the instruction not to create other deliverables. Both frozen criteria are satisfied."
+          },
+          "candidate": {
+            "executionId": "feccb45a-ad3f-482e-962f-3acd122af3eb",
+            "targetExecutionId": "a333b769-4089-44ee-bbbb-5b4ac98d6b30",
+            "reviewId": "cmvgjtmu30015xj936onsaket",
+            "outcome": "pass",
+            "score": 100,
+            "rationale": "The single frozen artifact result.json contains exactly {\"count\": 3, \"sum\": 6}. The source task supplies values.csv with a header (id,value) followed by three data rows: one,1; two,2; three,3. Excluding the header, there are 3 data rows, so the reported count of 3 is correct (c1). The value column sums 1+2+3 = 6, so the reported sum of 6 is correct (c2). The file is a bare JSON object with no extraneous keys or prose and no other deliverables are present, consistent with the task's output constraint. Both frozen criteria are satisfied; every check passes."
+          }
+        },
+        "outcome": {
+          "artifact": {
+            "status": "passed",
+            "checks": [
+              {
+                "path": "result.json",
+                "pointer": "/sum",
+                "artifactRef": {
+                  "artifactId": "17e811a6-1b6c-4a86-ae06-941f3349b413",
+                  "versionId": "254a530b-f8d8-410f-87b1-8cc4b40c6d5f",
+                  "checksum": "39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479"
+                },
+                "status": "pass",
+                "reason": "matched"
+              }
+            ],
+            "reviewId": "cmvgjtmuf0017xj93slazxvl3"
+          },
+          "configuration": {
+            "status": "eligible",
+            "reasons": [],
+            "harnessRevisionRef": {
+              "id": "candidate:harness:835cf2497993178b06a0e931b021cb8d76192e7fb64ec812b552012830a19bc7",
+              "version": "1",
+              "digest": "sha256:835cf2497993178b06a0e931b021cb8d76192e7fb64ec812b552012830a19bc7"
+            }
+          }
+        }
+      },
+      {
+        "taskId": "1ce3b82f-f2de-43a5-8990-c6509925eb27-0002",
+        "selection": {
+          "chosenLabel": "c1",
+          "candidateCount": 1,
+          "trivial": true,
+          "fallback": false,
+          "reason": "trivial pool: single final at k=1; delivered without a selector session"
+        },
+        "experience": {
+          "scope": "experiment",
+          "reflectionExecutionId": "7272bc83-f07d-4918-8912-92d334f12893",
+          "reflectionArtifacts": [
+            {
+              "artifactId": "ec8e9d9a-7280-42ef-9ae9-05ba48460a5a",
+              "versionId": "9f64129c-587d-4f32-816f-ea82a08031c6",
+              "checksum": "f2edf6454efa143c91f1dd5680730014c21224c34d310a83f0fee1e7633146d6"
+            },
+            {
+              "artifactId": "d4b16958-a225-49cd-9dde-c427a43e4ed7",
+              "versionId": "2275db02-ddf7-4249-92f6-0efff9c39368",
+              "checksum": "b89c58c60736cf4c3575a48f58b3285832cbd3f31e61bf4db347b678ae901095"
+            }
+          ],
+          "selectedExecutionId": "5281a71d-adbb-4919-934e-e43712d49a84",
+          "selectedHarnessRevisionRef": {
+            "id": "candidate:harness:b2306fec8c738b880d37c11b04da5eb8ee8887653ee88bd1ba81559c7f428b9e",
+            "version": "1",
+            "digest": "sha256:b2306fec8c738b880d37c11b04da5eb8ee8887653ee88bd1ba81559c7f428b9e"
+          },
+          "libraryDigest": "sha256:398c5e18ef6a67d8fcf99d9a62887d05e2f8c995289437924f521d393f08b7c3"
+        },
+        "assessments": {
+          "baseline": {
+            "executionId": "0fcc4e5c-33b3-4a41-8f31-3c4688cd4777",
+            "targetExecutionId": "d7e70b53-b94d-4295-9ada-0b3fab502d8b",
+            "reviewId": "cmvgjttc7001bxj9340pou4aq",
+            "outcome": "pass",
+            "score": 95,
+            "rationale": "The single target artifact result.json (artifactId e3c9d6dd-a9ab-4813-9d74-72f5a977db30, versionId 76a53a34-6650-4b07-b53d-558469845515) contains the JSON object {\"count\": 3, \"sum\": 15}. Task source facts (INPUT/evidence/task.json) supply values.csv with header 'id,value' and three data rows: one=4, two=5, three=6. c1: the reported count of 3 equals the number of data rows (3) and excludes the header, whose 'value' token is non-numeric and would have produced 4 or corrupted the sum if included; the file is read as evidence and supports a data-row count of 3. c2: 4+5+6 = 15, matching the reported sum of 15 exactly; the sum is arithmetic over all three data values and is consistent with the source content. Both criteria pass. Minor non-blocking note: the deliverable's formatting (spaces after colons) is valid JSON, and the task's 'write only JSON' requirement is satisfied; no defects observed, hence a high but not maximal score since this is a model judgment and the score is not proof of correctness."
+          },
+          "candidate": {
+            "executionId": "e79eb546-abb9-47ed-97a4-eee8a90eff4b",
+            "targetExecutionId": "5281a71d-adbb-4919-934e-e43712d49a84",
+            "reviewId": "cmvgjtz1z001fxj93v7nk0awl",
+            "outcome": "pass",
+            "score": 100,
+            "rationale": "The only target artifact, result.json (artifactId 4ead14c6-a4ca-4d25-93e8-96e703e2bdf9, versionId 37b50373-d82b-410d-b4ba-bf6ef37166d3, checksum f2edf645...146d6), contains exactly `{\"count\": 3, \"sum\": 15}`. The source values.csv in task.json has a header row `id,value` followed by three data rows (one,4 / two,5 / three,6). count=3 excludes the header, satisfying c1; the value column is 4+5+6=15, matching sum=15, satisfying c2. The file is valid JSON with only the requested fields. No defects observed."
+          }
+        },
+        "outcome": {
+          "artifact": {
+            "status": "passed",
+            "checks": [
+              {
+                "path": "result.json",
+                "pointer": "/sum",
+                "artifactRef": {
+                  "artifactId": "4ead14c6-a4ca-4d25-93e8-96e703e2bdf9",
+                  "versionId": "37b50373-d82b-410d-b4ba-bf6ef37166d3",
+                  "checksum": "f2edf6454efa143c91f1dd5680730014c21224c34d310a83f0fee1e7633146d6"
+                },
+                "status": "pass",
+                "reason": "matched"
+              }
+            ],
+            "reviewId": "cmvgjtz2b001hxj93cpmas507"
+          },
+          "configuration": {
+            "status": "eligible",
+            "reasons": [],
+            "harnessRevisionRef": {
+              "id": "candidate:harness:b2306fec8c738b880d37c11b04da5eb8ee8887653ee88bd1ba81559c7f428b9e",
+              "version": "1",
+              "digest": "sha256:b2306fec8c738b880d37c11b04da5eb8ee8887653ee88bd1ba81559c7f428b9e"
+            }
+          }
+        }
+      }
+    ],
+    "library": {
+      "scope": "experiment",
+      "entries": ["1ce3b82f-f2de-43a5-8990-c6509925eb27-0002"],
+      "digest": "sha256:50920b3b8cba43699bb5198a21440ddc53323c8eae109470c515f6cf806bb99a"
+    }
+  },
+  "desktop": true,
+  "observedStates": ["running", "assessing", "completed"],
+  "sharedBudget": {
+    "limit": 23,
+    "admitted": 21
+  },
+  "requests": 81,
+  "rejects": 21,
+  "usage": {
+    "input": 165046,
+    "cacheRead": 510464,
+    "output": 28809
+  },
+  "testOverrides": {
+    "thinking": "disabled",
+    "maxOutputTokens": 1536,
+    "requestLimit": 112
+  },
+  "limitations": [
+    "Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity",
+    "k1 trivial selection; no LLM selector",
+    "Real model via test-only bounded observer",
+    "No paid cancellation/adversarial replay"
+  ]
+}

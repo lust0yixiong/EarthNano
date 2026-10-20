@@ -1,3 +1,5 @@
+import type { DelegatedExecutionOwner } from './delegated-execution-owner'
+import type { ExecutionContext, ExecutionOutcome } from '../earthnano/execution-core'
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import { randomUUID } from 'node:crypto'
 
@@ -45,6 +47,7 @@ type DelegateExecutionCapability = Readonly<{
 
 type PreparedDelegateExecution = Readonly<{
   executionId: string
+  executionOwner?: DelegatedExecutionOwner
   provenance: DelegateExecutionProvenance
   workspace: Readonly<{ cwd: string }>
   runtimeHome: string
@@ -341,6 +344,9 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
     let activeMessage: QueuedPrompt | undefined
     let activeTurn: QueuedPrompt['turn']
     let providerPromptStarted = false
+    let missionOutcome: DelegateExecutionOutcome | undefined
+    let missionFailure: unknown
+    let executionContext: ExecutionContext | undefined
 
     const settleAccepted = (
       evidence: DelegateMessageAcceptanceEvidence = 'provider_prompt_completed',
@@ -577,8 +583,7 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
           error: cleanupError
         })
       }
-      terminalSettled = true
-      terminal.resolve({ ...outcome, ...(cleanupError ? { cleanupError } : {}) })
+      missionOutcome = { ...outcome, ...(cleanupError ? { cleanupError } : {}) }
     }
 
     const promptRequest = (
@@ -605,9 +610,46 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         : {})
     })
 
-    const work = (async (): Promise<void> => {
+    const cancelOriginal = async (): Promise<void> => {
+      cancelRequested = true
+      await revokeWrites().catch(() => undefined)
+      if (runtime && providerSessionId) {
+        await runtime.cancelPrompt({ sessionId: providerSessionId }).catch(() => undefined)
+      }
+    }
+    const readMissionResult = (): ExecutionOutcome => {
+      if (missionFailure !== undefined)
+        return {
+          phase: 'failed',
+          cleanup: slot.unreaped ? 'unknown' : 'confirmed',
+          error: {
+            code: 'delegation-owner-failed',
+            message:
+              missionFailure instanceof Error ? missionFailure.message : String(missionFailure)
+          }
+        }
+      if (!missionOutcome) throw new Error('Delegated owner returned without a terminal result')
+      return {
+        phase: missionOutcome.status === 'cancelled' ? 'cancelled' : 'completed',
+        cleanup: missionOutcome.cleanupError ? 'unknown' : 'confirmed',
+        ...(missionOutcome.status === 'completed'
+          ? {
+              evidence: {
+                status: 'partial',
+                scope: 'original-delegated-mission',
+                text: missionOutcome.response,
+                artifacts: [],
+                references: [],
+                limitations: ['Delegated artifacts and trace remain with the original owner.']
+              } as const
+            }
+          : {})
+      }
+    }
+    const executeMission = async (context?: ExecutionContext): Promise<void> => {
+      executionContext = context
       try {
-        scope = await options.prepare(input)
+        if (!scope) throw new Error('Delegated mission preparation missing')
         assertPreparedScope(input, scope)
         try {
           await options.assertFrameworkNativeDelegationDisabled(scope)
@@ -647,6 +689,12 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
           ...(input.profile ? { specialistId: input.profile } : {})
         })
         providerSessionId = created.sessionId
+        executionContext?.identity({
+          sessionId: providerSessionId,
+          ...(scope.provenance.promptMessageId
+            ? { promptMessageId: scope.provenance.promptMessageId }
+            : {})
+        })
         if (cancelRequested) {
           await settleOutcome({ status: 'cancelled' })
           settleAccepted(
@@ -671,9 +719,12 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         let response = ''
         while (!cancelRequested) {
           await activeTurn?.begin?.()
+          executionContext?.running()
           currentResponse = []
           providerPromptStarted = true
-          const outcome = await runtime.sendAppContinuation(promptRequest(nextPrompt))
+          const request = promptRequest(nextPrompt)
+          scope.executionOwner?.activateTurn(request.provenanceContext)
+          const outcome = await runtime.sendAppContinuation(request)
           if (activeMessage) activeMessage.acceptance.resolve('provider_prompt_completed')
           else settleAccepted('provider_prompt_completed')
           activeMessage = undefined
@@ -744,9 +795,41 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         } catch (cleanupError) {
           terminalError = cleanupError
         }
-        terminalSettled = true
-        terminal.reject(terminalError)
+        missionFailure = terminalError
         settleAccepted('provider_prompt_completed', acceptanceError)
+      }
+    }
+    const work = (async (): Promise<void> => {
+      try {
+        scope = await options.prepare(input)
+        if (scope.executionOwner) {
+          const record = await scope.executionOwner.run(
+            executeMission,
+            readMissionResult,
+            cancelOriginal
+          )
+          if (
+            (record.phase === 'failed' || record.phase === 'interrupted') &&
+            missionFailure === undefined
+          ) {
+            missionFailure = new Error(
+              record.error?.message ?? 'Delegated canonical execution failed'
+            )
+          }
+        } else await executeMission()
+      } catch (error) {
+        missionFailure = error
+        try {
+          await cleanup()
+        } catch (cleanupError) {
+          missionFailure = cleanupError
+        }
+        settleAccepted('provider_prompt_completed', error)
+      } finally {
+        terminalSettled = true
+        if (missionFailure !== undefined) terminal.reject(missionFailure)
+        else if (missionOutcome) terminal.resolve(missionOutcome)
+        else terminal.reject(new Error('Delegated mission has no terminal outcome'))
       }
     })()
 
@@ -792,11 +875,8 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
       },
       async cancel() {
         if (terminalSettled) return
-        cancelRequested = true
-        await revokeWrites().catch(() => undefined)
-        if (runtime && providerSessionId) {
-          await runtime.cancelPrompt({ sessionId: providerSessionId }).catch(() => undefined)
-        }
+        if (scope?.executionOwner) await scope.executionOwner.cancel(cancelOriginal)
+        else await cancelOriginal()
         await work.catch(() => undefined)
       }
     })

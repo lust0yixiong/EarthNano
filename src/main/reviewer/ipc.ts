@@ -3,6 +3,7 @@
 // broadcaster for push events to Electron windows and optional web clients.
 
 import { ipcMainHandle } from '../ipc-handler-registry'
+import { findExecutionScopeById } from '../earthnano/execution-scope'
 
 import type {
   ReviewWithChecks,
@@ -202,6 +203,9 @@ type ReviewerCommandOwner = Readonly<{
 
 type InFlightReviewStart = Readonly<{
   promise: Promise<ReviewRunResult>
+  completion: Promise<void>
+  complete: () => void
+  failCompletion: (error: unknown) => void
   resolve: (result: ReviewRunResult) => void
   reject: (error: unknown) => void
 }>
@@ -216,7 +220,16 @@ const createInFlightReviewStart = (): InFlightReviewStart => {
   // The owning request also rethrows setup failures. Keep the shared outcome safe when no duplicate
   // caller has joined it yet.
   void promise.catch(() => undefined)
-  return { promise, resolve, reject }
+  const completion = Promise.withResolvers<void>()
+  void completion.promise.catch(() => undefined)
+  return {
+    promise,
+    resolve,
+    reject,
+    completion: completion.promise,
+    complete: () => completion.resolve(),
+    failCompletion: completion.reject
+  }
 }
 
 // Owns reviewer arbitration and fix-loop cancellation independently from any command transport.
@@ -446,16 +459,33 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
     const existingStart = inFlightReviewStarts.get(inFlightKey)
     if (existingStart) {
       log.info('review joined: already in flight for this turn', { sessionId, turnMessageId })
-      return await existingStart.promise.then((result) => {
-        projectAdmission.release()
+      try {
+        const result = await existingStart.promise
+        if (request.waitForCompletion) await existingStart.completion
         return result
-      })
+      } finally {
+        projectAdmission.release()
+      }
     }
     const inFlightStart = createInFlightReviewStart()
     inFlightReviewStarts.set(inFlightKey, inFlightStart)
+    // Register admitted cancellation before setup awaits, so a waiting headless caller can stop
+    // Reviewer startup as well as an already-running provider drive.
+    const effectiveMainSessionId = mainSessionId ?? sessionId
+    const effectiveMainSessionKey = `${projectId}\0${effectiveMainSessionId}`
+    const activeControllers =
+      activeReviewAbortControllers.get(effectiveMainSessionKey) ?? new Set<() => void>()
+    activeControllers.add(projectAdmission.abort)
+    activeReviewAbortControllers.set(effectiveMainSessionKey, activeControllers)
+    const releaseController = (): void => {
+      activeControllers.delete(projectAdmission.abort)
+      if (activeControllers.size === 0) activeReviewAbortControllers.delete(effectiveMainSessionKey)
+    }
     const finishBeforeBackground = (result: ReviewRunResult): ReviewRunResult => {
       inFlightReviewStarts.delete(inFlightKey)
       inFlightStart.resolve(result)
+      inFlightStart.complete()
+      releaseController()
       projectAdmission.release()
       return result
     }
@@ -465,6 +495,8 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
     } catch (error) {
       inFlightReviewStarts.delete(inFlightKey)
       inFlightStart.reject(error)
+      inFlightStart.failCompletion(error)
+      releaseController()
       throw error
     }
 
@@ -638,12 +670,8 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
     // settles without onStarted → started:false, so the caller (Re-run) stays retriable. The full
     // review (reviewer session + fix loop) continues in the background regardless.
     const startBackground = (): void => {
-      const effectiveMainSessionId = mainSessionId ?? sessionId
-      const effectiveMainSessionKey = `${projectId}\0${effectiveMainSessionId}`
-      const activeControllers =
-        activeReviewAbortControllers.get(effectiveMainSessionKey) ?? new Set<() => void>()
-      activeControllers.add(projectAdmission.abort)
-      activeReviewAbortControllers.set(effectiveMainSessionKey, activeControllers)
+      let backgroundError: unknown
+      let backgroundFailed = false
       let settleReview!: () => void
       const settlement = new Promise<void>((resolve) => {
         settleReview = resolve
@@ -654,7 +682,13 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
       let releaseFixLoop: (() => void) | undefined
       let fixLoopBroadcastStarted = false
 
+      // Public request ancestry is a hint, never authority. Only an active original Session
+      // execution with matching Project and Session can be linked as this assessment's parent.
+      const parentExecution = request.parentExecutionId
+        ? findExecutionScopeById({ executionId: request.parentExecutionId, projectId, sessionId })
+        : undefined
       void runReview({
+        ...(parentExecution ? { parentExecutionId: parentExecution.context.executionId } : {}),
         correctionResume,
         sessionId,
         turnMessageId,
@@ -759,6 +793,8 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
         .catch((error: unknown) => {
           // runReview records expected failures as lifecycle='error' itself; an unexpected throw here
           // (e.g. the createReview insert failed before onStarted) is logged and reported as not-started.
+          backgroundFailed = true
+          backgroundError = error
           log.error('runReview threw unexpectedly', {
             sessionId,
             turnMessageId,
@@ -769,11 +805,7 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
           // If the run ended without ever signalling onStarted, no review actually began — this is a
           // genuine pre-push failure (scope/insert), not a persistence race, so it is not auto-retried.
           inFlightStart.resolve({ started: false, reason: 'run-failed' })
-          inFlightReviewStarts.delete(inFlightKey)
-          activeControllers.delete(projectAdmission.abort)
-          if (activeControllers.size === 0) {
-            activeReviewAbortControllers.delete(effectiveMainSessionKey)
-          }
+          releaseController()
           try {
             releaseDataRootWriter?.()
           } finally {
@@ -785,16 +817,21 @@ const createReviewerCommandOwner = (options: ReviewerIpcOptions): ReviewerComman
               })
             })
             projectAdmission.release()
+            inFlightReviewStarts.delete(inFlightKey)
             settlements.delete(settlement)
             if (settlements.size === 0) reviewSettlements.delete(effectiveMainSessionKey)
             settleReview()
+            if (backgroundFailed) inFlightStart.failCompletion(backgroundError)
+            else inFlightStart.complete()
           }
         })
     }
 
     startBackground()
 
-    return await inFlightStart.promise
+    const started = await inFlightStart.promise
+    if (request.waitForCompletion) await inFlightStart.completion
+    return started
   }
 
   const triggerReview = (

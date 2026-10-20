@@ -117,6 +117,8 @@ export type TaskPlanResponseRequest =
   | { feedback: string; decision?: never; artifactVersionId?: never; expectedRevision?: never }
 
 export type TaskRun = {
+  /** Canonical model execution identity; absent for legacy workflow journal entries. */
+  executionId?: string
   id: string
   sessionId: string
   projectId: string

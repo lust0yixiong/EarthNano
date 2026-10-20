@@ -23,6 +23,7 @@ export function validateRecord(value: unknown): void {
   if (!recordValidator(value)) {
     throw new ExecutionContractError('invalid-record', JSON.stringify(recordValidator.errors))
   }
+  validateRequest((value as { request: unknown }).request)
 }
 
 export class ExecutionContractError extends Error {
@@ -48,6 +49,9 @@ export function validateRequest(value: unknown): asserts value is ExecutionReque
       'invalid-request',
       'Optimization requires optimizationId and stageId'
     )
+  }
+  if (request.origin.kind === 'optimization' && request.timeoutMs === 0) {
+    throw new ExecutionContractError('invalid-request', 'Optimization requires a bounded deadline')
   }
   // The wire format uses Unicode scalar strings, safe integers and ASCII property names.
   // In particular reject lone UTF-16 surrogates rather than hashing replacement characters.
