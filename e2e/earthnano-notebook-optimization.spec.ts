@@ -377,7 +377,11 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     const completedRecords = Object.values(methodJournal.records).filter(
       (record) => record.phase === 'completed'
     )
-    const knownUsageRecords = completedRecords.filter((record) => record.usage.status === 'known')
+    // A Core cancellation or later publication failure can still have an exact completed
+    // original usage owner. Verify those counters too; phase never implies free execution.
+    const knownUsageRecords = Object.values(methodJournal.records).filter(
+      (record) => record.usage.status === 'known'
+    )
     for (const record of knownUsageRecords) {
       const session = usageSessions.find((session) => session.id === record.identity.sessionId)
       expect(session).toBeDefined()
@@ -389,6 +393,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       expect(['baseline', 'candidate', 'reviewer']).not.toContain(record.request.role)
     }
     expect(completed.usage).toEqual(summarizeExecutionUsage(Object.values(methodJournal.records)))
+    expect(completed.usage?.ambiguousExecutions).toBe(0)
     expect(completed.usage?.tokens.coveredExecutions).toBe(knownUsageRecords.length)
     expect(completed.usage?.apiRequests.status).toBe('unknown')
     expect(completed.usage?.costMicrousd.status).toBe('unknown')
