@@ -48,6 +48,8 @@ import {
   type SemanticAssessmentDocument
 } from './semantic-evaluation'
 import { validateRecord, requestDigest } from './execution-contract'
+import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
+import { checkOutputFiles, outputDigest } from './output-checks'
 
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
@@ -74,6 +76,11 @@ export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
   readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
+  commitDeterministicReview?(input: {
+    target: ExecutionRecord
+    checks: OutputCheckSpec[]
+    signal?: AbortSignal
+  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
   commitSemanticReview(input: {
     target: ExecutionRecord
     assessment: ExecutionRecord
@@ -733,6 +740,97 @@ export function createPersistentCandidateOwners(
             throw new Error('Pinned Review is unavailable or changed')
           return row
         })
+    },
+    async commitDeterministicReview({ target, checks, signal }) {
+      signal?.throwIfAborted()
+      validateRecord(target)
+      if (
+        target.phase !== 'completed' ||
+        target.cleanup !== 'confirmed' ||
+        target.requestDigest !== requestDigest(target.request) ||
+        !['baseline', 'candidate'].includes(target.request.role)
+      )
+        throw new Error('Output checks require a completed pinned execution')
+      const frozen = await pinnedTurn(target)
+      const results = checkOutputFiles(await readFiles(target), checks)
+      if (!results.length) throw new Error('Output checks require frozen expectations')
+      const anchor = [...frozen.blocks]
+        .reverse()
+        .find((block) => block.kind === 'message' && block.payload.role === 'agent')
+      if (!anchor) throw new Error('Output check target has no turn evidence anchor')
+      const metadata = {
+        schemaVersion: 1,
+        kind: 'earthnano-output-checks',
+        targetExecutionId: target.executionId,
+        targetArtifacts: target.evidence.artifacts,
+        expectationsDigest: outputDigest(checks),
+        checks,
+        results
+      }
+      let reviewId: string | undefined
+      try {
+        signal?.throwIfAborted()
+        const review = await reviews.createReview({
+          projectId: target.request.projectId,
+          sessionId: target.identity.sessionId!,
+          turnMessageId: target.identity.promptMessageId!,
+          scope: frozen.scope,
+          scopeSnapshot: frozen.blocks,
+          model: 'deterministic-json-value-v1',
+          lifecycle: 'running'
+        })
+        reviewId = review.id
+        signal?.throwIfAborted()
+        const evidence = results.find((result) => result.artifactRef)?.artifactRef
+        const committed = await reviews.commitScopedSubmission({
+          mode: 'initial',
+          reviewId,
+          expectedSourceFindingIds: [],
+          keepFlaggedReviewRunning: false,
+          checks: [
+            {
+              status: results.every((result) => result.status === 'pass') ? 'pass' : 'fail',
+              claim:
+                'Deterministic JSON value checks against frozen expectations and exact artifact versions.',
+              evidence: JSON.stringify({
+                expectationsDigest: metadata.expectationsDigest,
+                results
+              }),
+              ...(evidence ? { artifactVersionId: evidence.versionId } : {}),
+              locator: {
+                blockRef: { messageId: anchor.sourceId, blockIndex: anchor.blockIndex },
+                contentHash: anchor.contentHash
+              },
+              sortIndex: 0
+            }
+          ],
+          reviewerLog: [
+            {
+              kind: 'tool',
+              toolName: 'earthnano.output-checks',
+              title: 'Frozen deterministic output checks',
+              rawInput: JSON.stringify(metadata),
+              rawOutput: JSON.stringify(results),
+              status: 'ok'
+            }
+          ]
+        })
+        signal?.throwIfAborted()
+        const outcome = results.every((result) => result.status === 'pass') ? 'pass' : 'flagged'
+        if (committed.lifecycle !== 'complete' || committed.outcome !== outcome)
+          throw new Error('Output check Review did not persist its outcome')
+        return { reviewId: committed.id, outcome }
+      } catch (error) {
+        if (reviewId)
+          await reviews
+            .updateReview(reviewId, {
+              lifecycle: 'error',
+              outcome: null,
+              errorMessage: 'Output checks could not be completed.'
+            })
+            .catch(() => undefined)
+        throw error
+      }
     },
     async commitSemanticReview(input): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }> {
       const { target, assessment, criteria, criteriaDigest, document, signal } = input

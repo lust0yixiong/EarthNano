@@ -204,7 +204,9 @@ export class HarnessOptimizationBinding {
         ? 'Emit the complete revised harness as files beneath OUTPUT/context/harness/: instructions.md and optional skills/name/SKILL.md. OUTPUT is the absolute output directory supplied by the Session owner. Read the current harness from the frozen JSON context; do not modify INPUT or any original context directory. Preserve unchanged harness files in the emitted tree. Finish with a short explanation of your changes.'
         : role === 'selector'
           ? 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. Also write that same selection and explanation to OUTPUT/selection.md so the original artifact and Review owners persist it. Do not emit a new task deliverable or alter any candidate.'
-          : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
+          : role === 'reflection'
+            ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). Also use Write to save that same reply to OUTPUT/experience.md for the original artifact and Review owners. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
+            : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
     ]
       .filter(Boolean)
       .join('\n\n')
@@ -246,13 +248,15 @@ export class HarnessOptimizationBinding {
 /** Runs the installed Harness² entrypoint over private stdio. No HTTP server, shell, secret argv,
  * or automatic recovery/replay. Cancellation is requested on every admitted execution on failure. */
 export async function runHarnessProcess(options: {
-  binding: HarnessOptimizationBinding
+  binding: Pick<HarnessOptimizationBinding, 'dispatch' | 'stop'>
   python: string
   args: string[]
   cwd: string
   env: NodeJS.ProcessEnv
   timeoutMs: number
   signal?: AbortSignal
+  /** Domain streams may expose partial evidence, but their caller still forbids adoption. */
+  acceptPartial?: boolean
 }): Promise<unknown> {
   assertExecutionTimeout(options.timeoutMs)
   options.signal?.throwIfAborted()
@@ -345,7 +349,13 @@ export async function runHarnessProcess(options: {
       child.once('close', resolve)
     })
     await Promise.race([pending, stopped])
-    if (failed || exitCode !== 0 || result === undefined) {
+    const partial =
+      options.acceptPartial &&
+      exitCode === 1 &&
+      result !== null &&
+      typeof result === 'object' &&
+      (result as { status?: string }).status === 'partial'
+    if (failed || (exitCode !== 0 && !partial) || result === undefined) {
       failed = true
       throw new Error(
         'Harness optimization did not complete; admitted executions remain owned by the core'
