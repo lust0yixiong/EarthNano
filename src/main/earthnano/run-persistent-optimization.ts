@@ -346,7 +346,8 @@ export async function runPersistentOptimization(
   let resumeIndex: OptimizationResumeIndex
   let previousRecords: ExecutionRecord[] = []
   const writeProjection = async (path: string, body: string): Promise<void> => {
-    if (options.resume) writeResumeJson(path, JSON.parse(body))
+    const parsed = JSON.parse(body)
+    if (options.resume) writeResumeJson(path, parsed)
     else await writeFile(path, body, { mode: 0o600, flag: 'wx' })
   }
   let result: PersistentOptimizationResult | undefined
@@ -392,8 +393,10 @@ export async function runPersistentOptimization(
             taskId: task.taskId,
             domain: task.domain,
             sourceSessionId: task.sourceSessionId,
-            sourcePromptMessageId: task.sourcePromptMessageId,
-            inputArtifacts: task.inputArtifacts,
+            ...(task.sourcePromptMessageId
+              ? { sourcePromptMessageId: task.sourcePromptMessageId }
+              : {}),
+            ...(task.inputArtifacts ? { inputArtifacts: task.inputArtifacts } : {}),
             task: task.input.task,
             environment: task.input.environment
           }))

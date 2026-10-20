@@ -141,6 +141,10 @@ it('emits a private sweep configuration accepted by the real Python entry before
   })
   f.shutdown.mockResolvedValue({ reaped: true })
   f.method.mockImplementationOnce(async ({ args }: { args: string[] }) => {
+    const sources = JSON.parse(await readFile(join(o.workRoot, 'sweep-sources.json'), 'utf8'))
+    expect(sources.tasks[0]).toMatchObject({ taskId: 'task', sourceSessionId: 'source' })
+    expect(sources.tasks[0]).not.toHaveProperty('sourcePromptMessageId')
+    expect(sources.tasks[0]).not.toHaveProperty('inputArtifacts')
     const encoded = await readFile(args.at(-1)!, 'utf8')
     expect(encoded).not.toContain('Private acceptance criterion')
     const config = JSON.parse(encoded)
