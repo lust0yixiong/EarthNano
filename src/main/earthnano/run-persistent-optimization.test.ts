@@ -12,7 +12,8 @@ const f = vi.hoisted(() => ({
   exportResult: vi.fn(),
   readReviews: vi.fn(),
   executionIds: ['baseline'],
-  settle: vi.fn(async () => true)
+  settle: vi.fn(async () => true),
+  outcome: vi.fn(async () => undefined)
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
@@ -46,6 +47,7 @@ vi.mock('./semantic-evaluation', async (original) => ({
   ...(await original<typeof import('./semantic-evaluation')>()),
   evaluateOptimizationSemantics: f.evaluate
 }))
+vi.mock('./research-verification', () => ({ evaluateResearchOutcome: f.outcome }))
 import {
   runPersistentOptimization,
   type PersistentOptimizationOptions

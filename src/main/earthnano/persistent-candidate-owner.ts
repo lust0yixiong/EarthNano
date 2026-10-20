@@ -48,7 +48,10 @@ import {
   type SemanticAssessmentDocument
 } from './semantic-evaluation'
 import { validateRecord, requestDigest } from './execution-contract'
-import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
+import {
+  normalizeOutputChecks,
+  type OutputCheckSpec
+} from '../../shared/earthnano/research-outcome'
 import { checkOutputFiles, outputDigest } from './output-checks'
 
 export interface PersistentCandidateOwnersOptions {
@@ -742,6 +745,7 @@ export function createPersistentCandidateOwners(
         })
     },
     async commitDeterministicReview({ target, checks, signal }) {
+      const frozenChecks = normalizeOutputChecks(checks)!
       signal?.throwIfAborted()
       validateRecord(target)
       if (
@@ -752,7 +756,7 @@ export function createPersistentCandidateOwners(
       )
         throw new Error('Output checks require a completed pinned execution')
       const frozen = await pinnedTurn(target)
-      const results = checkOutputFiles(await readFiles(target), checks)
+      const results = checkOutputFiles(await readFiles(target), frozenChecks)
       if (!results.length) throw new Error('Output checks require frozen expectations')
       const anchor = [...frozen.blocks]
         .reverse()
@@ -763,8 +767,8 @@ export function createPersistentCandidateOwners(
         kind: 'earthnano-output-checks',
         targetExecutionId: target.executionId,
         targetArtifacts: target.evidence.artifacts,
-        expectationsDigest: outputDigest(checks),
-        checks,
+        expectationsDigest: outputDigest(frozenChecks),
+        checks: frozenChecks,
         results
       }
       let reviewId: string | undefined
