@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "model": "deepseek-flash",
+  "executions": 7,
+  "roles": [
+    "baseline",
+    "proposer",
+    "proposer",
+    "candidate",
+    "candidate",
+    "composer",
+    "candidate"
+  ],
+  "sessions": 7,
+  "versionCount": 8,
+  "reviewCount": 7,
+  "verifiedInputReads": 4,
+  "reopened": true,
+  "configurationChanged": true,
+  "fallbackStages": [],
+  "requests": 21,
+  "rejects": 7,
+  "usage": {
+    "input": 45732,
+    "cacheRead": 87296,
+    "output": 5175
+  },
+  "testOverrides": {
+    "thinking": "disabled",
+    "maxOutputTokens": 1536,
+    "requestLimit": 32
+  },
+  "limitations": [
+    "Deterministic integrity/JSON review, not semantic scientific assessment",
+    "k1 trivial selection; no LLM selector",
+    "Real model via test-only bounded observer",
+    "No paid cancellation/adversarial replay"
+  ]
+}

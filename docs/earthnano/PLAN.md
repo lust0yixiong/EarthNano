@@ -12,7 +12,7 @@
 仓库基线、首轮源码审查已完成。第二轮已落实共同 schema、双语言类型、执行核心和契约测试，
 并在门禁通过后并行抽取两侧真实执行路径。第三轮按用户指定采用 Claude Code，新增冻结输入、
 独立候选目录和原生配置编译，并通过真实 CLI/ACP/runtime 的本地模型夹具验证。新核心仍为
-内部 opt-in，尚未切换默认桌面入口或安装自动优化闭环。实际验证范围见 [第三轮结果](ROUND3.md)，后续实施见
+内部 opt-in。第四轮已接实际 Session/ArtifactVersion/Review，完成原 Harness² 七阶段闭环及 DeepSeek 实测；尚未切换默认桌面入口。实际验证范围见 [第四轮结果](ROUND4.md)，后续实施见
 [最小任务清单](NEXT_TASKS.md)，共同边界见 [最小核心契约](CORE_CONTRACT.md)。
 
 根目录以 OpenScience 固定提交为基础，保留上游历史。Harness² 的固定提交源码完整保存在
@@ -69,6 +69,5 @@ OpenScience 原有桌面和任务 API 行为保持兼容。
 
 ## 下一个开发切入点
 
-将已验证的 Claude Code 候选执行组合接到应用级 Session/ArtifactVersion/Review owner，随后连接
-生产跨语言传输与结果 reader，验证一次完整优化。模块边界与验收顺序见
-[后续任务](NEXT_TASKS.md)，不得跳过桌面接纳、取消、产物及 Reviewer 的既有语义。
+将已验证的持久化优化入口接入桌面任务触发与进度/预算/停止展示，保留原接纳与审阅语义。
+随后加入独立语义评估及跨任务比较，明确收益后再扩展工具、恢复与配置发布。见 [后续任务](NEXT_TASKS.md)。

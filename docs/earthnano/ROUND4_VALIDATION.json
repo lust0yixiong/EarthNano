@@ -1,0 +1,132 @@
+{
+  "validatedSourceCommit": "2fac81ad8a4938d11160693db5c00cf9a06cbdd2",
+  "environment": {
+    "os": "Darwin arm64",
+    "node": "24.22.0",
+    "python": "3.12.13",
+    "claudeCode": "2.1.232"
+  },
+  "suites": [
+    {
+      "name": "default regression",
+      "files": 29,
+      "passed": 910,
+      "failed": 0,
+      "paths": [
+        "src/main/agent-framework/claude-code.test.ts",
+        "src/main/acp/agent-process.test.ts",
+        "src/main/acp/claude-candidate-preparation.test.ts",
+        "src/main/acp/earthnano-execution-driver.test.ts",
+        "src/main/acp/handler-workflows.test.ts",
+        "src/main/acp/prompt-turn-workflow.test.ts",
+        "src/main/acp/provider-prompt-executor.test.ts",
+        "src/main/acp/restricted-inference-runner.test.ts",
+        "src/main/acp/runtime-coordinator.test.ts",
+        "src/main/acp/session-configurator.test.ts",
+        "src/main/acp/session-interaction-owner.test.ts",
+        "src/main/acp/task-agent-port.test.ts",
+        "src/main/earthnano/candidate-snapshot.test.ts",
+        "src/main/earthnano/claude-candidate-driver.test.ts",
+        "src/main/earthnano/execution-core.test.ts",
+        "src/main/earthnano/harness-optimization.test.ts",
+        "src/main/earthnano/harness-roundtrip.test.ts",
+        "src/main/reviewer/artifact-digest.test.ts",
+        "src/main/reviewer/artifact-version-review.test.ts",
+        "src/main/reviewer/model-runtime-owner.test.ts",
+        "src/main/reviewer/review-assessment-owner.test.ts",
+        "src/main/reviewer/scope-snapshot.test.ts",
+        "src/main/session-persistence/runtime-resume-recovery.test.ts",
+        "src/main/session-persistence/runtime-session-owner.test.ts",
+        "src/main/specialist/session-reconfiguration.test.ts",
+        "src/main/settings/provider-env.test.ts",
+        "src/main/tasks/task-run-journal.test.ts",
+        "src/main/tasks/task-runner.test.ts",
+        "src/main/web-service/public-task-event-stream.test.ts"
+      ],
+      "command": "node node_modules/vitest/vitest.mjs run --project=default --maxWorkers=2 <paths listed below>"
+    },
+    {
+      "name": "native process regression",
+      "files": 2,
+      "passed": 3,
+      "failed": 0,
+      "paths": [
+        "src/main/acp/claude-candidate-preparation.integration.test.ts",
+        "src/main/earthnano/persistent-candidate-owner.integration.test.ts"
+      ],
+      "command": "node node_modules/vitest/vitest.mjs run --project=process --maxWorkers=1 <paths listed below>"
+    },
+    {
+      "name": "seven-stage deterministic integration",
+      "passed": 1,
+      "skippedLive": 1,
+      "path": "src/main/earthnano/persistent-optimization.integration.test.ts"
+    },
+    {
+      "name": "seven-stage real DeepSeek integration",
+      "passed": 1,
+      "skippedDeterministic": 1,
+      "path": "src/main/earthnano/persistent-optimization.integration.test.ts"
+    },
+    {
+      "name": "existing owner regression",
+      "files": 5,
+      "passed": 165,
+      "overlapWithDefault": 93,
+      "paths": [
+        "src/main/session-persistence/runtime-session-owner.test.ts",
+        "src/main/session-persistence/resumed-artifact-publication.integration.test.ts",
+        "src/main/acp/artifact-turn-owner.test.ts",
+        "src/main/reviewer/repository.test.ts",
+        "src/main/reviewer/reviewer-regression-gate.integration.test.ts"
+      ]
+    },
+    {
+      "name": "python unittest",
+      "passed": 33,
+      "files": [
+        "test_earthnano_binding.py",
+        "test_workflow.py",
+        "test_execution_seam.py"
+      ],
+      "command": "python3 -B -m unittest discover -s tests -p <each file listed below> -v",
+      "cwd": "vendor/harness2"
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run typecheck:node",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 scripts/earthnano/generate-contract.py --check",
+      "exitCode": 0
+    },
+    {
+      "command": "ESLint six added TypeScript files",
+      "exitCode": 0
+    },
+    {
+      "command": "Prettier --check six added TypeScript files",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "command": "Check changed files for exact supplied credential (value never printed)",
+      "matches": 0
+    }
+  ],
+  "limitations": [
+    "Deterministic integrity/JSON review, not semantic scientific assessment",
+    "k1 trivial selection; no LLM selector",
+    "Real model via test-only bounded observer",
+    "No paid cancellation/adversarial replay",
+    "No default desktop wiring, Electron startup, packaging or full npm test",
+    "Darwin arm64 only; directory/process isolation is not an OS sandbox",
+    "Unknown cleanup requires explicit reconciliation; no automatic replay",
+    "GitHub Actions disabled"
+  ]
+}
