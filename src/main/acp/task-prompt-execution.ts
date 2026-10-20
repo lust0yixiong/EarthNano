@@ -1,3 +1,4 @@
+import type { AcpExecutionOwnerCompletion } from './execution-boundary-port'
 import type { AcpPromptRequest } from '../../shared/acp'
 import type { TaskNotificationService } from '../notifications/task-notifications'
 import type { TaskAgentPort, TaskAgentPromptRequest } from '../tasks/task-runner'
@@ -8,7 +9,8 @@ export type AcpTaskPromptRuntime = {
     request: AcpPromptRequest,
     onProviderPromptAccepted: () => void,
     onPromptAdmitted?: () => Promise<AcpPromptRequest['provenanceContext']>,
-    runtimeReviewOwner?: 'task' | 'renderer'
+    runtimeReviewOwner?: 'task' | 'renderer',
+    ownerCompletion?: AcpExecutionOwnerCompletion
   ): Promise<unknown>
   cancelPrompt(request: { sessionId: string }): Promise<unknown>
 }
@@ -37,12 +39,17 @@ export const createAcpTaskPromptExecution = (
     const acpRequest = toAcpPromptRequest(request)
     const tracked = notifications?.trackPrompt(acpRequest)
     try {
-      if (observer?.onProviderPromptAccepted || observer?.onPromptAdmitted) {
+      if (
+        observer?.onProviderPromptAccepted ||
+        observer?.onPromptAdmitted ||
+        observer?.ownerCompletion
+      ) {
         await runtime.sendPromptObserved(
           acpRequest,
           observer.onProviderPromptAccepted ?? (() => undefined),
           observer.onPromptAdmitted,
-          'task'
+          'task',
+          observer.ownerCompletion
         )
       } else {
         await runtime.sendPrompt(acpRequest)

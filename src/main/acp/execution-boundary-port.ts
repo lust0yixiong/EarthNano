@@ -35,6 +35,10 @@ export interface AcpExecutionDispatch {
 
 export interface AcpExecutionBoundary {
   execute(input: AcpExecutionDispatch): Promise<PromptResponse>
-  cancel(sessionId: string, cancelOriginal: () => Promise<AcpRuntimeState>): Promise<AcpRuntimeState>
+  cancel(
+    sessionId: string,
+    cancelOriginal: () => Promise<AcpRuntimeState>,
+    readState: () => AcpRuntimeState
+  ): Promise<AcpRuntimeState>
   settle(): Promise<boolean>
 }

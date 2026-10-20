@@ -1,3 +1,4 @@
+import type { AcpExecutionDispatch, AcpExecutionOwnerCompletion } from './execution-boundary-port'
 import { readFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -408,6 +409,118 @@ const createFakeRuntime = (options: {
 }
 
 describe('AcpRuntimeCoordinator', () => {
+  it('admits rich desktop Send through the boundary before native dispatch and observes durable start', async () => {
+    const durableAdmission = createDeferred()
+    const admission = createDeferred()
+    const admitted = vi.fn()
+    const providerAccepted = vi.fn()
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session-1'],
+        callbacks,
+        beforePromptStart: () => durableAdmission.promise
+      })
+      return fake.runtime
+    })
+    let input!: AcpExecutionDispatch
+    coordinator.setExecutionBoundary({
+      execute: vi.fn(async (value) => {
+        input = value
+        await admission.promise
+        return value.dispatch({ admitted, providerAccepted })
+      }),
+      cancel: async (_sessionId, original) => original(),
+      settle: async () => true
+    })
+    const request = {
+      sessionId: 'session-1',
+      text: 'Analyze the attached image.',
+      currentImages: [{ id: 'image-1', data: 'data', mimeType: 'image/png' }],
+      historyPreamble: 'Existing conversation',
+      contextReset: true,
+      parts: [{ type: 'text', text: 'Keep this rich part' }],
+      referencedArtifacts: [{ artifactId: 'artifact-1', versionId: 'version-1' }],
+      referencedSessions: [{ sessionId: 'other-session' }],
+      forcedSkillIds: ['skill-1'],
+      memoryEnabled: false,
+      turnIntent: 'plan-first',
+      provenanceContext: { promptMessageId: 'prompt-1' }
+    } as unknown as AcpPromptRequest
+    const started = coordinator.startPrompt(request)
+    let accepted = false
+    void started.then(() => {
+      accepted = true
+    })
+    await vi.waitFor(() => expect(input).toBeDefined())
+    expect(fake.sendPrompt).not.toHaveBeenCalled()
+    expect(input.request).toEqual(request)
+    expect(input.operation).toBe('sendPrompt')
+    expect(input.runtimeReviewOwner).toBe('renderer')
+    admission.resolve()
+    await vi.waitFor(() => expect(fake.sendPrompt).toHaveBeenCalledOnce())
+    expect(admitted).not.toHaveBeenCalled()
+    expect(accepted).toBe(false)
+    durableAdmission.resolve()
+    await started
+    expect(admitted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session-1',
+        promptMessageId: 'prompt-1',
+        promptAttemptId: input.attemptId
+      })
+    )
+    await vi.waitFor(() => expect(providerAccepted).toHaveBeenCalledOnce())
+    expect(fake.sendPrompt.mock.calls[0][0]).toEqual(request)
+  })
+
+  it('forwards Task completion linkage and pins boundary cancellation to the original attempt', async () => {
+    const second = createDeferred<unknown>()
+    let count = 0
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session-1'],
+        callbacks,
+        prompt: () => (++count === 1 ? Promise.resolve({ stopReason: 'end_turn' }) : second.promise)
+      })
+      return fake.runtime
+    })
+    const inputs: AcpExecutionDispatch[] = []
+    const cancel = vi.fn(async (_sessionId, original) => original())
+    coordinator.setExecutionBoundary({
+      execute: async (input) => {
+        inputs.push(input)
+        return input.dispatch({ admitted: () => undefined, providerAccepted: () => undefined })
+      },
+      cancel,
+      settle: async () => true
+    })
+    const completion: AcpExecutionOwnerCompletion = {
+      committed: Promise.resolve(),
+      linked: vi.fn()
+    }
+    await coordinator.sendPromptObserved(
+      { sessionId: 'session-1', text: 'first' },
+      () => undefined,
+      undefined,
+      'task',
+      completion
+    )
+    expect(inputs[0].ownerCompletion).toBe(completion)
+    const pending = coordinator.sendPrompt({ sessionId: 'session-1', text: 'second' })
+    await vi.waitFor(() => expect(inputs).toHaveLength(2))
+    await inputs[0].cancelOwned()
+    expect(fake.cancelPrompt).not.toHaveBeenCalled()
+    await coordinator.cancelPrompt({ sessionId: 'session-1' })
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(fake.cancelPrompt).toHaveBeenCalledOnce()
+    second.resolve({ stopReason: 'cancelled' })
+    await pending
+  })
+
   it.each([false, true])(
     'updates Codex effort on the existing writer (draining: %s)',
     async (draining) => {

@@ -1,3 +1,4 @@
+import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import { configureTestElectronHost } from '../../../test/runtime-host'
 import {
   rebaseTaskSessionBinding,
@@ -267,6 +268,78 @@ const createRunner = (overrides: TaskRunnerOverrides = {}): TaskRunner => {
   })
 }
 describe('TaskRunner', () => {
+  it.each(['completed', 'failed', 'interrupted'] as const)(
+    'waits for canonical %s after original owner commits before exposing terminal Task state',
+    async (phase) => {
+      let settle!: (record: ExecutionRecord) => void
+      const settled = new Promise<ExecutionRecord>((resolve) => {
+        settle = resolve
+      })
+      let ownerCommitted!: Promise<void>
+      const progress: string[] = []
+      const runner = createRunner({
+        agent: {
+          prompt: async (_request, observer) => {
+            expect(observer?.ownerCompletion).toBeDefined()
+            ownerCommitted = observer!.ownerCompletion!.committed
+            observer!.ownerCompletion!.linked!({ executionId: 'execution-1', settled })
+          }
+        }
+      })
+      runner.subscribeProgress((event) => {
+        progress.push(event.phase)
+      })
+      const started = await runner.startRun({ project: project.id, prompt: 'Analyze this.' })
+      await vi.waitFor(() => expect(ownerCommitted).toBeDefined())
+      await ownerCommitted
+      expect(runner.getRun(started.id)).toMatchObject({
+        status: 'running',
+        executionId: 'execution-1'
+      })
+      expect(runner.getRun(started.id).completedAt).toBeUndefined()
+      expect(progress).not.toContain('completed')
+      let returned = false
+      const result = runner.waitForRun(started.id).then((value) => {
+        returned = true
+        return value
+      })
+      await Promise.resolve()
+      expect(returned).toBe(false)
+      settle({
+        phase,
+        error:
+          phase === 'completed'
+            ? undefined
+            : {
+                code: 'owner-settlement-failed',
+                message: 'Canonical owner evidence is unavailable.'
+              }
+      } as ExecutionRecord)
+      expect(await result).toMatchObject({ status: phase === 'completed' ? 'completed' : 'failed' })
+      expect(progress.at(-1)).toBe(phase === 'completed' ? 'completed' : 'failed')
+      if (phase !== 'completed') expect((await result).error).toContain('Canonical owner evidence')
+    }
+  )
+
+  it('rejects the canonical owner barrier with the original Session failure', async () => {
+    let ownerFailure!: Promise<void>
+    const runner = createRunner({
+      agent: {
+        prompt: async (_request, observer) => {
+          ownerFailure = observer!.ownerCompletion!.committed
+        }
+      },
+      sessions: {
+        settleCompletion: async () => {
+          throw new Error('Session commit failed')
+        }
+      }
+    })
+    const run = await runner.startRun({ project: project.id, prompt: 'Analyze this.' })
+    await runner.waitForRun(run.id)
+    await expect(ownerFailure).rejects.toThrow('Session commit failed')
+  })
+
   it.each([
     ['invalid', undefined],
     ['none', 'plan-first']
