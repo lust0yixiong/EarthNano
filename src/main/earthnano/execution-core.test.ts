@@ -62,6 +62,28 @@ const replay = async (core: ExecutionCore, id: string, cursor = 0): Promise<Exec
 }
 
 describe('common owner control policy', () => {
+  it('reconciles only recovered unknown records from original witnesses without replaying or refunding', async () => {
+    const s = setup()
+    const h = await s.core.submit(request())
+    await waitStarted(s)
+    expect(() =>
+      s.core.reconcileOriginal(
+        h.executionId,
+        successful as typeof successful & { cleanup: 'confirmed' }
+      )
+    ).toThrow('recovered')
+    s.core.dispose()
+    const recovered = new ExecutionCore(s.store, { execute: s.execute })
+    cores.push(recovered)
+    expect((await recovered.get(h.executionId)).phase).toBe('interrupted')
+    recovered.reconcileOriginal(h.executionId, { phase: 'completed', cleanup: 'confirmed' })
+    expect((await recovered.get(h.executionId)).phase).toBe('completed')
+    expect(s.execute).toHaveBeenCalledOnce()
+    expect(Object.values(s.store.load().budgets)[0].admitted).toBe(1)
+    expect(() =>
+      recovered.reconcileOriginal(h.executionId, { phase: 'completed', cleanup: 'confirmed' })
+    ).toThrow('recovered')
+  })
   it('keeps ordinary interactive waits unbounded while optimization deadlines remain mandatory', async () => {
     const s = setup()
     const q = { ...request(), timeoutMs: 0 }

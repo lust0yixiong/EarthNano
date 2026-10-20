@@ -105,7 +105,7 @@ describe('one ACP execution authority', () => {
       ...s.input.request,
       memoryEnabled: false,
       turnIntent: 'plan-first',
-      currentImages: [{ type: 'image', data: 'transient', mimeType: 'image/png' }],
+      currentImages: [{ byteLength: 6, data: 'transient', mimeType: 'image/png' }],
       forcedSkillIds: ['skill'],
       historyPreamble: 'history',
       contextReset: true
