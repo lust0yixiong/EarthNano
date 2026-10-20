@@ -40,6 +40,7 @@ export interface PersistentOptimizationOptions {
   binding: ClaudeCandidateDriverOptions['binding']
   executionLimit?: number
   executionTimeoutMs?: number
+  /** Overall execution deadline, including independent assessments; cleanup is always awaited. */
   timeoutMs?: number
   signal?: AbortSignal
   /** Fixed before optimization; never forwarded to proposer/composer. */
@@ -74,6 +75,8 @@ export async function runPersistentOptimization(
     )
   )
     throw new Error('Invalid optimization limits')
+  const deadline = AbortSignal.timeout(timeoutMs)
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
   await mkdir(options.workRoot, { mode: 0o700 })
   const optimizationId = randomUUID()
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
@@ -159,7 +162,7 @@ export async function runPersistentOptimization(
         HOME: options.workRoot
       },
       timeoutMs,
-      signal: options.signal
+      signal
     })
     if (
       !methodResult ||
@@ -186,7 +189,7 @@ export async function runPersistentOptimization(
     let assessments:
       { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
     if (semanticCriteria !== undefined) {
-      options.signal?.throwIfAborted()
+      signal.throwIfAborted()
       stage = 'assessing'
       publish()
       assessments = await evaluateOptimizationSemantics({
@@ -202,7 +205,7 @@ export async function runPersistentOptimization(
         budgetRef: optimizationId,
         criteria: semanticCriteria,
         timeoutMs: executionTimeoutMs,
-        signal: options.signal
+        signal
       })
     }
     result = {
