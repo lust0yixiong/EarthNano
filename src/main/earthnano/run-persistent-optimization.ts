@@ -10,7 +10,11 @@ import {
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
-import { evaluateOptimizationSemantics } from './semantic-evaluation'
+import {
+  evaluateOptimizationSemantics,
+  semanticCriteria as validateSemanticCriteria,
+  semanticDigest
+} from './semantic-evaluation'
 import { HarnessOptimizationBinding, runHarnessProcess } from './harness-optimization'
 import {
   createPersistentCandidateOwners,
@@ -56,6 +60,9 @@ export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
 ): Promise<PersistentOptimizationResult> {
   options.signal?.throwIfAborted()
+  const input = structuredClone(options.input)
+  const semanticCriteria = options.semanticCriteria
+  if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
     throw new Error('Optimization paths must be absolute')
   const limit = options.executionLimit ?? 10
@@ -80,6 +87,16 @@ export async function runPersistentOptimization(
   let binding: HarnessOptimizationBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
+    if (semanticCriteria !== undefined)
+      await writeFile(
+        join(options.workRoot, 'assessment-plan.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          criteria: semanticCriteria,
+          criteriaDigest: semanticDigest(semanticCriteria)
+        }),
+        { mode: 0o600, flag: 'wx' }
+      )
     owners = createPersistentCandidateOwners(options.ownerOptions)
     const snapshots = await createCandidateSnapshotStore({
       root: join(options.workRoot, 'snapshots'),
@@ -103,7 +120,7 @@ export async function runPersistentOptimization(
     binding = new HarnessOptimizationBinding({
       core,
       snapshots,
-      input: options.input,
+      input,
       projectId: options.projectId,
       optimizationId,
       taskId: options.taskId,
@@ -114,16 +131,16 @@ export async function runPersistentOptimization(
     const config = {
       configVersion: 1,
       taskId: options.taskId,
-      task: options.input.task,
+      task: input.task,
       baseHarnessFiles: [
-        { path: 'instructions.md', content: options.input.harness.instructions },
-        ...options.input.harness.skills.map((file) => ({
+        { path: 'instructions.md', content: input.harness.instructions },
+        ...input.harness.skills.map((file) => ({
           path: `skills/${file.path}`,
           content: file.content
         }))
       ],
       workRoot: join(options.workRoot, 'method'),
-      model: options.input.agent.model,
+      model: input.agent.model,
       executionTimeoutMs,
       rpcTimeoutMs: executionTimeoutMs + 30_000
     }
@@ -168,7 +185,7 @@ export async function runPersistentOptimization(
     }
     let assessments:
       { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
-    if (options.semanticCriteria !== undefined) {
+    if (semanticCriteria !== undefined) {
       options.signal?.throwIfAborted()
       stage = 'assessing'
       publish()
@@ -176,14 +193,14 @@ export async function runPersistentOptimization(
         core,
         snapshots,
         owners,
-        input: options.input,
+        input,
         records,
         methodResult,
         projectId: options.projectId,
         optimizationId,
         taskId: options.taskId,
         budgetRef: optimizationId,
-        criteria: options.semanticCriteria,
+        criteria: semanticCriteria,
         timeoutMs: executionTimeoutMs,
         signal: options.signal
       })

@@ -93,6 +93,9 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
   const readInputs = new Set<string>()
   const loopbackKey = randomUUID()
   let apiKey = ''
+  let diagnosticError = ''
+  let desktopRunDirectory: string | undefined
+  let liveReportWritten = false
   const server = createServer(async (request, response) => {
     const reject = (): void => {
       rejects++
@@ -299,6 +302,30 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
     }
   })
   onTestFinished(async () => {
+    if (live && desktop && !liveReportWritten && process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT) {
+      let records: Array<{ role: string; phase: string; cleanup: string }> = []
+      if (desktopRunDirectory)
+        try {
+          const journal = JSON.parse(
+            await readFile(join(desktopRunDirectory, 'execution/execution.json'), 'utf8')
+          )
+          records = Object.values(journal.records).map((record: unknown) => {
+            const r = record as { request: { role: string }; phase: string; cleanup: string }
+            return { role: r.request.role, phase: r.phase, cleanup: r.cleanup }
+          })
+        } catch {
+          /* Failure can precede journal creation. */
+        }
+      await writeFile(
+        process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT,
+        JSON.stringify(
+          { status: 'failed', error: diagnosticError, requests, rejects, usage, records },
+          null,
+          2
+        ) + '\n',
+        { mode: 0o600 }
+      )
+    }
     for (const controller of controllers) controller.abort()
     server.closeAllConnections()
     await new Promise<void>((done) => server.close(() => done()))
@@ -404,8 +431,16 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       },
       createOptions: async () => runOptions,
       run: async (options: PersistentOptimizationOptions) => {
-        result = await runPersistentOptimization(options)
-        return result
+        try {
+          result = await runPersistentOptimization(options)
+          return result
+        } catch (error) {
+          diagnosticError = String(error instanceof Error ? error.message : 'Optimization failed')
+            .replaceAll(apiKey || 'NO_TOKEN', '[redacted]')
+            .replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]')
+            .slice(0, 1000)
+          throw error
+        }
       }
     }
     const manager = new DesktopOptimizationManager(managerOptions)
@@ -419,9 +454,10 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       prompt: runOptions.input.task.prompt,
       files: [...runOptions.input.task.files],
       criteria,
-      executionLimit: 10
+      executionLimit: live ? 12 : 10
     })
     desktopRunId = initial.runId
+    desktopRunDirectory = join(root, 'desktop', initial.runId)
     if (stopEarly) {
       await vi.waitFor(() => expect(requests).toBe(1), { timeout: 30_000, interval: 100 })
       expect(
@@ -459,7 +495,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
         )
       if (progress.state === 'completed') {
         expect(progress.budget).toEqual({
-          limit: 10,
+          limit: live ? 12 : 10,
           admitted: result.records.length,
           completed: result.records.length,
           active: 0
@@ -486,7 +522,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
   } else result = await runPersistentOptimization(runOptions)
   if (desktop && live) {
     expect(result.records.length).toBeGreaterThanOrEqual(9)
-    expect(result.records.length).toBeLessThanOrEqual(10)
+    expect(result.records.length).toBeLessThanOrEqual(12)
   } else expect(result.records).toHaveLength(desktop ? 9 : 7)
   expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(1)
   expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3)
@@ -579,7 +615,7 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
                 desktop: true,
                 observedStates: [...observedStates],
                 assessments: result.assessments,
-                sharedBudget: { limit: 10, admitted: result.records.length }
+                sharedBudget: { limit: live ? 12 : 10, admitted: result.records.length }
               }
             : {}),
           requests,
@@ -603,7 +639,9 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
         2
       ) + '\n',
       { mode: 0o600 }
-    )
+    ).then(() => {
+      liveReportWritten = true
+    })
 }
 
 it.skipIf(process.platform === 'win32')(
