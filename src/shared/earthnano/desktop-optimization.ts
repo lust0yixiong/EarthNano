@@ -1,3 +1,5 @@
+import type { OptimizationMethodOptions } from './optimization-method'
+
 /** Desktop requests contain text task inputs, never provider credentials or host paths. */
 export interface StartDesktopOptimization {
   projectId: string
@@ -8,6 +10,8 @@ export interface StartDesktopOptimization {
   criteria: string
   /** Shared admission budget including both independent assessments. */
   executionLimit: number
+  /** Omission retains the original sequential k=1 behavior. */
+  method?: OptimizationMethodOptions
 }
 export interface OptimizationRunKey {
   projectId: string
@@ -21,6 +25,13 @@ export interface SemanticAssessmentSummary {
   outcome: 'pass' | 'flagged'
   score: number
   rationale: string
+}
+export interface OptimizationSelectionSummary {
+  chosenLabel: string
+  candidateCount: number
+  trivial: boolean
+  fallback: boolean
+  reason: string
 }
 export interface OptimizationProgress {
   runId: string
@@ -36,8 +47,17 @@ export interface OptimizationProgress {
     | 'cancelled'
     | 'interrupted'
   stage: string
+  /** Optional only for records created before method options were introduced. */
+  method?: OptimizationMethodOptions
+  selection?: OptimizationSelectionSummary
   budget: { limit: number; admitted: number; completed: number; active: number }
-  executions: Array<{ executionId: string; role: string; phase: string; sessionId?: string }>
+  executions: Array<{
+    executionId: string
+    role: string
+    phase: string
+    stageId?: string
+    sessionId?: string
+  }>
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
   error?: string
   updatedAt: number
