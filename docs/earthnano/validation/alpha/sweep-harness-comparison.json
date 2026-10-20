@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "reviewedTestRenames": [],
+  "conclusion": "no-new-regressions",
+  "regressions": [],
+  "baselineFailures": [],
+  "baselineSkips": [],
+  "newSkips": [],
+  "candidateFailures": [],
+  "candidateSkips": [],
+  "limitation": "Baseline failures/skips remain unresolved evidence, not full acceptance. Equal failing statuses do not prove an identical cause.",
+  "counts": {
+    "baseline": 5,
+    "candidate": 72,
+    "added": 67
+  }
+}

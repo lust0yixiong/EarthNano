@@ -1,0 +1,167 @@
+{
+  "status": "failed",
+  "optimizationState": "failed",
+  "resume": {
+    "runId": "1e582b39-3f54-45a6-9ae1-a12050652528",
+    "originalBudget": 24,
+    "stoppedAdmissions": 3,
+    "noCallsOnReopen": true,
+    "completedBeforeResume": [
+      "6054531d-9cdb-48c7-8947-935441a3bc9d",
+      "8c0f6cb9-53a2-4410-8ba9-573804859846"
+    ]
+  },
+  "live": false,
+  "profile": "original-sweep-v2",
+  "progress": {
+    "runId": "1e582b39-3f54-45a6-9ae1-a12050652528",
+    "projectId": "cmvgxbfag0000xj0o8gspmznu",
+    "sourceSessionId": "93e3143c-d463-440a-9baf-db78e3f6b5fc",
+    "state": "failed",
+    "stage": "failed",
+    "updatedAt": 1792515300867,
+    "executions": [
+      {
+        "executionId": "6054531d-9cdb-48c7-8947-935441a3bc9d",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "086945d9-6729-48cc-9c4b-f09c4e8559db"
+      },
+      {
+        "executionId": "632fa306-0d56-427a-90c9-b098efaf9d23",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "cancelled",
+        "sessionId": "7ebc9000-ffa5-4ab9-a941-ad7508ff7f6f"
+      },
+      {
+        "executionId": "8c0f6cb9-53a2-4410-8ba9-573804859846",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "28ae736c-0624-4f97-a956-70c0e310e821"
+      }
+    ],
+    "budget": {
+      "limit": 24,
+      "admitted": 3,
+      "completed": 3,
+      "active": 0
+    },
+    "usage": {
+      "admittedExecutions": 3,
+      "ambiguousExecutions": 0,
+      "tokens": {
+        "status": "partial",
+        "coveredExecutions": 2,
+        "inputTokens": 60,
+        "cacheTokens": 0,
+        "outputTokens": 60
+      },
+      "modelTurns": {
+        "status": "partial",
+        "coveredExecutions": 2,
+        "total": 6
+      },
+      "apiRequests": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      },
+      "costMicrousd": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      }
+    },
+    "error": "Optimization or independent assessment failed. Inspect the recorded Sessions.",
+    "resumeAvailable": true
+  },
+  "sourceArtifact": {
+    "artifactId": "c831c6b9-2f8d-4553-959f-6254cf1a9130",
+    "versionId": "0ca59467-fe13-4ade-9142-a9afe5b0f816",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792515287182-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "executionFacts": [
+    {
+      "executionId": "6054531d-9cdb-48c7-8947-935441a3bc9d",
+      "role": "baseline",
+      "stageId": "base1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "632fa306-0d56-427a-90c9-b098efaf9d23",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8c0f6cb9-53a2-4410-8ba9-573804859846",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    }
+  ],
+  "acceptancePassed": false,
+  "provider": {
+    "requests": 13,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 3,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 1,
+    "upstreamRequests": 0,
+    "cancelledUpstreamRequests": 0,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 4,
+      "proposer": 3
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Write"
+    ],
+    "usage": {
+      "input": 0,
+      "cacheRead": 0,
+      "output": 0,
+      "incompleteRequests": 0
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "8065beb9c962b8908d5e7c867eac4ee13775cbdf",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "1f42f8484c7eaa45aaab708157b85fb2e15123660a0a13f0912d83e6f291a254",
+      "out/main/index.js": "0420cf1b5e6c363173b3d774ce86ea861ec86cf6e1d8f7bcffb50f92006ce053",
+      "out/preload/index.js": "2016ba41b25ed87c678885cbe2ec1835a1b3d8f6f99d2e72fc005688d05ac59f",
+      "out/renderer/index.html": "7cf4d2f9ceace70715ef25b73fffd4f71737d21986352d1ca685c21e923b10d1"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

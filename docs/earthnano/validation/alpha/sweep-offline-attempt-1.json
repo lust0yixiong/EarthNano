@@ -1,0 +1,54 @@
+{
+  "status": "failed",
+  "live": false,
+  "acceptancePassed": false,
+  "provider": {
+    "requests": 6,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 0,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 0,
+    "upstreamRequests": 0,
+    "cancelledUpstreamRequests": 0,
+    "roles": {
+      "ordinary": 6
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file"
+    ],
+    "usage": {
+      "input": 0,
+      "cacheRead": 0,
+      "output": 0,
+      "incompleteRequests": 0
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "8316165798a488e207f54b565adc6718a51f2035",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "a5b09f2b1fd24015297066bac21f79416ed4edc92e7fcef30ab75a8fec04a1a1",
+      "out/main/index.js": "0420cf1b5e6c363173b3d774ce86ea861ec86cf6e1d8f7bcffb50f92006ce053",
+      "out/preload/index.js": "2016ba41b25ed87c678885cbe2ec1835a1b3d8f6f99d2e72fc005688d05ac59f",
+      "out/renderer/index.html": "7cf4d2f9ceace70715ef25b73fffd4f71737d21986352d1ca685c21e923b10d1"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

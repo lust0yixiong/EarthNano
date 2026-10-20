@@ -227,3 +227,11 @@ Restoring that file byte-for-byte from OpenScience9e18c7d3c143a9dba49c7a586ad6ca
 A new guard validates the actual checked-in release catalog against the complete actual source fingerprint, in addition to the original fixture cases. Combined native-component/CI gates pass61 tests locally. Independent reconstruction, actual failed source report and raw npm log are retained under validation/alpha/ci-native-* and ci-linux-fingerprint-*.
 
 Linux shard2 job118739140680 separately failed with npm ECONNRESET before postinstall. Its log identifies no package or endpoint; no source-code cause is inferred and no network retry rule is changed. The original Linux baseline was still running at the saved observation; no baseline test result is claimed. New CI must still demonstrate installation and all original source/native checks on the corrected head.
+
+## 完整 sweep 轮的实际环境发现与精确 Host Node
+
+PR14 corrected run `39456512139` 的 candidate Ubuntu3/4 job `118745034481` 在 npm-ci 的原 onnxruntime-node1.24.3 install 下载中 ETIMEDOUT/ENETUNREACH，未到测试。其锁定依赖与固定 OpenScience9e18 相同。baseline3/4 job `118745034231` 实际完成：18,953 passed、295 pending/skipped、0 failed。两者分别为 Host Node24.22.0 / 24.21.0、runner image ubuntu24:20261018.339.1 / ubuntu24:20261012.334.1；相同 shard 标签不等于匹配执行环境，也没有候选测试结果可作比较。完整原记录见 validation/alpha/README.md。
+
+本轮将专用 EarthNano CI 的 Host Node 固定到 `.github/earthnano-node-version` 的 `24.22.0`：source/native/comparison/Harness 共同读取，Windows runtime job 在原 composite 前设置同一 Host Node。版本及所用目标的官方发布链接/校验值已核验（[官方发布页](https://nodejs.org/en/blog/release/v24.22.0)），本机直连探针超时，没有把它写成已下载/运行的证据。
+
+`.nvmrc`、lockfile、原 patched Notebook Node24.21.0 sources/URL、原 native producer workflow 字节和 disabled 状态均保留。recipe 对照只明确允许 setup-node 的精确版本输入和前轮 Python 输入，逆变换后仍要求原完整配方哈希相同。Node/image 不匹配仍被 comparator 拒绝；pin 只解决 Host Node 漂移，不能宣称 runner image 已一致、Hosted 全部通过或原生包已验收。新的 Hosted 结果须重新取得并对照，不盲目重跑/删失败原件/跳过 ONNX。

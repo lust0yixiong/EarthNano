@@ -1,0 +1,51 @@
+{
+  "runId": 39456512139,
+  "candidateJobId": 118745034481,
+  "baselineJobId": 118745034231,
+  "candidateConclusion": "failure",
+  "failingStage": "npm-ci",
+  "testsStarted": false,
+  "cause": "onnxruntime-node install script failed with AggregateError ETIMEDOUT (IPv4 TCP/443) and ENETUNREACH (IPv6 TCP/443). No pretest, Electron exact-version probe, typecheck or source tests reached.",
+  "dependency": {
+    "name": "onnxruntime-node",
+    "version": "1.24.3",
+    "lockedEntryIdenticalToPinnedOpenScience": true,
+    "pin": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5"
+  },
+  "baselineSnapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "comparison": "No completed matching baseline result/log available. No candidate test regression conclusion supported."
+  },
+  "minimalProposal": "No source-test or scientific behavior fix follows from this evidence. Preserve exact dependency/version/integrity/download URLs and unavailable gate. If hardening network resilience, scope a bounded retry to the original npm-ci install stage with each failed attempt retained; do not skip ONNX native downloads, alter mirrors, or claim tests passed.",
+  "files": {
+    "/tmp/earthnano-sweep-ci-job-118745034481.log": {
+      "bytes": 41848,
+      "sha256": "e6f52f5154616034cb511813ef1a1ebe5590bc41bd00cd0f618e26411faef481"
+    },
+    "/tmp/earthnano-sweep-ci-job-118745034481.json": {
+      "bytes": 3322,
+      "sha256": "e53d85b021cce2920c37a91e7cfd50648f0bb16d76b597f6e614d9ca4bbccd39"
+    },
+    "/tmp/earthnano-sweep-ci-job-118745034231.json": {
+      "bytes": 2952,
+      "sha256": "2ea9023300ffc97e18ef5503bc60ddcc74266481f9a222f1290136881a1f19a0"
+    },
+    "/tmp/earthnano-sweep-ci-candidate-3.zip": {
+      "bytes": 1656,
+      "sha256": "75333df61f70b6a19fa5d123e6522048a995a65d2671d5ef50c3da9025652230"
+    },
+    "/tmp/earthnano-sweep-ci-candidate-3/npm-ci.log": {
+      "bytes": 1982,
+      "sha256": "a752b9d7b0c7a28de10374697d813d100d0c90a85e9e21fdf57f6994b157f132"
+    },
+    "/tmp/earthnano-sweep-ci-candidate-3/validation-unavailable.json": {
+      "bytes": 143,
+      "sha256": "62fda2b777638e2944d5135b541a3103242d8ffa5da74135751b79c9cbd10446"
+    },
+    "/tmp/earthnano-sweep-ci-candidate-3/source-report.json": {
+      "bytes": 892,
+      "sha256": "b947a9ebca29a69a6addfaba67b3d450eab65687bb14fc499089d675413e437a"
+    }
+  }
+}

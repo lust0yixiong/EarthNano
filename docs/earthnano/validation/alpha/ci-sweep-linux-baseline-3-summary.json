@@ -1,0 +1,65 @@
+{
+  "kind": "baseline",
+  "shard": 3,
+  "total": 4,
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v24.21.0",
+  "image": "ubuntu24:20261012.334.1",
+  "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "electron": "43.7.5",
+  "stages": [
+    {
+      "name": "npm-ci",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "pretest",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "typecheck",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "tests",
+      "status": 0,
+      "signal": null
+    }
+  ],
+  "unavailable": null,
+  "normalizedTests": {
+    "passed": 18953,
+    "skipped": 295
+  },
+  "rawVitest": {
+    "success": true,
+    "numTotalTests": 19248,
+    "numPassedTests": 18953,
+    "numFailedTests": 0,
+    "numPendingTests": 295,
+    "numTodoTests": 0,
+    "numTotalTestSuites": 1760,
+    "numPassedTestSuites": 1760,
+    "numFailedTestSuites": 0,
+    "numPendingTestSuites": 0
+  },
+  "failedTestCases": [],
+  "environmentMatch": {
+    "baselineNode": "v24.21.0",
+    "candidateNode": "v24.22.0",
+    "baselineImage": "ubuntu24:20261012.334.1",
+    "candidateImage": "ubuntu24:20261018.339.1",
+    "sameNode": false,
+    "sameImage": false
+  },
+  "comparisonLimit": "Candidate shard3 had dependency-download failure before source tests; baseline shard number is not equal test inventory after candidate changes. Environment snapshots also differ; this is not a candidate regression comparison. Final comparison job not assessed in this snapshot.",
+  "artifacts": {
+    "/tmp/earthnano-sweep-ci-baseline-3.zip": "16fa010aab3fdb5da76a3064714babf6c434deee22e32d5d218c8604ff1cfac7",
+    "/tmp/earthnano-sweep-ci-baseline-3/source-report.json": "d8a5ed31527f4eedd5807abd6e3def652faca6a25b4d24463f3029f81f096c6e",
+    "/tmp/earthnano-sweep-ci-baseline-3/vitest.json": "cb8796cc69fdafd5870a5dd983acc06e00f80fc0133e8cb781a739ef603033a6"
+  }
+}

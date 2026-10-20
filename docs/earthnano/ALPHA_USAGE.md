@@ -1,5 +1,7 @@
 # EarthNano：原用量归属与 Harness 多模式准备
 
+本文记录 PR14 当时范围。后续 sweep-v2 已接入运行核心及桌面双模式，当前状态见 [完整任务流](ALPHA_SWEEP.md)，不把本文历史“尚未启用”当成最新状态。
+
 本轮沿用 PR #13 的 Notebook 深度融合，完整 Alpha 仍按 ALPHA_CONTRACT.md 验收。
 
 - 主智能体先扩展唯一 JSON Schema 并生成 TypeScript / Python 类型；双语言 fixture 与 Core 契约门通过后才开放两侧接线。

@@ -1,5 +1,7 @@
 # Isolated namespace/slot preparation for original sweeps
 
+本文记录 PR14 当时范围。后续 sweep-v2 已接入运行核心及桌面双模式，当前状态见 [完整任务流](ALPHA_SWEEP.md)，不把本文历史“尚未启用”当成最新状态。
+
 This change does not activate catalog execution or alter the current single-mode runner,
 v1 slot lookup, resume manifest, budget or Core admission. `harness-binding-v2.ts` has no
 production caller. It reserves an explicit `earthnano-harness-binding-v2` identity and slot

@@ -84,3 +84,39 @@ Run [39454904669](https://github.com/lust0yixiong/EarthNano/actions/runs/3945490
 | `ci-linux-network-npm.log.gz`             | `2bf4d642ec40d388713b270237f735906e4ad652a2294d72f70683625254d061` |
 
 解压日志 SHA-256：macOS=`70ff6e10235ef9819e7007221092e65f2afc77e4a7aedf21cdd37e389573a0ff`；Linux指纹失败=`d58d2cd300b1580d6b0a9d02a1687337b09a28a3d80fd7166abac26759a3c047`；Linux网络失败=`14df712586c7e6080ee6da8e3a5ff883e838611715eb57229cd8856371dc5641`。
+
+## 原完整 sweep 与 Notebook 双模式验收
+
+固定源 `be1143b2a` 的离线第三次和 DeepSeek 首次使用同一构建；前两次离线失败、两份真实配置/投影红绿回归及 CI 下载失败全部保留。详见 [本轮范围和结果](../../ALPHA_SWEEP.md)。gzip 解压后为未改写原件；下面列压缩文件 SHA，附原字节 SHA。两次 `-t` 红测主动仅选择新增用例，未选的既有用例不算环境跳过，完整绿测另记。
+
+| 文件                                              | SHA-256                                                            | 解压后 SHA-256（若 gzip）                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `sweep-harness-baseline.json`                     | `7f9b4af1cb3b5bf8ef949ad9bdf9a71f9bf0d92f5f285250a9fa082365618448` | `—`                                                                |
+| `sweep-harness-candidate.json`                    | `85e0de606d6076126377d39292aa5aab7319977229324886c41dc4263742773d` | `—`                                                                |
+| `sweep-harness-comparison.json`                   | `4f93d48bea5a4ee4f81d70ac70599a8b00b06f47e20eb65bc452a943990dbf43` | `—`                                                                |
+| `sweep-deepseek-attempt-1.json`                   | `585dbc7f22071e5192446aabc80e4bded898c5e4a6db66e6f672bc05836b6edf` | `—`                                                                |
+| `sweep-offline-attempt-1.json`                    | `f69275cdb2e63b194900d2909a9568532025dbb0670afbce9b0ead13e466dc38` | `—`                                                                |
+| `sweep-offline-attempt-2.json`                    | `12d136cd7a33b95eae9ff8805b60f1ab178aaef00a2dd56cefe11db72c3f21e6` | `—`                                                                |
+| `sweep-offline-attempt-3.json`                    | `337c2a565574ca927a1c90fd1b9e3b0d1e62848e2bd5479ce1897d06f6ffd2a5` | `—`                                                                |
+| `ci-sweep-linux-candidate-3-source-report.json`   | `b947a9ebca29a69a6addfaba67b3d450eab65687bb14fc499089d675413e437a` | `—`                                                                |
+| `ci-sweep-linux-candidate-3-unavailable.json`     | `62fda2b777638e2944d5135b541a3103242d8ffa5da74135751b79c9cbd10446` | `—`                                                                |
+| `ci-sweep-linux-candidate-3-diagnosis.json`       | `a23289613f4d5c1ce5dc0cad3d4404c753903a3bb88be37396275c19bdc07f76` | `—`                                                                |
+| `ci-sweep-linux-baseline-3-source-report.json.gz` | `d03e58e39008b354ef2471de3edf373fa9375532bf6974c1cf1854a75ac17646` | `d8a5ed31527f4eedd5807abd6e3def652faca6a25b4d24463f3029f81f096c6e` |
+| `ci-sweep-linux-baseline-3-summary.json`          | `9b70ac11a793ae77e5e4d1ac0bebf8d1dcfb7125af3a4b74f193c1b82970444a` | `—`                                                                |
+| `sweep-config-red.log.gz`                         | `dbc0258295c42adf79c156a88647539bb0ae966e34c506ac90a6e262c3dca0ce` | `57145c0efa8066646a7f21d6b71d0dd0e3310e8e08894f7c06414b9d93812097` |
+| `sweep-config-green.log.gz`                       | `69e22c69e6114a6dade84f17ce2a283e03ee205f347ed836ac9660e4deb4815b` | `599211c7ec7eaedb553629a365cd75d3779127331ae975a2e09c05dc637e20ca` |
+| `sweep-source-json-red.log.gz`                    | `bc3472b0be1dc58f4d669a80c058d7afcf0ce46237b4c0ac475eb0fd0a24a9f7` | `9be316f9d749a3dd75a8be180e6a0837e083e5f1106c3e9cf4813564d64ef6a9` |
+| `sweep-source-json-green.log.gz`                  | `e99c7e428bac932e527fe8128265f6780960b785ffccedc52d566ede64f1086e` | `e4772384ba7c0ff25afe7c1d239965e2d892f2ce8ed1c4be8dc4ad6e24fcd0ef` |
+| `sweep-host-inventory-control.log.gz`             | `48086d0ec25c0baa3a915660655ebfedbdae5b5866162d267baed779e9957ffd` | `79937cb85ff3be0d4fff9568c8817ddecb9c6fe2e6126a44e9a6ecc752600d50` |
+| `ci-sweep-linux-candidate-3.log.gz`               | `b7a8f9e1d7a27ef4cb2c90268198c65d15fe4e73b5406d5d54dc2a306438be85` | `e6f52f5154616034cb511813ef1a1ebe5590bc41bd00cd0f618e26411faef481` |
+| `ci-sweep-linux-candidate-3-npm.log.gz`           | `4f3c1be60f4e1c54e3ec1345193fb7004b3051688407467475e787cf9628bc8d` | `a752b9d7b0c7a28de10374697d813d100d0c90a85e9e21fdf57f6994b157f132` |
+| `ci-sweep-linux-baseline-3-vitest.json.gz`        | `a4871e6e159ab7d4bf0f03403c49d4763d36ef2358a9d7226d685a932cc69149` | `cb8796cc69fdafd5870a5dd983acc06e00f80fc0133e8cb781a739ef603033a6` |
+| `ci-sweep-linux-baseline-3-npm.log.gz`            | `4eada3a3e2f55f1c177aa59c71e54f7c090043db6f1c51abdfe2011219565073` | `d5eb8dcc2dfcdd83d3b84cd0e213b29b6533ca2eddfcca61b87cace759f1a0fe` |
+| `sweep-offline-attempt-1.log.gz`                  | `6543513a01d610942235f0e4a996c9f70cc09ab1c89b33491b45c1a9d915b5ff` | `fc3f61d8a1c217579cb88ede1d09086c24174c907ac00421ba08ca85973cc0fb` |
+| `sweep-offline-attempt-2.log.gz`                  | `29e68af212d571285b1c9421be7d49e55f0de08101c9bef2ac85cd8f267858b8` | `7e39da1d314e8dcd1a2a13d8140419efbf2b6f5b805c2418173fb8d24a9eb465` |
+| `sweep-offline-attempt-3.log.gz`                  | `59088eed3caaa098a43418b017a451b4bb330ac6bb41ddce0732627c977a2de3` | `2e82ade7855f0a9bef2d42545403b1ab9ef5c6212b565c36984bb50f9a5f032c` |
+| `sweep-deepseek-attempt-1.log.gz`                 | `b72203fe427603fdbd79fc494ef218fcd2cdbdd308a68c0332e7a887b8417006` | `40de3f206c2f693ba268ca26912a74dca8ecbed809a62831d151eb9793d2782a` |
+
+Hosted baseline3 的 18,953 passed/295 skipped/0 failed 是上游单分片原始事实，candidate3 的安装失败没有测试结果；其 Node/runner image 不同，不能据此声称匹配环境的候选回归比较已完成。原失败 run/job/artifact 标识、阶段、环境和其他原文件 SHA 均保留在上述诊断及 source report。
+
+精确 Host Node 官方 release/index 核验记录：`ci-exact-node-official.json`，SHA-256 `04462df9d97b9a2d42a16a436ac8ebfd7f2fdb805c03d16aeeb6d860dfec71ee`。它记录官方发布链接/校验值；本机直连探针超时，未冒充二进制下载或执行。
