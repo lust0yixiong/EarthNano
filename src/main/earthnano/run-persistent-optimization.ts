@@ -7,6 +7,14 @@ import {
   type OptimizationMethodOptions
 } from '../../shared/earthnano/optimization-method'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
+import {
+  normalizeOutputChecks,
+  normalizeOptimizationDomain,
+  type OutputCheckSpec,
+  type OptimizationDomainSpec,
+  type ResearchOutcome,
+  type DomainOptimizationSummary
+} from '../../shared/earthnano/research-outcome'
 import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
 import {
   createClaudeCandidateDriver,
@@ -26,6 +34,10 @@ import {
   semanticDigest
 } from './semantic-evaluation'
 import { HarnessOptimizationBinding, runHarnessProcess } from './harness-optimization'
+import { HarnessDomainBinding } from './harness-domain-binding'
+import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
+import { evaluateResearchOutcome } from './research-verification'
+import { canonicalOutput, outputDigest } from './output-checks'
 import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
@@ -35,6 +47,8 @@ export interface PersistentOptimizationProgress {
   optimizationId: string
   stage: 'optimizing' | 'assessing' | 'settled'
   records: ExecutionRecord[]
+  outcome?: ResearchOutcome
+  domain?: DomainOptimizationSummary
 }
 
 export interface PersistentOptimizationOptions {
@@ -56,6 +70,8 @@ export interface PersistentOptimizationOptions {
   signal?: AbortSignal
   /** Fixed before optimization; never forwarded to proposer/composer. */
   semanticCriteria?: string
+  checks?: OutputCheckSpec[]
+  domain?: OptimizationDomainSpec
   /** Projection of committed execution facts, including reviewer admissions. */
   onProgress?: (progress: PersistentOptimizationProgress) => void
 }
@@ -67,6 +83,8 @@ export interface PersistentOptimizationResult {
   methodResult: unknown
   records: ExecutionRecord[]
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
+  outcome?: ResearchOutcome
+  domain?: DomainOptimizationSummary
 }
 export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
@@ -75,6 +93,23 @@ export async function runPersistentOptimization(
   const method = normalizeOptimizationMethod(options.method)
   const input = structuredClone(options.input)
   const semanticCriteria = options.semanticCriteria
+  const checks = normalizeOutputChecks(options.checks)
+  const domain = normalizeOptimizationDomain(options.domain)
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(options.taskId) || options.taskId.endsWith('.'))
+    throw new Error('Invalid optimization task identifier')
+  if (domain && semanticCriteria === undefined)
+    throw new Error('Domain optimization requires independent criteria')
+  const tasks = domain
+    ? [
+        { taskId: options.taskId + '-0001', input, criteria: semanticCriteria!, checks },
+        ...domain.nextTasks.map((task, index) => ({
+          taskId: `${options.taskId}-${String(index + 2).padStart(4, '0')}`,
+          input: { ...input, task: { prompt: task.prompt, files: task.files } },
+          criteria: task.criteria,
+          checks: task.checks
+        }))
+      ]
+    : [{ taskId: options.taskId, input, criteria: semanticCriteria, checks }]
   if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
     throw new Error('Optimization paths must be absolute')
@@ -97,13 +132,28 @@ export async function runPersistentOptimization(
   const optimizationId = randomUUID()
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
   let stage: PersistentOptimizationProgress['stage'] = 'optimizing'
+  let outcome: ResearchOutcome | undefined
+  let domainSummary: DomainOptimizationSummary | undefined = domain
+    ? {
+        name: domain.name,
+        order: tasks.map((task) => task.taskId),
+        tasks: tasks.map((task) => ({ taskId: task.taskId })),
+        library: { scope: 'experiment', entries: [], digest: outputDigest([]) }
+      }
+    : undefined
   const publish = (): void => {
-    options.onProgress?.({ optimizationId, stage, records: Object.values(store.load().records) })
+    options.onProgress?.({
+      optimizationId,
+      stage,
+      records: Object.values(store.load().records),
+      ...(outcome ? { outcome: structuredClone(outcome) } : {}),
+      ...(domainSummary ? { domain: structuredClone(domainSummary) } : {})
+    })
   }
   let result: PersistentOptimizationResult | undefined
   let cleanupConfirmed = false
   let core: ExecutionCore | undefined
-  let binding: HarnessOptimizationBinding | undefined
+  let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
     if (semanticCriteria !== undefined)
@@ -113,7 +163,17 @@ export async function runPersistentOptimization(
           schemaVersion: 1,
           ...(method.k > 1 ? { baselineStageId: 'base1' } : {}),
           criteria: semanticCriteria,
-          criteriaDigest: semanticDigest(semanticCriteria)
+          criteriaDigest: semanticDigest(semanticCriteria),
+          ...(checks ? { checks } : {}),
+          ...(domain
+            ? {
+                tasks: tasks.map((task) => ({
+                  taskId: task.taskId,
+                  criteria: task.criteria,
+                  checks: task.checks
+                }))
+              }
+            : {})
         }),
         { mode: 0o600, flag: 'wx' }
       )
@@ -139,22 +199,29 @@ export async function runPersistentOptimization(
       { concurrency: method.concurrency }
     )
     core.configureBudget(options.projectId, optimizationId, limit)
-    binding = new HarnessOptimizationBinding({
+    const bindingOptions = {
       core,
       snapshots,
-      input,
       projectId: options.projectId,
       optimizationId,
-      taskId: options.taskId,
       budgetRef: optimizationId,
       timeoutMs: executionTimeoutMs,
       exportResult: owners.exportResult
-    })
+    }
+    binding = domain
+      ? new HarnessDomainBinding(
+          tasks.map((task) => ({ ...bindingOptions, input: task.input, taskId: task.taskId }))
+        )
+      : new HarnessOptimizationBinding({ ...bindingOptions, input, taskId: options.taskId })
     const config = {
       configVersion: 1,
       method,
-      taskId: options.taskId,
-      task: input.task,
+      ...(domain
+        ? {
+            domain: domain.name,
+            tasks: tasks.map((task) => ({ taskId: task.taskId, task: task.input.task }))
+          }
+        : { taskId: options.taskId, task: input.task }),
       baseHarnessFiles: [
         { path: 'instructions.md', content: input.harness.instructions },
         ...input.harness.skills.map((file) => ({
@@ -172,7 +239,13 @@ export async function runPersistentOptimization(
     const methodResult = await runHarnessProcess({
       binding,
       python: options.python ?? 'python3',
-      args: ['-B', '-m', 'harness2.earthnano', '--config', configPath],
+      args: [
+        '-B',
+        '-m',
+        domain ? 'harness2.earthnano_domain' : 'harness2.earthnano',
+        '--config',
+        configPath
+      ],
       cwd: options.harnessRoot,
       env: {
         PATH: process.env.PATH,
@@ -182,12 +255,15 @@ export async function runPersistentOptimization(
         HOME: options.workRoot
       },
       timeoutMs,
-      signal
+      signal,
+      ...(domain ? { acceptPartial: true } : {})
     })
     if (
       !methodResult ||
       typeof methodResult !== 'object' ||
-      (methodResult as { status?: string }).status !== 'ok'
+      !['ok', ...(domain ? ['partial'] : [])].includes(
+        (methodResult as { status?: string }).status ?? ''
+      )
     )
       throw new Error('Harness method did not adopt a valid final result')
     const records = await Promise.all(binding.executionIds.map((id) => core!.get(id)))
@@ -227,33 +303,103 @@ export async function runPersistentOptimization(
       )
         throw new Error('Optimization result lacks a complete passing integrity review')
     }
+    if (domain) {
+      const domainBinding = binding as HarnessDomainBinding
+      const recordsForTask = (taskId: string): ExecutionRecord[] => {
+        const ids = domainBinding.executionIdsForTask(taskId)
+        return records.filter((record) => ids.includes(record.executionId))
+      }
+      domainSummary = await prepareDomainSummary({
+        result: methodResult,
+        domain,
+        taskIds: tasks.map((task) => task.taskId),
+        recordsForTask,
+        snapshots,
+        owners
+      })
+      await writeFile(
+        join(options.workRoot, 'experiment-library.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          scope: 'experiment',
+          library: (methodResult as DomainMethodResult).library,
+          provenance: domainSummary
+        }),
+        { mode: 0o600, flag: 'wx' }
+      )
+      publish()
+      if ((methodResult as DomainMethodResult).status !== 'ok')
+        throw new Error('Domain method retained partial evidence; configuration adoption blocked')
+    }
     let assessments:
       { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
     if (semanticCriteria !== undefined) {
       signal.throwIfAborted()
       stage = 'assessing'
       publish()
-      assessments = await evaluateOptimizationSemantics({
-        core,
-        snapshots,
-        owners,
-        input,
-        records,
-        methodResult,
-        projectId: options.projectId,
-        optimizationId,
-        taskId: options.taskId,
-        budgetRef: optimizationId,
-        criteria: semanticCriteria,
-        timeoutMs: executionTimeoutMs,
-        signal
-      })
+      for (const task of tasks) {
+        const ownRecords = domain
+          ? records.filter((record) =>
+              (binding as HarnessDomainBinding)
+                .executionIdsForTask(task.taskId)
+                .includes(record.executionId)
+            )
+          : records
+        const ownMethod = domain
+          ? (methodResult as DomainMethodResult).tasks.find((row) => row.taskId === task.taskId)!
+          : methodResult
+        const taskAssessments = await evaluateOptimizationSemantics({
+          core,
+          snapshots,
+          owners,
+          input: task.input,
+          records: ownRecords,
+          methodResult: ownMethod,
+          projectId: options.projectId,
+          optimizationId,
+          taskId: task.taskId,
+          budgetRef: optimizationId,
+          criteria: task.criteria!,
+          timeoutMs: executionTimeoutMs,
+          signal
+        })
+        const taskOutcome = await evaluateResearchOutcome({
+          records: ownRecords,
+          methodResult: ownMethod,
+          owners,
+          assessments: taskAssessments,
+          checks: task.checks,
+          signal
+        })
+        if (domainSummary) {
+          const summary = domainSummary.tasks.find((row) => row.taskId === task.taskId)!
+          summary.assessments = taskAssessments
+          summary.outcome = taskOutcome
+        }
+        if (!domain && task === tasks[0]) {
+          assessments = taskAssessments
+          outcome = taskOutcome
+        }
+        await writeFile(
+          join(options.workRoot, `outcome-${task.taskId}.json`),
+          canonicalOutput({
+            taskId: task.taskId,
+            assessments: taskAssessments,
+            outcome: taskOutcome,
+            configurationPublication: 'not-published'
+          }),
+          { mode: 0o600, flag: 'wx' }
+        )
+        publish()
+      }
     }
     result = {
       optimizationId,
       methodResult,
       records: Object.values(store.load().records),
-      ...(assessments ? { assessments } : {})
+      ...(assessments ? { assessments } : {}),
+      ...(outcome ? { outcome } : {}),
+      ...(domainSummary ? { domain: domainSummary } : {})
     }
   } finally {
     try {

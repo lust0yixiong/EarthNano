@@ -1,0 +1,174 @@
+{
+  "date": "2026-10-20",
+  "validatedImplementationCommit": "0a0b913318394ead684424825fd1ba9defb35adb",
+  "baseCommit": "d9db3c785e6184f297254f0764ef86899e16130d",
+  "pullRequestBase": "feat/round6-harness-recursion (PR #8 remains open)",
+  "platform": "Darwin arm64",
+  "node": "v26.0.0",
+  "scope": "Explicit experiment-local domain stream, original Library/reflection, pinned checks and original Review persistence; not full research/release acceptance",
+  "upstreamReuse": {
+    "harnessCoreFilesChangedThisRound": 0,
+    "singleTaskEarthnanoEntryChangedThisRound": false,
+    "newVendorEntry": "harness2.earthnano_domain",
+    "reused": [
+      "schedule.task_stream",
+      "schedule.run_domain",
+      "schedule.run_task",
+      "recursion.run_mode",
+      "selection.reflect_adoption",
+      "library.Library",
+      "original Session/ArtifactRunOwner/ArtifactVersion/ReviewRepository",
+      "original Claude Code/ACP runtime"
+    ],
+    "inheritedSeamModificationsRemain": true,
+    "libraryScope": "one explicit experiment; original raw experiences before independent assessment, never global publication"
+  },
+  "vitest": [
+    {
+      "name": "default",
+      "files": 18,
+      "passed": 1068,
+      "failed": 0,
+      "command": "node node_modules/vitest/vitest.mjs run src/main/earthnano src/shared/earthnano src/main/composition/desktop-optimization.test.ts src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx src/renderer/src/i18n/resources.test.ts --project default --maxWorkers=2",
+      "scope": [
+        "shared input bounds and exact legacy omitted-field compatibility",
+        "real core/snapshot mux ownership with identical task bytes",
+        "Library provenance/tamper/mode isolation",
+        "independent criteria separation",
+        "JSON pointer/tolerance/overflow handling",
+        "separate lifecycle/artifact/configuration outcomes",
+        "desktop controls and eight locale guards"
+      ]
+    },
+    {
+      "name": "native-persistence",
+      "files": 2,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 5,
+      "command": "node node_modules/vitest/vitest.mjs run src/main/earthnano/persistent-candidate-owner.integration.test.ts src/main/earthnano/persistent-optimization.integration.test.ts --project process --maxWorkers=1",
+      "sourceNote": "Full 23-case pass at a6259dce8; later JSON-number overflow hardening adds unit coverage and subsequent four domain/check native regressions. Final live fixture accepts original NO_ENTRY semantics; production gates unchanged.",
+      "scope": [
+        "original Session/SQLite/immutable versions/Review reopen",
+        "legacy k1, sequential/parallel k2 and anonymous selector",
+        "two-task original reflection/Library with exact successor context receipt",
+        "different source files routed by task admission",
+        "completed lifecycle with failed deterministic checks blocks configuration",
+        "shared budget and native stop",
+        "late Review abort/commit failures invalidate pass",
+        "frozen target/expectations despite caller mutation",
+        "owner-generated exact reflection reply artifact; preserved model files; reserved-name collision rejection"
+      ]
+    },
+    {
+      "name": "final-domain-and-check-native-regressions",
+      "files": 1,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 12,
+      "command": "node node_modules/vitest/vitest.mjs run src/main/earthnano/persistent-optimization.integration.test.ts --project process --maxWorkers=1 -t 'experiment-local Library|deterministic mismatch|permits further|stops an explicit'",
+      "scope": "After JSON overflow hardening and permitted NO_ENTRY fixture correction; later fixture-only live fallback/report changes do not alter offline execution semantics"
+    }
+  ],
+  "python": {
+    "passed": 51,
+    "failed": 0,
+    "suites": {
+      "test_earthnano*.py": 27,
+      "test_workflow.py": 5,
+      "test_execution_seam.py": 19
+    },
+    "cwd": "vendor/harness2",
+    "commandTemplate": "python3 -B -m unittest discover -s tests -p <suite> -q",
+    "scope": [
+      "complete LEGACY/port evidence tree and Library parity",
+      "both domain modes over real stdio",
+      "k2 original selection/reflection",
+      "actual subsequent fixture output uses first experience",
+      "NO_ENTRY, invalid/failed reflection and grader marker rejection",
+      "task/domain/mode/root isolation and control-stop propagation"
+    ]
+  },
+  "browser": {
+    "passed": 7,
+    "failed": 0,
+    "channel": "installed Google Chrome",
+    "command": "node node_modules/@playwright/test/cli.js test --config /tmp/earthnano-round7-browser.config.mjs e2e/browser/task-optimization.spec.ts",
+    "worktree": "round7-platform at cc13c4413; identical final renderer/browser fixture sources",
+    "scope": "Typed mock API; 1100/390px, start/poll/stop, owner view links, Session reset, safe errors and Web hiding, both k2 modes, explicit domain/check submission and per-task judgments"
+  },
+  "checks": [
+    "Node and Web TypeScript passed",
+    "ESLint on changed TS/TSX passed",
+    "Prettier on changed TS/TSX passed",
+    "Generated execution contract --check passed",
+    "Final backend + workers and Electron renderer/preload build passed",
+    "git diff --check and credential scan recorded before PR submission"
+  ],
+  "environment": {
+    "dependencies": "Existing original lockfile installation and patches; no repository dependency/lockfile changes; local worktrees outside Synology Drive share existing physical installation",
+    "prisma": "Existing v6.19.3 native client with original datamodel; no repository schema change",
+    "initialFailures": [
+      "Strengthened successor-context assertion initially omitted existing backtick JSON escaping; corrected test encoding without modifying evidence",
+      "Final lint found missing helper return annotations; fixed test typing/inference exceptions",
+      "Electron runtime43.7.5 absent and auto-download stalled; cached43.4.0 used via test-only override",
+      "Pinned Node staging download timed out; installed Open-Science Node22.23.3 reused read-only in ignored test output"
+    ]
+  },
+  "liveProviderEvidence": "ROUND7_DEEPSEEK_VALIDATION.json",
+  "limitations": [
+    "No full npm test or complete original scientific workflow regression",
+    "Ordinary Send remains on original path; shared-core migration is next",
+    "Raw Library experience can precede independent checks and is experiment-local, not verified shared knowledge",
+    "No default automatic trigger, cross-experiment promotion or replay recovery",
+    "Eligible means further-validation eligibility only; no configuration publication",
+    "Execution-count budget is not provider request/token/currency budget in the product",
+    "JSON checks verify supplied expected values on fixed bytes, not scientific validity of inputs or methods",
+    "Directory/process isolation is not an OS sandbox",
+    "Darwin arm64 only; no signed installer or Linux/Windows acceptance",
+    "GitHub Actions remains disabled",
+    "Small synthetic tasks do not establish general optimization gains"
+  ],
+  "electron": {
+    "passed": 1,
+    "failed": 0,
+    "command": "ELECTRON_OVERRIDE_DIST_PATH=/tmp/earthnano-round7-electron OPEN_SCIENCE_E2E_ISOLATE_HOME=1 node node_modules/@playwright/test/cli.js test e2e/task-optimization-desktop.spec.ts --workers=1",
+    "runtime": "Cached Electron43.4.0 via test-only override; installed Open-Science Node22.23.3 linked read-only under ignored out/node-runtime; repository runtime/dependency pins unchanged",
+    "scope": "Real isolated desktop command/preload/IPC and explicit unsupported OpenCode rejection with zero optimization admissions",
+    "paidSuccessPathClickedInElectron": false,
+    "initialFailures": [
+      "Missing Electron43.7.5 caused installer stall",
+      "Cached Electron initially exited because pinned standalone Node was unstaged",
+      "Pinned Node archive download timed out; reused installed same-version Node read-only"
+    ]
+  },
+  "liveProviderSummary": {
+    "finalStatus": "passed",
+    "attemptCount": 4,
+    "passed": 1,
+    "failed": 3,
+    "finalExecutions": 23,
+    "finalSessions": 23,
+    "finalReopened": true,
+    "finalArtifacts": ["passed", "passed"],
+    "finalConfigurationStatuses": ["eligible", "blocked"],
+    "finalLibraryEntries": 1,
+    "finalVerifiedSuccessorExperienceContexts": 0,
+    "liveExperienceTransmissionExercised": false,
+    "experienceTransmissionEvidence": "Actual original method + native Claude process + loopback model fixture verifies exact first Library lesson receipt in successor contexts. Python LEGACY/port parity additionally verifies subsequent output uses the lesson. Live final run first reflection produced NO_ENTRY and second added one entry; no live successor consumed an entry.",
+    "optimizationGainClaimed": false,
+    "notes": [
+      "One original dom1 fallback and three charged extra attempts are retained in the final run",
+      "Independent semantic checks and supplied deterministic expectations are not fed back to method/Library",
+      "Eligible permits further validation only; no configuration was published",
+      "Provider usage is reported as returned, not converted to price or used as a product monetary cap",
+      "First three diagnostics retained; no real key in reports"
+    ],
+    "totalEligibleProviderRequests": 275,
+    "totalReportedUsage": {
+      "input": 657605,
+      "cacheRead": 1474304,
+      "output": 90068
+    }
+  }
+}

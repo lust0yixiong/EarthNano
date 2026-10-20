@@ -6,7 +6,7 @@
       "repository": "https://github.com/aipoch/open-science",
       "commit": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
       "path": ".",
-      "integration": "Upstream history retained; EarthNano shared execution core and opt-in ACP driver added; TaskAgentPort dispatch extracted with legacy behavior preserved; frozen candidate snapshots and isolated Claude Code native preparation composed through the shared ACP driver (opt-in); opt-in persistent optimization composition reuses original Session, immutable ArtifactVersion and scoped Review owners; desktop opt-in task UI now uses typed native commands, shared progress/admission/stop ownership and independent fixed-artifact semantic Reviews; original Session/Artifact/Review owners retained for bounded concurrent candidates; typed desktop method controls and fixed base1 independent comparison added",
+      "integration": "Upstream history retained; EarthNano shared execution core and opt-in ACP driver added; TaskAgentPort dispatch extracted with legacy behavior preserved; frozen candidate snapshots and isolated Claude Code native preparation composed through the shared ACP driver (opt-in); opt-in persistent optimization composition reuses original Session, immutable ArtifactVersion and scoped Review owners; desktop opt-in task UI now uses typed native commands, shared progress/admission/stop ownership and independent fixed-artifact semantic Reviews; original Session/Artifact/Review owners retained for bounded concurrent candidates; typed desktop method controls and fixed base1 independent comparison added; round7 adds opt-in experiment-local domain input/results and deterministic JSON checks in original scoped Review, with separate artifact/configuration outcomes and no automatic publication",
       "license": "Apache-2.0",
       "licenseFile": "LICENSE"
     },
@@ -16,7 +16,7 @@
       "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
       "tree": "edc756a4d03a2826a248115482084a176e60e751",
       "path": "vendor/harness2",
-      "integration": "EarthNano generated execution contract and method execution seam integrated across schedule, recursion, proposal and selection; legacy remains default; tree records original upstream baseline, not current vendor tree; private JSONL binding now runs original single-mode sequential/parallel method (k 1–8) through common ExecutionCore with pinned results and claude-text profile; round6 leaves existing core algorithm/seam files unchanged and exposes original finals-only anonymous selector; no Library enabled yet",
+      "integration": "EarthNano generated execution contract and method execution seam integrated across schedule, recursion, proposal and selection; legacy remains default; tree records original upstream baseline, not current vendor tree; private JSONL binding now runs original single-mode sequential/parallel method (k 1–8) through common ExecutionCore with pinned results and claude-text profile; round6 leaves existing core algorithm/seam files unchanged and exposes original finals-only anonymous selector; round7 adds a separate opt-in domain entry reusing original task_stream/run_domain, reflect_adoption and Library; raw experience stays experiment-local, with immutable platform provenance; original core modules and single-task earthnano.py unchanged this round",
       "license": "Apache-2.0",
       "licenseFile": "vendor/harness2/LICENSE"
     }

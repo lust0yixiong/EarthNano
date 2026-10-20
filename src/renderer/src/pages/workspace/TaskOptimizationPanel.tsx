@@ -7,10 +7,24 @@ import type {
 } from '../../../../shared/earthnano/desktop-optimization'
 import {
   DEFAULT_OPTIMIZATION_METHOD,
-  minimumOptimizationExecutions,
   MAX_OPTIMIZATION_EXECUTIONS,
   type OptimizationMethodOptions
 } from '../../../../shared/earthnano/optimization-method'
+import {
+  minimumResearchExecutions,
+  normalizeOptimizationDomain
+} from '../../../../shared/earthnano/research-outcome'
+import { ExpectedJsonCheckEditor } from './OptimizationResearchInputs'
+import {
+  draftOutputChecks,
+  emptyJsonCheckDraft,
+  type JsonCheckDraft
+} from './optimization-research-input'
+import {
+  ResearchOutcomeView,
+  ExperimentExperienceView,
+  IndependentAssessmentsView
+} from './OptimizationResearchResults'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../../shared/web-event-connection'
 
 type Props = {
@@ -53,7 +67,43 @@ function OptimizationSessionPanel({
   const [method, setMethod] = useState<OptimizationMethodOptions>({
     ...DEFAULT_OPTIMIZATION_METHOD
   })
-  const minimum = minimumOptimizationExecutions(method)
+  const [checkDraft, setCheckDraft] = useState(emptyJsonCheckDraft)
+  const [domainName, setDomainName] = useState('')
+  const [nextTasks, setNextTasks] = useState<
+    Array<{ id: string; prompt: string; criteria: string; check: JsonCheckDraft }>
+  >([])
+  const domainDraft =
+    domainName.trim() || nextTasks.length
+      ? {
+          name: domainName.trim(),
+          nextTasks: nextTasks.map((task) => ({
+            prompt: task.prompt,
+            criteria: task.criteria,
+            files,
+            checks: undefined
+          }))
+        }
+      : undefined
+  const minimum = minimumResearchExecutions(method, domainDraft)
+  const researchInputs = (): {
+    checks: ReturnType<typeof draftOutputChecks>
+    domain: ReturnType<typeof normalizeOptimizationDomain>
+  } => ({
+    checks: draftOutputChecks(checkDraft),
+    domain: normalizeOptimizationDomain(
+      domainDraft
+        ? {
+            ...domainDraft,
+            nextTasks: nextTasks.map((task) => ({
+              prompt: task.prompt,
+              criteria: task.criteria,
+              files,
+              ...(draftOutputChecks(task.check) ? { checks: draftOutputChecks(task.check) } : {})
+            }))
+          }
+        : undefined
+    )
+  })
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<false | 'request' | 'files'>(false)
@@ -148,6 +198,7 @@ function OptimizationSessionPanel({
     setError(false)
     requestKey.current ??= crypto.randomUUID()
     try {
+      const research = researchInputs()
       const result = await api.start({
         projectId,
         sourceSessionId: sessionId,
@@ -156,7 +207,9 @@ function OptimizationSessionPanel({
         criteria,
         files,
         executionLimit: limit,
-        method
+        method,
+        ...(research.checks === undefined ? {} : { checks: research.checks }),
+        ...(research.domain === undefined ? {} : { domain: research.domain })
       })
       if (alive.current) {
         actionRevision.current += 1
@@ -234,7 +287,23 @@ function OptimizationSessionPanel({
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
+  let researchValid = true
+  try {
+    researchInputs()
+  } catch {
+    researchValid = false
+  }
   const valid =
+    researchValid &&
+    nextTasks.every((task) => {
+      const checks = task.criteria
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+      return (
+        checks.length >= 1 && checks.length <= 16 && checks.every((line) => line.length <= 2000)
+      )
+    }) &&
     prompt.trim().length > 0 &&
     prompt.length <= 32_000 &&
     criteria.length <= 16_000 &&
@@ -276,6 +345,71 @@ function OptimizationSessionPanel({
                 })}
               </p>
             )}
+            {progress.outcome && !progress.domain && (
+              <ResearchOutcomeView
+                outcome={progress.outcome}
+                sessionId={
+                  progress.executions.find(
+                    (entry) =>
+                      entry.executionId === progress.assessments?.candidate.targetExecutionId
+                  )?.sessionId
+                }
+                onOpenReview={onOpenReview}
+              />
+            )}
+            {progress.domain && (
+              <div className="space-y-2" data-testid="domain-results">
+                <p>{t('Domain experiment: {{name}}', { name: progress.domain.name })}</p>
+                {progress.domain.order.map((taskId, index) => {
+                  const task = progress.domain!.tasks.find((entry) => entry.taskId === taskId)
+                  return (
+                    <section key={taskId} className="space-y-2 rounded border border-border p-2">
+                      <p className="font-medium">
+                        {t('Task {{number}} · {{taskId}}', { number: index + 1, taskId })}
+                      </p>
+                      {task?.outcome ? (
+                        <ResearchOutcomeView
+                          outcome={task.outcome}
+                          sessionId={
+                            progress.executions.find(
+                              (entry) =>
+                                entry.executionId ===
+                                (task.assessments?.candidate.targetExecutionId ??
+                                  task.experience?.selectedExecutionId)
+                            )?.sessionId
+                          }
+                          onOpenReview={onOpenReview}
+                        />
+                      ) : (
+                        <p>
+                          {terminal(progress.state)
+                            ? t('Task result unavailable')
+                            : t('Awaiting task result')}
+                        </p>
+                      )}
+                      {task?.assessments && (
+                        <IndependentAssessmentsView
+                          assessments={task.assessments}
+                          executions={progress.executions}
+                          onOpenReview={onOpenReview}
+                        />
+                      )}
+                      {task?.selection && (
+                        <p>
+                          {t('Selected {{label}} from {{candidateCount}} candidates', {
+                            label: task.selection.chosenLabel,
+                            candidateCount: task.selection.candidateCount
+                          })}
+                        </p>
+                      )}
+                      {task?.experience && (
+                        <ExperimentExperienceView experience={task.experience} />
+                      )}
+                    </section>
+                  )
+                })}
+              </div>
+            )}
             {progress.selection && (
               <div>
                 <p>
@@ -307,41 +441,12 @@ function OptimizationSessionPanel({
               </button>
             )}
             {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
-            {progress.assessments && (
-              <>
-                <p className="text-xs text-text-400">
-                  {t('Results compare independent assessments; improvement is not guaranteed.')}
-                </p>
-                {(['baseline', 'candidate'] as const).map((kind) => {
-                  const assessment = progress.assessments![kind]
-                  const session = progress.executions.find(
-                    (entry) => entry.executionId === assessment.targetExecutionId
-                  )?.sessionId
-                  return (
-                    <div key={kind} className="rounded border border-border p-2">
-                      <p className="font-medium">
-                        {kind === 'baseline' ? t('Baseline assessment') : t('Candidate assessment')}
-                      </p>
-                      <p>
-                        {t('Score: {{score}} · {{outcome}}', {
-                          score: assessment.score,
-                          outcome: assessment.outcome === 'pass' ? t('Passed') : t('Flagged')
-                        })}
-                      </p>
-                      <p className="whitespace-pre-wrap break-words">{assessment.rationale}</p>
-                      {session && onOpenReview && (
-                        <button
-                          type="button"
-                          className="text-primary underline"
-                          onClick={() => onOpenReview(session, assessment.reviewId)}
-                        >
-                          {t('Open assessment')}
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-              </>
+            {progress.assessments && !progress.domain && (
+              <IndependentAssessmentsView
+                assessments={progress.assessments}
+                executions={progress.executions}
+                onOpenReview={onOpenReview}
+              />
             )}
             {progress.executions
               .filter((entry) => entry.sessionId)
@@ -422,6 +527,138 @@ function OptimizationSessionPanel({
           />
         </label>
         <p className="text-xs text-text-400">{t('Write 1–16 independent checks, one per line.')}</p>
+        <ExpectedJsonCheckEditor
+          value={checkDraft}
+          disabled={active || busy}
+          inputClass={inputClass}
+          onChange={(value) => {
+            setCheckDraft(value)
+            requestKey.current = null
+          }}
+        />
+        <label className="block">
+          {t('Domain experiment name (optional)')}
+          <input
+            aria-label={t('Domain experiment name (optional)')}
+            className={inputClass}
+            maxLength={80}
+            value={domainName}
+            disabled={active || busy}
+            onChange={(event) => {
+              setDomainName(event.target.value)
+              requestKey.current = null
+            }}
+          />
+        </label>
+        <p className="text-xs text-text-400">
+          {t(
+            'Run up to four tasks in order with one shared budget. Next tasks use the same text input files.'
+          )}
+        </p>
+        <p className="text-xs text-text-400">
+          {t('Use letters, numbers, underscores or hyphens for the experiment name.')}
+        </p>
+        {nextTasks.map((task, index) => (
+          <fieldset
+            key={task.id}
+            data-testid={`next-task-${index + 1}`}
+            className="space-y-2 rounded border border-border p-2"
+          >
+            <legend>{t('Next task {{number}}', { number: index + 1 })}</legend>
+            <label className="block">
+              {t('Task description')}
+              <textarea
+                aria-label={t('Next task description {{number}}', { number: index + 1 })}
+                className={inputClass}
+                value={task.prompt}
+                maxLength={32000}
+                disabled={active || busy}
+                onChange={(event) => {
+                  setNextTasks(
+                    nextTasks.map((entry) =>
+                      entry.id === task.id ? { ...entry, prompt: event.target.value } : entry
+                    )
+                  )
+                  requestKey.current = null
+                }}
+              />
+            </label>
+            <label className="block">
+              {t('Acceptance criteria (one per line)')}
+              <textarea
+                aria-label={t('Next task criteria {{number}}', { number: index + 1 })}
+                className={inputClass}
+                value={task.criteria}
+                maxLength={16000}
+                disabled={active || busy}
+                onChange={(event) => {
+                  setNextTasks(
+                    nextTasks.map((entry) =>
+                      entry.id === task.id ? { ...entry, criteria: event.target.value } : entry
+                    )
+                  )
+                  requestKey.current = null
+                }}
+              />
+            </label>
+            <ExpectedJsonCheckEditor
+              value={task.check}
+              disabled={active || busy}
+              inputClass={inputClass}
+              onChange={(check) => {
+                setNextTasks(
+                  nextTasks.map((entry) => (entry.id === task.id ? { ...entry, check } : entry))
+                )
+                requestKey.current = null
+              }}
+            />
+            <button
+              type="button"
+              disabled={active || busy}
+              onClick={() => {
+                setNextTasks(nextTasks.filter((entry) => entry.id !== task.id))
+                requestKey.current = null
+              }}
+            >
+              {t('Remove next task')}
+            </button>
+          </fieldset>
+        ))}
+        <button
+          type="button"
+          disabled={active || busy || nextTasks.length >= 3}
+          onClick={() => {
+            const next = [
+              ...nextTasks,
+              { id: crypto.randomUUID(), prompt: '', criteria: '', check: emptyJsonCheckDraft() }
+            ]
+            setNextTasks(next)
+            setLimit((value) =>
+              Math.min(
+                MAX_OPTIMIZATION_EXECUTIONS,
+                Math.max(
+                  value,
+                  minimumResearchExecutions(method, {
+                    name: domainName,
+                    nextTasks: next.map((task) => ({
+                      prompt: task.prompt,
+                      criteria: task.criteria,
+                      files
+                    }))
+                  })
+                )
+              )
+            )
+            requestKey.current = null
+          }}
+        >
+          {t('Add next task')}
+        </button>
+        {nextTasks.length > 0 && !domainName.trim() && (
+          <p className="text-xs text-text-400">
+            {t('Name the domain experiment before starting its task stream.')}
+          </p>
+        )}
         <label className="block">
           {t('Optimization mode')}
           <select
@@ -457,7 +694,12 @@ function OptimizationSessionPanel({
               if (Number.isInteger(k) && k >= 1 && k <= 8) {
                 const next = { ...method, k }
                 setMethod(next)
-                setLimit((value) => Math.max(value, minimumOptimizationExecutions(next)))
+                setLimit((value) =>
+                  Math.min(
+                    MAX_OPTIMIZATION_EXECUTIONS,
+                    Math.max(value, minimumResearchExecutions(next, domainDraft))
+                  )
+                )
                 requestKey.current = null
               }
             }}
@@ -490,9 +732,15 @@ function OptimizationSessionPanel({
           )}
         </p>
         <label className="block">
-          {t('Execution limit (includes two assessments)')}
+          {domainDraft
+            ? t('Shared execution limit (all task assessments and reflections)')
+            : t('Execution limit (includes two assessments)')}
           <input
-            aria-label={t('Execution limit (includes two assessments)')}
+            aria-label={
+              domainDraft
+                ? t('Shared execution limit (all task assessments and reflections)')
+                : t('Execution limit (includes two assessments)')
+            }
             className={inputClass}
             type="number"
             min={minimum}
@@ -506,6 +754,13 @@ function OptimizationSessionPanel({
             }}
           />
         </label>
+        {minimum > MAX_OPTIMIZATION_EXECUTIONS && (
+          <p role="alert" className="text-xs text-text-400">
+            {t('Reduce recursion or task count to stay within {{limit}} shared executions.', {
+              limit: MAX_OPTIMIZATION_EXECUTIONS
+            })}
+          </p>
+        )}
         <div className="flex gap-3">
           <button
             type="button"

@@ -42,6 +42,58 @@ const progress = (state: OptimizationProgress['state'] = 'running'): Optimizatio
     },
     { executionId: 'final', role: 'candidate', phase: 'completed', sessionId: 'candidate-session' }
   ],
+  ...(calls.start.at(-1)?.domain
+    ? {
+        domain: {
+          name: calls.start.at(-1)!.domain!.name,
+          order: [
+            'first',
+            ...calls.start.at(-1)!.domain!.nextTasks.map((_, index) => `next-${index + 1}`)
+          ],
+          tasks:
+            state === 'completed'
+              ? [
+                  {
+                    taskId: 'first',
+                    outcome: {
+                      artifact: { status: 'passed' as const, checks: [] },
+                      configuration: { status: 'eligible' as const, reasons: [] }
+                    }
+                  },
+                  ...calls.start.at(-1)!.domain!.nextTasks.map((_, index) => ({
+                    taskId: `next-${index + 1}`,
+                    outcome: {
+                      artifact: {
+                        status: 'failed' as const,
+                        checks: [
+                          {
+                            path: 'result.json',
+                            pointer: '',
+                            status: 'fail' as const,
+                            reason: 'mismatch' as const
+                          }
+                        ]
+                      },
+                      configuration: {
+                        status: 'blocked' as const,
+                        reasons: ['output-check-failed']
+                      }
+                    }
+                  }))
+                ]
+              : [],
+          library: { scope: 'experiment' as const, entries: [], digest: 'fixture-library' }
+        },
+        ...(state === 'completed'
+          ? {
+              outcome: {
+                artifact: { status: 'passed' as const, checks: [] },
+                configuration: { status: 'eligible' as const, reasons: [] }
+              }
+            }
+          : {})
+      }
+    : {}),
   updatedAt: 1,
   ...(state === 'completed' && (calls.start.at(-1)?.method?.k ?? 1) > 1
     ? {

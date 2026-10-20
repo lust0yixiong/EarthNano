@@ -15,6 +15,8 @@ import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
+import { outputDigest } from './output-checks'
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -84,7 +86,14 @@ it
     'six-outputs-and-skills',
     'uppercase-invalid-json',
     'submission-failure',
-    'stop-during-submission'
+    'stop-during-submission',
+    'checks-abort-during-commit',
+    'checks-abort-after-commit',
+    'checks-submission-failure',
+    'checks-freeze-before-await',
+    'checks-mismatch',
+    'reflection-owner-export',
+    'reflection-reserved-collision'
   ] as const)(
   'persists original owners with bounded integrity checks and review cleanup: %s',
   async (scenario) => {
@@ -97,17 +106,38 @@ it
       getClient: async () => client
     })
     let disposeCore = (): void => undefined
-    const outputs = [
-      { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
-      {
-        path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
-        content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
-      },
-      ...(scenario === 'six-outputs-and-skills'
-        ? ['one', 'two', 'three', 'four'].map((name) => ({
-            path: `context/harness/skills/${name}/SKILL.md`,
-            content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
-          }))
+    const reflectionScenario = scenario.startsWith('reflection-')
+    const finalReply = reflectionScenario
+      ? '<experience>\ncue: Complete source rows\nlesson: Reconcile every source row\nevidence: The selected final reconciles all rows\n</experience>'
+      : 'PERSISTED_FINAL_REPLY'
+    const outputs = reflectionScenario
+      ? [
+          {
+            path:
+              scenario === 'reflection-reserved-collision'
+                ? 'Reflection-Reply.md'
+                : 'experience.md',
+            content:
+              'This model-written file intentionally differs from the final reflection reply.'
+          }
+        ]
+      : [
+          { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
+          {
+            path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
+            content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
+          },
+          ...(scenario === 'six-outputs-and-skills'
+            ? ['one', 'two', 'three', 'four'].map((name) => ({
+                path: `context/harness/skills/${name}/SKILL.md`,
+                content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
+              }))
+            : [])
+        ]
+    const expectedOutputs = [
+      ...outputs,
+      ...(scenario === 'reflection-owner-export'
+        ? [{ path: 'reflection-reply.md', content: finalReply }]
         : [])
     ]
     const server = createServer(async (req, response) => {
@@ -140,7 +170,7 @@ it
           },
           `output_${index}`
         )
-      else send(response, body, { text: 'PERSISTED_FINAL_REPLY' }, 'final')
+      else send(response, body, { text: finalReply }, 'final')
     })
     onTestFinished(async () => {
       vi.restoreAllMocks()
@@ -196,7 +226,9 @@ it
     const invocationRef = await snapshots.freezeInvocation({
       taskSnapshotRef: refs.taskSnapshotRef,
       harnessRevisionRef: refs.harnessRevisionRef,
-      mission: 'Write result.json and context/harness/instructions.md.'
+      mission: reflectionScenario
+        ? 'Reflect on the chosen output and preserve the original experience reply syntax.'
+        : 'Write result.json and context/harness/instructions.md.'
     })
     const request: ExecutionRequest = {
       contractVersion: 1,
@@ -204,7 +236,7 @@ it
       projectId: 'persistent-project',
       ...refs,
       invocationRef,
-      role: 'candidate',
+      role: reflectionScenario ? 'reflection' : 'candidate',
       origin: { kind: 'optimization', optimizationId: 'local', stageId: 'candidate' },
       interactionPolicy: 'deny-unresolved',
       budgetRef: 'synthetic',
@@ -259,6 +291,27 @@ it
       { timeout: 60000, interval: 50 }
     )
     const record = await core.get(handle.executionId)
+    if (scenario === 'reflection-reserved-collision') {
+      expect(record, JSON.stringify(record)).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed'
+      })
+      expect(record.error?.message).toMatch(/reserved|collision/i)
+      expect(await client.artifactVersion.count()).toBe(0)
+      expect(await client.review.count({ where: { outcome: 'pass' } })).toBe(0)
+      const original = await loadSessionMutationAuthority(
+        new SessionRepository(root),
+        request.projectId,
+        record.identity.sessionId!
+      )
+      expect(original.status).toBe('found')
+      if (original.status === 'found') {
+        expect(original.session.activeRun).toBeUndefined()
+        expect(JSON.stringify(original.session.messages)).toContain('Reconcile every source row')
+      }
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
     if (scenario === 'submission-failure' || scenario === 'stop-during-submission') {
       expect(record, JSON.stringify(record)).toMatchObject({
         phase: 'failed',
@@ -279,7 +332,7 @@ it
     expect(record, JSON.stringify(record)).toMatchObject({
       phase: 'completed',
       cleanup: 'confirmed',
-      evidence: { status: 'complete', text: 'PERSISTED_FINAL_REPLY' }
+      evidence: { status: 'complete', text: finalReply }
     })
     expect(record.identity).toMatchObject({
       sessionId: expect.any(String),
@@ -288,7 +341,7 @@ it
       promptAttemptId: expect.any(String),
       runId: expect.any(String)
     })
-    expect(record.evidence.artifacts).toHaveLength(outputs.length)
+    expect(record.evidence.artifacts).toHaveLength(expectedOutputs.length)
     const session = await loadSessionMutationAuthority(
       new SessionRepository(root),
       request.projectId,
@@ -298,13 +351,21 @@ it
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
-    expect(session.session.artifacts).toHaveLength(outputs.length)
+    expect(session.session.artifacts).toHaveLength(expectedOutputs.length)
     const before = await owners.exportResult(record)
     expect(
       before.files
         .map((file) => ({ path: file.path, content: file.content }))
         .sort((a, b) => a.path.localeCompare(b.path))
-    ).toEqual([...outputs].sort((a, b) => a.path.localeCompare(b.path)))
+    ).toEqual([...expectedOutputs].sort((a, b) => a.path.localeCompare(b.path)))
+    if (scenario === 'reflection-owner-export') {
+      const canonical = before.files.find((file) => file.path === 'reflection-reply.md')!
+      expect(canonical.content).toBe(before.replyText)
+      expect(before.files.find((file) => file.path === 'experience.md')!.content).not.toBe(
+        before.replyText
+      )
+      expect(record.evidence.artifacts).toContainEqual(canonical.artifactRef)
+    }
     const integrity = (await owners.readReviews(record))[0]!
     expect(integrity).toMatchObject({
       lifecycle: 'complete',
@@ -321,7 +382,7 @@ it
     if (!manifestLog || manifestLog.kind !== 'tool' || !manifestLog.rawInput)
       throw new Error('Missing fixed-version integrity manifest')
     const manifest = JSON.parse(manifestLog.rawInput)
-    expect(manifest.files).toHaveLength(outputs.length)
+    expect(manifest.files).toHaveLength(expectedOutputs.length)
     for (const file of before.files)
       expect(manifest.files).toContainEqual({
         path: file.path,
@@ -334,7 +395,128 @@ it
           : 'not-applicable'
       })
     expect(await client.reviewScopeSnapshot.count()).toBe(1)
-    expect(await client.artifactVersion.count()).toBe(outputs.length)
+    expect(await client.artifactVersion.count()).toBe(expectedOutputs.length)
+    if (scenario.startsWith('checks-')) {
+      const controller = new AbortController()
+      const checks: OutputCheckSpec[] = [
+        {
+          kind: 'json-value',
+          path: 'result.json',
+          pointer: '/answer',
+          expected: scenario === 'checks-mismatch' ? 43 : 42
+        }
+      ]
+      const originalChecks = structuredClone(checks)
+      const target = structuredClone(record)
+      const repository = new ReviewRepository(async () => client, { snapshotStorageRoot: root })
+      let committedId: string | undefined
+      if (
+        scenario === 'checks-submission-failure' ||
+        scenario === 'checks-abort-during-commit' ||
+        scenario === 'checks-abort-after-commit'
+      )
+        vi.spyOn(ReviewRepository.prototype, 'commitScopedSubmission').mockImplementationOnce(
+          async function (this: ReviewRepository, input) {
+            if (scenario === 'checks-submission-failure')
+              throw new Error('Synthetic deterministic check submission failure')
+            // Exercise the real SQLite transaction. Stop may arrive while it is pending,
+            // or after it has durably committed a passing Review but before returning.
+            const pending = originalSubmission.call(this, input)
+            if (scenario === 'checks-abort-during-commit') controller.abort()
+            const committed = await pending
+            committedId = committed.id
+            expect(committed).toMatchObject({ lifecycle: 'complete', outcome: 'pass' })
+            if (scenario === 'checks-abort-after-commit') controller.abort()
+            return committed
+          }
+        )
+      const pending = owners.commitDeterministicReview!({
+        target,
+        checks,
+        signal: controller.signal
+      })
+      if (scenario === 'checks-freeze-before-await') {
+        // These synchronous mutations run after the API's first await, before either the
+        // pinned turn or file reads settle. Neither may change persisted check provenance.
+        checks[0]!.expected = -1
+        checks[0]!.path = 'missing.json'
+        checks.push({ kind: 'json-value', path: 'result.json', pointer: '/answer', expected: -1 })
+        target.executionId = 'forged-after-call'
+        target.request.projectId = 'another-project'
+        target.evidence.artifacts[0]!.versionId = 'uncommitted-after-call'
+      }
+      if (
+        scenario === 'checks-submission-failure' ||
+        scenario === 'checks-abort-during-commit' ||
+        scenario === 'checks-abort-after-commit'
+      ) {
+        await expect(pending).rejects.toThrow()
+        const persisted = await client.review.findMany({
+          where: { model: 'deterministic-json-value-v1' }
+        })
+        expect(persisted).toHaveLength(1)
+        expect(persisted[0]).toMatchObject({
+          lifecycle: 'error',
+          outcome: null,
+          errorMessage: 'Output checks could not be completed.'
+        })
+        if (committedId) expect(persisted[0]!.id).toBe(committedId)
+        expect(
+          await client.review.count({
+            where: { model: 'deterministic-json-value-v1', outcome: 'pass' }
+          })
+        ).toBe(0)
+        // Failed check publication must not rewrite the original target's integrity Review.
+        expect(await owners.readReviews(record)).toEqual([integrity])
+      } else {
+        const committed = await pending
+        const expectedOutcome = scenario === 'checks-mismatch' ? 'flagged' : 'pass'
+        expect(committed.outcome).toBe(expectedOutcome)
+        const reviews = await repository.getReviewsForProjectSession(
+          request.projectId,
+          record.identity.sessionId!
+        )
+        const checked = reviews.find((review) => review.id === committed.reviewId)!
+        expect(checked).toMatchObject({
+          lifecycle: 'complete',
+          outcome: expectedOutcome,
+          model: 'deterministic-json-value-v1'
+        })
+        const file = before.files.find((file) => file.path === 'result.json')!
+        expect(checked.checks).toHaveLength(1)
+        expect(checked.checks[0]).toMatchObject({
+          status: expectedOutcome === 'pass' ? 'pass' : 'fail',
+          artifactVersionId: file.artifactRef.versionId
+        })
+        const log = checked.reviewerLog.find(
+          (entry) => entry.kind === 'tool' && entry.toolName === 'earthnano.output-checks'
+        )
+        if (!log || log.kind !== 'tool' || !log.rawInput || !log.rawOutput)
+          throw new Error('Missing frozen output-check evidence')
+        const metadata = JSON.parse(log.rawInput)
+        expect(metadata).toMatchObject({
+          kind: 'earthnano-output-checks',
+          targetExecutionId: record.executionId,
+          targetArtifacts: record.evidence.artifacts,
+          expectationsDigest: outputDigest(originalChecks),
+          checks: originalChecks,
+          results: [
+            {
+              path: 'result.json',
+              pointer: '/answer',
+              status: expectedOutcome === 'pass' ? 'pass' : 'fail',
+              artifactRef: file.artifactRef
+            }
+          ]
+        })
+        expect(JSON.parse(log.rawOutput)).toEqual(metadata.results)
+        expect(checked.scope.artifactVersionIds).toContain(file.artifactRef.versionId)
+        expect(await owners.readReviews(record)).toEqual([integrity])
+      }
+      expect(await client.artifactVersion.count()).toBe(outputs.length)
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
     expect(await owners.shutdown()).toEqual({ reaped: true })
     expect(await owners.shutdown()).toEqual({ reaped: true })
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
@@ -344,7 +526,12 @@ it
       getClient: async () => client
     })
     await writeFile(
-      join(root, 'candidates', record.executionId, `workspace/outputs/${outputs[1]!.path}`),
+      join(
+        root,
+        'candidates',
+        record.executionId,
+        `workspace/outputs/${outputs[Math.min(1, outputs.length - 1)]!.path}`
+      ),
       'MUTATED_CWD'
     )
     expect(await owners.exportResult(record)).toEqual(before)

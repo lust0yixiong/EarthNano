@@ -147,6 +147,9 @@ export async function createDesktopOptimizationOptions(
       python,
       executionLimit: request.executionLimit,
       semanticCriteria: request.criteria,
+      ...(request.method === undefined ? {} : { method: structuredClone(request.method) }),
+      ...(request.checks === undefined ? {} : { checks: structuredClone(request.checks) }),
+      ...(request.domain === undefined ? {} : { domain: structuredClone(request.domain) }),
       ownerOptions: { dataRoot, configRoot, getClient: () => getProjectDbClient(configRoot) },
       input: {
         task: { prompt: request.prompt, files: structuredClone(request.files) },

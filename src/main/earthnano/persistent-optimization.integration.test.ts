@@ -20,6 +20,11 @@ import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { FileExecutionStore } from './execution-store'
 import { ExecutionCore } from './execution-core'
 import { initDataRoot } from '../storage-root'
+import {
+  minimumResearchExecutions,
+  type OptimizationDomainSpec,
+  type OutputCheckSpec
+} from '../../shared/earthnano/research-outcome'
 
 const stream = (
   response: ServerResponse,
@@ -87,16 +92,26 @@ async function exercise(
   desktop = false,
   stopEarly = false,
   method?: OptimizationMethodOptions,
-  failFirstProposal = false
+  failFirstProposal = false,
+  research?: { domain?: OptimizationDomainSpec; checks?: OutputCheckSpec[] }
 ): Promise<void> {
   const k = method?.k ?? 1
-  const expectedAdmissions = 7 * k + (k > 1 ? 1 : 0) + (desktop ? 2 : 0)
-  const executionLimit = method
-    ? minimumOptimizationExecutions(method, desktop) + 3
-    : desktop && live
-      ? 12
-      : 10
-  const requestLimit = method ? 96 : desktop ? 48 : 32
+  const taskCount = 1 + (research?.domain?.nextTasks.length ?? 0)
+  const expectedAdmissions =
+    (7 * k + (k > 1 ? 1 : 0) + (desktop ? 2 : 0) + (research?.domain ? 1 : 0)) * taskCount
+  const executionLimit = research?.domain
+    ? minimumResearchExecutions(
+        method ?? { mode: 'sequential', k: 1, concurrency: 1 },
+        research.domain
+      ) + 3
+    : method
+      ? minimumOptimizationExecutions(method, desktop) + 3
+      : desktop && live
+        ? 12
+        : 10
+  const requestLimit = research?.domain ? 112 : method ? 96 : desktop ? 48 : 32
+  const reflectionReply =
+    '<edits>Reading and verification guidance was made explicit.</edits>\n<experience>\ncue: CSV aggregation\nlesson: Read the source, exclude the header and independently check count and sum.\nevidence: Compared baseline and candidate result.json with the frozen input CSV.\nconfidence: limited to this experiment\n</experience>'
   const root = await mkdtemp(join(tmpdir(), 'earthnano-persistent-loop-'))
   const dataRoot = join(root, 'data'),
     configRoot = join(root, 'config')
@@ -109,10 +124,12 @@ async function exercise(
     rejects = 0
   const usage = { input: 0, cacheRead: 0, output: 0 }
   const readInputs = new Set<string>()
+  const successorContexts = new Map<string, string>()
   const loopbackKey = randomUUID()
   let apiKey = ''
   let diagnosticError = ''
   let desktopRunDirectory: string | undefined
+  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
   let liveReportWritten = false
   const server = createServer(async (request, response) => {
     const reject = (): void => {
@@ -160,6 +177,10 @@ async function exercise(
         return
       }
       const inputDirectory = /^INPUT: (.+)$/m.exec(userText)?.[1]?.trim()
+      if (research?.domain && inputDirectory && ['proposer', 'composer'].includes(role)) {
+        const csv = await readFile(join(inputDirectory, 'values.csv'), 'utf8')
+        if (csv.includes('three,6')) successorContexts.set(inputDirectory, userText)
+      }
       const allBlocks = body.messages.flatMap((message: { content: unknown }) =>
         Array.isArray(message.content) ? message.content : []
       )
@@ -187,7 +208,7 @@ async function exercise(
             block.type === 'tool_result' &&
             readIds.has(block.tool_use_id) &&
             !block.is_error &&
-            JSON.stringify(block.content).includes('three,3')
+            /three,(3|6)/.test(JSON.stringify(block.content))
         )
       )
         readInputs.add(inputDirectory)
@@ -264,7 +285,9 @@ async function exercise(
             text:
               role === 'selector'
                 ? '```choice\nB\n```\n<why>Both outputs satisfy the task; choose B as the deterministic tie-break.</why>'
-                : 'Completed the requested work and checked the output.'
+                : role === 'reflection'
+                  ? reflectionReply
+                  : 'Completed the requested work and checked the output.'
           })
           return
         }
@@ -282,6 +305,14 @@ async function exercise(
           })
           return
         }
+        if (role === 'reflection') {
+          expect(userText).not.toContain('assessment-plan.json')
+          stream(response, body.model, {
+            name: 'Write',
+            input: { file_path: join(output, 'experience.md'), content: reflectionReply }
+          })
+          return
+        }
         if (role === 'reviewer') {
           const artifacts = JSON.parse(
             await readFile(join(inputDirectory!, 'evidence/artifacts.json'), 'utf8')
@@ -290,6 +321,17 @@ async function exercise(
             await readFile(join(inputDirectory!, 'evidence/criteria.json'), 'utf8')
           )
           const file = artifacts[0]
+          const original = JSON.parse(
+            await readFile(join(inputDirectory!, 'evidence/task.json'), 'utf8')
+          )
+          const source = original.files.find(
+            (entry: { path: string }) => entry.path === 'values.csv'
+          ).content as string
+          const sum = source
+            .trim()
+            .split('\n')
+            .slice(1)
+            .reduce((total, row) => total + Number(row.split(',')[1]), 0)
           stream(response, body.model, {
             name: 'Write',
             input: {
@@ -298,8 +340,7 @@ async function exercise(
                 schemaVersion: 1,
                 score: 100,
                 outcome: 'pass',
-                rationale:
-                  'The JSON has count 3 and sum 6, matching independent recomputation from input rows.',
+                rationale: `The JSON has count 3 and sum ${sum}, matching independent recomputation from input rows.`,
                 checks: criteria.criteria.map((criterion: { id: string }) => ({
                   criterionId: criterion.id,
                   status: 'pass',
@@ -317,13 +358,26 @@ async function exercise(
           return
         }
         const editing = role === 'proposer' || role === 'composer'
+        let sum = 6
+        if (role === 'baseline' || role === 'candidate' || editing) {
+          const csv = await readFile(join(inputDirectory!, 'values.csv'), 'utf8')
+          sum = csv
+            .trim()
+            .split('\n')
+            .slice(1)
+            .reduce((total, row) => total + Number(row.split(',')[1]), 0)
+          if (research?.domain && editing && sum === 15) {
+            expect(userText).toContain('EXPERIENCE.md')
+            expect(userText).toContain('CSV aggregation')
+          }
+        }
         stream(response, body.model, {
           name: 'Write',
           input: {
             file_path: join(output, editing ? 'context/harness/instructions.md' : 'result.json'),
             content: editing
               ? `Read the frozen CSV; calculate count and sum; verify both values and write compact JSON. Revision ${role}-${requests}.`
-              : '{"count":3,"sum":6}\n'
+              : JSON.stringify({ count: 3, sum }) + '\n'
           }
         })
       }
@@ -361,7 +415,16 @@ async function exercise(
       await writeFile(
         process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT,
         JSON.stringify(
-          { status: 'failed', error: diagnosticError, method, requests, rejects, usage, records },
+          {
+            status: 'failed',
+            error: diagnosticError,
+            method,
+            requests,
+            rejects,
+            usage,
+            records,
+            ...(result?.domain ? { domain: result.domain } : {})
+          },
           null,
           2
         ) + '\n',
@@ -411,6 +474,7 @@ async function exercise(
     harnessRoot: resolve('vendor/harness2'),
     ownerOptions,
     executionLimit,
+    ...(research ?? {}),
     ...(method ? { method } : {}),
     executionTimeoutMs: 120_000,
     timeoutMs: 480_000,
@@ -451,7 +515,6 @@ async function exercise(
       }
     }
   }
-  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
   let desktopRunId: string | undefined
   const observedStates = new Set<string>()
   const criteria =
@@ -504,7 +567,8 @@ async function exercise(
       files: [...runOptions.input.task.files],
       criteria,
       executionLimit,
-      ...(method ? { method } : {})
+      ...(method ? { method } : {}),
+      ...(research ?? {})
     })
     desktopRunId = initial.runId
     desktopRunDirectory = join(root, 'desktop', initial.runId)
@@ -524,6 +588,14 @@ async function exercise(
           expect(final.budget.admitted).toBe(k)
           expect(final.budget.active).toBe(0)
           expect(final.executions.every((execution) => execution.role === 'baseline')).toBe(true)
+          if (research?.domain) {
+            expect(final.domain?.order).toHaveLength(taskCount)
+            expect(final.domain?.tasks.every((task) => !task.experience && !task.outcome)).toBe(
+              true
+            )
+            expect(final.domain?.library.entries).toEqual([])
+            expect(final.outcome).toBeUndefined()
+          }
         },
         { timeout: 30_000, interval: 100 }
       )
@@ -550,8 +622,35 @@ async function exercise(
           completed: result.records.length,
           active: 0
         })
-        expect(progress.assessments?.baseline.reviewId).toBeTruthy()
-        expect(progress.assessments?.candidate.reviewId).toBeTruthy()
+        if (research?.domain) {
+          expect(progress.assessments).toBeUndefined()
+          expect(progress.outcome).toBeUndefined()
+          expect(progress.domain?.library).toMatchObject({
+            scope: 'experiment',
+            entries: expect.any(Array)
+          })
+          expect(progress.domain?.tasks).toHaveLength(taskCount)
+          expect(
+            progress.domain?.tasks.every((task) =>
+              progress.domain!.library.entries.includes(task.taskId)
+                ? task.experience?.scope === 'experiment'
+                : task.experience === undefined
+            )
+          ).toBe(true)
+          expect(
+            progress.domain?.tasks.every((task) => task.outcome?.artifact.status === 'passed')
+          ).toBe(true)
+        } else if (research?.checks) {
+          expect(progress.assessments?.baseline.reviewId).toBeTruthy()
+          expect(progress.assessments?.candidate.reviewId).toBeTruthy()
+          const expected = research.checks.every((check) => check.expected === 6)
+            ? 'passed'
+            : 'failed'
+          expect(progress.outcome?.artifact.status).toBe(expected)
+          expect(progress.outcome?.configuration.status).toBe(
+            expected === 'passed' ? 'eligible' : 'blocked'
+          )
+        } else expect(progress.outcome?.configuration.status).toBe('unverified')
         if (method) {
           expect(progress.method).toEqual(method)
           expect(progress.selection).toMatchObject({
@@ -596,19 +695,23 @@ async function exercise(
     expect(result.records.length).toBeGreaterThanOrEqual(expectedAdmissions)
     expect(result.records.length).toBeLessThanOrEqual(executionLimit)
   } else expect(result.records).toHaveLength(expectedAdmissions + (failFirstProposal ? 1 : 0))
-  expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(k)
-  expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3 * k)
+  expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(
+    k * taskCount
+  )
+  expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(
+    3 * k * taskCount
+  )
   const proposals = result.records.filter((record) => record.request.role === 'proposer').length
   const compositions = result.records.filter((record) => record.request.role === 'composer').length
   if (live) {
-    expect(proposals).toBeGreaterThanOrEqual(2 * k)
-    expect(compositions).toBeGreaterThanOrEqual(k)
+    expect(proposals).toBeGreaterThanOrEqual(2 * k * taskCount)
+    expect(compositions).toBeGreaterThanOrEqual(k * taskCount)
   } else {
-    expect(proposals).toBe(2 * k + (failFirstProposal ? 1 : 0))
-    expect(compositions).toBe(k)
+    expect(proposals).toBe(2 * k * taskCount + (failFirstProposal ? 1 : 0))
+    expect(compositions).toBe(k * taskCount)
   }
   expect(result.records.filter((record) => record.request.role === 'selector')).toHaveLength(
-    k > 1 ? 1 : 0
+    k > 1 ? taskCount : 0
   )
   if (method)
     expect(result.methodResult).toMatchObject({
@@ -623,7 +726,40 @@ async function exercise(
         }
       }
     })
-  expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
+  if (research?.domain) {
+    const domainMethod = result.methodResult as {
+      library: { files: Array<{ path: string; content: string }> }
+      tasks: Array<{
+        executionIds: string[]
+        configurationChanged: boolean
+        fallbackStages: unknown[]
+      }>
+    }
+    expect(domainMethod.tasks).toHaveLength(taskCount)
+    if (!live)
+      expect(
+        domainMethod.tasks.every(
+          (task) => task.configurationChanged && task.fallbackStages.length === 0
+        )
+      ).toBe(true)
+    expect(result.records.filter((record) => record.request.role === 'reflection')).toHaveLength(
+      taskCount
+    )
+    const firstExperience = domainMethod.library.files.find((file) =>
+      file.path.endsWith(`/${result.domain!.order[0]}/EXPERIENCE.md`)
+    )
+    if (!live) expect(firstExperience).toBeTruthy()
+    if (!live) expect(successorContexts.size).toBeGreaterThanOrEqual(3)
+    if (firstExperience) {
+      for (const context of successorContexts.values())
+        expect(context).toContain(
+          JSON.stringify(firstExperience.content)
+            .replaceAll('@', '\\u0040')
+            .replaceAll('`', '\\u0060')
+        )
+    } else expect(result.domain!.tasks[0]!.experience).toBeUndefined()
+  } else
+    expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
   const completedRecords = result.records.filter((record) => record.phase === 'completed')
   if (failFirstProposal) {
     expect(result.records.filter((record) => record.phase === 'failed')).toMatchObject([
@@ -637,7 +773,13 @@ async function exercise(
   expect(completedRecords.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
   const sessionIds = new Set(completedRecords.map((record) => record.identity.sessionId))
   expect(sessionIds.size).toBe(completedRecords.length)
-  if (live) expect(readInputs.size).toBe(4 * k)
+  if (live)
+    for (const record of completedRecords.filter((record) =>
+      ['baseline', 'candidate'].includes(record.request.role)
+    ))
+      expect(
+        [...readInputs].some((directory) => directory.includes(`/${record.executionId}/`))
+      ).toBe(true)
   if (desktop && method) {
     const fixedBaseline = result.records.find(
       (record) => record.request.role === 'baseline' && record.request.origin.stageId === 'base1'
@@ -673,17 +815,36 @@ async function exercise(
       expect(reviews.length).toBeGreaterThan(0)
       versionCount += exported.files.length
       reviewCount += reviews.length
-      if (record.request.role === 'baseline' || record.request.role === 'candidate')
+      if (
+        ['baseline', 'candidate'].includes(record.request.role) &&
+        (!live ||
+          !result.domain ||
+          result.domain.tasks.some(
+            (task) => task.assessments?.candidate.targetExecutionId === record.executionId
+          ))
+      ) {
+        const taskIndex = research?.domain
+          ? (result.methodResult as { tasks: Array<{ executionIds: string[] }> }).tasks.findIndex(
+              (task) => task.executionIds.includes(record.executionId)
+            )
+          : 0
         expect(
           JSON.parse(exported.files.find((file) => file.path === 'result.json')!.content)
-        ).toEqual({ count: 3, sum: 6 })
+        ).toEqual({ count: 3, sum: taskIndex > 0 ? 15 : 6 })
+      }
     }
     if (desktop) {
-      expect(result.assessments).toBeTruthy()
+      if (result.domain) {
+        expect(result.assessments).toBeUndefined()
+        expect(result.outcome).toBeUndefined()
+      } else expect(result.assessments).toBeTruthy()
       const repository = new ReviewRepository(async () => reopened, {
         snapshotStorageRoot: dataRoot
       })
-      for (const assessment of Object.values(result.assessments!)) {
+      const allAssessments = result.domain
+        ? result.domain.tasks.flatMap((task) => Object.values(task.assessments!))
+        : Object.values(result.assessments!)
+      for (const assessment of allAssessments) {
         const target = result.records.find(
           (record) => record.executionId === assessment.targetExecutionId
         )!
@@ -695,6 +856,32 @@ async function exercise(
         expect(semantic.lifecycle).toBe('complete')
         expect(semantic.checks.length).toBe(1)
         expect(assessment.score).toBeGreaterThanOrEqual(0)
+        reviewCount++
+      }
+      const outcomes = result.domain
+        ? result.domain.tasks.map((task) => task.outcome!)
+        : result.outcome
+          ? [result.outcome]
+          : []
+      for (const outcome of outcomes) {
+        if (!outcome.artifact.reviewId) continue
+        const target = result.records.find(
+          (record) =>
+            record.request.harnessRevisionRef.id === outcome.configuration.harnessRevisionRef!.id &&
+            record.request.role === 'candidate' &&
+            record.evidence.artifacts.some((ref) =>
+              outcome.artifact.checks.some(
+                (check) => check.artifactRef?.versionId === ref.versionId
+              )
+            )
+        )!
+        const reviews = await repository.getReviewsForProjectSession(
+          project.id,
+          target.identity.sessionId!
+        )
+        const checkReview = reviews.find((review) => review.id === outcome.artifact.reviewId)!
+        expect(checkReview.lifecycle).toBe('complete')
+        expect(checkReview.outcome).toBe(outcome.artifact.status === 'passed' ? 'pass' : 'flagged')
         reviewCount++
       }
     }
@@ -718,10 +905,45 @@ async function exercise(
           versionCount,
           reviewCount,
           verifiedInputReads: readInputs.size,
+          ...(research?.domain
+            ? {
+                successorEditingContexts: successorContexts.size,
+                verifiedSuccessorExperienceContexts: result.domain!.tasks[0]!.experience
+                  ? successorContexts.size
+                  : 0
+              }
+            : {}),
           reopened: true,
-          configurationChanged: true,
-          fallbackStages: [],
+          configurationChanged: result.domain
+            ? (
+                result.methodResult as { tasks: Array<{ configurationChanged: boolean }> }
+              ).tasks.some((task) => task.configurationChanged)
+            : (result.methodResult as { configurationChanged: boolean }).configurationChanged,
+          fallbackStages: result.domain
+            ? (
+                result.methodResult as { tasks: Array<{ fallbackStages: unknown[] }> }
+              ).tasks.flatMap((task) => task.fallbackStages)
+            : (result.methodResult as { fallbackStages: unknown[] }).fallbackStages,
+          ...(result.domain
+            ? {
+                methodTasks: (
+                  result.methodResult as {
+                    tasks: Array<{
+                      taskId: string
+                      configurationChanged: boolean
+                      fallbackStages: unknown[]
+                    }>
+                  }
+                ).tasks.map((task) => ({
+                  taskId: task.taskId,
+                  configurationChanged: task.configurationChanged,
+                  fallbackStages: task.fallbackStages
+                }))
+              }
+            : {}),
           selection: (result.methodResult as { selection?: unknown }).selection,
+          ...(result.domain ? { domain: result.domain } : {}),
+          ...(result.outcome ? { outcome: result.outcome } : {}),
           ...(desktop
             ? {
                 desktop: true,
@@ -761,6 +983,56 @@ async function exercise(
 it.skipIf(process.platform === 'win32')(
   'persists actual Sessions, versions and reviews through the original seven-stage Harness method and reopens them',
   () => exercise(false),
+  480_000
+)
+
+const researchDomain: OptimizationDomainSpec = {
+  name: 'csv-analysis',
+  nextTasks: [
+    {
+      prompt:
+        'Read INPUT/values.csv using Read. Calculate the number of data rows and sum of the value column. Write only JSON with count and sum to OUTPUT/result.json using Write.',
+      files: [{ path: 'values.csv', content: 'id,value\none,4\ntwo,5\nthree,6\n' }],
+      criteria:
+        'The result excludes the header from its data row count.\nThe arithmetic sum matches the value column.',
+      checks: [{ kind: 'json-value', path: 'result.json', pointer: '/sum', expected: 15 }]
+    }
+  ]
+}
+const sumCheck = (expected: number): OutputCheckSpec[] => [
+  { kind: 'json-value', path: 'result.json', pointer: '/sum', expected }
+]
+it.skipIf(process.platform === 'win32')(
+  'persists an experiment-local Library, reuses its first lesson on the second task, and separately verifies both results',
+  () =>
+    exercise(false, true, false, undefined, false, { domain: researchDomain, checks: sumCheck(6) }),
+  480_000
+)
+it.skipIf(process.platform === 'win32')(
+  'retains a completed lifecycle while a deterministic mismatch blocks configuration admission',
+  () => exercise(false, true, false, undefined, false, { checks: sumCheck(7) }),
+  480_000
+)
+it.skipIf(process.platform === 'win32')(
+  'permits further validation only after passing pinned deterministic and independent semantic checks',
+  () => exercise(false, true, false, undefined, false, { checks: sumCheck(6) }),
+  480_000
+)
+it.skipIf(process.platform === 'win32')(
+  'stops an explicit domain before any successor or experience execution is admitted',
+  () =>
+    exercise(false, true, true, undefined, false, { domain: researchDomain, checks: sumCheck(6) }),
+  90_000
+)
+it.skipIf(
+  process.platform === 'win32' ||
+    process.env.EARTHNANO_LIVE_DEEPSEEK !== '1' ||
+    !process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE ||
+    process.env.EARTHNANO_LIVE_DOMAIN !== '1'
+)(
+  'validates original domain reflection and independent acceptance with authorized DeepSeek',
+  () =>
+    exercise(true, true, false, undefined, false, { domain: researchDomain, checks: sumCheck(6) }),
   480_000
 )
 it.skipIf(

@@ -23,9 +23,15 @@ import type {
 } from './run-persistent-optimization'
 import {
   normalizeOptimizationMethod,
-  minimumOptimizationExecutions,
   MAX_OPTIMIZATION_EXECUTIONS
 } from '../../shared/earthnano/optimization-method'
+import {
+  normalizeOutputChecks,
+  normalizeOptimizationDomain,
+  minimumResearchExecutions,
+  type ResearchOutcome,
+  type DomainOptimizationSummary
+} from '../../shared/earthnano/research-outcome'
 import { runPersistentOptimization } from './run-persistent-optimization'
 
 export interface DesktopOptimizationManagerOptions {
@@ -65,6 +71,8 @@ const safeFile = (value: unknown): value is string =>
   value.split('/').every((part) => /^[A-Za-z0-9_. -]+$/.test(part) && part !== '.' && part !== '..')
 const validate = (request: StartDesktopOptimization): void => {
   const method = normalizeOptimizationMethod(request?.method)
+  const domain = normalizeOptimizationDomain(request?.domain)
+  normalizeOutputChecks(request?.checks)
   const criteriaLines =
     typeof request?.criteria === 'string'
       ? request.criteria
@@ -74,6 +82,21 @@ const validate = (request: StartDesktopOptimization): void => {
       : []
   if (
     !request ||
+    Object.keys(request).some(
+      (key) =>
+        ![
+          'projectId',
+          'sourceSessionId',
+          'requestKey',
+          'prompt',
+          'files',
+          'criteria',
+          'executionLimit',
+          'method',
+          'checks',
+          'domain'
+        ].includes(key)
+    ) ||
     !safeId(request.projectId) ||
     !safeId(request.sourceSessionId) ||
     !safeId(request.requestKey) ||
@@ -87,7 +110,7 @@ const validate = (request: StartDesktopOptimization): void => {
     criteriaLines.length > 16 ||
     criteriaLines.some((line) => line.length > 2000) ||
     !Number.isSafeInteger(request.executionLimit) ||
-    request.executionLimit < minimumOptimizationExecutions(method) ||
+    request.executionLimit < minimumResearchExecutions(method, domain) ||
     request.executionLimit > MAX_OPTIMIZATION_EXECUTIONS ||
     !Array.isArray(request.files) ||
     request.files.length > 32
@@ -99,16 +122,18 @@ const validate = (request: StartDesktopOptimization): void => {
     if (
       !file ||
       !safeFile(file.path) ||
-      seen.has(file.path) ||
+      seen.has(file.path.normalize('NFC').toLowerCase()) ||
       typeof file.content !== 'string' ||
       Buffer.byteLength(file.content) > 64_000 ||
       file.content.includes('\0')
     )
       throw new Error('Invalid optimization input file')
-    seen.add(file.path)
+    seen.add(file.path.normalize('NFC').toLowerCase())
     size += Buffer.byteLength(file.content)
   }
   if (size > 128_000) throw new Error('Optimization inputs exceed the text profile limit')
+  for (const task of domain?.nextTasks ?? [])
+    validate({ ...request, ...task, checks: task.checks, domain: undefined })
 }
 
 /** Desktop authority: one explicit user action starts one bounded method. Status is a projection
@@ -172,7 +197,13 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
             executionLimit: captured.executionLimit,
             ...(captured.method === undefined
               ? {}
-              : { method: normalizeOptimizationMethod(captured.method) })
+              : { method: normalizeOptimizationMethod(captured.method) }),
+            ...(captured.checks === undefined
+              ? {}
+              : { checks: normalizeOutputChecks(captured.checks) }),
+            ...(captured.domain === undefined
+              ? {}
+              : { domain: normalizeOptimizationDomain(captured.domain) })
           })
         )
         .digest('hex')
@@ -313,6 +344,12 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       this.persist(saved)
       const projectProgress = (progress: PersistentOptimizationProgress): void => {
         last = structuredClone(progress)
+        const research = progress as PersistentOptimizationProgress & {
+          outcome?: ResearchOutcome
+          domain?: DomainOptimizationSummary
+        }
+        if (research.outcome) saved.progress.outcome = structuredClone(research.outcome)
+        if (research.domain) saved.progress.domain = structuredClone(research.domain)
         const records = progress.records
         saved.progress.executions = records.map((record) => ({
           executionId: record.executionId,
@@ -345,6 +382,10 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         workRoot,
         executionLimit: request.executionLimit,
         method: normalizeOptimizationMethod(request.method),
+        ...(request.checks === undefined ? {} : { checks: normalizeOutputChecks(request.checks) }),
+        ...(request.domain === undefined
+          ? {}
+          : { domain: normalizeOptimizationDomain(request.domain) }),
         semanticCriteria: request.criteria,
         signal: controller.signal,
         onProgress: projectProgress
@@ -357,8 +398,15 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       const methodResult = result.methodResult as { selection?: OptimizationProgress['selection'] }
       if (methodResult?.selection)
         saved.progress.selection = structuredClone(methodResult.selection)
-      if (!result.assessments) throw new Error('Independent assessments missing')
-      saved.progress.assessments = result.assessments
+      const research = result as typeof result & {
+        outcome?: ResearchOutcome
+        domain?: DomainOptimizationSummary
+      }
+      if (research.outcome) saved.progress.outcome = structuredClone(research.outcome)
+      if (research.domain) saved.progress.domain = structuredClone(research.domain)
+      if (!result.assessments && !research.domain)
+        throw new Error('Independent assessments missing')
+      if (result.assessments) saved.progress.assessments = result.assessments
       saved.progress.state = controller.signal.aborted ? 'cancelled' : 'completed'
       saved.progress.stage = saved.progress.state
     } catch (error) {

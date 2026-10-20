@@ -337,3 +337,151 @@ it('keeps legacy omitted-option digest byte-compatible and treats explicit metho
   ).rejects.toThrow('conflicts')
   expect(run).toHaveBeenCalledOnce()
 })
+
+const checks = [
+  { kind: 'json-value' as const, path: 'result.json', pointer: '/count', expected: 3 }
+]
+const domain = {
+  name: 'csv-count',
+  nextTasks: [
+    {
+      prompt: 'Count the next data set',
+      criteria: 'Correct count',
+      files: [{ path: 'values.csv', content: 'value\n2' }],
+      checks
+    }
+  ]
+}
+const researchOutcome = {
+  artifact: {
+    status: 'failed' as const,
+    checks: [
+      {
+        path: 'result.json',
+        pointer: '/count',
+        status: 'fail' as const,
+        reason: 'mismatch' as const
+      }
+    ],
+    reviewId: 'check-review'
+  },
+  configuration: { status: 'blocked' as const, reasons: ['Expected count differs'] }
+}
+it('validates the full domain text profile and aggregate budget before any session or provider side effects', async () => {
+  const { manager, options, root } = fixture(async () => complete)
+  for (const nextTask of [
+    { ...domain.nextTasks[0], files: [{ path: '../escape', content: 'x' }] },
+    {
+      ...domain.nextTasks[0],
+      files: [
+        { path: 'A.csv', content: 'x' },
+        { path: 'a.csv', content: 'y' }
+      ]
+    },
+    { ...domain.nextTasks[0], files: [{ path: 'unicode.csv', content: '汉'.repeat(22000) }] },
+    {
+      ...domain.nextTasks[0],
+      files: [1, 2, 3].map((id) => ({ path: `data${id}.csv`, content: 'x'.repeat(64000) }))
+    },
+    { ...domain.nextTasks[0], criteria: Array(17).fill('criterion').join('\n') },
+    {
+      ...domain.nextTasks[0],
+      files: [
+        { path: 'a.csv', content: 'x' },
+        { path: 'a.csv', content: 'y' }
+      ]
+    }
+  ])
+    await expect(
+      manager.start({ ...task, executionLimit: 20, domain: { ...domain, nextTasks: [nextTask] } })
+    ).rejects.toThrow()
+  await expect(manager.start({ ...task, executionLimit: 19, domain })).rejects.toThrow('Invalid')
+  await expect(
+    manager.start({ ...task, checks: [{ ...checks[0], pointer: '/bad~2' }] })
+  ).rejects.toThrow()
+  expect(options.validateSession).not.toHaveBeenCalled()
+  expect(options.createOptions).not.toHaveBeenCalled()
+  expect(readdirSync(root)).toEqual([])
+})
+it('preserves checks and domain identity, forwards the shared budget and keeps lifecycle completion separate from blocked acceptance', async () => {
+  const summary = {
+    name: domain.name,
+    order: ['task1', 'task2'],
+    tasks: [{ taskId: 'task1', outcome: researchOutcome }],
+    library: { scope: 'experiment' as const, entries: [], digest: 'digest' }
+  }
+  const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+    options.onProgress!({
+      optimizationId: 'opt',
+      stage: 'assessing',
+      records: [],
+      domain: summary
+    } as import('./run-persistent-optimization').PersistentOptimizationProgress)
+    return { ...complete, outcome: researchOutcome, domain: summary }
+  })
+  const { manager, options } = fixture(run)
+  const dto = { ...task, checks, domain, executionLimit: 20 }
+  const initial = await manager.start(dto)
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(initial.runId))).state).toBe('completed')
+  )
+  const saved = await manager.get(key(initial.runId))
+  expect(saved.outcome?.configuration.status).toBe('blocked')
+  expect(saved.domain).toEqual(summary)
+  expect(run.mock.calls[0][0]).toMatchObject({ checks, domain, executionLimit: 20 })
+  expect(options.createOptions).toHaveBeenCalledWith(dto)
+  for (const changed of [
+    { ...dto, checks: [{ ...checks[0], expected: 4 }] },
+    { ...dto, domain: { ...domain, name: 'other' } },
+    {
+      ...dto,
+      domain: { ...domain, nextTasks: [{ ...domain.nextTasks[0], prompt: 'Changed task' }] }
+    }
+  ])
+    await expect(manager.start(changed)).rejects.toThrow('conflicts')
+  const reopened = new DesktopOptimizationManager(options)
+  expect((await reopened.get(key(initial.runId))).outcome).toEqual(researchOutcome)
+  expect((await reopened.start(dto)).runId).toBe(initial.runId)
+})
+it('keeps completed-but-unverified distinct from passing checks or configuration admission', async () => {
+  const outcome = {
+    artifact: { status: 'unverified' as const, checks: [] },
+    configuration: { status: 'unverified' as const, reasons: ['No expected output supplied'] }
+  }
+  const { manager } = fixture(async () => ({ ...complete, outcome }))
+  const initial = await manager.start(task)
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(initial.runId))).state).toBe('completed')
+  )
+  expect((await manager.get(key(initial.runId))).outcome).toEqual(outcome)
+})
+it('retains an earlier task outcome when the shared domain stream is stopped before the next task completes', async () => {
+  const summary = {
+    name: domain.name,
+    order: ['task1', 'task2'],
+    tasks: [{ taskId: 'task1', outcome: researchOutcome }],
+    library: { scope: 'experiment' as const, entries: [], digest: 'digest' }
+  }
+  const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+    options.onProgress!({
+      optimizationId: 'opt',
+      stage: 'optimizing',
+      records: [],
+      domain: summary
+    } as import('./run-persistent-optimization').PersistentOptimizationProgress)
+    await new Promise<void>((resolve) =>
+      options.signal!.addEventListener('abort', () => resolve(), { once: true })
+    )
+    throw new Error('Stopped')
+  })
+  const { manager, release } = fixture(run)
+  const initial = await manager.start({ ...task, domain, executionLimit: 20 })
+  await vi.waitFor(() => expect(run).toHaveBeenCalledOnce())
+  await manager.stop(key(initial.runId))
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(initial.runId))).state).toBe('cancelled')
+  )
+  expect((await manager.get(key(initial.runId))).domain).toEqual(summary)
+  expect(release).toHaveBeenCalledOnce()
+  expect(await manager.shutdown()).toEqual({ reaped: true })
+})

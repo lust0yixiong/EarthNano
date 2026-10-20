@@ -128,3 +128,36 @@ it('rejects unknown top-level keys, missing required fields, and method fields o
   expect(api.start).not.toHaveBeenCalled()
   expect(api.get).not.toHaveBeenCalled()
 })
+
+it('forwards optional private checks and an explicit domain through the real desktop transport', async () => {
+  const dto = {
+    ...request,
+    executionLimit: 20,
+    checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 3 } }],
+    domain: { name: 'csv', nextTasks: [{ prompt: 'Next', files: [], criteria: 'Valid result' }] }
+  }
+  await invokeDesktopOptimization(api, 'start', dto)
+  expect(api.start).toHaveBeenCalledWith(dto)
+})
+it.each([
+  { checks: [{ kind: 'json-value', path: '../outside', pointer: '', expected: 1 }] },
+  { checks: [{ kind: 'json-value', path: 'result.json', pointer: 'count', expected: 1 }] },
+  {
+    domain: {
+      name: 'csv',
+      nextTasks: Array(4).fill({ prompt: 'Next', files: [], criteria: 'Valid' })
+    }
+  },
+  { domain: { name: 'csv', nextTasks: [], key: 'secret' } },
+  {
+    domain: {
+      name: 'csv',
+      nextTasks: [{ prompt: 'Next', files: [], criteria: 'Valid', unexpected: true }]
+    }
+  }
+])('rejects malformed research options at transport admission: %j', async (options) => {
+  await expect(
+    invokeDesktopOptimization(api, 'start', { ...request, ...options })
+  ).rejects.toThrow()
+  expect(api.start).not.toHaveBeenCalled()
+})
