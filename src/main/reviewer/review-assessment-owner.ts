@@ -413,15 +413,28 @@ export const runReviewAssessment = async (
             if (abortSignal?.aborted)
               throw new Error('reviewer session was aborted before stopping')
             const promptRequest = reviewerSession!.prompt([{ type: 'text', text: prompt }])
-            execution.providerPrompt()
             void Promise.resolve(promptRequest).catch(() => undefined)
             const stopReason = await driveReviewerToStop(
               reviewerSession!,
               { timeoutMs: reviewerTimeoutMs, maxUpdates: reviewerMaxUpdates, signal: abortSignal },
               {
                 ...reviewerLogDriveCallbacks,
-                onNotification: (notification) => probe?.observe?.(notification),
+                onNotification: (notification) => {
+                  // Dispatch alone is not provider acceptance. Observe only actual provider work
+                  // or the valid final response below, using Core's shared acceptance event.
+                  if (
+                    [
+                      'agent_message_chunk',
+                      'agent_thought_chunk',
+                      'tool_call',
+                      'tool_call_update'
+                    ].includes(notification.update.sessionUpdate)
+                  )
+                    execution.providerAccepted()
+                  probe?.observe?.(notification)
+                },
                 onStop: (value) => {
+                  execution.providerAccepted()
                   response = value
                 }
               }

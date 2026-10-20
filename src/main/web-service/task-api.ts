@@ -661,15 +661,28 @@ class HeadlessTaskApi {
       })
 
     await throwIfAborted()
-    const started = (await this.invoke('reviewer:run', {
-      sessionId: session.id,
-      turnMessageId,
-      projectId: session.projectId,
-      mainSessionId: session.id,
-      model: session.agentModel,
-      origin: 'auto',
-      ...(parentExecutionId ? { parentExecutionId } : {})
-    })) as ReviewRunResult
+    const cancelWaitingReviewer = (): void => {
+      void this.commandClient
+        .invoke(this.ports.commands, 'reviewer:abort', TASK_CALLER_CONTEXT, [reviewSession])
+        .catch(() => undefined)
+    }
+    signal.addEventListener('abort', cancelWaitingReviewer, { once: true })
+    let started: ReviewRunResult
+    try {
+      await throwIfAborted()
+      started = (await this.invoke('reviewer:run', {
+        sessionId: session.id,
+        turnMessageId,
+        projectId: session.projectId,
+        mainSessionId: session.id,
+        model: session.agentModel,
+        origin: 'auto',
+        waitForCompletion: true,
+        ...(parentExecutionId ? { parentExecutionId } : {})
+      })) as ReviewRunResult
+    } finally {
+      signal.removeEventListener('abort', cancelWaitingReviewer)
+    }
     await throwIfAborted()
     if (!started.started) return started
 

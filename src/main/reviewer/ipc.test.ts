@@ -199,6 +199,58 @@ describe('reviewer IPC handlers', () => {
     }
   )
 
+  it('lets a waiting owner join canonical failure only after original runtime release', async () => {
+    const execution = Promise.withResolvers<void>()
+    const cleanup = Promise.withResolvers<void>()
+    runReview.mockImplementation(async (options: { onStarted: () => void }) => {
+      options.onStarted()
+      await execution.promise
+      throw new Error('canonical Reviewer deadline exceeded')
+    })
+    const release = vi.fn(async () => cleanup.promise)
+    const owner = createReviewerCommandOwner({
+      acpRuntime,
+      modelRuntime: { admit: async () => ({ model: 'reviewer', release }) }
+    })
+    // Renderer start keeps its original early acknowledgment.
+    await expect(owner.run(createRequest())).resolves.toEqual({ started: true })
+    let joinedSettled = false
+    const joined = owner.run({ ...createRequest(), waitForCompletion: true })
+    const rejected = expect(joined).rejects.toThrow('canonical Reviewer deadline exceeded')
+    void joined.then(
+      () => {
+        joinedSettled = true
+      },
+      () => {
+        joinedSettled = true
+      }
+    )
+    execution.resolve()
+    await vi.waitFor(() => expect(release).toHaveBeenCalledOnce())
+    expect(joinedSettled).toBe(false)
+    cleanup.resolve()
+    await rejected
+    expect(runReview).toHaveBeenCalledOnce()
+  })
+
+  it('keeps a headless request waiting from admission through assessment completion', async () => {
+    const finish = Promise.withResolvers<void>()
+    runReview.mockImplementation(async (options: { onStarted: () => void }) => {
+      options.onStarted()
+      await finish.promise
+    })
+    const owner = createReviewerCommandOwner({ acpRuntime })
+    let settled = false
+    const pending = owner.run({ ...createRequest(), waitForCompletion: true }).then((value) => {
+      settled = true
+      return value
+    })
+    await vi.waitFor(() => expect(runReview).toHaveBeenCalledOnce())
+    expect(settled).toBe(false)
+    finish.resolve()
+    await expect(pending).resolves.toEqual({ started: true })
+  })
+
   it('rejects Session export conflicts before admitting a model or background review', async () => {
     const modelRuntime = {
       admit: vi.fn(async () => ({ model: 'reviewer', release: async () => undefined }))

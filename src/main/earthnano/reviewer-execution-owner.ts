@@ -1,15 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ExecutionRecord, ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
 import type { NewCheck, ReviewWithChecks } from '../../shared/reviewer'
 
-type ReviewAssessmentResult = { review: ReviewWithChecks; submittedChecks: NewCheck[] }
 import { ExecutionCore, type ExecutionContext } from './execution-core'
 import { currentExecutionScope } from './execution-scope'
 import { FileExecutionStore } from './execution-store'
 import { assertExecutionTimeout, MAX_TIMER_TIMEOUT_MS } from './execution-timeout'
 import { semanticCanonical } from './semantic-evaluation'
+
+type ReviewAssessmentResult = { review: ReviewWithChecks; submittedChecks: NewCheck[] }
 
 const reference = (id: string, value: unknown): Ref => ({
   id,
@@ -21,7 +22,7 @@ export interface ReviewerExecutionContext {
   readonly signal: AbortSignal
   /** Observation of the actual disposable provider session, never a fabricated durable Session. */
   providerSession(sessionId: string): void
-  providerPrompt(): void
+  providerAccepted(): void
   /** Called by the original resource owner; errors and pending disposal never confirm cleanup. */
   resourcesDisposed(confirmed: boolean): void
 }
@@ -44,6 +45,36 @@ export interface ReviewerExecutionOptions {
   cwd: string
 }
 
+/** Old disposable environments are independent of a new assessment. Recover only abandoned
+ * journals whose owner death is proven by the shared store; never replay their provider work or
+ * change the original Review. Without original disposal evidence their cleanup stays unknown. */
+function recoverReviewerExecutions(directory: string): void {
+  for (const name of readdirSync(directory)) {
+    if (!name.endsWith('.json.lock')) continue
+    const filename = join(directory, name.slice(0, -'.lock'.length))
+    if (!existsSync(filename)) continue
+    let store: FileExecutionStore
+    try {
+      store = FileExecutionStore.recoverStale(filename)
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Execution store still has a live owner')
+        continue
+      throw error
+    }
+    let recovery: ExecutionCore | undefined
+    try {
+      recovery = new ExecutionCore(store, {
+        execute: async () => {
+          throw new Error('Reviewer recovery cannot replay provider work')
+        }
+      })
+    } finally {
+      recovery?.dispose()
+      store.close()
+    }
+  }
+}
+
 /** The original assessment owns Review creation, MCP, submission, disposal and durable commit.
  * Core admission counts one assessment execution, including upstream's optional recovery turn;
  * it does not claim to count model requests, API calls, tokens or currency. */
@@ -56,6 +87,7 @@ export async function runReviewerExecution(
   const invocation = randomUUID()
   const directory = join(options.artifactStorageRoot, 'earthnano', 'reviewer-executions')
   mkdirSync(directory, { recursive: true, mode: 0o700 })
+  recoverReviewerExecutions(directory)
   const store = new FileExecutionStore(join(directory, `${invocation}.json`))
   const request: ExecutionRequest = {
     contractVersion: 1,
@@ -124,7 +156,7 @@ export async function runReviewerExecution(
               context.identity({ providerSessionId: sessionId })
               context.emit('session-admitted')
             },
-            providerPrompt: () => {
+            providerAccepted: () => {
               cleanupConfirmed = false
               context.emit('provider-accepted')
             },
@@ -139,7 +171,7 @@ export async function runReviewerExecution(
           return {
             phase: cancelled
               ? ('cancelled' as const)
-              : unsuccessful
+              : unsuccessful || !cleanupConfirmed
                 ? ('failed' as const)
                 : ('completed' as const),
             cleanup: cleanupConfirmed ? ('confirmed' as const) : ('unknown' as const),
@@ -158,7 +190,14 @@ export async function runReviewerExecution(
                     message: result.review.errorMessage ?? 'Review assessment failed'
                   }
                 }
-              : {})
+              : !cleanupConfirmed
+                ? {
+                    error: {
+                      code: 'reviewer-cleanup-unconfirmed',
+                      message: 'Original Reviewer resource cleanup was not confirmed'
+                    }
+                  }
+                : {})
           }
         } catch (error) {
           failed = true
@@ -189,6 +228,17 @@ export async function runReviewerExecution(
     const record: ExecutionRecord = await core.get(handle.executionId)
     if (failed) throw failure
     if (!result) throw new Error(record.error?.message ?? 'Reviewer result owner did not complete')
+    if (
+      record.phase === 'interrupted' ||
+      (record.phase !== 'completed' && result.review.lifecycle !== 'error')
+    ) {
+      throw Object.assign(
+        new Error(record.error?.message ?? `Reviewer execution ${record.phase}`),
+        {
+          code: record.error?.code ?? `reviewer-${record.phase}`
+        }
+      )
+    }
     return result
   } finally {
     core?.dispose()

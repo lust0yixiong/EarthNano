@@ -1,7 +1,7 @@
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { ReviewAssessmentResult } from '../reviewer/review-assessment-owner'
 import { ExecutionCore, emptyExecutionState, type ExecutionState } from './execution-core'
@@ -10,6 +10,8 @@ import { runReviewerExecution, type ReviewerExecutionOptions } from './reviewer-
 
 const roots: string[] = []
 afterEach(async () => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
   await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true })))
 })
 async function options(): Promise<ReviewerExecutionOptions> {
@@ -84,8 +86,8 @@ describe('original reviewer execution owner', () => {
           expect(scope.request.role).toBe('reviewer')
           childId = scope.context.executionId
           owner.providerSession('disposable-provider-session')
-          owner.providerPrompt()
-          owner.providerPrompt() // existing optional recovery remains in this same assessment admission
+          owner.providerAccepted()
+          owner.providerAccepted() // existing optional recovery remains in this same assessment admission
           owner.resourcesDisposed(true)
           admitted.resolve()
           await commit.promise
@@ -131,7 +133,7 @@ describe('original reviewer execution owner', () => {
     await expect(
       runReviewerExecution(input, async (owner) => {
         owner.providerSession('provider')
-        owner.providerPrompt()
+        owner.providerAccepted()
         owner.resourcesDisposed(false)
         throw new Error('original Review commit failed')
       })
@@ -153,7 +155,7 @@ describe('original reviewer execution owner', () => {
     const pending = runReviewerExecution(input, async (owner) => {
       ownerSignal = owner.signal
       owner.providerSession('provider')
-      owner.providerPrompt()
+      owner.providerAccepted()
       entered.resolve()
       await disposed.promise
       owner.resourcesDisposed(true)
@@ -178,6 +180,90 @@ describe('original reviewer execution owner', () => {
       cleanup: 'confirmed',
       cancellationRequested: true
     })
+  })
+
+  it('keeps the canonical deadline ahead of a late successful original Review commit', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const input = await options()
+    input.reviewerTimeoutMs = 1
+    const entered = Promise.withResolvers<void>()
+    const commit = Promise.withResolvers<void>()
+    let originalCommitted = false
+    let ownerSignal: AbortSignal | undefined
+    const pending = runReviewerExecution(input, async (owner) => {
+      ownerSignal = owner.signal
+      owner.providerSession('provider')
+      entered.resolve()
+      await commit.promise
+      originalCommitted = true
+      owner.resourcesDisposed(true)
+      return result()
+    })
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'timeout' })
+    await entered.promise
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    await vi.advanceTimersByTimeAsync(30_002)
+    expect(ownerSignal?.aborted).toBe(true)
+    expect((await records(input))[0]).toMatchObject({ phase: 'interrupted', cleanup: 'unknown' })
+    commit.resolve()
+    await rejected
+    expect(originalCommitted).toBe(true)
+    expect((await records(input))[0]).toMatchObject({ phase: 'interrupted', cleanup: 'unknown' })
+  })
+
+  it.each(['dead', 'live'] as const)(
+    'recovers a prior %s owner without replay or invented cleanup',
+    async (kind) => {
+      const input = await options()
+      await runReviewerExecution(input, async (owner) => {
+        owner.resourcesDisposed(true)
+        return result()
+      })
+      const directory = join(input.artifactStorageRoot, 'earthnano', 'reviewer-executions')
+      const filename = join(directory, (await readdir(directory))[0])
+      const stale = JSON.parse(await readFile(filename, 'utf8')) as ExecutionState
+      const [prior] = Object.values(stale.records)
+      prior.phase = 'running'
+      prior.cleanup = 'pending'
+      await writeFile(filename, JSON.stringify(stale))
+      await writeFile(`${filename}.lock`, String(process.pid))
+      if (kind === 'dead') {
+        vi.spyOn(process, 'kill').mockImplementation(() => {
+          throw Object.assign(new Error('prior PID no longer exists'), { code: 'ESRCH' })
+        })
+      }
+      let newAssessments = 0
+      await runReviewerExecution(input, async (owner) => {
+        newAssessments++
+        owner.resourcesDisposed(true)
+        return result()
+      })
+      expect(newAssessments).toBe(1)
+      const historical = JSON.parse(await readFile(filename, 'utf8')) as ExecutionState
+      expect(historical.records[prior.executionId]).toMatchObject(
+        kind === 'dead'
+          ? { phase: 'interrupted', cleanup: 'unknown', error: { code: 'process_restarted' } }
+          : { phase: 'running', cleanup: 'pending' }
+      )
+      expect((await records(input)).filter((record) => record.phase === 'completed')).toHaveLength(
+        1
+      )
+    }
+  )
+
+  it('preserves original committed Review facts while rejecting unconfirmed canonical cleanup', async () => {
+    const input = await options()
+    let originalCommitted = false
+    await expect(
+      runReviewerExecution(input, async (owner) => {
+        owner.providerSession('provider')
+        originalCommitted = true
+        owner.resourcesDisposed(false)
+        return result()
+      })
+    ).rejects.toMatchObject({ code: 'reviewer-cleanup-unconfirmed' })
+    expect(originalCommitted).toBe(true)
+    expect((await records(input))[0]).toMatchObject({ phase: 'failed', cleanup: 'unknown' })
   })
 
   it('does not let an abort relabel an independent original commit failure', async () => {
