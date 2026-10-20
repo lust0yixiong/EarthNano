@@ -36,7 +36,9 @@ export function createSessionExecutionHost(
 ): SessionExecutionHost {
   const generation = randomUUID()
   const projection = new SessionProjectionRepository(options.getClient)
-  const sessions = new SessionRepository(options.dataRoot, {}, projection)
+  // Desktop Session JSON follows the original config-root repository; scientific files and
+  // execution journals follow dataRoot. These roots may be selected independently.
+  const sessions = new SessionRepository(options.configRoot, {}, projection)
   const projects = new ProjectRepository(options.getClient, options.configRoot)
   const settings = new SettingsRepository(options.configRoot)
   const versions = new ManagedFileVersionService({

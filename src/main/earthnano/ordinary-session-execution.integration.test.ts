@@ -107,25 +107,28 @@ const send = (
 /** Actual ordinary Send, original native runtime and durable owners; no candidate driver or outer Core. */
 const runOrdinary = async (live: boolean, stop = false, resume = false): Promise<void> => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-ordinary-send-')))
-  initDataRoot(root)
-  const client = createProjectDbClient(root)
+  const configRoot = join(root, 'config')
+  const dataRoot = join(root, 'data')
+  await Promise.all([mkdir(configRoot), mkdir(dataRoot)])
+  initDataRoot(dataRoot)
+  const client = createProjectDbClient(configRoot)
   const sessions = new SessionRepository(
-    root,
+    configRoot,
     {},
     new SessionProjectionRepository(async () => client)
   )
   const versions = new ManagedFileVersionService({
-    storageRoot: root,
+    storageRoot: dataRoot,
     getClient: async () => client
   })
-  const repository = new ArtifactRepository(root)
+  const repository = new ArtifactRepository(dataRoot)
   const coordinator = new SessionPersistenceCoordinator(
     sessions,
     new ManagedFileIndexRepository(
       async () => client,
-      root,
+      dataRoot,
       versions,
-      new UploadRepository(root, { getClient: async () => client })
+      new UploadRepository(dataRoot, { getClient: async () => client })
     )
   )
   const load = async (
@@ -138,13 +141,13 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   }
   const registry = new ArtifactRunRegistry()
   const provenance = new ArtifactProvenanceRepository({
-    storageRoot: root,
+    storageRoot: dataRoot,
     getClient: async () => client,
     compatibilityRepository: repository,
     loadSession: load
   })
   const artifacts = new ArtifactTurnOwner({
-    dataRoot: root,
+    dataRoot,
     repository,
     provenance,
     runRegistry: registry
@@ -374,8 +377,8 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   let promptContext: import('../../shared/acp').AgentTurnProvenanceContext | undefined = undefined
   let exported = false
   const host = createSessionExecutionHost({
-    dataRoot: root,
-    configRoot: root,
+    dataRoot,
+    configRoot,
     getClient: async () => client,
     flush: async (sessionId, promptId) => {
       await runtimeSessions.flush(sessionId, promptId)
@@ -558,7 +561,7 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
     prepared.store.commit(oldState)
     prepared.close()
     historicalFile = join(
-      root,
+      dataRoot,
       'executions',
       'session-attempts',
       prepared.request.requestKey.split(':')[1],
@@ -610,7 +613,7 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   const journals = async (): Promise<
     Array<{ file: string; state: import('./execution-core').ExecutionState }>
   > => {
-    const base = join(root, 'executions', 'session-attempts')
+    const base = join(dataRoot, 'executions', 'session-attempts')
     const files = (
       await Promise.all(
         (await readdir(base)).map(async (generation) =>
@@ -683,7 +686,7 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   if (!stop) {
     expect(JSON.parse(await readFile(output, 'utf8'))).toEqual({ answer: 42 })
     expect(record.evidence.artifacts).toHaveLength(1)
-    const reader = createOriginalTurnEvidenceReader({ dataRoot: root, versions, load })
+    const reader = createOriginalTurnEvidenceReader({ dataRoot, versions, load })
     const pinned = await reader.pinnedTurn(record)
     expect(originalTurnReply(pinned)).toContain('ORDINARY_COMPLETE')
     const artifact = record.evidence.artifacts[0]
@@ -747,4 +750,67 @@ it.skipIf(process.platform === 'win32')(
   'reconciles original interrupted owner before one explicitly resumed native execution',
   () => runOrdinary(false, false, true),
   60000
+)
+
+it.each(['missing', 'corrupt'] as const)(
+  'rejects %s original config-root Session JSON despite a valid data-root decoy',
+  async (condition) => {
+    const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-session-authority-')))
+    const configRoot = join(root, 'config')
+    const dataRoot = join(root, 'data')
+    await Promise.all([mkdir(configRoot), mkdir(dataRoot)])
+    initDataRoot(dataRoot)
+    const client = createProjectDbClient(configRoot)
+    onTestFinished(async () => {
+      await client.$disconnect()
+      await rm(root, { recursive: true, force: true })
+    })
+    await migrateApplicationDatabase(client)
+    await client.project.create({ data: { id: 'project', name: 'Original authority' } })
+    const original: import('../../shared/session-persistence').PersistedChatSession = {
+      id: 'session',
+      projectId: 'project',
+      title: 'Original',
+      cwd: dataRoot,
+      status: 'idle',
+      messages: [],
+      createdAt: 1,
+      updatedAt: 1,
+      conversationGraph: createLinearConversationGraph({
+        sessionId: 'session',
+        messages: [],
+        createdAt: 1,
+        updatedAt: 1
+      })
+    }
+    const repository = new SessionRepository(
+      configRoot,
+      {},
+      new SessionProjectionRepository(async () => client)
+    )
+    await repository.saveSession(original)
+    // Neither a stale catalog row nor a file under the scientific-data root may stand in for
+    // the original production Session JSON authority.
+    await new SessionRepository(dataRoot).saveSession(original)
+    const filename = join(configRoot, 'sessions', 'project', 'session.json')
+    if (condition === 'missing') await rm(filename)
+    else await writeFile(filename, '{broken JSON')
+    expect((await loadSessionMutationAuthority(repository, 'project', 'session')).status).toBe(
+      condition === 'missing' ? 'missing' : 'unreadable'
+    )
+    const dispatch = vi.fn()
+    const host = createSessionExecutionHost({ dataRoot, configRoot, getClient: async () => client })
+    await expect(
+      host.prepare({
+        attemptId: 'first-send',
+        request: { sessionId: 'session', text: 'Original task' },
+        operation: 'sendPrompt',
+        runtimeReviewOwner: 'renderer',
+        dispatch,
+        cancelOwned: async () => undefined
+      })
+    ).rejects.toThrow('Original Session is unavailable')
+    expect(dispatch).not.toHaveBeenCalled()
+    await expect(readdir(join(dataRoot, 'executions'))).rejects.toMatchObject({ code: 'ENOENT' })
+  }
 )

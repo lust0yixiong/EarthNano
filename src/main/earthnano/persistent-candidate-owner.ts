@@ -193,7 +193,7 @@ export function createPersistentCandidateOwners(
     uploads
   )
   const sessions = new SessionRepository(
-    options.dataRoot,
+    options.configRoot,
     {},
     new SessionProjectionRepository(options.getClient)
   )
