@@ -507,6 +507,16 @@ async function exercise(live: boolean, desktop = false, stopEarly = false): Prom
       if (Date.now() > deadline) throw new Error('Desktop integration timed out')
       await new Promise((resolve) => setTimeout(resolve, 200))
     }
+    const plan = JSON.parse(
+      await readFile(join(desktopRunDirectory!, 'execution/assessment-plan.json'), 'utf8')
+    )
+    expect(plan.criteria).toBe(criteria)
+    expect(plan.criteriaDigest).toMatch(/^sha256:[a-f0-9]{64}$/)
+    const methodConfig = await readFile(
+      join(desktopRunDirectory!, 'execution/method-config.json'),
+      'utf8'
+    )
+    expect(methodConfig).not.toContain(criteria)
     expect(observedStates.has('assessing')).toBe(true)
     expect(await manager.shutdown()).toEqual({ reaped: true })
     const restarted = new DesktopOptimizationManager({
