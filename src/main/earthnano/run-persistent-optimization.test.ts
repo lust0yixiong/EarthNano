@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -408,4 +408,26 @@ it('retains the writer lock when result-owner settlement times out despite confi
   await expect(runPersistentOptimization(o)).rejects.toThrow('cleanup requires reconciliation')
   await expect(access(join(o.workRoot, 'execution.json.lock'))).resolves.toBeUndefined()
   expect(f.dispose).toHaveBeenCalledOnce()
+})
+
+it('preserves an older private manifest and refuses changed method source before Core or paid dispatch', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await runPersistentOptimization(o)
+  const path = join(o.workRoot, 'resume.json')
+  const original = JSON.parse(await readFile(path, 'utf8'))
+  await writeFile(path, JSON.stringify({ ...original, methodDigest: `sha256:${'b'.repeat(64)}` }))
+  const previousVersionBytes = await readFile(path, 'utf8')
+  f.core.mockClear()
+  f.method.mockClear()
+  f.evaluate.mockClear()
+  await expect(runPersistentOptimization({ ...o, resume: true })).rejects.toThrow(
+    'identity changed'
+  )
+  expect(await readFile(path, 'utf8')).toBe(previousVersionBytes)
+  expect(f.core).not.toHaveBeenCalled()
+  expect(f.method).not.toHaveBeenCalled()
+  expect(f.evaluate).not.toHaveBeenCalled()
 })

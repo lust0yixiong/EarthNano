@@ -88,7 +88,7 @@ class EarthNanoAdapter:
             # Source identity only. The host's original Notebook owner stages these exact Versions.
             # This view cannot grant tools, resolve a host path, or choose a newer source Version.
             (self.source / "managed-inputs.json").write_text(
-                json.dumps(config["task"]["managedInputs"], ensure_ascii=False, indent=2) + "\n",
+                json.dumps(config["task"]["managedInputs"], ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
         channel = ChannelSpec("claude_cli", config["model"],

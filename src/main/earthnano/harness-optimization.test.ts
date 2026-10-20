@@ -470,6 +470,70 @@ describe('host-fixed scientific Harness capabilities', () => {
       'Publish task deliverables using the original Artifact tools'
     )
   })
+  it('refuses completed scientific replay when source version, byte digest or input order really changes', async () => {
+    const base = scientific()
+    const source: CandidateSnapshotInput = {
+      ...base,
+      task: {
+        ...base.task,
+        managedInputs: [
+          base.task.managedInputs![0],
+          {
+            ...base.task.managedInputs![0],
+            sourceFileId: 'second-upload',
+            inputFileVersionId: 'second-version',
+            filename: 'second.csv'
+          }
+        ]
+      }
+    }
+    const f = await setup(source)
+    const original = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const record = await f.core.get(handle.executionId)
+    const { outputDigest, canonicalOutput } = await import('./output-checks')
+    const resume = (value: CandidateSnapshotInput): HarnessOptimizationBinding =>
+      new HarnessOptimizationBinding({
+        core: f.core,
+        snapshots: f.snapshots,
+        input: value,
+        projectId: original.projectId,
+        optimizationId: original.origin.optimizationId!,
+        taskId: 't1',
+        budgetRef: original.budgetRef,
+        timeoutMs: original.timeoutMs,
+        resumeRecords: [record],
+        resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+        exportResult: async (entry) => ({ ...f.exportValue, executionId: entry.executionId })
+      })
+    const keyReordered = JSON.parse(canonicalOutput(source)) as CandidateSnapshotInput
+    expect(await resume(keyReordered).dispatch('freezeInvocation', invocation('baseline'))).toEqual(
+      original
+    )
+    for (const change of ['version', 'bytes', 'order']) {
+      const inputs = source.task.managedInputs!.map((entry) => ({ ...entry }))
+      if (change === 'version') inputs[0].inputFileVersionId = 'new-version'
+      if (change === 'bytes') inputs[0].checksum = 'b'.repeat(64)
+      if (change === 'order') inputs.reverse()
+      const changed: CandidateSnapshotInput = {
+        ...source,
+        task: { ...source.task, managedInputs: inputs }
+      }
+      await expect(
+        resume(changed).dispatch('freezeInvocation', invocation('baseline'))
+      ).rejects.toThrow('identity changed')
+    }
+    expect(
+      (await resume(source).dispatch(
+        'freezeInvocation',
+        invocation('baseline')
+      )) as ExecutionRequest
+    ).toEqual(original)
+  })
   it('rejects a foreign source Project before freezing or admitting scientific work', async () => {
     const source = scientific()
     Object.assign(source.task.managedInputs![0]!, { sourceProjectId: 'another-project' })

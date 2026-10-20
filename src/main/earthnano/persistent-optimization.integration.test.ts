@@ -107,7 +107,7 @@ async function exercise(
         research.domain
       ) + 3
     : method
-      ? minimumOptimizationExecutions(method, desktop) + 3
+      ? minimumOptimizationExecutions(method, desktop || !!resumeStages) + 3
       : desktop && live
         ? 12
         : 10
@@ -1196,5 +1196,12 @@ it.skipIf(process.platform === 'win32')(
 it.skipIf(process.platform === 'win32')(
   'explicitly resumes partial original stages through real Sessions and Core without repeating completed model dispatches or charges',
   () => exercise(false, false, false, undefined, false, undefined, 2),
+  240_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'resumes parallel k2 after a completed proposer without repeating its exact original admission',
+  () =>
+    exercise(false, false, false, { mode: 'parallel', k: 2, concurrency: 2 }, false, undefined, 3),
   240_000
 )

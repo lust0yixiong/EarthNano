@@ -85,6 +85,38 @@ class ResumeTests(unittest.TestCase):
             self.assertEqual(again["chosenArtifacts"], result["chosenArtifacts"])
             self.assertEqual(len(peer.owner.requests), admitted)
 
+    def test_notebook_parallel_resume_preserves_metadata_evidence_across_canonical_config_keys(self):
+        cfg = self.cfg("parallel")
+        cfg["task"]["files"] = []
+        cfg["task"]["managedInputs"] = [{
+            "sourceKind": "upload-version", "sourceProjectId": "project",
+            "sourceSessionId": "source-session", "sourceFileId": "upload",
+            "inputFileVersionId": "version", "filename": "values.csv",
+            "sizeBytes": 12, "checksum": "a" * 64,
+        }]
+        peer = ResumePeer(Peer(), stop_after=4)
+        with self.assertRaises(ExecutionStopped):
+            earthnano.run(cfg, peer)
+        source = Path(cfg["workRoot"]) / "source" / "managed-inputs.json"
+        original_bytes = source.read_bytes()
+        original_ids = set(peer.owner.records)
+        original_requests = {key: copy.deepcopy(value["request"])
+                             for key, value in peer.owner.records.items()}
+        peer.resuming = True
+        # The host's durable writer canonically sorts private JSON on resume. Object key order
+        # is not a new source tuple, but must not mutate the method's frozen evidence bytes.
+        resumed_config = json.loads(json.dumps(dict(cfg, resume=True), sort_keys=True))
+        result = earthnano.run(resumed_config, peer)
+        self.assertEqual(source.read_bytes(), original_bytes)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(len(peer.owner.requests), 15)
+        self.assertTrue(original_ids <= peer.reused)
+        for key, original in original_requests.items():
+            self.assertEqual(peer.owner.records[key]["request"]["invocationRef"], original["invocationRef"])
+            self.assertEqual(peer.owner.records[key]["request"], original)
+        self.assertFalse(result["selection"]["fallback"])
+        self.assertEqual(result["fallbackStages"], [])
+
     def test_original_domain_resume_restores_library_and_order_without_new_admission(self):
         cfg = domain_config(self.root)
         peer = ResumePeer(DomainPeer(cfg))
