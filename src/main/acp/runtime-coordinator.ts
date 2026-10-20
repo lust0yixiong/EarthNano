@@ -1598,6 +1598,27 @@ class AcpRuntimeCoordinator {
         target: this.runtimeTargets.get(runtime),
         ownerCompletion,
         dispatch,
+        retireUnadmitted: async () => {
+          // An empty observation is not resource-release evidence. Refuse to interrupt another
+          // Session, startup or workflow sharing this generation; uncertainty retains the fence.
+          if (
+            activePrompt.turnToken ||
+            runtime.getSnapshot().promptInFlight ||
+            [...this.activePromptRequests.values()].some((entry) => entry.runtime === runtime) ||
+            (this.runtimeActivityCounts.get(runtime) ?? 0) > 0 ||
+            [...this.pendingSessionCreations].some((entry) => entry.runtime === runtime) ||
+            [...this.pendingSessionAdoptions.values()].some((entry) => entry.runtime === runtime)
+          )
+            return undefined
+          this.retiredRuntimes.add(runtime)
+          if (this.activeRuntime === runtime) this.rotateActiveRuntime()
+          this.emitState()
+          const result = await runtime.shutdownForQuit()
+          if (!result.reaped) return undefined
+          this.releaseRuntimeOwnership(runtime)
+          this.emitState()
+          return { attemptId: attempt.id, sessionId: request.sessionId, reaped: true }
+        },
         cancelOwned: async () => {
           // Pin cancellation to this exact attempt. A later turn must never inherit this stop.
           if (this.activePromptRequests.get(request.sessionId) !== activePrompt) return

@@ -22,6 +22,13 @@ export interface AcpExecutionOwnerCompletion {
   linked?(link: AcpExecutionLink): void
 }
 
+/** Main-process physical resource witness; never supplied by a renderer or inferred from identity. */
+export interface PreAdmissionRetirement {
+  attemptId: string
+  sessionId: string
+  reaped: true
+}
+
 export interface AcpExecutionDispatch {
   /** Original coordinator attempt identity, allocated once before canonical admission. */
   attemptId: string
@@ -33,6 +40,8 @@ export interface AcpExecutionDispatch {
   dispatch(observation: AcpExecutionObservation): Promise<PromptResponse>
   /** Pinned original owner operation; must verify this dispatch still owns cancellation. */
   cancelOwned(): Promise<void>
+  /** Retires this exact runtime generation after failed dispatch, before any observed admission. */
+  retireUnadmitted?(): Promise<PreAdmissionRetirement | undefined>
 }
 
 export interface AcpExecutionBoundary {

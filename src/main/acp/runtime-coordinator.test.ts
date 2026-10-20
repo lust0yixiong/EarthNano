@@ -7220,3 +7220,45 @@ it('retains a reused runtime while a newly admitted Session is still being creat
   await expect(coordinator.shutdownForQuit()).resolves.toEqual({ reaped: true })
   expect(owner.runtime.shutdownForQuit).toHaveBeenCalledOnce()
 })
+
+it.each(['reaped', 'degraded', 'busy'] as const)(
+  'provides pre-admission resource evidence only after exact idle runtime retirement: %s',
+  async (mode) => {
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({
+        frameworkId: 'claude-code',
+        sessionIds: ['session'],
+        callbacks,
+        beforePromptStart: async () => {
+          throw new Error('startup failed')
+        }
+      })
+      return fake.runtime
+    })
+    const shutdown = vi
+      .spyOn(fake.runtime, 'shutdownForQuit')
+      .mockResolvedValue({ reaped: mode !== 'degraded' })
+    let witness: unknown
+    coordinator.setExecutionBoundary({
+      execute: async (input) => {
+        try {
+          return await input.dispatch({ admitted: vi.fn(), providerAccepted: vi.fn() })
+        } catch (error) {
+          if (mode === 'busy')
+            fake.setStateSilently({ promptInFlight: true, promptInFlightSessionIds: ['sibling'] })
+          witness = await input.retireUnadmitted?.()
+          throw error
+        }
+      },
+      cancel: vi.fn(),
+      settle: vi.fn(async () => true)
+    })
+    await expect(coordinator.sendPrompt({ sessionId: 'session', text: 'task' })).rejects.toThrow(
+      'startup failed'
+    )
+    if (mode === 'reaped') expect(witness).toMatchObject({ sessionId: 'session', reaped: true })
+    else expect(witness).toBeUndefined()
+    expect(shutdown).toHaveBeenCalledTimes(mode === 'busy' ? 0 : 1)
+  }
+)

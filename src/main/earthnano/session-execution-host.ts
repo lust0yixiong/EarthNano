@@ -152,6 +152,7 @@ export function createSessionExecutionHost(
       const summary = (await projection.list()).find((entry) => entry.id === prompt.sessionId)
       if (!summary) throw new Error('Original Session ownership is unavailable')
       const session = await load(summary.projectId, prompt.sessionId)
+      const admissionsBefore = originalEvidenceCanonical(session.runtimeSessionAdmissions ?? [])
       const project = await projects.get(session.projectId)
       if (!project || project.archivedAt) throw new Error('Original Project is unavailable')
       await reconcile(session.projectId, session.id)
@@ -232,6 +233,45 @@ export function createSessionExecutionHost(
         async readResult(settlement) {
           const identity = structuredClone(settlement.identity)
           const promptId = identity.promptMessageId
+          const retired = settlement.preAdmissionRetirement
+          if (
+            !promptId &&
+            settlement.error !== undefined &&
+            retired?.reaped === true &&
+            retired.attemptId === attemptId &&
+            retired.sessionId === session.id
+          ) {
+            const released = await load(session.projectId, session.id)
+            if (
+              originalEvidenceCanonical(released.runtimeSessionAdmissions ?? []) !==
+              admissionsBefore
+            )
+              throw new Error(
+                'Original admission changed before runtime retirement; Session remains fenced'
+              )
+            return {
+              phase: 'failed',
+              cleanup: 'confirmed',
+              evidence: {
+                status: 'partial',
+                scope:
+                  'Original pre-admission failure with physically retired runtime and unchanged durable admissions',
+                text: '',
+                artifacts: [],
+                references: [
+                  ref(`session-pre-admission:${session.id}`, attemptId, {
+                    retirement: retired,
+                    admissions: released.runtimeSessionAdmissions ?? []
+                  })
+                ],
+                limitations: ['No original turn was admitted or scientific result produced.']
+              },
+              error: {
+                code: 'original-pre-admission-failed',
+                message: 'Original dispatch failed before durable admission.'
+              }
+            }
+          }
           if (
             identity.sessionId !== session.id ||
             !promptId ||

@@ -34,9 +34,11 @@ const deferred = <T>(): {
 const observation = (
   context: ExecutionContext,
   input: AcpExecutionDispatch,
-  observed: ExecutionIdentity
+  observed: ExecutionIdentity,
+  onAdmission?: () => void
 ): AcpExecutionObservation => ({
   admitted(identity) {
+    onAdmission?.()
     if (
       identity.sessionId !== input.request.sessionId ||
       (input.request.provenanceContext?.promptMessageId !== undefined &&
@@ -162,6 +164,7 @@ export function createAcpExecutionBoundary({
       const prepared = await host.prepare(input)
       const native = deferred<PromptResponse>()
       let nativeFinished = false
+      let admissionObserved = false
       const core = new ExecutionCore(prepared.store, {
         async execute(_request, context) {
           const identity: ExecutionIdentity = {}
@@ -171,7 +174,11 @@ export function createAcpExecutionBoundary({
           try {
             context.signal.throwIfAborted()
             try {
-              response = await input.dispatch(observation(context, input, identity))
+              response = await input.dispatch(
+                observation(context, input, identity, () => {
+                  admissionObserved = true
+                })
+              )
               native.resolve(response)
             } catch (failure) {
               error = failure
@@ -185,7 +192,17 @@ export function createAcpExecutionBoundary({
             } catch (failure) {
               error ??= failure
             }
-            const outcome = await prepared.readResult({ response, error, context, identity })
+            const preAdmissionRetirement =
+              error !== undefined && !admissionObserved
+                ? await input.retireUnadmitted?.()
+                : undefined
+            const outcome = await prepared.readResult({
+              response,
+              error,
+              context,
+              identity,
+              preAdmissionRetirement
+            })
             // Durable owner failures outrank a superficially successful native response.
             if (error !== undefined && outcome.phase === 'completed')
               return {

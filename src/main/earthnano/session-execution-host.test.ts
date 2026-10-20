@@ -436,3 +436,68 @@ it('can resolve an earlier recovery fence when an exact interrupted Resume witne
     JSON.parse(await readFile(old.file, 'utf8')).records[old.record.executionId]
   ).toMatchObject({ phase: 'interrupted', cleanup: 'confirmed' })
 })
+
+it('releases a proven pre-admission failure through the real host and boundary, including after host restart', async () => {
+  const { createAcpExecutionBoundary } = await import('./acp-execution-boundary')
+  const boundary = createAcpExecutionBoundary({ host: host() })
+  let linked!: import('../acp/execution-boundary-port').AcpExecutionLink
+  const failed = {
+    ...input(),
+    dispatch: vi.fn(async () => {
+      throw new Error('provider startup failed')
+    }),
+    retireUnadmitted: vi.fn(async () => ({
+      attemptId: 'attempt',
+      sessionId: 'session',
+      reaped: true as const
+    })),
+    ownerCompletion: {
+      committed: Promise.resolve(),
+      linked: (link: typeof linked) => {
+        linked = link
+      }
+    }
+  }
+  await expect(boundary.execute(failed)).rejects.toThrow('provider startup failed')
+  expect(await linked.settled).toMatchObject({
+    phase: 'failed',
+    cleanup: 'confirmed',
+    error: { code: 'original-pre-admission-failed' }
+  })
+  expect(failed.retireUnadmitted).toHaveBeenCalledOnce()
+  expect(await boundary.settle()).toBe(true)
+  await expect(
+    boundary.execute({
+      ...failed,
+      attemptId: 'same-boundary-retry',
+      retireUnadmitted: undefined,
+      dispatch: async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'prompt' })
+        return { stopReason: 'end_turn' }
+      }
+    })
+  ).resolves.toEqual({ stopReason: 'end_turn' })
+  expect((await linked.settled).cleanup).toBe('confirmed')
+  const retry = await prepare(host(), { ...input(), attemptId: 'retry' })
+  expect(retry.request.origin.sessionId).toBe('session')
+})
+
+it.each(['missing', 'foreign', 'changed'] as const)(
+  'keeps pre-admission cleanup fenced for %s retirement evidence',
+  async (kind) => {
+    const prepared = await prepare()
+    const witness = { attemptId: 'attempt', sessionId: 'session', reaped: true as const }
+    if (kind === 'foreign') witness.attemptId = 'other'
+    if (kind === 'changed')
+      state.session.runtimeSessionAdmissions = [{ executionId: 'hidden-admission' }] as never
+    await expect(
+      prepared.readResult(
+        settlement({
+          identity: {},
+          error: new Error('startup failed'),
+          preAdmissionRetirement: kind === 'missing' ? undefined : witness
+        })
+      )
+    ).rejects.toThrow()
+  }
+)
