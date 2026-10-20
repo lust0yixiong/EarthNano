@@ -21,7 +21,11 @@ const terminal = (state: OptimizationProgress['state']): boolean =>
 
 export function TaskOptimizationPanel(props: Props): React.JSX.Element | null {
   const api = props.api ?? window.api?.optimization
-  if (!api || document.documentElement.getAttribute(WEB_EVENT_SURFACE_ATTRIBUTE) === 'true')
+  if (
+    !api ||
+    window.api?.platform === 'win32' ||
+    document.documentElement.getAttribute(WEB_EVENT_SURFACE_ATTRIBUTE) === 'true'
+  )
     return null
   return (
     <OptimizationSessionPanel key={`${props.projectId}:${props.sessionId}`} {...props} api={api} />

@@ -174,3 +174,15 @@ it('reads only text attachments and rejects binary profiles without invoking the
   expect(container.querySelector('[role=alert]')).not.toBeNull()
   expect(api.start).not.toHaveBeenCalled()
 })
+
+it('hides the unsupported Windows execution profile', async () => {
+  const previous = window.api
+  Object.defineProperty(window, 'api', { configurable: true, value: { platform: 'win32' } })
+  try {
+    await render()
+    expect(container.textContent).toBe('')
+    expect(api.latest).not.toHaveBeenCalled()
+  } finally {
+    Object.defineProperty(window, 'api', { configurable: true, value: previous })
+  }
+})
