@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { ArtifactReference, ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type {
   DomainOptimizationSummary,
@@ -8,6 +9,7 @@ import type { PersistentCandidateOwners } from './persistent-candidate-owner'
 import type { OptimizationSelectionSummary } from '../../shared/earthnano/desktop-optimization'
 import { canonicalOutput, outputDigest } from './output-checks'
 import { chosenExecution } from './research-verification'
+import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
 
 export interface DomainMethodTask {
   taskId: string
@@ -54,6 +56,10 @@ export async function prepareDomainSummary(options: {
   )
     throw new Error('Invalid Library task provenance')
   const files = result.library.files
+  const modes = result.tasks.map((row) => normalizeOptimizationMethod(row.method).mode)
+  if (new Set(modes).size !== 1) throw new Error('Library projection mixes recursion modes')
+  const mode = modes[0] === 'parallel' ? 'agg' : 'seq'
+  const root = `${mode}/${options.domain.name}/`
   const paths = new Set<string>()
   let bytes = 0
   for (const file of files) {
@@ -64,14 +70,27 @@ export async function prepareDomainSummary(options: {
       file.path.startsWith('/') ||
       /[\\\0]/.test(file.path) ||
       file.path.split('/').some((p) => !p || p === '.' || p === '..') ||
-      paths.has(file.path)
+      paths.has(file.path.normalize('NFC').toLowerCase())
     )
       throw new Error('Invalid Library projection path')
-    paths.add(file.path)
+    paths.add(file.path.normalize('NFC').toLowerCase())
+    if (file.path !== root + 'INDEX.md') {
+      const owner = entries.find((taskId) => file.path.startsWith(`${root}harnesses/${taskId}/`))
+      const suffix = owner ? file.path.slice(`${root}harnesses/${owner}/`.length) : ''
+      if (
+        !owner ||
+        !/^(?:EXPERIENCE\.md|harness\/instructions\.md|harness\/skills\/[a-z0-9][a-z0-9-]*\/SKILL\.md)$/.test(
+          suffix
+        )
+      )
+        throw new Error('Library file lacks admitted task and text-profile provenance')
+    }
     bytes += Buffer.byteLength(file.content)
   }
   if (files.length > 128 || bytes > 512000)
     throw new Error('Library projection exceeds text profile')
+  if (entries.length && !files.some((file) => file.path === root + 'INDEX.md'))
+    throw new Error('Library entries lack their original index')
   const tasks = []
   for (const taskId of options.taskIds) {
     const rows = result.tasks.filter((row) => row.taskId === taskId)
@@ -107,13 +126,28 @@ export async function prepareDomainSummary(options: {
       throw new Error('Reflection version identity mismatch')
     const exported = await options.owners.exportResult(reflection)
     if (
-      !exported.files.some(
-        (file) => file.path === 'experience.md' && file.content === exported.replyText
+      exported.executionId !== reflection.executionId ||
+      canonicalOutput(exported.artifacts) !== canonicalOutput(reflection.evidence.artifacts) ||
+      exported.files.some(
+        (file) =>
+          file.digest !== 'sha256:' + createHash('sha256').update(file.content).digest('hex') ||
+          !exported.artifacts.some(
+            (ref) => canonicalOutput(ref) === canonicalOutput(file.artifactRef)
+          )
       )
+    )
+      throw new Error('Reflection immutable export identity/checksum mismatch')
+    const experienceBlock = (text: string): string | undefined =>
+      /<experience>[\s\S]*?<\/experience>/.exec(text)?.[0]
+    const persisted = exported.files.filter((file) => file.path === 'experience.md')
+    const replyBlock = experienceBlock(exported.replyText)
+    if (
+      persisted.length !== 1 ||
+      !replyBlock ||
+      experienceBlock(persisted[0]!.content) !== replyBlock
     )
       throw new Error('Reflection reply lacks its exact persisted artifact')
     const snapshots = await options.snapshots.resolve(selected.request)
-    const mode = (row.method as { mode?: string })?.mode === 'parallel' ? 'agg' : 'seq'
     const prefix = `${mode}/${options.domain.name}/harnesses/${taskId}/`
     const inventory = files
       .filter((file) => file.path.startsWith(prefix + 'harness/'))
@@ -133,20 +167,19 @@ export async function prepareDomainSummary(options: {
       throw new Error('Library harness differs from the selected execution configuration')
     const experience = files.find((file) => file.path === prefix + 'EXPERIENCE.md')
     const block = /<experience>([\s\S]*?)<\/experience>/.exec(exported.replyText)?.[1]
+    // Match upstream _distil: trim/lower keys around the first colon; later fields win.
+    const fields = new Map<string, string>()
+    for (const line of block?.split(/\r?\n/) ?? []) {
+      const colon = line.indexOf(':')
+      if (colon >= 0)
+        fields.set(line.slice(0, colon).trim().toLowerCase(), line.slice(colon + 1).trim())
+    }
     for (const key of ['cue', 'lesson', 'evidence']) {
-      const value = block
-        ?.split(/\r?\n/)
-        .find((line) =>
-          line
-            .trim()
-            .toLowerCase()
-            .startsWith(key + ':')
-        )
-        ?.split(':')
-        .slice(1)
-        .join(':')
-        .trim()
-      if (!value || !experience?.content.includes(value))
+      const value = fields.get(key)
+      const stored = experience?.content
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith(`- **${key}**:`))
+      if (!value || stored?.length !== 1 || stored[0] !== `- **${key}**: ${value}`)
         throw new Error('Library lesson differs from fixed reflection evidence')
     }
     tasks.push({

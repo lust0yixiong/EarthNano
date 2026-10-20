@@ -44,6 +44,8 @@ export async function evaluateResearchOutcome(options: {
   options.signal?.throwIfAborted()
   const semanticPass = options.assessments.candidate.outcome === 'pass'
   const allChecksPass = checks.every((check) => check.status === 'pass')
+  if (review && review.outcome !== (allChecksPass ? 'pass' : 'flagged'))
+    throw new Error('Deterministic Review disagrees with frozen output checks')
   const status =
     !semanticPass || !allChecksPass ? 'failed' : checks.length ? 'passed' : 'unverified'
   const regressed = options.assessments.candidate.score < options.assessments.baseline.score
