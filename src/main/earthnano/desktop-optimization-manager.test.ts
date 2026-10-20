@@ -228,6 +228,9 @@ describe('DesktopOptimizationManager', () => {
     await expect(
       manager.start({ ...task, files: [{ path: '../escape', content: 'data' }] })
     ).rejects.toThrow('Invalid')
+    await expect(
+      manager.start({ ...task, criteria: Array(17).fill('A criterion').join('\n') })
+    ).rejects.toThrow('Invalid')
     expect(options.createOptions).not.toHaveBeenCalled()
     expect(await manager.prepareForUpdateGate()).toEqual({ reaped: true })
     await expect(manager.start(task)).rejects.toThrow('closed')
