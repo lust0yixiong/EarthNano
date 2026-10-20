@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   releaseWriter: vi.fn(),
   corrupt: false,
   constructed: vi.fn(),
+  readResume: vi.fn(),
   register: vi.fn()
 }))
 vi.mock('../storage-root', () => ({
@@ -35,6 +36,7 @@ vi.mock('../desktop-surface-declarations', () => ({
   registerDesktopOptimizationIpcHandlers: mocks.register
 }))
 vi.mock('../earthnano/desktop-optimization-manager', () => ({
+  readDesktopOptimizationResume: mocks.readResume,
   DesktopOptimizationSetupError: class extends Error {},
   DesktopOptimizationManager: class {
     constructor(options: unknown) {
@@ -49,6 +51,7 @@ vi.mock('../earthnano/desktop-optimization-manager', () => ({
     get = vi.fn()
     latest = vi.fn()
     stop = vi.fn()
+    resume = vi.fn()
   }
 }))
 import {
@@ -124,6 +127,18 @@ it('captures only an explicit custom messages route and holds original admission
   options.releaseAdmission()
   expect(mocks.releaseWriter).toHaveBeenCalledTimes(1)
   expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledTimes(1)
+})
+it('passes the application Session persistence authority to candidates without reconstructing a private owner', async () => {
+  const sessionPersistence = {
+    repository: {},
+    coordinator: {}
+  } as NonNullable<Parameters<typeof createDesktopOptimizationOptions>[1]['sessionPersistence']>
+  const options = await createDesktopOptimizationOptions(request, {
+    ...dependencies(),
+    sessionPersistence
+  })
+  expect(options.ownerOptions.sessionPersistence).toBe(sessionPersistence)
+  options.releaseAdmission()
 })
 it('rejects unsupported backend/subscription/endpoints and releases leases without spawning', async () => {
   for (const variant of ['backend', 'subscription', 'endpoint'] as const) {
@@ -236,6 +251,39 @@ it('keeps corrupt feature metadata unavailable and fenced without aborting deskt
   const captured = mocks.constructed.mock.calls[0][0] as { root: string; executionRoot(): string }
   expect(captured.root).toBe(join(mocks.root, 'config', 'earthnano-desktop'))
   expect(captured.executionRoot()).toBe(join(mocks.root, 'data', 'earthnano', 'desktop-runs'))
+})
+
+it('reads private resume metadata under the original current data-root lease and releases it on failure', async () => {
+  const modules = {
+    add: async (_input: unknown, factory: (input: unknown) => { capability: unknown }) =>
+      factory(_input).capability
+  } as unknown as ApplicationModuleBuilder
+  await registerDesktopOptimizationComposition(modules, {
+    settings: {},
+    archive: {},
+    sessions: {},
+    sessionRepository: {},
+    lifecycle: { current: undefined },
+    declareElectronAdapter: vi.fn()
+  } as unknown as Parameters<typeof registerDesktopOptimizationComposition>[1])
+  const captured = mocks.constructed.mock.calls[0][0] as {
+    readResume(runId: string): Promise<unknown>
+  }
+  const value = { manifest: 'host-only-fixture', records: [] }
+  mocks.readResume.mockImplementationOnce(() => {
+    expect(mocks.releaseWriter).not.toHaveBeenCalled()
+    return value
+  })
+  expect(await captured.readResume('original')).toBe(value)
+  expect(mocks.readResume).toHaveBeenCalledWith(
+    join(mocks.root, 'data', 'earthnano', 'desktop-runs', 'original', 'execution')
+  )
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  mocks.readResume.mockImplementationOnce(() => {
+    throw new Error('Private metadata unavailable')
+  })
+  await expect(captured.readResume('original')).rejects.toThrow('Private metadata unavailable')
+  expect(mocks.releaseWriter).toHaveBeenCalledTimes(2)
 })
 
 it('rejects missing or non-absolute Python before owner execution and releases admissions', async () => {

@@ -425,14 +425,25 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     expect(sourceEvidence).toHaveLength(2)
     expect(sourceEvidence[0]).toEqual(sourceEvidence[1])
     report = { ...report, identicalOriginalSourceEvidence: sourceEvidence[0] }
+    const stoppedJournal = resumeAcceptance
+      ? (JSON.parse(
+          await readFile(testInfo.outputPath('stopped-journal.json'), 'utf8')
+        ) as ExecutionState)
+      : undefined
     for (const record of Object.values(methodJournal.records)) {
       expect(record.cleanup).toBe('confirmed')
-      expect(record.phase).toMatch(resumeAcceptance ? /^(completed|cancelled)$/ : /^completed$/)
-      expect(
-        methodJournal.events[record.executionId].filter(
-          (event) => event.type === 'session-admitted'
-        )
-      ).toHaveLength(1)
+      const prior = stoppedJournal?.records[record.executionId]
+      if (prior && prior.phase !== 'completed') {
+        // Original owners can preserve a failed read-result outcome during explicit cancellation.
+        // It is paid/failed history, not a completed cache hit or a post-resume success claim.
+        expect(record.cancellationRequested).toBe(true)
+        expect(record.phase).toMatch(/^(failed|cancelled)$/)
+      } else expect(record.phase).toBe('completed')
+      const admissions = methodJournal.events[record.executionId].filter(
+        (event) => event.type === 'session-admitted'
+      )
+      if (record.phase === 'completed') expect(admissions).toHaveLength(1)
+      else expect(admissions.length).toBeLessThanOrEqual(1)
       const acceptances = methodJournal.events[record.executionId].filter(
         (event) => event.type === 'provider-accepted'
       )
@@ -440,9 +451,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       else expect(acceptances.length).toBeLessThanOrEqual(1)
     }
     if (resumeAcceptance) {
-      const stopped = JSON.parse(
-        await readFile(testInfo.outputPath('stopped-journal.json'), 'utf8')
-      ) as ExecutionState
+      const stopped = stoppedJournal!
       expect(Object.values(stopped.records).some((record) => record.phase === 'cancelled')).toBe(
         true
       )
@@ -592,10 +601,16 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       sourceSessionId: source.id,
       task: { prompt, managedInputs: completed.notebook!.inputs }
     })
+    const settledPanel = page.getByTestId('task-optimization-panel')
+    if (resumeAcceptance) {
+      // Reopening deliberately does not copy private experiment criteria into a new editable task.
+      // Enter a new draft criterion to verify admission is released, without starting another run.
+      await settledPanel
+        .getByLabel('Acceptance criteria (one per line)', { exact: true })
+        .fill('The published report matches the fixed source observations.')
+    }
     await expect(
-      page
-        .getByTestId('task-optimization-panel')
-        .getByRole('button', { name: 'Start optimization', exact: true })
+      settledPanel.getByRole('button', { name: 'Start optimization', exact: true })
     ).toBeEnabled()
     const requestCount = provider.stats.requests
     page = await app.restart()

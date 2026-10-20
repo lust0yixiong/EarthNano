@@ -18,6 +18,7 @@ import { createDefaultDetectDeps } from '../settings/claude-detect'
 import { isSupportedClaudeCliVersion } from '../../shared/claude-runtime'
 import type { ArchiveCoordinator } from '../archive/coordinator'
 import type { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
+import type { SessionRepository } from '../session-persistence/repository'
 import type { ApplicationModuleBuilder } from '../application-runtime'
 import { BackendShutdownOutcomeError, QUIT_SHUTDOWN_BUDGET_MS } from '../lifecycle-shutdown'
 import {
@@ -33,7 +34,10 @@ import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/opti
 import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
 import { normalizeFrozenNotebookRuntime } from '../../shared/earthnano/notebook-profile'
 import { resolveOptimizationNotebookInputs } from '../earthnano/optimization-notebook-input'
-import type { PersistentCandidateNotebookOptions } from '../earthnano/persistent-candidate-owner'
+import type {
+  PersistentCandidateNotebookOptions,
+  PersistentCandidateOwnersOptions
+} from '../earthnano/persistent-candidate-owner'
 import { resolveOptimizationArtifactInputs } from '../earthnano/optimization-input'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
@@ -104,6 +108,7 @@ export async function createDesktopOptimizationOptions(
     loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
     versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
     notebook?: PersistentCandidateNotebookOptions
+    sessionPersistence?: PersistentCandidateOwnersOptions['sessionPersistence']
     signal?: AbortSignal
   }
 ): Promise<PersistentOptimizationOptions & { releaseAdmission(): void }> {
@@ -260,6 +265,9 @@ export async function createDesktopOptimizationOptions(
         dataRoot,
         configRoot,
         getClient: () => getProjectDbClient(configRoot),
+        ...(dependencies.sessionPersistence
+          ? { sessionPersistence: dependencies.sessionPersistence }
+          : {}),
         ...(scientific ? { notebook: dependencies.notebook } : {})
       },
       input: {
@@ -320,6 +328,7 @@ export async function registerDesktopOptimizationComposition(
     settings: SettingsService
     archive: ArchiveCoordinator
     sessions: SessionPersistenceCoordinator
+    sessionRepository: SessionRepository
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
     notebook?: PersistentCandidateNotebookOptions
     declareElectronAdapter(name: string, install: () => void): void
@@ -360,6 +369,10 @@ export async function registerDesktopOptimizationComposition(
           createDesktopOptimizationOptions(request, {
             settings: options.settings,
             notebook: options.notebook,
+            sessionPersistence: {
+              repository: options.sessionRepository,
+              coordinator: options.sessions
+            },
             signal,
             validateSession,
             admitSessionWork: (projectId, sessionId) =>

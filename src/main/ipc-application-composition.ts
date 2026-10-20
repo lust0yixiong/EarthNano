@@ -771,6 +771,7 @@ export const createApplicationModules = async (
     settings: settingsBootstrap.settingsService,
     archive: projectLifecycle.archiveCoordinator,
     sessions: sessionAuthority.sessionPersistenceCoordinator,
+    sessionRepository: sessionFoundation.sessionRepository,
     lifecycle: handoff.optimizationRuntimeShutdown,
     notebook: {
       service: notebookRuntime.notebookService,
