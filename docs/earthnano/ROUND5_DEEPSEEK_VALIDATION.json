@@ -1,0 +1,112 @@
+{
+  "status": "passed",
+  "model": "deepseek-flash",
+  "executions": 10,
+  "roles": [
+    "baseline",
+    "proposer",
+    "proposer",
+    "proposer",
+    "candidate",
+    "candidate",
+    "composer",
+    "candidate",
+    "reviewer",
+    "reviewer"
+  ],
+  "sessions": 10,
+  "versionCount": 13,
+  "reviewCount": 12,
+  "verifiedInputReads": 4,
+  "reopened": true,
+  "configurationChanged": true,
+  "fallbackStages": [],
+  "desktop": true,
+  "entryPoint": "Production DesktopOptimizationManager invoked by an integration test; not an Electron click. Actual Electron transport was separately tested without paid model calls.",
+  "observedStates": [
+    "running",
+    "assessing",
+    "completed"
+  ],
+  "assessments": {
+    "baseline": {
+      "executionId": "b2aae929-45a8-4764-bbb1-b19d030ecbd2",
+      "targetExecutionId": "431b164a-6b50-4cb9-8bb3-7fddee8e624f",
+      "reviewId": "cmvgbgtw1000mxjhmlwp0tepx",
+      "outcome": "pass",
+      "score": 100,
+      "rationale": "The only target artifact is result.json (artifactRef 6b8c1668-7936-42ce-99a0-d89dd6e6e2ae / afaa50fd-d352-447a-91c0-b534f3725e18, checksum 39fe4ab6...a479). Its decoded content is exactly {\"count\": 3, \"sum\": 6}. Comparing against the source facts in task.json (values.csv has header id,value followed by rows one,1 / two,2 / three,3): the data rows excluding the header are 3, and 1+2+3 = 6. The artifact reports count 3 and sum 6, matching both. The artifact contains only the required count and sum fields, with no extra deliverables present in the supplied evidence. Both frozen criteria c1 and c2 pass, so outcome is pass. This is a model judgment based solely on the supplied frozen evidence; no verification execution was performed."
+    },
+    "candidate": {
+      "executionId": "6efab668-4c98-461d-862a-43904ed6e253",
+      "targetExecutionId": "4bff93b1-2ed3-4ed1-b6c6-7b5221604a31",
+      "reviewId": "cmvgbgzhq000qxjhm7mt9iohu",
+      "outcome": "pass",
+      "score": 100,
+      "rationale": "The only supplied target artifact is result.json (artifactId 26eec32e-b477-415d-bfce-29743a56a6ab, versionId 099e7091-5f1d-46c1-9969-9275f6132292), whose entire content is {\"count\": 3, \"sum\": 6}. Source values.csv in task.json has one header row (id,value) and three data rows (one,1; two,2; three,3). Count 3 excludes the header, matching c1. Arithmetic sum 1+2+3 = 6 matches c2. The artifact is a valid JSON object containing only the requested keys. The residual risk is that the artifact body is a single short line, so evidence quotes are necessarily the full literal content; no other target artifacts exist to corroborate independent computation."
+    }
+  },
+  "sharedBudget": {
+    "limit": 12,
+    "admitted": 10
+  },
+  "requests": 34,
+  "rejects": 10,
+  "usage": {
+    "input": 64387,
+    "cacheRead": 147712,
+    "output": 8263
+  },
+  "testOverrides": {
+    "thinking": "disabled",
+    "maxOutputTokens": 1536,
+    "requestLimit": 48
+  },
+  "limitations": [
+    "Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity",
+    "k1 trivial selection; no LLM selector",
+    "Real model via test-only bounded observer",
+    "No paid cancellation/adversarial replay"
+  ],
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "rejected",
+      "reason": "Independent assessor cited task evidence using a target ArtifactVersion; strict path/ref validation rejected it",
+      "executions": 10,
+      "roles": [
+        "baseline",
+        "proposer",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "composer",
+        "candidate",
+        "reviewer",
+        "reviewer"
+      ],
+      "allCompleted": true,
+      "allCleanupConfirmed": true,
+      "state": "failed",
+      "tokenAccounting": "Not captured for this failed attempt; successful attempt has separate provider usage report"
+    },
+    {
+      "attempt": 2,
+      "status": "failed",
+      "admissionsAtFailure": 10,
+      "seconds": 59.88,
+      "reason": "Underlying diagnostic not retained by the initial test cleanup; no specific root cause is claimed",
+      "tokenAccounting": "Not captured for this failed attempt"
+    },
+    {
+      "attempt": 3,
+      "status": "passed",
+      "seconds": 55.71,
+      "executionLimit": 12,
+      "requestsLimit": 48
+    }
+  ],
+  "usageScope": "usage and request counts above describe the successful third attempt only; totals for all three attempts are unavailable",
+  "codeDuringSuccessfulAttempt": "2fbfa75e1 plus the committed assessment-plan freeze and bounded diagnostic test edits later recorded in ef3cdaa4a; subsequent stop-race and desktop UI changes were tested locally without another paid replay"
+}
