@@ -475,7 +475,7 @@ async function startDesktop(): Promise<void> {
 
   // Windows gets multi-resolution ICOs for title-bar and Alt-Tab fidelity; the macOS runtime Dock
   // Theme override and Linux use matching lossless 1024px PNGs. The installed macOS icon itself is
-  // build/icon.icon (electron-builder.yml), not either runtime PNG.
+  // build/icon.icns (electron-builder.yml), not either runtime PNG.
   const iconVariantPaths =
     process.platform === 'win32'
       ? { light: iconWindows, dark: iconDarkWindows }

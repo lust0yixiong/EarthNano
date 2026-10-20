@@ -1,0 +1,59 @@
+# EarthNano application icon
+
+The user supplied the blue/green spiral artwork on 2026-10-20 and requested a transparent
+application icon. The built-in imagegen tool extracted the mark from the white background;
+`resources/icon.png` is the selected 1024 × 1024 RGBA master. Both the exterior background
+and the gaps between the ribbons have transparency.
+
+## Application assets
+
+- `resources/icon.png` and `resources/icon-dark.png`: identical full-color transparent
+  runtime icons, so theme changes retain the supplied colors.
+- `src/renderer/src/assets/logo.png` and `logo-dark.png`: 512 px application logos.
+- `build/icon.png`: 512 px packaging source.
+- `build/icon.icns`: macOS application and installer-volume icon, exported with macOS
+  `iconutil` from 16, 32, 128, 256 and 512 pt PNGs at 1× and 2×.
+- `build/icon.ico`, `resources/icon-light.ico` and `resources/icon-dark.ico`: matching
+  Windows frames at 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128 and 256 px.
+- `resources/tray-light.ico` and `tray-dark.ico`: 16, 20, 24, 32, 40, 48, 64 and 256 px.
+- `resources/tray.png` and `tray@2x.png`: 32/64 px color tray assets.
+- `resources/trayTemplate.png` and `trayTemplate@2x.png`: 18/36 px black alpha silhouettes
+  for macOS system tinting.
+
+Resizing and format export used the repository's Sharp dependency; the alpha channel was
+preserved. Small Windows frames use 32-bit DIB data plus an AND mask; the 256 px frame
+uses PNG. The upstream `build/icon.icon` catalog remains in source but is not selected by
+the macOS packaging configuration because it adds an opaque background.
+
+This change updates application icon assets only; product names, application identifiers,
+data paths and research execution behavior are unchanged.
+
+## Validation
+
+The existing application-icon, Windows-icon, tray and packaging-configuration suites pass:
+4 files, 80 tests. The 1024 px master has four channels; all four corners and the spiral's
+center are fully transparent. macOS `sips` successfully decodes the generated ICNS.
+
+The mark was visually inspected at 16, 24, 32, 48, 64, 128 and 432 px on light and dark
+backgrounds. The backgrounds in this review image are for inspection only:
+
+![EarthNano icon at multiple sizes on light and dark surfaces](images/app-icon-preview.png)
+
+No installer was built or installed during this asset change.
+
+## Selected imagegen prompt
+
+> Background extraction ONLY of this exact logo. Make a faithful clean professional cutout
+> from the attached original. All white background and all white gaps must be actual 0-alpha
+> transparency. Preserve the original subdued blue-teal-green-light cyan colors, smooth
+> gradients, precise silhouette, curved ribbon positions and five small dots exactly. Do not
+> increase saturation, do not add texture or outlines. Essential quality constraint: SMOOTH
+> CLEAN VECTOR-LIKE EDGES, absolutely no speckles, no leftover white flecks or white fringes,
+> no green/cyan noise around contours, no drop shadow. Transparent negative space must be
+> perfectly clean. The colored shapes are solid opaque with antialiasing only on their very
+> edge. Center the same mark on a square transparent canvas with an even 5% safety margin,
+> proportional scale. This is a finished app icon asset with no backdrop and no text.
+> Output RGBA transparent PNG.
+
+Tool option: `transparent_background: true`. The generated image was proportionally
+resampled from 1254 px to 1024 px for the checked-in master.

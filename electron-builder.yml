@@ -165,10 +165,9 @@ mac:
       mimeType: application/x-open-science-session
       role: Viewer
       rank: Default
-  # Compile the Icon Composer package into the app bundle (Assets.car + an ICNS fallback for
-  # pre-Tahoe macOS). This is intentionally separate from dmg.icon below: the mounted installer
-  # volume still uses the legacy, explicitly-designed ICNS artwork.
-  icon: build/icon.icon
+  # Use the transparent EarthNano mark for both the app and installer volume.
+  # The upstream Icon Composer catalog adds an opaque background and is no longer selected.
+  icon: build/icon.icns
   darkModeSupport: true
   artifactName: aipoch-${name}-${version}-mac-${arch}.${ext}
   # Minimum macOS to run the app (written to Info.plist LSMinimumSystemVersion). macOS 12 (Monterey)

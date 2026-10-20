@@ -61,7 +61,7 @@ export type AppIconControllerDeps = {
 
 // Owns runtime icon appearance. Off macOS the independent variant is applied to every window and
 // re-applied after recreation. On macOS the renderer's resolved Theme drives the Dock, while the
-// installed .app/Finder/Launchpad icon remains the build/icon.icon asset catalog. NOTE: on Windows
+// installed .app/Finder/Launchpad icon remains the build/icon.icns asset. NOTE: on Windows
 // setIcon changes the window's own icon but NOT the taskbar button, which Windows keys off the
 // AppUserModelID / baked-in exe icon; the installed bundle/exe icon is unaffected at runtime.
 export type AppIconController = {
@@ -149,7 +149,7 @@ export const createAppIconController = (deps: AppIconControllerDeps): AppIconCon
 
   if (isDarwin) {
     // Keep following macOS even while every BrowserWindow is closed. Before the renderer announces
-    // its preference we deliberately leave the Dock alone, so the bundled .icon remains authoritative
+    // its preference we deliberately leave the Dock alone, so the bundled .icns remains authoritative
     // during startup instead of being immediately overwritten by a stale persisted icon choice.
     deps.electron.nativeTheme.on('updated', () => {
       if (currentAppearance?.followsSystem) applyAppearanceToDock()
