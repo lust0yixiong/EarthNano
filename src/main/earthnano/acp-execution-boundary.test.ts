@@ -2,19 +2,25 @@ import { describe, expect, it, vi } from 'vitest'
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import fixtures from '../../../contracts/execution/fixtures.json'
 import type { AcpRuntimeState } from '../../shared/acp'
-import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { AcpExecutionDispatch, AcpExecutionLink } from '../acp/execution-boundary-port'
 import { createAcpExecutionBoundary } from './acp-execution-boundary'
 import {
   emptyExecutionState,
   ExecutionCore,
   type ExecutionContext,
-  type ExecutionState
+  type ExecutionState,
+  type ExecutionStore
 } from './execution-core'
 import { currentExecutionScope } from './execution-scope'
 import type { SessionExecutionHost } from './session-execution-host-port'
 
-const deferred = <T>() => {
+interface Deferred<T> {
+  promise: Promise<T>
+  resolve(value: T): void
+  reject(error: unknown): void
+}
+const deferred = <T>(): Deferred<T> => {
   let resolve!: (value: T) => void
   let reject!: (error: unknown) => void
   const promise = new Promise<T>((yes, no) => {
@@ -27,7 +33,7 @@ const request = (): ExecutionRequest => ({
   ...(structuredClone(fixtures.valid) as ExecutionRequest),
   timeoutMs: 0
 })
-const store = () => {
+const store = (): ExecutionStore => {
   let state = emptyExecutionState()
   return {
     load: () => structuredClone(state),
@@ -37,7 +43,18 @@ const store = () => {
   }
 }
 const response: PromptResponse = { stopReason: 'end_turn' }
-function setup() {
+type ResultReader = Awaited<ReturnType<SessionExecutionHost['prepare']>>['readResult']
+interface Setup {
+  boundary: ReturnType<typeof createAcpExecutionBoundary>
+  input: AcpExecutionDispatch
+  prepare: ReturnType<typeof vi.fn<SessionExecutionHost['prepare']>>
+  readResult: ReturnType<typeof vi.fn<ResultReader>>
+  close: ReturnType<typeof vi.fn>
+  journal: ExecutionStore
+  committed: Deferred<void>
+  link(): AcpExecutionLink
+}
+function setup(): Setup {
   const journal = store()
   const close = vi.fn()
   const readResult = vi.fn<Awaited<ReturnType<SessionExecutionHost['prepare']>>['readResult']>(
@@ -202,7 +219,6 @@ describe('one ACP execution authority', () => {
   it('reuses the outer Harness identity and budget and rejects cross-Session or policy escalation', async () => {
     const s = setup()
     const outerStore = store()
-    let record!: ExecutionRecord
     const core = new ExecutionCore(outerStore, {
       async execute(_request, context) {
         context.identity({ sessionId: 'session', promptMessageId: 'prompt' })
@@ -223,7 +239,7 @@ describe('one ACP execution authority', () => {
     })
     core.configureBudget('demo', 'trial', 1)
     const handle = await core.submit({ ...request(), interactionPolicy: 'deny-unresolved' })
-    record = await core.waitForTerminal(handle.executionId)
+    const record = await core.waitForTerminal(handle.executionId)
     await core.settle()
     expect(record.phase).toBe('completed')
     expect(s.prepare).not.toHaveBeenCalled()

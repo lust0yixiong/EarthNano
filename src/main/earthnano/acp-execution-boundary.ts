@@ -136,8 +136,7 @@ export function createAcpExecutionBoundary({
       const prepared = await host.prepare(input)
       const native = deferred<PromptResponse>()
       let nativeFinished = false
-      let core!: ExecutionCore
-      core = new ExecutionCore(prepared.store, {
+      const core = new ExecutionCore(prepared.store, {
         async execute(_request, context) {
           const identity: ExecutionIdentity = {}
           let response: PromptResponse | undefined
