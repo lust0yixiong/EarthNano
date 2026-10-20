@@ -1,7 +1,7 @@
 """Opt-in platform-owned Harness² loop: python -m harness2.earthnano --config FILE.
 
 The platform starts/owns the stdio peer, snapshots, model credentials, processes and durable
-ArtifactVersion/Review owners. This entry point only runs the existing k=1 sequential method.
+ArtifactVersion/Review owners. This entry point runs one existing sequential or parallel mode.
 It never grades during optimization and never falls back to a legacy model launcher.
 """
 from __future__ import annotations
@@ -89,7 +89,7 @@ class EarthNanoAdapter:
         self.spec = BenchSpec(
             name="earthnano", runs_root=root / "runs", install_mode="workspace_agents_md",
             prompts=BenchPrompts(
-                work="Complete the supplied research task using its synthetic source material.",
+                work="Complete the supplied research task using its source material.",
                 inv_levers="Improve reliable reading, checking, and delivery of the requested work.",
                 dom_levers="Improve the task-specific working guidance and plain text Skills.",
                 domain_guidance="Only instructions.md and skills/name/SKILL.md may change. "
@@ -147,7 +147,7 @@ class EarthNanoAdapter:
 
 def validate_config(value):
     required = {"configVersion", "taskId", "task", "baseHarnessFiles", "workRoot", "model"}
-    optional = {"executionTimeoutMs", "rpcTimeoutMs"}
+    optional = {"executionTimeoutMs", "rpcTimeoutMs", "method"}
     if not isinstance(value, dict) or required - value.keys() or value.keys() - required - optional:
         raise ValueError("Invalid EarthNano configuration fields")
     if value["configVersion"] != 1:
@@ -168,9 +168,16 @@ def validate_config(value):
     validate_text_harness({entry["path"]: entry["content"] for entry in base})
     value = dict(value, executionTimeoutMs=value.get("executionTimeoutMs", 100_000),
                  rpcTimeoutMs=value.get("rpcTimeoutMs", 120_000))
-    for key in optional:
+    for key in ("executionTimeoutMs", "rpcTimeoutMs"):
         if type(value[key]) is not int or not 1 <= value[key] <= 3_600_000:
             raise ValueError("Expected a positive bounded timeout in milliseconds")
+    method = value.get("method", {"mode": "sequential", "k": 1, "concurrency": 1})
+    if (not isinstance(method, dict) or set(method) != {"mode", "k", "concurrency"}
+            or method["mode"] not in ("sequential", "parallel")
+            or type(method["k"]) is not int or not 1 <= method["k"] <= 8
+            or type(method["concurrency"]) is not int or not 1 <= method["concurrency"] <= 4):
+        raise ValueError("Expected method mode, k (1–8), and concurrency (1–4)")
+    value["method"] = dict(method)
     return value
 
 
@@ -184,21 +191,33 @@ def run(config, client):
                                     PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"]),
                                     reader, poll_interval=0.02)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)
-    result = schedule.run_task(config["taskId"], 1, adapter=adapter, prop=prop,
-                               runs_root=adapter.spec.runs_root, modes=("seq",), execution=execution)
-    selection = result.selections.get("seq", {})
+    method = config["method"]
+    mode = schedule.mode_token(method["mode"])
+    result = schedule.run_task(config["taskId"], method["k"], adapter=adapter, prop=prop,
+                               runs_root=adapter.spec.runs_root, modes=(mode,), execution=execution)
+    selection = result.selections.get(mode, {})
     chosen_path = selection.get("chosen_run_dir")
     chosen = reader.view(chosen_path) if chosen_path else None
     base_tree = tree.read_tree(TEXT_SURFACE, adapter.base_harness())
-    chosen_tree = tree.read_tree(TEXT_SURFACE, adapter.spec.runs_root / "earthnano-claude-text-seq1"
-                                 / config["taskId"] / "harnesses" / selection.get("chosen_label", "missing"))
+    namespace = schedule.Namespace(adapter.spec.name, adapter.substrate.name, mode, method["k"])
+    chosen_tree = tree.read_tree(TEXT_SURFACE,
+                                namespace.task_dir(adapter.spec.runs_root, config["taskId"])
+                                / "harnesses" / selection.get("chosen_label", "missing"))
     changed = bool(chosen_tree and chosen_tree != base_tree)
-    stages = result.modes.get("seq", {}).get("stages", [])
+    stages = result.modes.get(mode, {}).get("stages", [])
     return {
         "status": result.status, "summary": result.to_dict(), "records": list(execution.records),
         "chosenArtifacts": chosen["artifacts"] if chosen else [],
         "configurationChanged": changed,
         "fallbackStages": [stage["label"] for stage in stages if stage["fell_back"]],
+        "method": method,
+        "selection": {
+            "chosenLabel": selection.get("chosen_label", ""),
+            "candidateCount": selection.get("n_candidates", 0),
+            "trivial": selection.get("trivial", False),
+            "fallback": selection.get("fallback", False),
+            "reason": selection.get("why") or selection.get("error", ""),
+        },
     }
 
 

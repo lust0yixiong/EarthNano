@@ -3,6 +3,7 @@ import copy
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -25,6 +26,24 @@ DOM = BASE + "Reconcile the source entries before final delivery.\n"
 COMPOSED = INV + "Reconcile the source entries before final delivery.\n"
 
 
+def harness_for(label):
+    if label in ("inv1", "dom1", "c1"):
+        return {"inv1": INV, "dom1": DOM, "c1": COMPOSED}[label]
+    return BASE + f"Use the independent {label} guidance and verify every source entry.\n"
+
+
+def deliverable_for(label):
+    # The second final is meaningfully different; no recursion label enters selector evidence.
+    return ("All entries verified twice; reconciled answer: 42.\n" if label in ("c2", "agg2")
+            else "Entries checked once; answer: 42.\n")
+
+
+def selector_reply(files):
+    candidates = [entry for entry in files if re.fullmatch(r"candidates/[A-Z]+\.md", entry["path"])]
+    chosen = next(entry for entry in candidates if "verified twice" in entry["content"])
+    return f"```choice\n{Path(chosen['path']).stem}\n```\n<why>Complete reconciled evidence.</why>"
+
+
 def config(root):
     return {
         "configVersion": 1, "taskId": "synthetic-1",
@@ -44,6 +63,7 @@ class Peer:
         self.results = {}
         self.operations = []
         self.fault = None
+        self.selector_text = None
         self.stopped = False
 
     def exchange(self, operation, **args):
@@ -77,8 +97,8 @@ class Peer:
             artifact = {"artifactId": f"artifact-{slot}", "versionId": "immutable-v1",
                         "checksum": digest(f"version-{slot}")}
             proposed = invocation["role"] in ("proposer", "composer")
-            content = ({"inv1": INV, "dom1": DOM, "c1": COMPOSED}[invocation["stageLabel"]]
-                       if proposed else "Synthetic completed deliverable\n")
+            content = (harness_for(invocation["stageLabel"]) if proposed
+                       else deliverable_for(invocation["stageLabel"]))
             path = "context/harness/instructions.md" if proposed else "answer.txt"
             files = [{"path": path, "content": content, "digest": digest(content),
                       "artifactRef": artifact}]
@@ -86,6 +106,10 @@ class Peer:
                       "replyText": "<notes>Verified the supplied trajectory.</notes>",
                       "trajectoryText": "[ACTION] Read source.txt\n[OBSERVATION] Synthetic input\n",
                       "files": files}
+            if invocation["role"] == "selector":
+                result["files"] = []
+                result["replyText"] = (self.selector_text if self.selector_text is not None else
+                                       selector_reply(self.invocations[request["requestKey"]]["contextFiles"]))
             record = {
                 "executionId": execution_id, "requestKey": request["requestKey"],
                 "phase": "completed", "identity": {"sessionId": f"session-{slot}"},
