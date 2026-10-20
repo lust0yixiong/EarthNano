@@ -4,10 +4,16 @@ import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/
 import type {
   AcpExecutionBoundary,
   AcpExecutionDispatch,
-  AcpExecutionObservation
+  AcpExecutionObservation,
+  TrustedDelegatedExecutionOwner
 } from '../acp/execution-boundary-port'
 import { ExecutionCore, type ExecutionContext } from './execution-core'
-import { currentExecutionScope, isPhysicalCancellation } from './execution-scope'
+import {
+  currentExecutionScope,
+  findOwnedExecutionScope,
+  isPhysicalCancellation,
+  withExecutionScope
+} from './execution-scope'
 import type { SessionExecutionHost } from './session-execution-host-port'
 
 const deferred = <T>(): {
@@ -49,19 +55,36 @@ const observation = (
 
 /** The sole ACP model-dispatch authority. Hosts describe original facts and resources only. */
 export function createAcpExecutionBoundary({
-  host
+  host,
+  delegatedOwner
 }: {
   host: SessionExecutionHost
+  delegatedOwner?: TrustedDelegatedExecutionOwner
 }): AcpExecutionBoundary {
   const active = new Map<string, { core: ExecutionCore; executionId: string }>()
   const owners = new Set<ExecutionCore>()
 
   return {
     async execute(input) {
-      const inherited = currentExecutionScope()
+      const inherited = delegatedOwner
+        ? findOwnedExecutionScope(delegatedOwner)
+        : currentExecutionScope()
+      if (delegatedOwner && !inherited)
+        throw new Error('Delegated dispatch has no active shared execution owner')
       if (inherited) {
+        const record = await inherited.core.get(inherited.context.executionId)
+        if (!['preparing', 'running'].includes(record.phase))
+          throw new Error('Execution scope is no longer active')
         const identity = inherited.identity()
-        if (
+        if (delegatedOwner) {
+          if (
+            !delegatedOwner.ownsSession(input.request.sessionId) ||
+            !delegatedOwner.ownsTurn(input.request.provenanceContext) ||
+            input.request.provenanceContext?.agentFrameId !== delegatedOwner.frameId ||
+            identity.sessionId !== input.request.sessionId
+          )
+            throw new Error('Delegated dispatch does not match its original private turn owner')
+        } else if (
           identity.sessionId !== input.request.sessionId ||
           (identity.promptMessageId !== undefined &&
             input.request.provenanceContext?.promptMessageId !== identity.promptMessageId)
@@ -76,7 +99,24 @@ export function createAcpExecutionBoundary({
         const entry = { core: inherited.core, executionId: inherited.context.executionId }
         active.set(input.request.sessionId, entry)
         try {
-          return await input.dispatch(observation(inherited.context, input, {}))
+          const observer = delegatedOwner
+            ? {
+                admitted(value: ExecutionIdentity) {
+                  if (
+                    value.sessionId !== input.request.sessionId ||
+                    value.promptMessageId !== input.request.provenanceContext?.promptMessageId
+                  )
+                    throw new Error('Delegated admission does not match its exact owned turn')
+                  // Original delegation records per-turn identity; mission identity stays immutable.
+                  inherited.context.running()
+                  inherited.context.emit('session-admitted')
+                },
+                providerAccepted() {
+                  inherited.context.emit('provider-accepted')
+                }
+              }
+            : observation(inherited.context, input, {})
+          return await withExecutionScope(inherited, () => input.dispatch(observer))
         } finally {
           void inherited.core
             .waitForTerminal(entry.executionId)

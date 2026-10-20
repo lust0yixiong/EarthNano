@@ -54,6 +54,20 @@ export function findExecutionScopeById(source: {
     return undefined
   return scope
 }
+/** Exact private delegated owner capability, including SDK callbacks outside async context. */
+export function findOwnedExecutionScope(owner: {
+  projectId: string
+  sourceSessionId: string
+  ownsExecution(executionId: string): boolean
+}): ExecutionScope | undefined {
+  return [...activeScopes.values()].find(
+    (scope) =>
+      !scope.context.signal.aborted &&
+      scope.request.projectId === owner.projectId &&
+      scope.request.origin.sessionId === owner.sourceSessionId &&
+      owner.ownsExecution(scope.context.executionId)
+  )
+}
 export const isPhysicalCancellation = (): boolean => physicalCancellation.getStore() === true
 export const withPhysicalCancellation = <T>(work: () => T): T =>
   physicalCancellation.run(true, work)
