@@ -66,6 +66,44 @@ runtime recipe. A baseline checkout may reuse that payload only if the complete 
 recipe is unchanged against the original pin. A recipe difference fails closed until an
 independent original runtime build is supplied. No replacement download URL is introduced.
 
+## Windows cold build and independent platform work
+
+The first Alpha bootstrap's Windows runtime job `39438006915` exhausted its 90-minute job
+budget. The retained log `/tmp/earthnano-alpha-runtime-timeout.log` shows Node compilation
+consumed approximately 85 minutes; PowerShell's crossgen2 was then cancelled with the job.
+This establishes a cold-build deadline bottleneck, not a demonstrated compiler error or a
+successful runtime build.
+
+Only the Alpha `windows_runtime` cold-build job now has a 150-minute budget. Its original
+action, source recipe, cache key, pins, verification and runtime artifact remain unchanged.
+Source and native test jobs retain their 90-minute deadlines. A longer deadline alone is not
+build-success evidence; Windows still must complete its original verification before consumers.
+
+The root workflow partitions the original source inventory into `source_unix` (16 Linux/macOS
+shards) and `source_windows` (16 Windows shards). Both invoke the single reusable
+`.github/workflows/earthnano-source.yml` recipe. Unix source shards depend only on the plan;
+Windows source shards also require the runtime. The four original native targets are similarly
+partitioned into three Unix targets and one Windows target, invoking the same
+`.github/workflows/earthnano-native.yml` recipe. Unix native targets can start independently;
+the Windows target still requires the verified runtime. There are no duplicated test recipes
+or alternate source/native commands.
+
+The stable comparison job depends on both source matrices and runs after failure/skip as well
+as success for ordinary source CI. It explicitly requires both matrix statuses to be `success`
+before downloading reports; missing, skipped, failed or cancelled matrix results cannot become
+a green partial comparison. The unchanged comparator then requires every one of the original
+32 shard reports, exact source/environment identities, raw inventories and runtime sidecars.
+The intentionally native-only `ci/earthnano-native` validation ref continues to skip source and
+Harness comparison. PR base matching also accepts `feat/alpha-*` for stacked Alpha PRs; push
+triggers, explicit native opt-in, read-only permissions and no-publication policy are unchanged.
+
+Focused local topology tests execute the actual plan and status guard, verify all 32 unique
+shards/four native targets, check dependency isolation, and compare shared step inventories
+against the parsed recipes at `d4b20667d` (normalizing only the matrix-to-input variable context).
+This covers original commands, immutable action pins, conditions, environments and artifact
+names; it does not constitute a hosted source or native build result. Local YAML/guard tests
+do not replace GitHub's workflow validation or an actual Windows cold build.
+
 ## Native Alpha gate
 
 A reviewer must explicitly dispatch this workflow at the reviewed Alpha ref with `native=true`.

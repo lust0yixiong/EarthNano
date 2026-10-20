@@ -563,36 +563,45 @@ describe('EarthNano original-baseline gates', () => {
   }, 60_000)
   it('keeps only a read-only pinned workflow and explicit unsigned native acceptance', async () => {
     const source = await readFile('.github/workflows/earthnano-ci.yml', 'utf8'),
+      shared = (
+        await Promise.all(
+          ['source', 'native'].map((kind) =>
+            readFile(`.github/workflows/earthnano-${kind}.yml`, 'utf8')
+          )
+        )
+      ).join('\n'),
+      recipes = source + '\n' + shared,
       workflow = load(source) as {
         permissions: Record<string, string>
         on: Record<string, unknown>
-        jobs: { native: { if: string } }
+        jobs: { native_unix: { if: string }; native_windows: { if: string } }
       }
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.on.schedule).toBeUndefined()
     expect(workflow.on.pull_request_target).toBeUndefined()
-    expect(source).not.toContain('secrets.')
-    expect(source).not.toMatch(/permissions:[\s\S]{0,80}write/u)
-    expect(workflow.jobs.native.if).toBe(
+    expect(recipes).not.toContain('secrets.')
+    expect(recipes).not.toMatch(/permissions:[\s\S]{0,80}write/u)
+    const nativeCondition =
       "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
-        "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
-    )
+      "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
+    expect(workflow.jobs.native_unix.if).toBe(nativeCondition)
+    expect(workflow.jobs.native_windows.if).toBe(nativeCondition)
     expect((workflow.on.push as { branches: string[] }).branches).toEqual([
       'main',
       'ci/earthnano-native'
     ])
-    const actions = source.matchAll(/uses: ([^\s]+)/g)
+    const actions = recipes.matchAll(/uses: ([^\s]+)/g)
     for (const action of actions)
       if (!action[1].startsWith('./')) expect(action[1]).toMatch(/@[a-f0-9]{40}$/)
-    expect(source).toContain('xcrun actool --version')
+    expect(recipes).toContain('xcrun actool --version')
     expect(source).toContain('macos-26-intel')
     expect(source).toContain("['windows-2022', 8]")
-    expect(source).toContain('scripts/ci/npm-ci.mjs')
-    expect(source).toContain('npm run build')
-    expect(source).toContain('--publish never')
-    expect(source).toContain('macos-package-smoke.mjs --artifact-dir dist')
-    expect(source).toContain('windows-installer-smoke.mjs --installer-dir dist')
-    expect(source).toContain('linux-package-smoke.mjs --artifact-dir dist')
-    expect(source).toContain('if-no-files-found: error')
+    expect(recipes).toContain('scripts/ci/npm-ci.mjs')
+    expect(recipes).toContain('npm run build')
+    expect(recipes).toContain('--publish never')
+    expect(recipes).toContain('macos-package-smoke.mjs --artifact-dir dist')
+    expect(recipes).toContain('windows-installer-smoke.mjs --installer-dir dist')
+    expect(recipes).toContain('linux-package-smoke.mjs --artifact-dir dist')
+    expect(recipes).toContain('if-no-files-found: error')
   })
 })

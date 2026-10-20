@@ -2,7 +2,7 @@ name: EarthNano CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/alpha-*]
   push:
     branches: [main, ci/earthnano-native]
   workflow_dispatch:
@@ -26,7 +26,8 @@ jobs:
     timeout-minutes: 5
     if: github.ref != 'refs/heads/ci/earthnano-native'
     outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
+      unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
+      windows_matrix: ${{ steps.matrix.outputs.windows_matrix }}
     steps:
       - id: matrix
         shell: node {0}
@@ -36,12 +37,13 @@ jobs:
           for (const [os, total] of [['ubuntu-24.04', 4], ['macos-15', 4], ['windows-2022', 8]])
             for (const kind of ['baseline', 'candidate'])
               for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total})
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include})}\n`)
+          for (const [name, windows] of [['unix_matrix', false], ['windows_matrix', true]])
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${JSON.stringify({include: include.filter(row => row.os.startsWith('windows-') === windows)})}\n`)
 
   windows_runtime:
     name: Original pinned Windows Notebook runtime
     runs-on: windows-2022
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
@@ -53,51 +55,36 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-  source:
+  source_unix:
     name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
-    needs: [plan, windows_runtime]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    needs: plan
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version: 24, cache: npm }
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
-        id: python
-        with: { python-version: '3.12.13' }
-      - name: Original Linux native headers and display
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install --yes --no-install-recommends libsecret-1-dev libdbus-1-dev xvfb
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        if: runner.os == 'Windows'
-        with:
-          name: earthnano-windows-runtime
-          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
-      - name: Full selected original source shard on exact pinned source
-        env:
-          EARTHNANO_RESEARCH_PYTHON: ${{ steps.python.outputs.python-path }}
-        shell: bash
-        run: |
-          args=(node scripts/ci/earthnano-source.mjs source --kind '${{ matrix.kind }}' --shard '${{ matrix.shard }}' --total '${{ matrix.total }}' --out "$RUNNER_TEMP/source-report")
-          if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a "${args[@]}"; else "${args[@]}"; fi
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: earthnano-source-${{ matrix.os }}-${{ matrix.kind }}-${{ matrix.shard }}
-          path: ${{ runner.temp }}/source-report/
-          retention-days: 14
-          if-no-files-found: error
+      matrix: ${{ fromJSON(needs.plan.outputs.unix_matrix) }}
+    uses: ./.github/workflows/earthnano-source.yml
+    with:
+      os: ${{ matrix.os }}
+      kind: ${{ matrix.kind }}
+      shard: ${{ matrix.shard }}
+      total: ${{ matrix.total }}
+
+  source_windows:
+    name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
+    needs: [plan, windows_runtime]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.windows_matrix) }}
+    uses: ./.github/workflows/earthnano-source.yml
+    with:
+      os: ${{ matrix.os }}
+      kind: ${{ matrix.kind }}
+      shard: ${{ matrix.shard }}
+      total: ${{ matrix.total }}
 
   comparison:
     name: Enforce pinned original source comparison
-    needs: source
-    if: always() && needs.source.result != 'skipped'
+    needs: [source_unix, source_windows]
+    if: always() && github.ref != 'refs/heads/ci/earthnano-native'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -105,6 +92,14 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version: 24 }
+      - name: Require both complete source matrices
+        shell: node {0}
+        env:
+          SOURCE_UNIX_RESULT: ${{ needs.source_unix.result }}
+          SOURCE_WINDOWS_RESULT: ${{ needs.source_windows.result }}
+        run: |
+          for (const key of ['SOURCE_UNIX_RESULT', 'SOURCE_WINDOWS_RESULT'])
+            if (process.env[key] !== 'success') throw new Error(`Required source matrix did not succeed: ${key}`)
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with: { pattern: earthnano-source-*, path: source-reports }
       - run: node scripts/ci/earthnano-source.mjs compare --reports source-reports --out test-results/earthnano-ci
@@ -147,14 +142,11 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-  native:
+  native_unix:
     name: Unsigned native build and original launch ${{ matrix.os }}
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.native) ||
       (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
-    needs: windows_runtime
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -162,102 +154,27 @@ jobs:
           - { os: macos-26, platform: mac, arch: arm64, subdir: osx-arm64 }
           - { os: macos-26-intel, platform: mac, arch: x64, subdir: osx-64 }
           - { os: ubuntu-24.04, platform: linux, arch: x64, subdir: linux-64 }
+    uses: ./.github/workflows/earthnano-native.yml
+    with:
+      os: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      arch: ${{ matrix.arch }}
+      subdir: ${{ matrix.subdir }}
+
+  native_windows:
+    name: Unsigned native build and original launch ${{ matrix.os }}
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.native) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
+    needs: windows_runtime
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - { os: windows-2022, platform: win, arch: x64, subdir: win-64 }
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      MACOSX_DEPLOYMENT_TARGET: '12.0'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version: 24, cache: npm }
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
-        with: { python-version: '3.12.13' }
-      - name: Require original Icon Composer compiler
-        if: runner.os == 'macOS'
-        run: xcrun actool --version
-      - name: Original Linux build and smoke dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install --yes --no-install-recommends libsecret-1-dev libdbus-1-dev xvfb
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        if: runner.os == 'Windows'
-        with:
-          name: earthnano-windows-runtime
-          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
-      - name: Install original dependencies
-        run: node scripts/ci/npm-ci.mjs
-      - name: Require exact lockfile Electron binary
-        run: node scripts/ci/earthnano-source.mjs electron
-      - name: Stage original pinned resources
-        shell: bash
-        run: |
-          name=micromamba
-          [[ '${{ matrix.platform }}' == win ]] && name=micromamba.exe
-          node scripts/fetch-micromamba.mjs '${{ matrix.subdir }}' 'resources/bin/${{ matrix.platform }}/${{ matrix.arch }}/'"$name"
-          if [[ '${{ matrix.platform }}' == win ]]; then node scripts/fetch-micromamba.mjs win-64 'resources/bin/win/x64/micromamba-compat.exe' compatibility; fi
-      - name: Original full application build
-        run: npm run build
-      - name: Original target Prisma engine pruning
-        shell: bash
-        run: |
-          case '${{ matrix.platform }}-${{ matrix.arch }}' in
-            mac-arm64) keep=darwin-arm64 ;;
-            mac-x64) keep=darwin.dylib ;;
-            linux-x64) keep='openssl-3.0.x.so.node' ;;
-            win-x64) keep=query_engine-windows.dll.node ;;
-            *) exit 1 ;;
-          esac
-          found=0
-          for file in node_modules/.prisma/client/*query_engine-*; do
-            [[ -e "$file" ]] || continue
-            if [[ "$file" == *"$keep"* ]]; then found=1; else rm "$file"; fi
-          done
-          [[ "$found" == 1 ]]
-      - name: Native unsigned packaging (never publish)
-        shell: bash
-        run: |
-          args=(--'${{ matrix.platform }}' --'${{ matrix.arch }}' --publish never)
-          if [[ '${{ matrix.platform }}' == mac ]]; then args+=(-c.mac.identity=null -c.dmg.sign=false); fi
-          node node_modules/electron-builder/cli.js "${args[@]}"
-      - name: Original macOS DMG/ZIP resource, catalog/fallback and launch smoke
-        if: runner.os == 'macOS'
-        run: node scripts/macos-package-smoke.mjs --artifact-dir dist
-      - name: Original Windows installed resource, RPC and launch smoke
-        if: runner.os == 'Windows'
-        run: node scripts/windows-installer-smoke.mjs --installer-dir dist
-      - name: Original Linux DEB lifecycle, AppImage resources and installed launch smoke
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          trap 'sudo apt-get remove --yes open-science || true' EXIT
-          sudo "$(command -v node)" scripts/deb-package-lifecycle-smoke.mjs ./dist/*.deb
-          sudo apt-get install --yes ./dist/*.deb
-          product="$(node -p "require('./package.json').productName")"
-          xvfb-run -a node scripts/linux-package-smoke.mjs --artifact-dir dist --installed-executable "/opt/$product/open-science" --installed-cli /usr/bin/open-science
-      - name: Retain validated unsigned packages (CI artifacts, no release publication)
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: earthnano-unsigned-${{ matrix.os }}
-          path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.exe
-            dist/*.AppImage
-            dist/*.deb
-          retention-days: 3
-          if-no-files-found: error
-      - name: Source identity, license and streamed artifact digests
-        if: always()
-        run: node scripts/ci/earthnano-source.mjs manifest --out test-results/native-evidence
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: earthnano-native-evidence-${{ matrix.os }}
-          path: |
-            test-results/native-evidence/
-            dist/*certification*.json
-            dist/*builder*.yml
-          retention-days: 14
-          if-no-files-found: error
+    uses: ./.github/workflows/earthnano-native.yml
+    with:
+      os: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      arch: ${{ matrix.arch }}
+      subdir: ${{ matrix.subdir }}
