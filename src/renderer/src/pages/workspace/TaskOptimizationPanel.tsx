@@ -47,6 +47,7 @@ function OptimizationSessionPanel({
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<false | 'request' | 'files'>(false)
+  const panel = useRef<HTMLDetailsElement>(null)
   const alive = useRef(true)
   const actionRevision = useRef(0)
   const requestKey = useRef<string | null>(null)
@@ -75,6 +76,9 @@ function OptimizationSessionPanel({
       alive.current = false
     }
   }, [api, projectId, sessionId])
+  useEffect(() => {
+    if (progress?.runId && panel.current) panel.current.scrollTop = 0
+  }, [progress?.runId])
   const runningRunId = progress && !terminal(progress.state) ? progress.runId : undefined
   useEffect(() => {
     if (!runningRunId) return
@@ -222,6 +226,7 @@ function OptimizationSessionPanel({
     'w-full rounded border border-border bg-bg-10 p-2 text-sm text-text-100 disabled:opacity-60'
   return (
     <details
+      ref={panel}
       className="mx-4 mb-2 shrink-0 rounded-lg border border-border text-sm max-h-[55vh] overflow-auto"
       data-testid="task-optimization-panel"
     >
@@ -230,6 +235,78 @@ function OptimizationSessionPanel({
         {progress ? ` · ${stage()}` : ''}
       </summary>
       <div className="space-y-3 px-3 pb-3">
+        {progress && (
+          <div role="status" aria-live="polite" className="space-y-2">
+            <p>{stage()}</p>
+            <p>
+              {t('Used {{used}} of {{limit}} executions · {{active}} active', {
+                used: progress.budget.admitted,
+                limit: progress.budget.limit,
+                active: progress.budget.active
+              })}
+            </p>
+            {active && (
+              <button
+                type="button"
+                className="rounded border border-border px-3 py-2 disabled:opacity-50"
+                disabled={busy || progress?.state === 'stopping'}
+                onClick={() => void stop()}
+              >
+                {t('Stop optimization')}
+              </button>
+            )}
+            {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
+            {progress.assessments && (
+              <>
+                <p className="text-xs text-text-400">
+                  {t('Results compare independent assessments; improvement is not guaranteed.')}
+                </p>
+                {(['baseline', 'candidate'] as const).map((kind) => {
+                  const assessment = progress.assessments![kind]
+                  const session = progress.executions.find(
+                    (entry) => entry.executionId === assessment.targetExecutionId
+                  )?.sessionId
+                  return (
+                    <div key={kind} className="rounded border border-border p-2">
+                      <p className="font-medium">
+                        {kind === 'baseline' ? t('Baseline assessment') : t('Candidate assessment')}
+                      </p>
+                      <p>
+                        {t('Score: {{score}} · {{outcome}}', {
+                          score: assessment.score,
+                          outcome: assessment.outcome === 'pass' ? t('Passed') : t('Flagged')
+                        })}
+                      </p>
+                      <p className="whitespace-pre-wrap break-words">{assessment.rationale}</p>
+                      {session && onOpenReview && (
+                        <button
+                          type="button"
+                          className="text-primary underline"
+                          onClick={() => onOpenReview(session, assessment.reviewId)}
+                        >
+                          {t('Open assessment')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            )}
+            {progress.executions
+              .filter((entry) => entry.sessionId)
+              .map((entry, index) => (
+                <button
+                  key={entry.executionId}
+                  type="button"
+                  className="mr-3 text-primary underline"
+                  disabled={!onOpenSession}
+                  onClick={() => onOpenSession?.(entry.sessionId!)}
+                >
+                  {t('Open result chat {{number}}', { number: index + 1 })}
+                </button>
+              ))}
+          </div>
+        )}
         <label className="block">
           {t('Task description')}
           <textarea
@@ -320,16 +397,6 @@ function OptimizationSessionPanel({
           >
             {t('Start optimization')}
           </button>
-          {active && (
-            <button
-              type="button"
-              className="rounded border border-border px-3 py-2 disabled:opacity-50"
-              disabled={busy || progress?.state === 'stopping'}
-              onClick={() => void stop()}
-            >
-              {t('Stop optimization')}
-            </button>
-          )}
         </div>
         {error && (
           <ErrorNotice
@@ -343,68 +410,6 @@ function OptimizationSessionPanel({
                 : message
             }
           />
-        )}
-        {progress && (
-          <div role="status" aria-live="polite" className="space-y-2">
-            <p>{stage()}</p>
-            <p>
-              {t('Used {{used}} of {{limit}} executions · {{active}} active', {
-                used: progress.budget.admitted,
-                limit: progress.budget.limit,
-                active: progress.budget.active
-              })}
-            </p>
-            {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
-            {progress.assessments && (
-              <>
-                <p className="text-xs text-text-400">
-                  {t('Results compare independent assessments; improvement is not guaranteed.')}
-                </p>
-                {(['baseline', 'candidate'] as const).map((kind) => {
-                  const assessment = progress.assessments![kind]
-                  const session = progress.executions.find(
-                    (entry) => entry.executionId === assessment.targetExecutionId
-                  )?.sessionId
-                  return (
-                    <div key={kind} className="rounded border border-border p-2">
-                      <p className="font-medium">
-                        {kind === 'baseline' ? t('Baseline assessment') : t('Candidate assessment')}
-                      </p>
-                      <p>
-                        {t('Score: {{score}} · {{outcome}}', {
-                          score: assessment.score,
-                          outcome: assessment.outcome === 'pass' ? t('Passed') : t('Flagged')
-                        })}
-                      </p>
-                      <p className="whitespace-pre-wrap break-words">{assessment.rationale}</p>
-                      {session && onOpenReview && (
-                        <button
-                          type="button"
-                          className="text-primary underline"
-                          onClick={() => onOpenReview(session, assessment.reviewId)}
-                        >
-                          {t('Open assessment')}
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-              </>
-            )}
-            {progress.executions
-              .filter((entry) => entry.sessionId)
-              .map((entry, index) => (
-                <button
-                  key={entry.executionId}
-                  type="button"
-                  className="mr-3 text-primary underline"
-                  disabled={!onOpenSession}
-                  onClick={() => onOpenSession?.(entry.sessionId!)}
-                >
-                  {t('Open result chat {{number}}', { number: index + 1 })}
-                </button>
-              ))}
-          </div>
         )}
       </div>
     </details>

@@ -213,3 +213,28 @@ it('enforces the small desktop text profile before dispatch: 64 KB per file and 
   expect(container.textContent).not.toContain('input1.txt')
   expect(api.start).not.toHaveBeenCalled()
 })
+
+it('puts progress and stop before configuration, resets scroll only for a new run', async () => {
+  await render()
+  await input('Acceptance criteria (one per line)', 'Synthetic criterion')
+  const panel = container.querySelector('details')!
+  panel.scrollTop = 180
+  await click('Start optimization')
+  expect(panel.scrollTop).toBe(0)
+  const status = container.querySelector('[role=status]')!
+  const description = container.querySelector('[aria-label="Task description"]')!
+  expect(
+    status.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy()
+  expect(status.textContent).toContain('Stop optimization')
+  panel.scrollTop = 85
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(panel.scrollTop).toBe(85)
+  await click('Stop optimization')
+  expect(panel.scrollTop).toBe(85)
+  vi.mocked(api.start).mockResolvedValue({ ...progress(), runId: 'next-run' })
+  await click('Start optimization')
+  expect(panel.scrollTop).toBe(0)
+})

@@ -21,6 +21,15 @@ for (const width of [1100, 390])
     await expect(page.getByText('values.csv', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('Used 2 of 12 executions')
+    await expect(
+      page.getByText('Used 2 of 12 executions · 1 active', { exact: true })
+    ).toBeInViewport({ ratio: 1 })
+    await expect(
+      page.getByRole('button', { name: 'Stop optimization', exact: true })
+    ).toBeInViewport({ ratio: 1 })
+    await expect
+      .poll(() => page.getByTestId('task-optimization-panel').evaluate((node) => node.scrollTop))
+      .toBe(0)
     await expect
       .poll(() =>
         page.evaluate(
@@ -42,6 +51,25 @@ for (const width of [1100, 390])
       executionLimit: 12,
       files: [{ path: 'values.csv', content: 'value\n1\n2\n' }]
     })
+    const polled = await page.evaluate(
+      () => (window as unknown as { optimizationFixture: { get: number } }).optimizationFixture.get
+    )
+    const scrolled = await page.getByTestId('task-optimization-panel').evaluate((node) => {
+      node.scrollTop = 80
+      return node.scrollTop
+    })
+    expect(scrolled).toBeGreaterThan(0)
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as unknown as { optimizationFixture: { get: number } }).optimizationFixture.get
+        )
+      )
+      .toBeGreaterThan(polled)
+    expect(
+      await page.getByTestId('task-optimization-panel').evaluate((node) => node.scrollTop)
+    ).toBe(scrolled)
     await page.getByRole('button', { name: 'Stop optimization', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('Cancelled')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
