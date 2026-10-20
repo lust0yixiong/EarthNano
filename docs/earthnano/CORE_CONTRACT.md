@@ -1,6 +1,6 @@
 # EarthNano 最小核心契约
 
-状态：v0.1 草案，供首轮双侧源码审查；尚未实现。范围：普通科研执行与 Harness² 内部执行共用的边界。
+状态：v0.1 审查修订稿；尚未实现，待本 PR 审阅。范围：普通科研执行与 Harness² 内部执行共用的边界。
 基线：`0a9d62c1`，上游提交见 [UPSTREAMS.json](../../UPSTREAMS.json)。
 
 ## 1. 共同术语与所有权
@@ -15,12 +15,14 @@
 
 OpenScience 的 Project、Session、消息分支、ArtifactVersion 和 Review 继续作为原有事实来源。
 新增对象保存关联，不建立第二套会话、产物或审阅数据库。Harness² 的阶段标签和目录不作为
-平台执行身份。平台最终状态由执行核心维护，优化方法不能自行宣布运行完成或更改权限。
+平台执行身份。Execution 状态由执行核心维护，原有 Session、产物和 Review 仍遵循各自的
+权威 owner 与提交规则；优化方法不能自行宣布运行完成或更改权限。
 
 ## 2. 最小请求
 
-以下为跨 TypeScript / Python 边界的语义字段，不是本轮新增的生产类型或公开 HTTP API。
-`Ref` 表示由平台解析的不可变引用及内容摘要，不能仅指向可变的工作区路径。
+以下为跨 TypeScript / Python 边界的语义字段摘录，不是可直接编译的完整 SDK、
+本轮新增的生产类型或公开 HTTP API。`Ref` 包含由平台解析的不可变标识、版本与内容摘要，
+不能仅指向可变的工作区路径。摘要算法及规范化序列化由核心统一，不能各客户端自行决定。
 
 ```ts
 type ExecutionRole =
@@ -32,6 +34,7 @@ interface ExecutionRequest {
   requestKey: string; // 在项目内对同一提交去重
   projectId: string;
   taskSnapshotRef: Ref;
+  invocationRef: Ref; // 本角色的冻结调用输入包，见下方说明
   agentSpecRef: Ref; // 后端、模型、推理参数、版本；凭据仅保存受控引用
   harnessRevisionRef: Ref;
   environmentSpecRef: Ref; // 输入挂载、工作目录策略、工具范围、计算目标
@@ -55,8 +58,13 @@ interface ExecutionRequest {
 
 - TaskSnapshot 包括用户要求、版本化输入清单、必要的文本/附件/图像上下文和上下文摘要。
   普通对话可在提交时创建快照，无需用户预先建立 benchmark 任务。
-- 同一候选组使用同一个 TaskSnapshot、AgentSpec 和 EnvironmentSpec；有意改变这些变量时
+- invocationRef 包含本角色实际使用的 mission/system、可见输入与证据引用、
+  候选配置工作副本的初始版本，以及文本/产物/配置提案的收集要求。
+  TaskSnapshot 始终表示科研任务；不能用它代替 proposer 或 selector 的阶段提示。
+  普通任务的调用输入包可以由任务快照与配置生成，生成结果也需冻结。
+- 同一 solver 候选组使用同一个 TaskSnapshot、AgentSpec 和 EnvironmentSpec；有意改变这些变量时
   必须记录为另一种比较设计，不能宣称只改变了 Harness。
+  proposer/selector 可使用不同模型，但各自也必须固定并记录 AgentSpec。
 - EnvironmentSpec 是计划；执行还应记录实际运行环境及版本。可变外部数据必须记录版本、
   摘要或不可重放原因。
 - HarnessRevision 不包含凭据、应用权限的授权决定或独立评测答案。
@@ -76,8 +84,11 @@ interface ExecutionPort {
 }
 ```
 
-- `submit` 在持久化接纳后返回句柄，不等待模型或优化流程结束。
+- `submit` 在核心持久化接纳后返回句柄，不等待模型或优化流程结束。
   参数校验失败返回结构化拒绝，不能产生已经开始执行的假象。
+- 核心接纳、会话准备、持久化 Session turn admission、provider acceptance 是不同边界。
+  桌面 façade 继续等待匹配的 Session turn admission 后响应；任务 API 保留现有准备会话、
+  保存 Run 后异步执行的语义。不能直接将等待完整 turn 的 `sendPrompt()` 改名为 submit。
 - `ExecutionHandle` 至少包含 `executionId`、`requestKey`、当前 phase，以及已知的 OpenScience
   `runId/sessionId/promptMessageId` 映射。provider session ID 与应用 session ID 分别记录。
 - `ExecutionRecord` 包含请求引用、phase、时间、错误、等待原因、生效配置记录、
@@ -85,6 +96,8 @@ interface ExecutionPort {
 - 相同项目的相同 `requestKey` 与相同请求摘要返回同一执行；不同摘要返回冲突。
   有意重试使用新 key 和 executionId，通过 `retryOfExecutionId` 关联。
 - 幂等接纳不承诺外部工具“恰好一次”执行。崩溃后的未知副作用必须先核实，不能自动重放。
+- 跨提交结果复用与提交去重分开。缓存需匹配任务、调用输入、AgentSpec、Harness、
+  环境及实际物化配置身份，并验证结果证据仍有效。仅凭 run 目录存在或配置树摘要不得复用。
 
 ## 4. 生命周期、等待与取消
 
@@ -100,13 +113,18 @@ queued 表示已持久化接纳，preparing 表示准备环境与配置，runnin
 provider 已接纳、首段输出等保留为事件，不等价于 completed。
 
 - `completed` 只表示执行及其必要的结果提交完成，不代表产物正确或候选优于基线。
+- 现有 Task API 开启 autoReview 时，保持其等待 Reviewer 后再提交 Run 终态的行为。
+  Review 的失败/警告保留在独立评估记录，不自动等同于主执行失败；不得借抽取接口改变此语义。
 - cancelled 由核心确认；`cancel()` 返回取消已请求、已完成或已经终止的回执，
   不把取消请求本身等同于进程已经退出。重复取消幂等。
 - 终态只能提交一次；完成与取消并发时由核心现有执行所有权与持久化顺序决定，不能后到事件覆盖。
 - 重启后无法证明已完成的执行标记 interrupted，并保留证据；恢复过程不能直接重复模型调用。
 - 清理状态单独记录 `pending | confirmed | unknown`；unknown 时保留资源占用或隔离栅栏，
   不把未确认退出的进程槽位交给下一候选。
-- 预算在执行前准入，重试、选择、反思及 Reviewer 均计入；缺失用量记 unknown，不按零费用处理。
+- 预算在执行前准入，并发阶段先预约额度；重试、选择、反思及 Reviewer 均计入。
+  缺失用量记 unknown，不按零费用处理；费用估计不能伪称供应商精确计费上限。
+- 取消、超时和预算耗尽是控制停止信号，优先于方法的普通错误回退；不能在回退路径中重新
+  提交执行。恢复/重试须经核心重新准入，并保留原停止原因。
 - 公共 Task API 原有四种状态保持兼容。内部 interrupted 对外可映射为
   `failed + process_restarted`；内部 queued/preparing 不直接扩展现有公开枚举。
   桌面继续保留现有人工交互及流式事件语义。
@@ -117,6 +135,9 @@ provider 已接纳、首段输出等保留为事件，不等价于 completed。
 加载的指令与技能清单、可用工具范围，以及每项能力的确认方式。
 区分“已生成配置文件”和“已确认后端加载”；无法确认时记录 unknown，不能报告已生效。
 已有会话不能安全热切换的配置，通过独立 runtime 或明确的会话切换边界应用。
+新增优化候选的配置编译边界执行严格兼容检查；原有普通会话允许的模型/effort 回退行为保持
+兼容并记录实际结果，不能把新的拒绝规则直接套在所有旧入口上。
+现有受限推理或委派设施只有在满足结果、资源清理和能力确认要求后才能作为候选执行实现。
 
 每条事件包含 executionId、该执行内单调序号、事件类型、时间及可用的原有消息/工具标识。
 证据记录在 UI 合并或公共流裁剪之前接收。读取缺口明确返回 gap，不能把缺失事件当成完整轨迹。
@@ -137,7 +158,10 @@ Assessment 引用具体执行/产物版本，注明 `review | reproducibility | 
 - 原版 finals 选择池排除基线，k=1 有直接选择路径。选择成功不能被写成改进已被证明；
   后续若增加基线回退或发布门槛，应与原方法选择结果分开记录。
 - 原 Library 给改进过程提供历史配置与经验上下文，并非直接替换后续普通任务的全局默认配置。
-- 保留 R=4k、P=3k 的方法计数检查；它们不替代平台总预算，未完成过程不能伪造完整计数。
+- R=4k、P=3k 是每个 task、每种 mode 的方法计数。agg/seq 共享 k 个 base，
+  两种 mode 全部执行时唯一 solver rollout 为 7k，不能按 8k 重复收取共享基线。
+  P 不包括 selector/reflection，提案校验重试和传输重试另计真实调用。
+  平台按实际执行计费，未完成过程不能伪造完整方法计数。
 
 ## 7. 两条最小调用示例与后续验收
 
