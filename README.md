@@ -1,3 +1,20 @@
+# EarthNano
+
+EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。
+目标是保留现有科研能力，使科研执行与自动优化共享运行、配置和证据体系。
+先面向地学与遥感科研，随后扩展到通用科研。
+
+**当前阶段：仓库初始化。自动优化融合尚未实现，应用尚未完成 EarthNano 功能验收。**
+
+- [实施计划与当前状态](docs/earthnano/PLAN.md)
+- [上游来源、固定提交和许可证](UPSTREAMS.json)
+- [Harness² 上游源码快照](vendor/harness2/)
+
+以下保留 OpenScience 的上游说明。下载链接、发布信息、性能声明与产品截图指向上游项目，
+不代表 EarthNano 已发布相应版本或完成对应验证。
+
+---
+
 <h1 align="center">AIPOCH Open-Science</h1>
 
 <p align="center">
