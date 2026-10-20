@@ -9,11 +9,19 @@ import {
 } from './claude-candidate-driver'
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
+import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
+import { evaluateOptimizationSemantics } from './semantic-evaluation'
 import { HarnessOptimizationBinding, runHarnessProcess } from './harness-optimization'
 import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
 } from './persistent-candidate-owner'
+
+export interface PersistentOptimizationProgress {
+  optimizationId: string
+  stage: 'optimizing' | 'assessing' | 'settled'
+  records: ExecutionRecord[]
+}
 
 export interface PersistentOptimizationOptions {
   /** Existing project identity in the original OpenScience repositories. */
@@ -30,6 +38,10 @@ export interface PersistentOptimizationOptions {
   executionTimeoutMs?: number
   timeoutMs?: number
   signal?: AbortSignal
+  /** Fixed before optimization; never forwarded to proposer/composer. */
+  semanticCriteria?: string
+  /** Projection of committed execution facts, including reviewer admissions. */
+  onProgress?: (progress: PersistentOptimizationProgress) => void
 }
 
 /** Opt-in production composition. Existing Session/Artifact/Review owners remain authoritative.
@@ -38,6 +50,7 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
   optimizationId: string
   methodResult: unknown
   records: ExecutionRecord[]
+  assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
 }> {
   options.signal?.throwIfAborted()
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
@@ -54,6 +67,10 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
   await mkdir(options.workRoot, { mode: 0o700 })
   const optimizationId = randomUUID()
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
+  let stage: PersistentOptimizationProgress['stage'] = 'optimizing'
+  const publish = (): void => {
+    options.onProgress?.({ optimizationId, stage, records: Object.values(store.load().records) })
+  }
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
@@ -64,7 +81,13 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
       candidatesRoot: join(options.workRoot, 'candidates')
     })
     core = new ExecutionCore(
-      store,
+      {
+        load: () => store.load(),
+        commit: (state) => {
+          store.commit(state)
+          publish()
+        }
+      },
       createClaudeCandidateDriver({
         snapshots,
         binding: options.binding,
@@ -138,12 +161,41 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
       )
         throw new Error('Optimization result lacks a complete passing integrity review')
     }
-    return { optimizationId, methodResult, records }
+    let assessments:
+      { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
+    if (options.semanticCriteria !== undefined) {
+      options.signal?.throwIfAborted()
+      stage = 'assessing'
+      publish()
+      assessments = await evaluateOptimizationSemantics({
+        core,
+        snapshots,
+        owners,
+        input: options.input,
+        records,
+        methodResult,
+        projectId: options.projectId,
+        optimizationId,
+        taskId: options.taskId,
+        budgetRef: optimizationId,
+        criteria: options.semanticCriteria,
+        timeoutMs: executionTimeoutMs,
+        signal: options.signal
+      })
+    }
+    return {
+      optimizationId,
+      methodResult,
+      records: Object.values(store.load().records),
+      ...(assessments ? { assessments } : {})
+    }
   } finally {
     try {
       await binding?.stop()
       const cleanup = owners ? await owners.shutdown() : { reaped: true }
       const state = store.load()
+      stage = 'settled'
+      publish()
       const safeToUnlock =
         cleanup.reaped &&
         Object.values(state.records).every(
@@ -153,6 +205,7 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
         )
       // Unknown cleanup retains the single-writer lock for explicit reconciliation. No auto-replay.
       if (safeToUnlock) store.close()
+      else throw new Error('Optimization cleanup requires reconciliation')
     } finally {
       core?.dispose()
     }
