@@ -2,7 +2,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCandidateSnapshotStore,
   type CandidateSnapshotInput,
@@ -214,5 +214,32 @@ describe('trusted Harness optimization binding', () => {
       runHarnessProcess({ ...options, args: ['-c', 'print("bad-json",flush=True)'] })
     ).rejects.toThrow('did not complete')
     await expect(f.binding.dispatch('freezeInvocation', invocation())).rejects.toThrow('stopped')
+  })
+  it('timeout stops even while a persistence dispatch is still pending', async () => {
+    const f = await setup()
+    let release!: (value: unknown) => void
+    vi.spyOn(f.binding, 'dispatch').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve
+        })
+    )
+    const started = Date.now()
+    await expect(
+      runHarnessProcess({
+        binding: f.binding,
+        python: 'python3',
+        cwd: f.root,
+        env: { PATH: process.env.PATH },
+        timeoutMs: 500,
+        args: [
+          '-c',
+          'import json,sys; print(json.dumps({"id":1,"operation":"readResult","executionId":"pending"}),flush=True); sys.stdin.readline()'
+        ]
+      })
+    ).rejects.toThrow('did not complete')
+    expect(Date.now() - started).toBeLessThan(2000)
+    expect(f.binding.dispatch).toHaveBeenCalledOnce()
+    release?.({ ignored: true })
   })
 })

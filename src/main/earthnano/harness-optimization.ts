@@ -263,8 +263,13 @@ export async function runHarnessProcess(options: {
   let receivedBytes = 0
   let diagnosticBytes = 0
   const seen = new Set<number>()
+  let releaseStop!: () => void
+  const stopped = new Promise<void>((resolve) => {
+    releaseStop = resolve
+  })
   const stop = (): void => {
     failed = true
+    releaseStop()
     child.kill('SIGKILL')
     void options.binding.stop()
   }
@@ -333,11 +338,13 @@ export async function runHarnessProcess(options: {
       child.once('error', reject)
       child.once('close', resolve)
     })
-    await pending
-    if (failed || exitCode !== 0 || result === undefined)
+    await Promise.race([pending, stopped])
+    if (failed || exitCode !== 0 || result === undefined) {
+      failed = true
       throw new Error(
         'Harness optimization did not complete; admitted executions remain owned by the core'
       )
+    }
     return result
   } finally {
     clearTimeout(timer)

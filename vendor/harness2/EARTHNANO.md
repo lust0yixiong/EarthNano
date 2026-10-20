@@ -55,8 +55,9 @@ The platform exports only the committed ArtifactVersion, never a current workspa
 Python checks identities, file checksums, duplicate paths and path escapes, and materializes a
 private readonly adapter view. Rollout files are deliverables. Proposer/composer files beneath
 `context/harness/` become the harvested tree after stripping that prefix. The projection contains
-no Review verdicts; final assessment remains with the independent platform Review owner after
-selection has committed.
+no Review verdicts. This round persists per-execution version integrity/JSON checks, not semantic
+final grading. Any future semantic final assessment must run independently after selection commits
+and must remain outside optimization context.
 
 The profile accepts only nonempty `instructions.md` and optional
 `skills/<name>/SKILL.md`, with names matching `[a-z0-9][a-z0-9-]*`. Skill frontmatter has exactly
