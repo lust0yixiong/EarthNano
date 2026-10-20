@@ -5,13 +5,23 @@ import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 
 import type { ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
 import { defaultFileDurability } from '@aipoch/durable-files'
+import {
+  normalizeFrozenNotebookInputs,
+  normalizeFrozenNotebookRuntime,
+  type FrozenNotebookInput,
+  type FrozenNotebookRuntime
+} from '../../shared/earthnano/notebook-profile'
 
 export type CandidateTextFile = Readonly<{ path: string; content: string }>
-export type CandidateTask = Readonly<{ prompt: string; files: readonly CandidateTextFile[] }>
+export type CandidateTask = Readonly<{
+  prompt: string
+  files: readonly CandidateTextFile[]
+  managedInputs?: readonly FrozenNotebookInput[]
+}>
 export type CandidateHarness = Readonly<{
   instructions: string
   skills: readonly CandidateTextFile[]
-  tools: 'workspace-only'
+  tools: 'workspace-only' | 'notebook-python'
 }>
 export type CandidateAgent = Readonly<{
   backend: 'claude-code'
@@ -21,7 +31,8 @@ export type CandidateAgent = Readonly<{
 }>
 export type CandidateEnvironment = Readonly<{
   isolation: 'directory-process'
-  network: 'provider-only'
+  network: 'provider-only' | 'provider-and-notebook-policy'
+  notebook?: Readonly<{ runtime: FrozenNotebookRuntime }>
 }>
 export type CandidateSnapshotInput = Readonly<{
   task: CandidateTask
@@ -82,7 +93,11 @@ const canonical = (value: unknown): string => {
   return JSON.stringify(value)
 }
 
-const object = (value: unknown, keys: readonly string[]): Record<string, unknown> => {
+const object = (
+  value: unknown,
+  keys: readonly string[],
+  optional: readonly string[] = []
+): Record<string, unknown> => {
   if (
     value === null ||
     typeof value !== 'object' ||
@@ -91,7 +106,10 @@ const object = (value: unknown, keys: readonly string[]): Record<string, unknown
   )
     throw new Error('Candidate snapshot requires a plain object')
   const result = value as Record<string, unknown>
-  if (Object.keys(result).length !== keys.length || keys.some((key) => !Object.hasOwn(result, key)))
+  if (
+    keys.some((key) => !Object.hasOwn(result, key)) ||
+    Object.keys(result).some((key) => !keys.includes(key) && !optional.includes(key))
+  )
     throw new Error('Candidate snapshot has missing or unsupported fields')
   return result
 }
@@ -169,16 +187,27 @@ const sameRef = (left: Ref, right: Ref): boolean => canonical(left) === canonica
 
 const normalize = (kind: Kind, value: unknown): unknown => {
   if (kind === 'task') {
-    const entry = object(value, ['prompt', 'files'])
-    return { prompt: text(entry.prompt), files: files(entry.files) } satisfies CandidateTask
+    const entry = object(value, ['prompt', 'files'], ['managedInputs'])
+    const taskFiles = files(entry.files)
+    const managedInputs = Object.hasOwn(entry, 'managedInputs')
+      ? normalizeFrozenNotebookInputs(entry.managedInputs)
+      : undefined
+    if (managedInputs && taskFiles.length)
+      throw new Error('Notebook tasks cannot mix immutable managed inputs and inline files')
+    return {
+      prompt: text(entry.prompt),
+      files: taskFiles,
+      ...(managedInputs ? { managedInputs } : {})
+    } satisfies CandidateTask
   }
   if (kind === 'harness') {
     const entry = object(value, ['instructions', 'skills', 'tools'])
-    if (entry.tools !== 'workspace-only') throw new Error('Unsupported candidate tools profile')
+    if (entry.tools !== 'workspace-only' && entry.tools !== 'notebook-python')
+      throw new Error('Unsupported candidate tools profile')
     return {
       instructions: text(entry.instructions),
       skills: files(entry.skills, true),
-      tools: 'workspace-only'
+      tools: entry.tools
     } satisfies CandidateHarness
   }
   if (kind === 'agent') {
@@ -195,12 +224,19 @@ const normalize = (kind: Kind, value: unknown): unknown => {
     } satisfies CandidateAgent
   }
   if (kind === 'environment') {
-    const entry = object(value, ['isolation', 'network'])
-    if (entry.isolation !== 'directory-process' || entry.network !== 'provider-only')
+    const entry = object(value, ['isolation', 'network'], ['notebook'])
+    const notebook = Object.hasOwn(entry, 'notebook')
+      ? { runtime: normalizeFrozenNotebookRuntime(object(entry.notebook, ['runtime']).runtime) }
+      : undefined
+    if (
+      entry.isolation !== 'directory-process' ||
+      entry.network !== (notebook ? 'provider-and-notebook-policy' : 'provider-only')
+    )
       throw new Error('Unsupported candidate environment profile')
     return {
       isolation: 'directory-process',
-      network: 'provider-only'
+      network: entry.network as CandidateEnvironment['network'],
+      ...(notebook ? { notebook } : {})
     } satisfies CandidateEnvironment
   }
   const entry = object(value, ['taskSnapshotRef', 'harnessRevisionRef', 'mission'])
@@ -209,6 +245,16 @@ const normalize = (kind: Kind, value: unknown): unknown => {
     harnessRevisionRef: ref(entry.harnessRevisionRef, 'harness'),
     mission: text(entry.mission)
   } satisfies CandidateInvocation
+}
+
+const validateProfile = (
+  task: CandidateTask,
+  harness: CandidateHarness,
+  environment: CandidateEnvironment
+): void => {
+  const scientific = harness.tools === 'notebook-python'
+  if (scientific !== Boolean(environment.notebook) || (scientific && !task.managedInputs?.length))
+    throw new Error('Notebook tools require fixed managed inputs and a frozen runtime')
 }
 
 const freezeDeep = <T>(value: T): T => {
@@ -354,6 +400,7 @@ export const createCandidateSnapshotStore = async ({
       !sameRef(invocation.harnessRevisionRef, refs.harnessRevisionRef)
     )
       throw new Error('Candidate invocation refers to a different task or Harness revision')
+    validateProfile(task, harness, environment)
     return freezeDeep({ task, harness, agent, environment, invocation })
   }
   return {
@@ -362,6 +409,7 @@ export const createCandidateSnapshotStore = async ({
       // Validate the entire bundle before committing any objects.
       for (const kind of ['task', 'harness', 'agent', 'environment'] as const)
         normalize(kind, input[kind])
+      validateProfile(input.task, input.harness, input.environment)
       const [taskSnapshotRef, harnessRevisionRef, agentSpecRef, environmentSpecRef] =
         await Promise.all([
           put('task', input.task),
