@@ -2,6 +2,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { afterEach, beforeEach, expect, it, onTestFinished, vi } from 'vitest'
 const f = vi.hoisted(() => ({
   method: vi.fn(),
@@ -20,7 +21,9 @@ const f = vi.hoisted(() => ({
     configuration: { status: 'unverified', reasons: ['no-deterministic-checks'] }
   }))
 }))
-vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
+vi.mock('./candidate-snapshot', () => ({
+  createCandidateSnapshotStore: async () => ({ freeze: async () => ({}) })
+}))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
 vi.mock('./execution-core', async (original) => ({
   ...(await original<typeof import('./execution-core')>()),
@@ -63,6 +66,7 @@ import {
   MAX_HARNESS_EXECUTION_TIMEOUT_MS,
   HARNESS_RPC_TIMEOUT_MARGIN_MS
 } from './execution-timeout'
+import { previewOptimizationSweep } from './sweep-plan'
 const roots: string[] = []
 beforeEach(() => {
   f.executionIds = ['baseline']
@@ -101,6 +105,93 @@ const options = async (): Promise<PersistentSingleOptimizationOptions> => {
     timeoutMs: 1000
   }
 }
+it('emits a private sweep configuration accepted by the real Python entry before any method admission', async () => {
+  const o = await options()
+  const python = execFileSync(
+    process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+    ['-c', 'import sys; print(sys.executable)'],
+    { encoding: 'utf8' }
+  ).trim()
+  const request = {
+    projectId: o.projectId,
+    sourceSessionId: 'source',
+    requestKey: 'sweep',
+    executionLimit: 20,
+    catalog: [
+      {
+        taskId: 'task',
+        domain: 'research',
+        sourceSessionId: 'source',
+        source: { kind: 'text' as const, prompt: o.input.task.prompt, files: [] },
+        criteria: 'Private acceptance criterion'
+      }
+    ],
+    sweep: {
+      modes: ['parallel' as const, 'sequential' as const],
+      k: 1,
+      concurrency: 2,
+      stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+    }
+  }
+  const plan = await previewOptimizationSweep({
+    catalog: [{ taskId: 'task', domain: 'research' }],
+    options: request.sweep,
+    python,
+    harnessRoot: o.harnessRoot
+  })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.method.mockImplementationOnce(async ({ args }: { args: string[] }) => {
+    const encoded = await readFile(args.at(-1)!, 'utf8')
+    expect(encoded).not.toContain('Private acceptance criterion')
+    const config = JSON.parse(encoded)
+    execFileSync(
+      python,
+      [
+        '-B',
+        '-c',
+        'import json,sys; from harness2.earthnano_sweep import validate_config; validate_config(json.load(sys.stdin))'
+      ],
+      {
+        cwd: o.harnessRoot,
+        env: { PATH: process.env.PATH, PYTHONPATH: o.harnessRoot, PYTHONDONTWRITEBYTECODE: '1' },
+        input: encoded,
+        stdio: ['pipe', 'pipe', 'pipe']
+      }
+    )
+    expect(config.coreConcurrency).toBe(2)
+    expect(config.bindingIdentity.modes).toEqual(['agg', 'seq'])
+    throw new Error('CONFIG_VALIDATED_NO_ADMISSIONS')
+  })
+  const input = o.input
+  await expect(
+    runPersistentOptimization({
+      projectId: o.projectId,
+      taskId: o.taskId,
+      workRoot: o.workRoot,
+      harnessRoot: o.harnessRoot,
+      ownerOptions: o.ownerOptions,
+      binding: o.binding,
+      timeoutMs: 10_000,
+      python,
+      sourceSessionId: 'source',
+      executionLimit: 20,
+      sweep: {
+        plan,
+        request,
+        tasks: [
+          {
+            taskId: 'task',
+            domain: 'research',
+            sourceSessionId: 'source',
+            input,
+            criteria: 'Private acceptance criterion'
+          }
+        ]
+      }
+    })
+  ).rejects.toThrow('CONFIG_VALIDATED_NO_ADMISSIONS')
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
 it('applies one overall deadline across method and assessment, then awaits cleanup before rejecting', async () => {
   const o = await options()
   o.timeoutMs = 80

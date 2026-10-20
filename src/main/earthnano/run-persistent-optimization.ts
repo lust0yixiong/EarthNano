@@ -519,7 +519,6 @@ export async function runPersistentOptimization(
       ...(sweep
         ? {
             bindingIdentity: sweep.plan.bindingIdentity,
-            coreConcurrency: sweep.plan.options.concurrency,
             resumeScope: (key: string) => resumeIndex.scope(key)
           }
         : {}),
@@ -540,6 +539,7 @@ export async function runPersistentOptimization(
       ...(sweep
         ? {
             bindingIdentity: sweep.plan.bindingIdentity,
+            coreConcurrency: sweep.plan.options.concurrency,
             catalog: sweep.plan.catalog,
             tasks: selectedTasks!.map((task) => ({ taskId: task.taskId, task: task.input.task })),
             stream: sweep.plan.options.stream,
