@@ -33,9 +33,15 @@ import { ArtifactTurnOwner } from '../acp/artifact-turn-owner'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { ManagedFileIndexRepository } from '../project-files/repository'
 import { UploadRepository } from '../uploads/repository'
+import { emptyExecutionState } from './execution-core'
+import { requestDigest } from './execution-contract'
 import { createAcpExecutionBoundary } from './acp-execution-boundary'
 import { createSessionExecutionHost } from './session-execution-host'
-import { createOriginalTurnEvidenceReader, originalTurnReply } from './original-turn-evidence'
+import {
+  createOriginalTurnEvidenceReader,
+  originalTurnReply,
+  originalEvidenceDigest
+} from './original-turn-evidence'
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -99,7 +105,7 @@ const send = (
 }
 
 /** Actual ordinary Send, original native runtime and durable owners; no candidate driver or outer Core. */
-const runOrdinary = async (live: boolean, stop = false): Promise<void> => {
+const runOrdinary = async (live: boolean, stop = false, resume = false): Promise<void> => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-ordinary-send-')))
   initDataRoot(root)
   const client = createProjectDbClient(root)
@@ -436,7 +442,7 @@ const runOrdinary = async (live: boolean, stop = false): Promise<void> => {
     updatedAt: now
   })
   const text = `Write exactly {"answer":42} to ${output} with the Write tool. Then reply ORDINARY_COMPLETE. This is an ordinary Send request.`
-  const staged = applySessionConversationCommands(idle, [
+  let staged = applySessionConversationCommands(idle, [
     {
       id: 'ordinary-append',
       kind: 'append-user',
@@ -459,7 +465,127 @@ const runOrdinary = async (live: boolean, stop = false): Promise<void> => {
       run: { promptMessageId: promptId, startedAt: now }
     }
   ])
-  await coordinator.admitTaskTurn({ session: staged, contextReset: false })
+  let historicalFile: string | undefined
+  if (resume) {
+    // Simulate a dead previous application owner while preserving the original recovery facts.
+    // No provider is started for this historical attempt; only the explicit Resume below dispatches.
+    const original = structuredClone(staged)
+    delete original.activeRun
+    original.status = 'error'
+    original.runtimeTranscriptOwner = 'main'
+    original.resumeRecovery = {
+      kind: 'resume-required',
+      promptMessageId: promptId,
+      cause: 'app-restart'
+    }
+    original.runtimeTranscriptLastRun = { promptMessageId: promptId, startedAt: now }
+    for (const message of [...original.messages, ...original.conversationGraph!.messages])
+      if (message.id === promptId)
+        message.turnOutcome = {
+          kind: 'interrupted',
+          cause: 'app-restart',
+          recovery: 'resume',
+          settledAt: now + 1
+        }
+    const oldContext = getActiveConversationContext(original.conversationGraph!, promptId)!
+    original.runtimeSessionAdmissions = [
+      {
+        executionId: 'historical-token',
+        promptMessageId: promptId,
+        promptRuntimeSegmentId: oldContext.runtimeSegmentId!,
+        rootFrameId: oldContext.rootFrameId!,
+        agentFrameId: oldContext.agentFrameId!,
+        messageBranchId: oldContext.messageBranchId!,
+        runtimeSegmentId: oldContext.runtimeSegmentId!
+      }
+    ]
+    const interrupted = await sessions.saveSession(original)
+    const attemptId = 'historical-attempt'
+    const prepared = await host.prepare({
+      attemptId,
+      request: { sessionId: created.sessionId, text, provenanceContext: oldContext },
+      operation: 'sendPrompt',
+      runtimeReviewOwner: 'renderer',
+      dispatch: async () => {
+        throw new Error('Historical recovery must not replay')
+      },
+      cancelOwned: async () => undefined
+    })
+    const oldState = emptyExecutionState()
+    const time = new Date().toISOString()
+    const record: ExecutionRecord = {
+      executionId: 'historical-execution',
+      requestKey: prepared.request.requestKey,
+      request: prepared.request,
+      requestDigest: requestDigest(prepared.request),
+      phase: 'running',
+      cleanup: 'pending',
+      identity: {
+        sessionId: created.sessionId,
+        promptMessageId: promptId,
+        turnToken: 'historical-token'
+      },
+      createdAt: time,
+      updatedAt: time,
+      cancellationRequested: false,
+      evidence: {
+        status: 'unavailable',
+        scope: 'original',
+        text: '',
+        artifacts: [],
+        references: [],
+        limitations: []
+      },
+      usage: { status: 'unknown' },
+      configuration: {
+        status: 'unknown',
+        requestedDigest: prepared.request.harnessRevisionRef.digest,
+        instructions: [],
+        skills: [],
+        tools: [],
+        confirmation: 'unknown'
+      }
+    }
+    oldState.records[record.executionId] = record
+    oldState.events[record.executionId] = [
+      { executionId: record.executionId, sequence: 1, type: 'phase', phase: 'running', time }
+    ]
+    oldState.sequences[record.executionId] = 1
+    oldState.budgets[JSON.stringify([record.request.projectId, record.request.budgetRef])] = {
+      limit: 1,
+      admitted: 1
+    }
+    prepared.store.commit(oldState)
+    prepared.close()
+    historicalFile = join(
+      root,
+      'executions',
+      'session-attempts',
+      prepared.request.requestKey.split(':')[1],
+      originalEvidenceDigest(attemptId).slice(7) + '.json'
+    )
+    await writeFile(historicalFile + '.lock', '2147483647') // Kernel ESRCH, never a live owner takeover.
+    staged = applySessionConversationCommands(interrupted, [
+      {
+        id: 'explicit-resume',
+        kind: 'resume-run',
+        timestamp: now + 2,
+        run: { promptMessageId: promptId, startedAt: now + 2 }
+      }
+    ])
+  }
+  if (resume)
+    await coordinator.saveSession(staged, {
+      conversationCommands: [
+        {
+          id: 'explicit-resume',
+          kind: 'resume-run',
+          timestamp: now + 2,
+          run: { promptMessageId: promptId, startedAt: now + 2 }
+        }
+      ]
+    })
+  else await coordinator.admitTaskTurn({ session: staged, contextReset: false })
   // This is the real entry used by ordinary Send; no TaskRunner, candidate driver or outer scope.
   promptContext = getActiveConversationContext(staged.conversationGraph!, promptId)!
   await runtime.startPrompt({
@@ -481,39 +607,50 @@ const runOrdinary = async (live: boolean, stop = false): Promise<void> => {
       { timeout: live ? 120000 : 20000 }
     )
     .toBeUndefined()
+  const journals = async (): Promise<
+    Array<{ file: string; state: import('./execution-core').ExecutionState }>
+  > => {
+    const base = join(root, 'executions', 'session-attempts')
+    const files = (
+      await Promise.all(
+        (await readdir(base)).map(async (generation) =>
+          (await readdir(join(base, generation)))
+            .filter((file) => file.endsWith('.json'))
+            .map((file) => join(base, generation, file))
+        )
+      )
+    ).flat()
+    return Promise.all(
+      files.map(async (file) => ({ file, state: JSON.parse(await readFile(file, 'utf8')) }))
+    )
+  }
   await expect
     .poll(
-      async () => {
-        const generations = await readdir(join(root, 'executions', 'session-attempts'))
-        const files = (
-          await Promise.all(
-            generations.map((generation) =>
-              readdir(join(root, 'executions', 'session-attempts', generation)).then((files) =>
-                files
-                  .filter((file) => file.endsWith('.json'))
-                  .map((file) => join(root, 'executions', 'session-attempts', generation, file))
-              )
-            )
+      async () =>
+        (await journals()).some(({ state }) =>
+          Object.values(state.records).some(
+            (record) =>
+              record.executionId !== 'historical-execution' &&
+              ['completed', 'failed', 'cancelled'].includes(record.phase)
           )
-        ).flat()
-        if (files.length !== 1) return undefined
-        const state = JSON.parse(await readFile(files[0], 'utf8'))
-        const record = Object.values(state.records)[0] as ExecutionRecord | undefined
-        return record && ['completed', 'failed', 'cancelled'].includes(record.phase)
-          ? { state, record }
-          : undefined
-      },
+        ),
       { timeout: live ? 120000 : 20000 }
     )
-    .toBeDefined()
-  const generation = (await readdir(join(root, 'executions', 'session-attempts')))[0]
-  const file = (await readdir(join(root, 'executions', 'session-attempts', generation))).find(
-    (file) => file.endsWith('.json')
+    .toBe(true)
+  const { state } = (await journals()).find(({ state }) =>
+    Object.values(state.records).some((record) => record.executionId !== 'historical-execution')
   )!
-  const state = JSON.parse(
-    await readFile(join(root, 'executions', 'session-attempts', generation, file), 'utf8')
-  )
   const record = Object.values(state.records)[0] as ExecutionRecord
+  if (resume) {
+    const old = JSON.parse(await readFile(historicalFile!, 'utf8'))
+    expect(old.records['historical-execution']).toMatchObject({
+      phase: 'interrupted',
+      cleanup: 'confirmed',
+      evidence: { status: 'partial' }
+    })
+    expect((Object.values(old.budgets)[0] as { admitted: number }).admitted).toBe(1)
+    expect((await journals()).flatMap(({ state }) => Object.values(state.records))).toHaveLength(2)
+  }
   expect(Object.keys(state.records)).toHaveLength(1)
   expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
   expect(record, JSON.stringify(record)).toMatchObject({
@@ -538,7 +675,7 @@ const runOrdinary = async (live: boolean, stop = false): Promise<void> => {
     )
   ).toHaveLength(1)
   const original = await load('ordinary-project', created.sessionId)
-  expect(original.runtimeSessionAdmissions).toHaveLength(1)
+  expect(original.runtimeSessionAdmissions).toHaveLength(resume ? 2 : 1)
   expect(original.messages.find((message) => message.id === promptId)?.turnOutcome?.kind).toBe(
     stop ? 'cancelled' : 'completed'
   )
@@ -604,4 +741,10 @@ it.skipIf(
   'runs explicitly authorized ordinary Send against bounded DeepSeek',
   () => runOrdinary(true),
   180000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'reconciles original interrupted owner before one explicitly resumed native execution',
+  () => runOrdinary(false, false, true),
+  60000
 )

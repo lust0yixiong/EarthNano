@@ -1,7 +1,10 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { requestDigest } from './execution-contract'
+import { emptyExecutionState } from './execution-core'
+import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { PrismaClient } from '@prisma/client'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { AcpExecutionDispatch } from '../acp/execution-boundary-port'
@@ -240,4 +243,196 @@ it('rejects imported or archived original authority before opening a journal', a
   state.archived = false
   state.session.packageOrigin = {} as NonNullable<PersistedChatSession['packageOrigin']>
   await expect(host().prepare(input())).rejects.toThrow('Imported')
+})
+
+const historical = async (dead = true): Promise<{ file: string; record: ExecutionRecord }> => {
+  const old = await prepare()
+  const now = new Date().toISOString()
+  const record: ExecutionRecord = {
+    executionId: 'old-execution',
+    requestKey: old.request.requestKey,
+    request: old.request,
+    requestDigest: requestDigest(old.request),
+    phase: 'running',
+    cleanup: 'pending',
+    identity: { sessionId: 'session', promptMessageId: 'prompt', turnToken: 'old-token' },
+    createdAt: now,
+    updatedAt: now,
+    cancellationRequested: false,
+    evidence: {
+      status: 'unavailable',
+      scope: 'original',
+      text: '',
+      artifacts: [],
+      references: [],
+      limitations: []
+    },
+    usage: { status: 'unknown' },
+    configuration: {
+      status: 'unknown',
+      requestedDigest: old.request.harnessRevisionRef.digest,
+      instructions: [],
+      skills: [],
+      tools: [],
+      confirmation: 'unknown'
+    }
+  }
+  const saved = emptyExecutionState()
+  saved.records[record.executionId] = record
+  saved.events[record.executionId] = [
+    { executionId: record.executionId, sequence: 1, type: 'phase', phase: 'running', time: now }
+  ]
+  saved.sequences[record.executionId] = 1
+  saved.budgets[JSON.stringify([old.request.projectId, old.request.budgetRef])] = {
+    limit: 1,
+    admitted: 1
+  }
+  old.store.commit(saved)
+  const directory = join(
+    root,
+    'executions',
+    'session-attempts',
+    (await readdir(join(root, 'executions', 'session-attempts')))[0]
+  )
+  const file = join(
+    directory,
+    (await readdir(directory)).find((entry) => entry.endsWith('.json'))!
+  )
+  if (dead) {
+    old.close()
+    closes.pop()
+    await writeFile(file + '.lock', '2147483647')
+  }
+  state.session.runtimeSessionAdmissions = [
+    {
+      executionId: 'old-token',
+      promptMessageId: 'prompt',
+      promptRuntimeSegmentId: 'segment',
+      rootFrameId: 'frame',
+      agentFrameId: 'frame',
+      messageBranchId: 'branch',
+      runtimeSegmentId: 'segment'
+    }
+  ]
+  state.session.runtimeTranscriptLastRun = { promptMessageId: 'prompt', startedAt: 1 }
+  return { file, record }
+}
+it.each(['completed', 'failed', 'cancelled'] as const)(
+  'reconciles a dead original %s owner before fresh admission without replaying or refunding',
+  async (kind) => {
+    const old = await historical()
+    state.session.messages[0].turnOutcome =
+      kind === 'completed'
+        ? { kind, settledAt: 3 }
+        : kind === 'failed'
+          ? { kind, settledAt: 3, error: 'original failure' }
+          : { kind, settledAt: 3, recovery: 'resume' }
+    const dispatch = input()
+    dispatch.attemptId = 'new-attempt'
+    await prepare(host(), dispatch)
+    const saved = JSON.parse(await readFile(old.file, 'utf8'))
+    expect(saved.records[old.record.executionId]).toMatchObject({
+      phase: kind,
+      cleanup: 'confirmed',
+      evidence: { status: 'complete', text: 'original answer' }
+    })
+    expect((Object.values(saved.budgets)[0] as { admitted: number }).admitted).toBe(1)
+    expect(dispatch.dispatch).not.toHaveBeenCalled()
+  }
+)
+it('reconciles original interruption while permitting only the explicitly prepared newer Resume attempt', async () => {
+  const old = await historical()
+  state.session.messages[0].turnOutcome = {
+    kind: 'interrupted',
+    cause: 'app-restart',
+    recovery: 'resume',
+    settledAt: 3
+  }
+  state.session.resumeRecovery = {
+    kind: 'resume-required',
+    promptMessageId: 'prompt',
+    cause: 'app-restart'
+  }
+  state.session.activeRun = { promptMessageId: 'prompt', startedAt: 4 }
+  const resumed = input()
+  resumed.attemptId = 'authorized-resume'
+  await prepare(host(), resumed)
+  const saved = JSON.parse(await readFile(old.file, 'utf8'))
+  expect(saved.records[old.record.executionId]).toMatchObject({
+    phase: 'interrupted',
+    cleanup: 'confirmed',
+    evidence: { status: 'partial' }
+  })
+  expect(saved.records[old.record.executionId].evidence.limitations.join(' ')).toContain(
+    'preparedResume'
+  )
+  expect(resumed.dispatch).not.toHaveBeenCalled()
+  expect(Object.keys(saved.records)).toEqual(['old-execution'])
+})
+it.each(['live', 'unknown', 'rearmed', 'unapproved-resume', 'other-session'] as const)(
+  'does not erase an unresolved %s resource fence with a new host generation',
+  async (scenario) => {
+    const old = await historical(scenario !== 'live')
+    if (scenario === 'unknown') {
+      delete state.session.messages[0].turnOutcome
+      state.session.status = 'running'
+    }
+    if (scenario === 'rearmed')
+      state.session.runtimeSessionAdmissions!.push({
+        ...state.session.runtimeSessionAdmissions![0],
+        executionId: 'newer-token'
+      })
+    if (scenario === 'unapproved-resume') {
+      state.session.messages[0].turnOutcome = {
+        kind: 'interrupted',
+        cause: 'app-restart',
+        recovery: 'resume',
+        settledAt: 3
+      }
+      state.session.activeRun = { promptMessageId: 'prompt', startedAt: 4 }
+    }
+    if (scenario === 'other-session') {
+      const saved = JSON.parse(await readFile(old.file, 'utf8'))
+      saved.records['old-execution'].identity.sessionId = 'other'
+      await writeFile(old.file, JSON.stringify(saved))
+    }
+    await expect(host().prepare({ ...input(), attemptId: 'new-generation' })).rejects.toThrow()
+  }
+)
+it('does not let another Session live journal block this original resource', async () => {
+  const old = await historical(false)
+  const saved = JSON.parse(await readFile(old.file, 'utf8'))
+  const record = saved.records[old.record.executionId] as ExecutionRecord
+  record.request.origin.sessionId = 'another-session'
+  record.identity.sessionId = 'another-session'
+  record.requestDigest = requestDigest(record.request)
+  await writeFile(old.file, JSON.stringify(saved))
+  await prepare(host(), { ...input(), attemptId: 'unrelated-resource' })
+  expect(JSON.parse(await readFile(old.file, 'utf8')).records[old.record.executionId].phase).toBe(
+    'running'
+  )
+})
+it('can resolve an earlier recovery fence when an exact interrupted Resume witness arrives in this process', async () => {
+  const old = await historical()
+  delete state.session.messages[0].turnOutcome
+  state.session.status = 'running'
+  await expect(host().prepare({ ...input(), attemptId: 'before-witness' })).rejects.toThrow(
+    'witness'
+  )
+  state.session.messages[0].turnOutcome = {
+    kind: 'interrupted',
+    cause: 'app-restart',
+    recovery: 'resume',
+    settledAt: 3
+  }
+  state.session.resumeRecovery = {
+    kind: 'resume-required',
+    promptMessageId: 'prompt',
+    cause: 'app-restart'
+  }
+  state.session.activeRun = { promptMessageId: 'prompt', startedAt: 4 }
+  await prepare(host(), { ...input(), attemptId: 'explicit-resume-after-witness' })
+  expect(
+    JSON.parse(await readFile(old.file, 'utf8')).records[old.record.executionId]
+  ).toMatchObject({ phase: 'interrupted', cleanup: 'confirmed' })
 })

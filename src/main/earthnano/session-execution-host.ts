@@ -8,7 +8,7 @@ import { ProjectRepository } from '../projects/repository'
 import { SessionProjectionRepository } from '../session-persistence/projection'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
 import { SettingsRepository } from '../settings/repository'
-import { FileExecutionStore } from './execution-store'
+import { FileExecutionStore, recoverExecutionJournals } from './execution-store'
 import {
   createOriginalTurnEvidenceReader,
   originalEvidenceCanonical,
@@ -51,6 +51,89 @@ export function createSessionExecutionHost(
     return loaded.session
   }
   const reader = createOriginalTurnEvidenceReader({ dataRoot: options.dataRoot, load, versions })
+  const reconcile = async (projectId: string, sessionId: string): Promise<void> => {
+    await recoverExecutionJournals({
+      directory: join(options.dataRoot, 'executions', 'session-attempts'),
+      targetEnvironmentId: `session-environment:${sessionId}`,
+      matches: (record) =>
+        record.request.projectId === projectId && record.request.origin.sessionId === sessionId,
+      readOriginal: async (record, { recoveredOwnerPid }) => {
+        const promptId = record.identity.promptMessageId
+        const token =
+          record.identity.runtimeExecutionId ??
+          record.identity.turnToken ??
+          record.identity.promptExecutionId
+        if (record.identity.sessionId !== sessionId || !promptId || !token)
+          throw new Error(
+            'Original execution recovery identity unavailable; Session remains fenced'
+          )
+        const frozen = await reader.scopeSnapshot(projectId, sessionId, promptId)
+        const admission = frozen.session.runtimeSessionAdmissions
+          ?.filter((entry) => entry.promptMessageId === promptId)
+          .at(-1)
+        if (!admission || admission.executionId !== token)
+          throw new Error(
+            'Original execution admission is unconfirmed or superseded; Session remains fenced'
+          )
+        const outcome = resolveTurnOutcome(frozen.session, promptId)
+        const activeRun = frozen.session.activeRun
+        const lastRun = frozen.session.runtimeTranscriptLastRun
+        // The original explicit Resume command prepares its newer run before ACP dispatch,
+        // but preserves recovery and the old last-run/admission witnesses until native admission.
+        // It proves old lease release only for interruption; it never completes the old attempt.
+        const preparedResume =
+          outcome?.kind === 'interrupted' &&
+          Boolean(recoveredOwnerPid) &&
+          frozen.session.resumeRecovery?.promptMessageId === promptId &&
+          lastRun?.promptMessageId === promptId &&
+          activeRun?.promptMessageId === promptId &&
+          activeRun.startedAt > lastRun.startedAt &&
+          !frozen.session.promptPreparation
+        const released =
+          (activeRun?.promptMessageId !== promptId || preparedResume) &&
+          frozen.session.promptPreparation?.promptMessageId !== promptId
+        if (!outcome || !released || (outcome.kind === 'interrupted' && !recoveredOwnerPid))
+          throw new Error(
+            'Original terminal or released-resource witness unavailable; Session remains fenced'
+          )
+        const artifacts = await reader.artifacts(frozen)
+        const witness = {
+          outcome,
+          admission,
+          lastRun,
+          ...(preparedResume
+            ? { preparedResume: activeRun, recovery: frozen.session.resumeRecovery }
+            : {}),
+          released,
+          ...(recoveredOwnerPid ? { deadOwnerPid: recoveredOwnerPid } : {})
+        }
+        return {
+          phase: outcome.kind,
+          cleanup: 'confirmed',
+          evidence: {
+            status: outcome.kind === 'interrupted' ? 'partial' : 'complete',
+            scope:
+              'Original durable Session exact-turn recovery witness and fixed ArtifactVersions; no provider replay',
+            text: originalTurnReply(frozen),
+            artifacts,
+            references: [
+              frozen.reference,
+              ref(`session-recovery:${sessionId}:${promptId}`, token, witness)
+            ],
+            limitations: [`Original recovery witness: ${originalEvidenceCanonical(witness)}`]
+          },
+          ...(outcome.kind === 'failed' || outcome.kind === 'interrupted'
+            ? {
+                error: {
+                  code: `original-turn-${outcome.kind}`,
+                  message: outcome.error ?? 'Original turn was interrupted before completion.'
+                }
+              }
+            : {})
+        }
+      }
+    })
+  }
   return {
     async prepare(input) {
       // Freeze before the first asynchronous read. The rich request is never rewritten for dispatch.
@@ -66,6 +149,7 @@ export function createSessionExecutionHost(
       const session = await load(summary.projectId, prompt.sessionId)
       const project = await projects.get(session.projectId)
       if (!project || project.archivedAt) throw new Error('Original Project is unavailable')
+      await reconcile(session.projectId, session.id)
       const stored = await settings.getSettings()
       // Explicit metadata allowlist: never serialize a provider document, credentials or media bytes.
       const configuration = {
