@@ -77,9 +77,17 @@ const send = (
   )
 }
 
-it.skipIf(process.platform === 'win32')(
-  'persists original Session, fixed output versions and scoped integrity Review across restart',
-  async () => {
+it
+  .skipIf(process.platform === 'win32')
+  .each([
+    'original',
+    'six-outputs-and-skills',
+    'uppercase-invalid-json',
+    'submission-failure',
+    'stop-during-submission'
+  ] as const)(
+  'persists original owners with bounded integrity checks and review cleanup: %s',
+  async (scenario) => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-persistent-')))
     initDataRoot(root)
     const client = createProjectDbClient(root)
@@ -89,6 +97,19 @@ it.skipIf(process.platform === 'win32')(
       getClient: async () => client
     })
     let disposeCore = (): void => undefined
+    const outputs = [
+      { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
+      {
+        path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
+        content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
+      },
+      ...(scenario === 'six-outputs-and-skills'
+        ? ['one', 'two', 'three', 'four'].map((name) => ({
+            path: `context/harness/skills/${name}/SKILL.md`,
+            content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
+          }))
+        : [])
+    ]
     const server = createServer(async (req, response) => {
       if (!req.url?.startsWith('/v1/messages')) {
         response.writeHead(404)
@@ -105,32 +126,24 @@ it.skipIf(process.platform === 'win32')(
       const messages = JSON.stringify(body.messages)
       const output = /OUTPUT: ([^\n"\\]+)/.exec(messages)?.[1]
       if (!output) throw new Error('Missing explicit output location')
-      if (!messages.includes('call_write'))
+      const index = outputs.findIndex((_file, index) => !messages.includes(`call_output_${index}`))
+      if (index >= 0)
         send(
           response,
           body,
           {
             name: 'Write',
             input: {
-              file_path: join(output, 'context/harness/instructions.md'),
-              content: 'Persisted instructions'
+              file_path: join(output, outputs[index]!.path),
+              content: outputs[index]!.content
             }
           },
-          'write'
-        )
-      else if (!messages.includes('call_json'))
-        send(
-          response,
-          body,
-          {
-            name: 'Write',
-            input: { file_path: join(output, 'result.json'), content: '{"answer":42}' }
-          },
-          'json'
+          `output_${index}`
         )
       else send(response, body, { text: 'PERSISTED_FINAL_REPLY' }, 'final')
     })
     onTestFinished(async () => {
+      vi.restoreAllMocks()
       disposeCore()
       await owners.shutdown()
       server.closeAllConnections()
@@ -161,7 +174,17 @@ it.skipIf(process.platform === 'win32')(
         prompt: 'Write requested synthetic outputs',
         files: [{ path: 'input.txt', content: 'SYNTHETIC_INPUT' }]
       },
-      harness: { instructions: 'PERSISTED_SYSTEM', skills: [], tools: 'workspace-only' },
+      harness: {
+        instructions: 'PERSISTED_SYSTEM',
+        skills:
+          scenario === 'six-outputs-and-skills'
+            ? ['alpha', 'beta'].map((name) => ({
+                path: `${name}/SKILL.md`,
+                content: `---\nname: ${name}\ndescription: Synthetic frozen skill\n---\nPlain instructions.`
+              }))
+            : [],
+        tools: 'workspace-only'
+      },
       agent: {
         backend: 'claude-code',
         model: 'claude-sonnet-4-5',
@@ -216,6 +239,17 @@ it.skipIf(process.platform === 'win32')(
     )
     disposeCore = () => core.dispose()
     core.configureBudget(request.projectId, request.budgetRef, 1)
+    const originalSubmission = ReviewRepository.prototype.commitScopedSubmission
+    if (scenario === 'submission-failure' || scenario === 'stop-during-submission')
+      vi.spyOn(ReviewRepository.prototype, 'commitScopedSubmission').mockImplementationOnce(
+        async function (this: ReviewRepository, input) {
+          if (scenario === 'submission-failure')
+            throw new Error('Synthetic integrity submission failure')
+          const committed = await originalSubmission.call(this, input)
+          await core.cancel(Object.keys(state.records)[0]!)
+          return committed
+        }
+      )
     const handle = await core.submit(request)
     await vi.waitFor(
       async () =>
@@ -225,6 +259,23 @@ it.skipIf(process.platform === 'win32')(
       { timeout: 60000, interval: 50 }
     )
     const record = await core.get(handle.executionId)
+    if (scenario === 'submission-failure' || scenario === 'stop-during-submission') {
+      expect(record, JSON.stringify(record)).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed',
+        ...(scenario === 'stop-during-submission' ? { cancellationRequested: true } : {})
+      })
+      const persisted = await client.review.findMany()
+      expect(persisted).toHaveLength(1)
+      expect(persisted[0]).toMatchObject({
+        lifecycle: 'error',
+        outcome: null,
+        errorMessage: 'Candidate integrity review could not be completed.'
+      })
+      expect(await client.artifactVersion.count()).toBe(outputs.length)
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
     expect(record, JSON.stringify(record)).toMatchObject({
       phase: 'completed',
       cleanup: 'confirmed',
@@ -237,7 +288,7 @@ it.skipIf(process.platform === 'win32')(
       promptAttemptId: expect.any(String),
       runId: expect.any(String)
     })
-    expect(record.evidence.artifacts).toHaveLength(2)
+    expect(record.evidence.artifacts).toHaveLength(outputs.length)
     const session = await loadSessionMutationAuthority(
       new SessionRepository(root),
       request.projectId,
@@ -247,23 +298,43 @@ it.skipIf(process.platform === 'win32')(
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
-    expect(session.session.artifacts).toHaveLength(2)
+    expect(session.session.artifacts).toHaveLength(outputs.length)
     const before = await owners.exportResult(record)
-    expect(before.files.map((f) => f.path).sort()).toEqual([
-      'context/harness/instructions.md',
-      'result.json'
-    ])
-    expect(before.files.find((f) => f.path === 'result.json')?.content).toBe('{"answer":42}')
-    expect(await owners.readReviews(record)).toMatchObject([
-      {
-        lifecycle: 'complete',
-        outcome: 'pass',
-        model: 'deterministic-file-integrity-v1',
-        checks: expect.any(Array)
-      }
-    ])
+    expect(
+      before.files
+        .map((file) => ({ path: file.path, content: file.content }))
+        .sort((a, b) => a.path.localeCompare(b.path))
+    ).toEqual([...outputs].sort((a, b) => a.path.localeCompare(b.path)))
+    const integrity = (await owners.readReviews(record))[0]!
+    expect(integrity).toMatchObject({
+      lifecycle: 'complete',
+      outcome: scenario === 'uppercase-invalid-json' ? 'flagged' : 'pass',
+      model: 'deterministic-file-integrity-v1'
+    })
+    expect(integrity.checks).toHaveLength(1)
+    expect(integrity.checks[0]!.status).toBe(
+      scenario === 'uppercase-invalid-json' ? 'fail' : 'pass'
+    )
+    const manifestLog = integrity.reviewerLog.find(
+      (entry) => entry.kind === 'tool' && entry.toolName === 'earthnano.file-integrity-manifest'
+    )
+    if (!manifestLog || manifestLog.kind !== 'tool' || !manifestLog.rawInput)
+      throw new Error('Missing fixed-version integrity manifest')
+    const manifest = JSON.parse(manifestLog.rawInput)
+    expect(manifest.files).toHaveLength(outputs.length)
+    for (const file of before.files)
+      expect(manifest.files).toContainEqual({
+        path: file.path,
+        digest: file.digest,
+        artifactRef: file.artifactRef,
+        jsonSyntax: /\.json$/i.test(file.path)
+          ? scenario === 'uppercase-invalid-json'
+            ? 'invalid'
+            : 'valid'
+          : 'not-applicable'
+      })
     expect(await client.reviewScopeSnapshot.count()).toBe(1)
-    expect(await client.artifactVersion.count()).toBe(2)
+    expect(await client.artifactVersion.count()).toBe(outputs.length)
     expect(await owners.shutdown()).toEqual({ reaped: true })
     expect(await owners.shutdown()).toEqual({ reaped: true })
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
@@ -273,7 +344,7 @@ it.skipIf(process.platform === 'win32')(
       getClient: async () => client
     })
     await writeFile(
-      join(root, 'candidates', record.executionId, 'workspace/outputs/result.json'),
+      join(root, 'candidates', record.executionId, `workspace/outputs/${outputs[1]!.path}`),
       'MUTATED_CWD'
     )
     expect(await owners.exportResult(record)).toEqual(before)

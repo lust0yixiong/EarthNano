@@ -8,6 +8,9 @@ import { randomUUID } from 'node:crypto'
 import { expect, it, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: true } }))
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
+import { DesktopOptimizationManager } from './desktop-optimization-manager'
+import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import { ReviewRepository } from '../reviewer/repository'
 import { runPersistentOptimization } from './run-persistent-optimization'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { FileExecutionStore } from './execution-store'
@@ -75,7 +78,7 @@ const stream = (
   )
 }
 
-async function exercise(live: boolean): Promise<void> {
+async function exercise(live: boolean, desktop = false, stopEarly = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-persistent-loop-'))
   const dataRoot = join(root, 'data'),
     configRoot = join(root, 'config')
@@ -90,6 +93,9 @@ async function exercise(live: boolean): Promise<void> {
   const readInputs = new Set<string>()
   const loopbackKey = randomUUID()
   let apiKey = ''
+  let diagnosticError = ''
+  let desktopRunDirectory: string | undefined
+  let liveReportWritten = false
   const server = createServer(async (request, response) => {
     const reject = (): void => {
       rejects++
@@ -167,8 +173,14 @@ async function exercise(live: boolean): Promise<void> {
         )
       )
         readInputs.add(inputDirectory)
-      if (requests >= 32 || body.model !== 'deepseek-flash' || body.stream !== true) return reject()
+      if (
+        requests >= (desktop ? 48 : 32) ||
+        body.model !== 'deepseek-flash' ||
+        body.stream !== true
+      )
+        return reject()
       requests++
+      if (stopEarly && role === 'baseline') return // Hold the real native prompt until Stop cancels it.
       if (live) {
         const controller = new AbortController()
         controllers.add(controller)
@@ -239,6 +251,40 @@ async function exercise(live: boolean): Promise<void> {
           })
           return
         }
+        if (role === 'reviewer') {
+          const artifacts = JSON.parse(
+            await readFile(join(inputDirectory!, 'evidence/artifacts.json'), 'utf8')
+          )
+          const criteria = JSON.parse(
+            await readFile(join(inputDirectory!, 'evidence/criteria.json'), 'utf8')
+          )
+          const file = artifacts[0]
+          stream(response, body.model, {
+            name: 'Write',
+            input: {
+              file_path: join(output, 'assessment.json'),
+              content: JSON.stringify({
+                schemaVersion: 1,
+                score: 100,
+                outcome: 'pass',
+                rationale:
+                  'The JSON has count 3 and sum 6, matching independent recomputation from input rows.',
+                checks: criteria.criteria.map((criterion: { id: string }) => ({
+                  criterionId: criterion.id,
+                  status: 'pass',
+                  evidence: [
+                    {
+                      path: file.path,
+                      artifactRef: file.artifactRef,
+                      quote: file.content.trim()
+                    }
+                  ]
+                }))
+              })
+            }
+          })
+          return
+        }
         const editing = role === 'proposer' || role === 'composer'
         stream(response, body.model, {
           name: 'Write',
@@ -256,6 +302,30 @@ async function exercise(live: boolean): Promise<void> {
     }
   })
   onTestFinished(async () => {
+    if (live && desktop && !liveReportWritten && process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT) {
+      let records: Array<{ role: string; phase: string; cleanup: string }> = []
+      if (desktopRunDirectory)
+        try {
+          const journal = JSON.parse(
+            await readFile(join(desktopRunDirectory, 'execution/execution.json'), 'utf8')
+          )
+          records = Object.values(journal.records).map((record: unknown) => {
+            const r = record as { request: { role: string }; phase: string; cleanup: string }
+            return { role: r.request.role, phase: r.phase, cleanup: r.cleanup }
+          })
+        } catch {
+          /* Failure can precede journal creation. */
+        }
+      await writeFile(
+        process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT,
+        JSON.stringify(
+          { status: 'failed', error: diagnosticError, requests, rejects, usage, records },
+          null,
+          2
+        ) + '\n',
+        { mode: 0o600 }
+      )
+    }
     for (const controller of controllers) controller.abort()
     server.closeAllConnections()
     await new Promise<void>((done) => server.close(() => done()))
@@ -291,7 +361,7 @@ async function exercise(live: boolean): Promise<void> {
     `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
   )
   const ownerOptions = { dataRoot, configRoot, getClient: async () => client }
-  const result = await runPersistentOptimization({
+  const runOptions: PersistentOptimizationOptions = {
     projectId: project.id,
     taskId: 'synthetic-csv',
     workRoot: join(root, 'run'),
@@ -331,16 +401,149 @@ async function exercise(live: boolean): Promise<void> {
         apiEndpoints: ['messages']
       }
     })
-  })
-  expect(result.records).toHaveLength(7)
+  }
+  let result!: Awaited<ReturnType<typeof runPersistentOptimization>>
+  let desktopRunId: string | undefined
+  const observedStates = new Set<string>()
+  const criteria =
+    'The result reports the correct number of data rows, excluding the header.\nThe result reports the correct arithmetic sum of the value column.'
+  if (desktop) {
+    const sourceSessionId = randomUUID()
+    await client.session.create({
+      data: {
+        id: sourceSessionId,
+        number: 1000,
+        projectId: project.id,
+        title: 'Desktop source task',
+        status: 'idle',
+        presentedStatus: 'idle',
+        createdAtMs: BigInt(Date.now()),
+        updatedAtMs: BigInt(Date.now())
+      }
+    })
+    const managerOptions = {
+      root: join(root, 'desktop'),
+      validateSession: async (projectId: string, sessionId: string) => {
+        const session = await client.session.findFirst({
+          where: { id: sessionId, projectId, deletedAtMs: null, archivedAtMs: null }
+        })
+        if (!session) throw new Error('Source Session unavailable')
+      },
+      createOptions: async () => runOptions,
+      run: async (options: PersistentOptimizationOptions) => {
+        try {
+          result = await runPersistentOptimization(options)
+          return result
+        } catch (error) {
+          diagnosticError = String(error instanceof Error ? error.message : 'Optimization failed')
+            .replaceAll(apiKey || 'NO_TOKEN', '[redacted]')
+            .replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]')
+            .slice(0, 1000)
+          throw error
+        }
+      }
+    }
+    const manager = new DesktopOptimizationManager(managerOptions)
+    onTestFinished(async () => {
+      await manager.shutdown()
+    })
+    const initial = await manager.start({
+      projectId: project.id,
+      sourceSessionId,
+      requestKey: 'desktop-synthetic',
+      prompt: runOptions.input.task.prompt,
+      files: [...runOptions.input.task.files],
+      criteria,
+      executionLimit: live ? 12 : 10
+    })
+    desktopRunId = initial.runId
+    desktopRunDirectory = join(root, 'desktop', initial.runId)
+    if (stopEarly) {
+      await vi.waitFor(() => expect(requests).toBe(1), { timeout: 30_000, interval: 100 })
+      expect(
+        (await manager.stop({ projectId: project.id, sourceSessionId, runId: initial.runId })).state
+      ).toBe('stopping')
+      await vi.waitFor(
+        async () => {
+          const final = await manager.get({
+            projectId: project.id,
+            sourceSessionId,
+            runId: initial.runId
+          })
+          expect(final.state).toBe('cancelled')
+          expect(final.budget.admitted).toBe(1)
+          expect(final.budget.active).toBe(0)
+          expect(final.executions.every((execution) => execution.role === 'baseline')).toBe(true)
+        },
+        { timeout: 30_000, interval: 100 }
+      )
+      expect(await manager.shutdown()).toEqual({ reaped: true })
+      expect(requests).toBe(1)
+      return
+    }
+    const deadline = Date.now() + 480_000
+    while (true) {
+      const progress = await manager.get({
+        projectId: project.id,
+        sourceSessionId,
+        runId: initial.runId
+      })
+      observedStates.add(progress.state)
+      if (['failed', 'interrupted', 'cancelled'].includes(progress.state))
+        throw new Error(
+          `Desktop run ended ${progress.state} after ${progress.budget.admitted} admissions`
+        )
+      if (progress.state === 'completed') {
+        expect(progress.budget).toEqual({
+          limit: live ? 12 : 10,
+          admitted: result.records.length,
+          completed: result.records.length,
+          active: 0
+        })
+        expect(progress.assessments?.baseline.reviewId).toBeTruthy()
+        expect(progress.assessments?.candidate.reviewId).toBeTruthy()
+        break
+      }
+      if (Date.now() > deadline) throw new Error('Desktop integration timed out')
+      await new Promise((resolve) => setTimeout(resolve, 200))
+    }
+    const plan = JSON.parse(
+      await readFile(join(desktopRunDirectory!, 'execution/assessment-plan.json'), 'utf8')
+    )
+    expect(plan.criteria).toBe(criteria)
+    expect(plan.criteriaDigest).toMatch(/^sha256:[a-f0-9]{64}$/)
+    const methodConfig = await readFile(
+      join(desktopRunDirectory!, 'execution/method-config.json'),
+      'utf8'
+    )
+    expect(methodConfig).not.toContain(criteria)
+    expect(observedStates.has('assessing')).toBe(true)
+    expect(await manager.shutdown()).toEqual({ reaped: true })
+    const restarted = new DesktopOptimizationManager({
+      ...managerOptions,
+      run: async () => {
+        throw new Error('Desktop restart must not replay')
+      }
+    })
+    expect((await restarted.latest({ projectId: project.id, sourceSessionId }))?.state).toBe(
+      'completed'
+    )
+    await restarted.shutdown()
+  } else result = await runPersistentOptimization(runOptions)
+  if (desktop && live) {
+    expect(result.records.length).toBeGreaterThanOrEqual(9)
+    expect(result.records.length).toBeLessThanOrEqual(12)
+  } else expect(result.records).toHaveLength(desktop ? 9 : 7)
   expect(result.records.filter((record) => record.request.role === 'baseline')).toHaveLength(1)
   expect(result.records.filter((record) => record.request.role === 'candidate')).toHaveLength(3)
-  expect(result.records.filter((record) => record.request.role === 'proposer')).toHaveLength(2)
+  expect(result.records.filter((record) => record.request.role === 'proposer')).toHaveLength(
+    result.records.length - (desktop ? 7 : 5)
+  )
   expect(result.records.filter((record) => record.request.role === 'composer')).toHaveLength(1)
   expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })
   expect(result.records.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
   const sessionIds = new Set(result.records.map((record) => record.identity.sessionId))
-  expect(sessionIds.size).toBe(7)
+  expect(sessionIds.size).toBe(result.records.length)
   if (live) expect(readInputs.size).toBe(4)
   await client.$disconnect()
   const reopened = createProjectDbClient(configRoot)
@@ -348,7 +551,11 @@ async function exercise(live: boolean): Promise<void> {
     ...ownerOptions,
     getClient: async () => reopened
   })
-  const journal = new FileExecutionStore(join(root, 'run/execution.json'))
+  const journal = new FileExecutionStore(
+    desktop
+      ? join(root, 'desktop', desktopRunId!, 'execution/execution.json')
+      : join(root, 'run/execution.json')
+  )
   const core = new ExecutionCore(journal, {
     execute: async () => {
       throw new Error('Reopening must not launch any execution')
@@ -370,6 +577,26 @@ async function exercise(live: boolean): Promise<void> {
         expect(
           JSON.parse(exported.files.find((file) => file.path === 'result.json')!.content)
         ).toEqual({ count: 3, sum: 6 })
+    }
+    if (desktop) {
+      expect(result.assessments).toBeTruthy()
+      const repository = new ReviewRepository(async () => reopened, {
+        snapshotStorageRoot: dataRoot
+      })
+      for (const assessment of Object.values(result.assessments!)) {
+        const target = result.records.find(
+          (record) => record.executionId === assessment.targetExecutionId
+        )!
+        const rows = await repository.getReviewsForProjectSession(
+          project.id,
+          target.identity.sessionId!
+        )
+        const semantic = rows.find((review) => review.id === assessment.reviewId)!
+        expect(semantic.lifecycle).toBe('complete')
+        expect(semantic.checks.length).toBe(1)
+        expect(assessment.score).toBeGreaterThanOrEqual(0)
+        reviewCount++
+      }
     }
   } finally {
     core.dispose()
@@ -393,12 +620,26 @@ async function exercise(live: boolean): Promise<void> {
           reopened: true,
           configurationChanged: true,
           fallbackStages: [],
+          ...(desktop
+            ? {
+                desktop: true,
+                observedStates: [...observedStates],
+                assessments: result.assessments,
+                sharedBudget: { limit: live ? 12 : 10, admitted: result.records.length }
+              }
+            : {}),
           requests,
           rejects,
           usage,
-          testOverrides: { thinking: 'disabled', maxOutputTokens: 1536, requestLimit: 32 },
+          testOverrides: {
+            thinking: 'disabled',
+            maxOutputTokens: 1536,
+            requestLimit: desktop ? 48 : 32
+          },
           limitations: [
-            'Deterministic integrity/JSON review, not semantic scientific assessment',
+            desktop
+              ? 'Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity'
+              : 'Deterministic integrity/JSON review, not semantic scientific assessment',
             'k1 trivial selection; no LLM selector',
             'Real model via test-only bounded observer',
             'No paid cancellation/adversarial replay'
@@ -408,7 +649,9 @@ async function exercise(live: boolean): Promise<void> {
         2
       ) + '\n',
       { mode: 0o600 }
-    )
+    ).then(() => {
+      liveReportWritten = true
+    })
 }
 
 it.skipIf(process.platform === 'win32')(
@@ -424,4 +667,25 @@ it.skipIf(
   'validates the persisted original Harness method with explicitly authorized DeepSeek',
   () => exercise(true),
   480_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'runs desktop admission, progress and shared budget with independently persisted semantic reviews',
+  () => exercise(false, true),
+  480_000
+)
+it.skipIf(
+  process.platform === 'win32' ||
+    process.env.EARTHNANO_LIVE_DEEPSEEK !== '1' ||
+    !process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE
+)(
+  'validates desktop optimization and independent semantic review with authorized DeepSeek',
+  () => exercise(true, true),
+  480_000
+)
+
+it.skipIf(process.platform === 'win32')(
+  'stops a desktop optimization during a real native baseline without admitting later stages',
+  () => exercise(false, true, true),
+  90_000
 )

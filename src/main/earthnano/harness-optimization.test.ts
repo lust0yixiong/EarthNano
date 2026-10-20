@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { MAX_TIMER_TIMEOUT_MS } from './execution-timeout'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCandidateSnapshotStore,
@@ -252,5 +253,43 @@ describe('trusted Harness optimization binding', () => {
     expect(Date.now() - started).toBeLessThan(2000)
     expect(f.binding.dispatch).toHaveBeenCalledOnce()
     release?.({ ignored: true })
+  })
+  it.each([0, -1, 1.5, NaN, Infinity, MAX_TIMER_TIMEOUT_MS + 1, Number.MAX_SAFE_INTEGER])(
+    'rejects invalid process deadline %s before spawning or stopping any execution',
+    async (timeoutMs) => {
+      const f = await setup()
+      const stop = vi.spyOn(f.binding, 'stop')
+      await expect(
+        runHarnessProcess({
+          binding: f.binding,
+          python: '/nonexistent-executable-must-not-spawn',
+          args: [],
+          cwd: f.root,
+          env: {},
+          timeoutMs
+        })
+      ).rejects.toThrow('Invalid optimization timeout')
+      expect(stop).not.toHaveBeenCalled()
+      expect(f.binding.executionIds).toEqual([])
+    }
+  )
+  it('rejects an overflowing standalone factory deadline before freezing inputs', async () => {
+    const f = await setup()
+    const freeze = vi.spyOn(f.snapshots, 'freeze')
+    expect(
+      () =>
+        new HarnessOptimizationBinding({
+          core: f.core,
+          snapshots: f.snapshots,
+          input,
+          projectId: 'project',
+          optimizationId: 'optimization',
+          taskId: 't1',
+          budgetRef: 'budget',
+          timeoutMs: MAX_TIMER_TIMEOUT_MS + 1,
+          exportResult: async () => f.exportValue
+        })
+    ).toThrow('Invalid optimization timeout')
+    expect(freeze).not.toHaveBeenCalled()
   })
 })

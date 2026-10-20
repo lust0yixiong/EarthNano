@@ -3,6 +3,7 @@ import type { NamedElectronSurfaceAdapter } from './runtime-electron-wiring'
 // Only desktop transport construction lives behind this catalog. Entries are bound by desktop
 // wiring; the core merely declares adapters, and a Node entry never installs them.
 export type DesktopSurfaceFactories = {
+  registerDesktopOptimizationIpcHandlers: (typeof import('./earthnano/desktop-optimization-ipc'))['registerDesktopOptimizationIpcHandlers']
   createElectronSurfaceAdapter: (typeof import('./ipc-surfaces/adapter'))['createElectronSurfaceAdapter']
   createConnectorApprovalElectronSurface: (typeof import('./ipc-surfaces/connector-approvals'))['createConnectorApprovalElectronSurface']
   createCoreElectronSurfaces: (typeof import('./ipc-surfaces/core'))['createCoreElectronSurfaces']
@@ -215,3 +216,7 @@ export const createSpecialistElectronSurface = (
       .createSpecialistElectronSurface(...args)
       .install()
 })
+
+export const registerDesktopOptimizationIpcHandlers = (
+  ...args: Parameters<DesktopSurfaceFactories['registerDesktopOptimizationIpcHandlers']>
+): void => desktop().registerDesktopOptimizationIpcHandlers(...args)

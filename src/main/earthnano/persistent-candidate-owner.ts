@@ -40,6 +40,14 @@ import { loadSessionMutationAuthority, SessionRepository } from '../session-pers
 import { RuntimeSessionOwner } from '../session-persistence/runtime-session-owner'
 import { UploadRepository } from '../uploads/repository'
 import type { ClaudeCandidateDriverOptions, ClaudeCandidateOwner } from './claude-candidate-driver'
+import {
+  parseSemanticAssessment,
+  semanticCriteria,
+  semanticDigest,
+  semanticCanonical,
+  type SemanticAssessmentDocument
+} from './semantic-evaluation'
+import { validateRecord, requestDigest } from './execution-contract'
 
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
@@ -66,6 +74,14 @@ export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
   readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
+  commitSemanticReview(input: {
+    target: ExecutionRecord
+    assessment: ExecutionRecord
+    criteria: string
+    criteriaDigest: string
+    document: SemanticAssessmentDocument
+    signal?: AbortSignal
+  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
 }
 type FrozenTurn = {
@@ -558,46 +574,85 @@ export function createPersistentCandidateOwners(
               ExecutionRecord,
               'request' | 'evidence'
             >)
-            const checks: NewCheck[] = files.map((file, sortIndex) => {
-              let valid = true
-              if (file.path.endsWith('.json')) {
+            const integrity = files.map((file) => {
+              let jsonSyntax: 'valid' | 'invalid' | 'not-applicable' = 'not-applicable'
+              if (/\.json$/i.test(file.path)) {
                 try {
                   JSON.parse(file.content)
+                  jsonSyntax = 'valid'
                 } catch {
-                  valid = false
+                  jsonSyntax = 'invalid'
                 }
               }
               return {
-                status: valid ? 'pass' : 'fail',
-                claim:
-                  'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
-                evidence: `${file.path}: ${file.digest}; JSON syntax ${valid ? 'valid or not applicable' : 'invalid'}`,
-                artifactVersionId: file.artifactRef.versionId,
-                sortIndex
+                path: file.path,
+                digest: file.digest,
+                artifactRef: file.artifactRef,
+                jsonSyntax
               }
             })
-            if (!checks.length)
-              checks.push({
-                status: 'warn',
-                claim: 'Deterministic output inventory only; no semantic assessment',
-                evidence: 'No output ArtifactVersion was published.'
+            // Review has a five-Finding domain limit. Aggregate the complete output inventory
+            // into one Finding; retain every exact version/digest and syntax result in its log.
+            const manifest = { schemaVersion: 1, files: integrity }
+            const summary = {
+              fileCount: integrity.length,
+              invalidJsonCount: integrity.filter((file) => file.jsonSyntax === 'invalid').length,
+              manifestDigest: digest(canonical(manifest))
+            }
+            const checks: NewCheck[] = [
+              {
+                status: !integrity.length ? 'warn' : summary.invalidJsonCount ? 'fail' : 'pass',
+                claim:
+                  'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
+                evidence: JSON.stringify(summary),
+                ...(files[0] ? { artifactVersionId: files[0].artifactRef.versionId } : {}),
+                sortIndex: 0
+              }
+            ]
+            let reviewId: string | undefined
+            let committed: ReviewWithChecks
+            try {
+              // Already-cancelled prompt settlement retains its existing cancellation projection.
+              // A new Stop during result persistence must never leave a late passing Review.
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+              const review = await reviews.createReview({
+                projectId: request.projectId,
+                sessionId,
+                turnMessageId: promptMessageId,
+                scope: frozen.scope,
+                scopeSnapshot: frozen.blocks,
+                model: 'deterministic-file-integrity-v1',
+                lifecycle: 'running'
               })
-            const review = await reviews.createReview({
-              projectId: request.projectId,
-              sessionId,
-              turnMessageId: promptMessageId,
-              scope: frozen.scope,
-              scopeSnapshot: frozen.blocks,
-              model: 'deterministic-file-integrity-v1',
-              lifecycle: 'running'
-            })
-            const committed = await reviews.commitScopedSubmission({
-              mode: 'initial',
-              reviewId: review.id,
-              checks,
-              expectedSourceFindingIds: [],
-              keepFlaggedReviewRunning: false
-            })
+              reviewId = review.id
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+              committed = await reviews.commitScopedSubmission({
+                mode: 'initial',
+                reviewId,
+                checks,
+                expectedSourceFindingIds: [],
+                keepFlaggedReviewRunning: false,
+                reviewerLog: [
+                  {
+                    kind: 'tool',
+                    toolName: 'earthnano.file-integrity-manifest',
+                    title: 'Fixed-version candidate output integrity inventory',
+                    rawInput: canonical(manifest),
+                    rawOutput: JSON.stringify(summary),
+                    status: summary.invalidJsonCount ? 'error' : 'ok'
+                  }
+                ]
+              })
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+            } catch (error) {
+              if (reviewId)
+                await reviews.updateReview(reviewId, {
+                  lifecycle: 'error',
+                  outcome: null,
+                  errorMessage: 'Candidate integrity review could not be completed.'
+                })
+              throw error
+            }
             const reviewRef: Ref = {
               id: `review:${committed.id}`,
               version: String(committed.updatedAt),
@@ -678,6 +733,159 @@ export function createPersistentCandidateOwners(
             throw new Error('Pinned Review is unavailable or changed')
           return row
         })
+    },
+    async commitSemanticReview(input): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }> {
+      const { target, assessment, criteria, criteriaDigest, document, signal } = input
+      signal?.throwIfAborted()
+      for (const record of [target, assessment]) {
+        validateRecord(record)
+        if (
+          record.phase !== 'completed' ||
+          record.cleanup !== 'confirmed' ||
+          record.requestDigest !== requestDigest(record.request)
+        )
+          throw new Error('Semantic Review requires completed pinned executions')
+      }
+      if (
+        !['baseline', 'candidate'].includes(target.request.role) ||
+        assessment.request.role !== 'reviewer' ||
+        target.executionId === assessment.executionId ||
+        target.request.projectId !== assessment.request.projectId ||
+        target.request.origin.optimizationId !== assessment.request.origin.optimizationId ||
+        target.request.budgetRef !== assessment.request.budgetRef ||
+        !assessment.configuration.model ||
+        semanticDigest(criteria) !== criteriaDigest
+      )
+        throw new Error('Semantic Review provenance does not match the optimization')
+      const frozen = await pinnedTurn(target)
+      const assessor = await pinnedTurn(assessment)
+      if (
+        !assessor.blocks.some(
+          (block) =>
+            block.kind === 'message' &&
+            block.payload.role === 'user' &&
+            String(block.payload.content).includes(criteriaDigest)
+        )
+      )
+        throw new Error('Criteria digest is not frozen in the assessment turn')
+      const files = await readFiles(target)
+      const assessmentFiles = await readFiles(assessment)
+      if (assessmentFiles.length !== 1 || assessmentFiles[0]!.path !== 'assessment.json')
+        throw new Error('Semantic assessor must publish only the fixed assessment document')
+      const checked = parseSemanticAssessment(assessmentFiles[0]!.content, files, criteria)
+      if (semanticCanonical(checked) !== semanticCanonical(document))
+        throw new Error('Semantic document differs from its committed ArtifactVersion')
+      const criteriaItems = semanticCriteria(criteria)
+      const firstEvidence = checked.checks[0]!.evidence[0]!
+      const anchor =
+        frozen.blocks.find(
+          (block) =>
+            block.kind === 'message' &&
+            Array.isArray(block.payload.artifactIds) &&
+            block.payload.artifactIds.includes(firstEvidence.artifactRef.versionId)
+        ) ??
+        [...frozen.blocks]
+          .reverse()
+          .find((block) => block.kind === 'message' && block.payload.role === 'agent')
+      if (!anchor) throw new Error('Semantic Review target has no turn evidence anchor')
+      const metadata = {
+        kind: 'earthnano-semantic-assessment-provenance',
+        schemaVersion: 1,
+        criteriaText: criteria,
+        criteriaDigest,
+        criteria: criteriaItems,
+        targetExecutionId: target.executionId,
+        targetArtifacts: target.evidence.artifacts,
+        assessmentExecutionId: assessment.executionId,
+        assessmentArtifacts: assessment.evidence.artifacts,
+        assessmentTaskSnapshotRef: assessment.request.taskSnapshotRef,
+        assessmentInvocationRef: assessment.request.invocationRef,
+        model: assessment.configuration.model,
+        assessmentDocumentDigest: semanticDigest(assessmentFiles[0]!.content),
+        document: checked,
+        limitation:
+          'Model semantic judgment grounded in supplied quotes; not deterministic factual proof.'
+      }
+      // Keep the domain's five-Finding limit: one aggregate Finding links the complete frozen
+      // assessment artifact. All per-criterion paths/quotes/refs remain in that version and log.
+      const finding: NewCheck = {
+        status: checked.checks.some((check) => check.status === 'fail')
+          ? 'fail'
+          : checked.checks.some((check) => check.status === 'warn')
+            ? 'warn'
+            : 'pass',
+        claim:
+          'Independent semantic assessment of every frozen criterion; model judgment, not factual proof.',
+        evidence: JSON.stringify({
+          criteriaDigest,
+          score: checked.score,
+          rationale: checked.rationale,
+          assessmentExecutionId: assessment.executionId,
+          assessmentArtifacts: assessment.evidence.artifacts,
+          checks: checked.checks.map((check) => ({
+            criterionId: check.criterionId,
+            status: check.status
+          }))
+        }),
+        artifactVersionId: firstEvidence.artifactRef.versionId,
+        locator: {
+          blockRef: { messageId: anchor.sourceId, blockIndex: anchor.blockIndex },
+          contentHash: anchor.contentHash
+        },
+        sortIndex: 0
+      }
+      let reviewId: string | undefined
+      try {
+        signal?.throwIfAborted()
+        const review = await reviews.createReview({
+          projectId: target.request.projectId,
+          sessionId: target.identity.sessionId!,
+          turnMessageId: target.identity.promptMessageId!,
+          scope: frozen.scope,
+          scopeSnapshot: frozen.blocks,
+          model: assessment.configuration.model,
+          lifecycle: 'running'
+        })
+        reviewId = review.id
+        signal?.throwIfAborted()
+        const committed = await reviews.commitScopedSubmission({
+          mode: 'initial',
+          reviewId,
+          checks: [finding],
+          expectedSourceFindingIds: [],
+          keepFlaggedReviewRunning: false,
+          reviewerLog: [
+            ...assessor.blocks
+              .filter((block) => block.kind === 'message' && block.payload.role === 'agent')
+              .map((block) => ({
+                kind: 'message' as const,
+                text: String(block.payload.content ?? '')
+              })),
+            {
+              kind: 'tool',
+              toolName: 'earthnano.semantic-assessment-binding',
+              title: 'Host-validated fixed-version semantic assessment provenance',
+              rawInput: JSON.stringify(metadata),
+              rawOutput: JSON.stringify({ outcome: checked.outcome }),
+              status: 'ok'
+            }
+          ]
+        })
+        signal?.throwIfAborted()
+        if (committed.lifecycle !== 'complete' || committed.outcome !== checked.outcome)
+          throw new Error('Semantic Review submission did not persist its outcome')
+        return { reviewId: committed.id, outcome: checked.outcome }
+      } catch (error) {
+        if (reviewId)
+          await reviews
+            .updateReview(reviewId, {
+              lifecycle: 'error',
+              outcome: null,
+              errorMessage: 'Semantic assessment could not be completed.'
+            })
+            .catch(() => undefined)
+        throw error
+      }
     },
     async shutdown(): Promise<{ reaped: boolean }> {
       closing = true

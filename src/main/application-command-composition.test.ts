@@ -948,3 +948,60 @@ it.each([false, true])(
     expect(disposed).toBe(true)
   }
 )
+
+it('dispatches optimization through the real desktop inventory while rejecting web callers and unexpected fields', async () => {
+  const start = vi.fn().mockResolvedValue({ runId: 'synthetic' })
+  const deps = dependencies()
+  const composition = createApplicationCommandComposition({
+    ...deps,
+    host: { ...deps.host, optimization: { start, get: vi.fn(), latest: vi.fn(), stop: vi.fn() } }
+  })
+  const request = {
+    projectId: 'p',
+    sourceSessionId: 's',
+    requestKey: 'k',
+    prompt: 'Synthetic',
+    files: [],
+    criteria: 'Synthetic check',
+    executionLimit: 12
+  }
+  for (const channel of [
+    'optimization:start',
+    'optimization:get',
+    'optimization:latest',
+    'optimization:stop'
+  ]) {
+    expect(composition.desktop.commandNames()).toContain(channel)
+    expect(composition.localWeb.commandNames()).not.toContain(channel)
+    expect(composition.remoteWeb.commandNames()).not.toContain(channel)
+  }
+  const desktopCaller = createCallerContext({
+    clientId: 'desktop',
+    lifecycleClientId: 'desktop',
+    leaseId: 'lease-1',
+    surface: 'electron',
+    location: 'local',
+    principalKind: 'human',
+    actionOrigin: 'human'
+  })
+  await expect(
+    composition.desktop.invoke('optimization:start', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [request]
+    })
+  ).resolves.toEqual({ runId: 'synthetic' })
+  expect(start).toHaveBeenCalledWith(request)
+  await expect(
+    composition.desktop.invoke('optimization:start', { ...invocation(), args: [request] })
+  ).rejects.toThrow()
+  await expect(
+    composition.desktop.invoke('optimization:start', {
+      ...invocation(),
+      callerContext: desktopCaller,
+      args: [{ ...request, key: 'rejected' }]
+    })
+  ).rejects.toThrow('Optimization request could not')
+  expect(start).toHaveBeenCalledOnce()
+  await composition.dispose()
+})

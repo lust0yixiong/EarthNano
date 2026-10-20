@@ -1,3 +1,5 @@
+import type { DesktopOptimizationApi } from '../shared/earthnano/desktop-optimization'
+import { invokeDesktopOptimization } from './earthnano/desktop-optimization-ipc'
 import type { PdfStructureResult } from '@aipoch/pdf-structure/result'
 import type { ArtifactPreviewResult, ReadArtifactPreviewRequest } from '../shared/artifacts'
 import type {
@@ -303,6 +305,29 @@ const reviewerCommands = Object.freeze({
   >('reviewer:run')
 })
 
+const optimizationCommands = Object.freeze({
+  start: defineApplicationCommand<
+    'optimization:start',
+    readonly [request: Parameters<DesktopOptimizationApi['start']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['start']>>
+  >('optimization:start'),
+  get: defineApplicationCommand<
+    'optimization:get',
+    readonly [request: Parameters<DesktopOptimizationApi['get']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['get']>>
+  >('optimization:get'),
+  latest: defineApplicationCommand<
+    'optimization:latest',
+    readonly [request: Parameters<DesktopOptimizationApi['latest']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['latest']>>
+  >('optimization:latest'),
+  stop: defineApplicationCommand<
+    'optimization:stop',
+    readonly [request: Parameters<DesktopOptimizationApi['stop']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['stop']>>
+  >('optimization:stop')
+})
+
 const storageCommands = Object.freeze({
   acceptMissingDataRoot: defineApplicationCommand<
     'storage:accept-missing-data-root',
@@ -510,6 +535,7 @@ const hostApplicationCommands = Object.freeze({
   notifications: notificationCommands,
   remoteAccess: remoteAccessCommands,
   reviewer: reviewerCommands,
+  optimization: optimizationCommands,
   storage: storageCommands,
   update: updateCommands
 })
@@ -532,10 +558,12 @@ const hostApplicationCommandGroups = Object.freeze([
   ),
   defineApplicationCommandGroup('network', Object.values(networkCommands)),
   defineApplicationCommandGroup('locale', Object.values(localeCommands)),
-  defineApplicationCommandGroup('completion-handoff', Object.values(completionHandoffCommands))
+  defineApplicationCommandGroup('completion-handoff', Object.values(completionHandoffCommands)),
+  defineApplicationCommandGroup('optimization', Object.values(optimizationCommands))
 ] as const)
 
 type HostApplicationCommandDependencies = Readonly<{
+  optimization?: DesktopOptimizationApi
   completionHandoff: CompletionHandoffCommandOwner
   locale: Pick<LocalePreferenceOwner, 'initialize' | 'setPreference'>
   network: NetworkCommandOwner
@@ -942,6 +970,28 @@ const registerHostApplicationCommands = (
       'specialist:cancel-handoff': ({ callerContext, args }) => {
         requireDesktopCaller(callerContext)
         return dependencies.completionHandoff.cancel(args[0])
+      }
+    })
+    scope.registerGroup(hostApplicationCommandGroups[15], {
+      'optimization:start': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'start', args[0])
+      },
+      'optimization:get': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'get', args[0])
+      },
+      'optimization:latest': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'latest', args[0])
+      },
+      'optimization:stop': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'stop', args[0])
       }
     })
     return scope.complete()

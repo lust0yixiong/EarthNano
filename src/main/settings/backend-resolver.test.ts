@@ -2311,3 +2311,28 @@ it.each([undefined, 'unsupported', 'none-high'] as const)(
     expectRuntimeNotStarted(harness.runtime)
   }
 )
+
+it.each(['subscription', 'endpoint', 'backend'] as const)(
+  'isolated Claude policy rejects %s before secret-aware provider projection or runtime preparation',
+  async (variant) => {
+    const provider = makeStoredProvider('provider-a', 'model-a')
+    if (variant === 'subscription') provider.type = 'claude-shared'
+    if (variant === 'endpoint') provider.apiEndpoints = ['responses']
+    const harness = makeHarness({ settings: makeSettings({ providers: [provider] }) })
+    harness.resolveRuntimeTarget.mockClear()
+    await expect(
+      harness.resolver.resolveExplicitDirectProvider(
+        {
+          frameworkId: variant === 'backend' ? 'opencode' : 'claude-code',
+          providerId: 'provider-a',
+          model: { kind: 'required', id: 'model-a' },
+          reasoningEffort: 'default'
+        },
+        { customMessagesOnly: true }
+      )
+    ).rejects.toThrow('explicit custom messages provider')
+    expect(harness.resolveRuntimeTarget).not.toHaveBeenCalled()
+    expect(harness.runtime.resolveClaudeExecutable).not.toHaveBeenCalled()
+    expect(harness.runtime.provisionClaudeRuntimeConfig).not.toHaveBeenCalled()
+  }
+)

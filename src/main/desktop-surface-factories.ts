@@ -1,3 +1,4 @@
+import { registerDesktopOptimizationIpcHandlers } from './earthnano/desktop-optimization-ipc'
 import { createElectronSurfaceAdapter } from './ipc-surfaces/adapter'
 import { createConnectorApprovalElectronSurface } from './ipc-surfaces/connector-approvals'
 import { createCoreElectronSurfaces } from './ipc-surfaces/core'
@@ -25,6 +26,7 @@ import { bindDesktopSurfaceFactories } from './desktop-surface-declarations'
 export const bindElectronSurfaceFactories = (): void => bindDesktopSurfaceFactories(factories)
 
 const factories = {
+  registerDesktopOptimizationIpcHandlers,
   createElectronSurfaceAdapter,
   createConnectorApprovalElectronSurface,
   createCoreElectronSurfaces,

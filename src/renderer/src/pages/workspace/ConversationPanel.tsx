@@ -1,3 +1,4 @@
+import { TaskOptimizationPanel } from './TaskOptimizationPanel'
 import { isAgentAuthenticationRequired } from './agent-authentication-error'
 import { useWorkspaceOperationErrors } from '@/lib/acp/workspace-operation-error'
 import {
@@ -43,6 +44,7 @@ import { cn } from '@/lib/utils'
 import { ConnectorCredentialControls } from '@/pages/settings/ConnectorCredentialDialog'
 import {
   createSessionPlanPreviewItem,
+  createSessionReviewerPreviewItem,
   usePreviewWorkbenchStore
 } from '@/stores/preview-workbench-store'
 import {
@@ -1607,6 +1609,30 @@ const ConversationPanel = ({
           </button>
         </header>
         <PackageOperationIndicator />
+        {activeSession &&
+          activeSession.contentLoaded !== false &&
+          !isImported &&
+          !activeSession.archivedAt && (
+            <TaskOptimizationPanel
+              projectId={activeSession.projectId}
+              sessionId={activeSession.id}
+              initialPrompt={
+                activeSession.messages.filter((message) => message.role === 'user').at(-1)
+                  ?.content ?? ''
+              }
+              onOpenSession={sessionTools.openSession}
+              onOpenReview={(sessionId, reviewId) =>
+                usePreviewWorkbenchStore.getState().upsertAndActivateItem(
+                  createSessionReviewerPreviewItem({
+                    sessionId,
+                    reviewId,
+                    findingId: undefined,
+                    locator: undefined
+                  })
+                )
+              }
+            />
+          )}
 
         {isNewConversation ? null : activeSession?.contentLoaded === false ? (
           <SessionSwitchSkeleton />

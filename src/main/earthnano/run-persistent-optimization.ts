@@ -9,11 +9,28 @@ import {
 } from './claude-candidate-driver'
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
+import {
+  assertExecutionTimeout,
+  HARNESS_RPC_TIMEOUT_MARGIN_MS,
+  MAX_HARNESS_EXECUTION_TIMEOUT_MS
+} from './execution-timeout'
+import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
+import {
+  evaluateOptimizationSemantics,
+  semanticCriteria as validateSemanticCriteria,
+  semanticDigest
+} from './semantic-evaluation'
 import { HarnessOptimizationBinding, runHarnessProcess } from './harness-optimization'
 import {
   createPersistentCandidateOwners,
   type PersistentCandidateOwnersOptions
 } from './persistent-candidate-owner'
+
+export interface PersistentOptimizationProgress {
+  optimizationId: string
+  stage: 'optimizing' | 'assessing' | 'settled'
+  records: ExecutionRecord[]
+}
 
 export interface PersistentOptimizationOptions {
   /** Existing project identity in the original OpenScience repositories. */
@@ -28,18 +45,30 @@ export interface PersistentOptimizationOptions {
   binding: ClaudeCandidateDriverOptions['binding']
   executionLimit?: number
   executionTimeoutMs?: number
+  /** Overall execution deadline, including independent assessments; cleanup is always awaited. */
   timeoutMs?: number
   signal?: AbortSignal
+  /** Fixed before optimization; never forwarded to proposer/composer. */
+  semanticCriteria?: string
+  /** Projection of committed execution facts, including reviewer admissions. */
+  onProgress?: (progress: PersistentOptimizationProgress) => void
 }
 
 /** Opt-in production composition. Existing Session/Artifact/Review owners remain authoritative.
  * A fresh invocation is required; interruption never silently replays a paid model request. */
-export async function runPersistentOptimization(options: PersistentOptimizationOptions): Promise<{
+export interface PersistentOptimizationResult {
   optimizationId: string
   methodResult: unknown
   records: ExecutionRecord[]
-}> {
+  assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
+}
+export async function runPersistentOptimization(
+  options: PersistentOptimizationOptions
+): Promise<PersistentOptimizationResult> {
   options.signal?.throwIfAborted()
+  const input = structuredClone(options.input)
+  const semanticCriteria = options.semanticCriteria
+  if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
     throw new Error('Optimization paths must be absolute')
   const limit = options.executionLimit ?? 10
@@ -51,20 +80,47 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
     )
   )
     throw new Error('Invalid optimization limits')
+  // Reject before allocating timers, creating a run directory, or opening persistent owners.
+  assertExecutionTimeout(timeoutMs)
+  assertExecutionTimeout(executionTimeoutMs, MAX_HARNESS_EXECUTION_TIMEOUT_MS)
+  const deadline = AbortSignal.timeout(timeoutMs)
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
   await mkdir(options.workRoot, { mode: 0o700 })
   const optimizationId = randomUUID()
   const store = new FileExecutionStore(join(options.workRoot, 'execution.json'))
+  let stage: PersistentOptimizationProgress['stage'] = 'optimizing'
+  const publish = (): void => {
+    options.onProgress?.({ optimizationId, stage, records: Object.values(store.load().records) })
+  }
+  let result: PersistentOptimizationResult | undefined
+  let cleanupConfirmed = false
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
+    if (semanticCriteria !== undefined)
+      await writeFile(
+        join(options.workRoot, 'assessment-plan.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          criteria: semanticCriteria,
+          criteriaDigest: semanticDigest(semanticCriteria)
+        }),
+        { mode: 0o600, flag: 'wx' }
+      )
     owners = createPersistentCandidateOwners(options.ownerOptions)
     const snapshots = await createCandidateSnapshotStore({
       root: join(options.workRoot, 'snapshots'),
       candidatesRoot: join(options.workRoot, 'candidates')
     })
     core = new ExecutionCore(
-      store,
+      {
+        load: () => store.load(),
+        commit: (state) => {
+          store.commit(state)
+          publish()
+        }
+      },
       createClaudeCandidateDriver({
         snapshots,
         binding: options.binding,
@@ -75,7 +131,7 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
     binding = new HarnessOptimizationBinding({
       core,
       snapshots,
-      input: options.input,
+      input,
       projectId: options.projectId,
       optimizationId,
       taskId: options.taskId,
@@ -86,18 +142,18 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
     const config = {
       configVersion: 1,
       taskId: options.taskId,
-      task: options.input.task,
+      task: input.task,
       baseHarnessFiles: [
-        { path: 'instructions.md', content: options.input.harness.instructions },
-        ...options.input.harness.skills.map((file) => ({
+        { path: 'instructions.md', content: input.harness.instructions },
+        ...input.harness.skills.map((file) => ({
           path: `skills/${file.path}`,
           content: file.content
         }))
       ],
       workRoot: join(options.workRoot, 'method'),
-      model: options.input.agent.model,
+      model: input.agent.model,
       executionTimeoutMs,
-      rpcTimeoutMs: executionTimeoutMs + 30_000
+      rpcTimeoutMs: executionTimeoutMs + HARNESS_RPC_TIMEOUT_MARGIN_MS
     }
     const configPath = join(options.workRoot, 'method-config.json')
     await writeFile(configPath, JSON.stringify(config), { mode: 0o600, flag: 'wx' })
@@ -114,7 +170,7 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
         HOME: options.workRoot
       },
       timeoutMs,
-      signal: options.signal
+      signal
     })
     if (
       !methodResult ||
@@ -138,12 +194,41 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
       )
         throw new Error('Optimization result lacks a complete passing integrity review')
     }
-    return { optimizationId, methodResult, records }
+    let assessments:
+      { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary } | undefined
+    if (semanticCriteria !== undefined) {
+      signal.throwIfAborted()
+      stage = 'assessing'
+      publish()
+      assessments = await evaluateOptimizationSemantics({
+        core,
+        snapshots,
+        owners,
+        input,
+        records,
+        methodResult,
+        projectId: options.projectId,
+        optimizationId,
+        taskId: options.taskId,
+        budgetRef: optimizationId,
+        criteria: semanticCriteria,
+        timeoutMs: executionTimeoutMs,
+        signal
+      })
+    }
+    result = {
+      optimizationId,
+      methodResult,
+      records: Object.values(store.load().records),
+      ...(assessments ? { assessments } : {})
+    }
   } finally {
     try {
       await binding?.stop()
       const cleanup = owners ? await owners.shutdown() : { reaped: true }
       const state = store.load()
+      stage = 'settled'
+      publish()
       const safeToUnlock =
         cleanup.reaped &&
         Object.values(state.records).every(
@@ -152,9 +237,12 @@ export async function runPersistentOptimization(options: PersistentOptimizationO
             record.cleanup === 'confirmed'
         )
       // Unknown cleanup retains the single-writer lock for explicit reconciliation. No auto-replay.
+      cleanupConfirmed = safeToUnlock
       if (safeToUnlock) store.close()
     } finally {
       core?.dispose()
     }
   }
+  if (!cleanupConfirmed) throw new Error('Optimization cleanup requires reconciliation')
+  return result!
 }

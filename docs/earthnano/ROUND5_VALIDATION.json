@@ -1,0 +1,228 @@
+{
+  "validatedSourceCommit": "88787dc25bc87db2f554fa20dc58cf41f3ebf31d",
+  "environment": {
+    "os": "Darwin arm64",
+    "nodeTest": "24.22.0",
+    "desktopNodeRuntime": "22.23.3",
+    "python": "3.12.13",
+    "claudeCode": "2.1.232",
+    "electron": "43.7.5"
+  },
+  "vitest": [
+    {
+      "name": "Core and prior execution paths",
+      "files": 31,
+      "passed": 941,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/main/agent-framework/claude-code.test.ts",
+        "src/main/acp/agent-process.test.ts",
+        "src/main/acp/claude-candidate-preparation.test.ts",
+        "src/main/acp/earthnano-execution-driver.test.ts",
+        "src/main/acp/handler-workflows.test.ts",
+        "src/main/acp/prompt-turn-workflow.test.ts",
+        "src/main/acp/provider-prompt-executor.test.ts",
+        "src/main/acp/restricted-inference-runner.test.ts",
+        "src/main/acp/runtime-coordinator.test.ts",
+        "src/main/acp/session-configurator.test.ts",
+        "src/main/acp/session-interaction-owner.test.ts",
+        "src/main/acp/task-agent-port.test.ts",
+        "src/main/earthnano/candidate-snapshot.test.ts",
+        "src/main/earthnano/claude-candidate-driver.test.ts",
+        "src/main/earthnano/desktop-optimization-manager.test.ts",
+        "src/main/earthnano/execution-core.test.ts",
+        "src/main/earthnano/harness-optimization.test.ts",
+        "src/main/earthnano/harness-roundtrip.test.ts",
+        "src/main/earthnano/semantic-evaluation.test.ts",
+        "src/main/reviewer/artifact-digest.test.ts",
+        "src/main/reviewer/artifact-version-review.test.ts",
+        "src/main/reviewer/model-runtime-owner.test.ts",
+        "src/main/reviewer/review-assessment-owner.test.ts",
+        "src/main/reviewer/scope-snapshot.test.ts",
+        "src/main/session-persistence/runtime-resume-recovery.test.ts",
+        "src/main/session-persistence/runtime-session-owner.test.ts",
+        "src/main/settings/provider-env.test.ts",
+        "src/main/specialist/session-reconfiguration.test.ts",
+        "src/main/tasks/task-run-journal.test.ts",
+        "src/main/tasks/task-runner.test.ts",
+        "src/main/web-service/public-task-event-stream.test.ts"
+      ]
+    },
+    {
+      "name": "Final stop, budget, criteria and deadline guards",
+      "files": 3,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/main/earthnano/desktop-optimization-manager.test.ts",
+        "src/main/earthnano/run-persistent-optimization.test.ts",
+        "src/main/earthnano/semantic-evaluation.test.ts"
+      ]
+    },
+    {
+      "name": "Desktop command, preload, provider, component and i18n",
+      "files": 9,
+      "passed": 1036,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/preload/index.test.ts",
+        "src/main/application-command-composition.test.ts",
+        "src/main/application-command-wiring.test.ts",
+        "src/shared/renderer-contract-catalog.test.ts",
+        "src/main/composition/desktop-optimization.test.ts",
+        "src/main/earthnano/desktop-optimization-ipc.test.ts",
+        "src/main/settings/backend-resolver.test.ts",
+        "src/renderer/src/i18n/resources.test.ts",
+        "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx"
+      ]
+    },
+    {
+      "name": "Application wiring and lifecycle",
+      "files": 4,
+      "passed": 57,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/main/application-command-wiring.test.ts",
+        "src/main/lifecycle-shutdown.test.ts",
+        "src/main/runtime-shutdown-lifetime.test.ts",
+        "src/main/storage/command-owner.atomicity.test.ts"
+      ]
+    },
+    {
+      "name": "Earlier ordinary ConversationPanel and desktop regression",
+      "files": 8,
+      "passed": 1233,
+      "failed": 0,
+      "skipped": 0,
+      "paths": [
+        "src/preload/index.test.ts",
+        "src/shared/renderer-contract-catalog.test.ts",
+        "src/main/composition/desktop-optimization.test.ts",
+        "src/main/earthnano/desktop-optimization-ipc.test.ts",
+        "src/main/settings/backend-resolver.test.ts",
+        "src/renderer/src/i18n/resources.test.ts",
+        "src/renderer/src/pages/workspace/ConversationPanel.interaction.test.tsx",
+        "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx"
+      ]
+    }
+  ],
+  "countingNote": "Suites overlap. Do not sum the reported totals as distinct tests. Final guard suite includes 2 new deadline tests beyond the core regression; desktop transport suite covers later command wiring changes.",
+  "browser": {
+    "passed": 4,
+    "engine": "System Google Chrome via Playwright",
+    "viewports": [
+      1100,
+      390
+    ],
+    "command": "node node_modules/@playwright/test/cli.js test --config <Chrome override of e2e/playwright.browser.config.ts>",
+    "configOverrides": {
+      "testMatch": "task-optimization.spec.ts",
+      "workers": 1,
+      "projects": [
+        {
+          "name": "chrome",
+          "use": {
+            "browserName": "chromium",
+            "channel": "chrome"
+          }
+        }
+      ]
+    },
+    "coverage": [
+      "start/get/stop typed protocol fixture",
+      "full-viewport budget and Stop visibility",
+      "same-run scroll position preserved",
+      "assessment and Session navigation callbacks",
+      "Session switching",
+      "sanitized errors and hidden web entry"
+    ],
+    "limitations": [
+      "Protocol fixture, not a real Electron backend"
+    ]
+  },
+  "electron": {
+    "passed": 1,
+    "seconds": 8.7,
+    "path": "e2e/task-optimization-desktop.spec.ts",
+    "command": "OPEN_SCIENCE_E2E_ISOLATE_HOME=1 node node_modules/@playwright/test/cli.js test e2e/task-optimization-desktop.spec.ts --workers=1",
+    "coverage": [
+      "Isolated HOME/config/data",
+      "Offline normal ACP conversation",
+      "Real panel/preload/native inventory/Node dispatcher",
+      "Unsupported OpenCode route rejected before model admission; budget 0"
+    ],
+    "limitations": [
+      "Does not run the paid optimization from an Electron click",
+      "Executed before the final UI-only progress relocation; that relocation was verified in real Chrome"
+    ]
+  },
+  "builds": [
+    {
+      "name": "Node backend build",
+      "exitCode": 0
+    },
+    {
+      "name": "Electron main/preload/renderer build",
+      "exitCode": 0
+    },
+    {
+      "name": "Original Node runtime staging",
+      "exitCode": 0
+    },
+    {
+      "name": "Filtered packaged Harness Python/JSON copy: python -B -m harness2.earthnano --help",
+      "exitCode": 0
+    }
+  ],
+  "checks": [
+    {
+      "command": "typescript-native tsc --noEmit -p tsconfig.node.json --composite false",
+      "exitCode": 0
+    },
+    {
+      "command": "typescript-native tsc --noEmit -p tsconfig.web.json --composite false",
+      "exitCode": 0
+    },
+    {
+      "command": "ESLint all 34 changed TypeScript/TSX files",
+      "exitCode": 0
+    },
+    {
+      "command": "Prettier --check all 34 changed TypeScript/TSX files",
+      "exitCode": 0
+    },
+    {
+      "command": "python3 scripts/earthnano/generate-contract.py --check",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "liveDeepSeekReport": "ROUND5_DEEPSEEK_VALIDATION.json",
+  "limitations": [
+    "Three paid attempts; first two failed, successful attempt accounted separately",
+    "Model semantic judgment in isolated sessions using the same configured model; not factual proof or multi-model blind review",
+    "No improvement in the synthetic CSV sample: baseline and candidate both scored 100",
+    "No default automatic optimization, Library reflection or automatic replay",
+    "Initial small text profile only; no OS sandbox",
+    "Darwin arm64 only; Linux and installers not verified, Windows/Web entry hidden",
+    "No full npm test or signed installer; GitHub Actions disabled"
+  ],
+  "nativeProcess": {
+    "files": 3,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 2,
+    "paths": [
+      "src/main/acp/claude-candidate-preparation.integration.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
+      "src/main/earthnano/persistent-optimization.integration.test.ts"
+    ]
+  }
+}

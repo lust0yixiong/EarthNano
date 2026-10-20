@@ -1924,6 +1924,18 @@ class SettingsService {
     return this.backendResolver.captureConfiguredSelection()
   }
 
+  /** Resolve the pinned CLI only; isolated execution compiles its own native configuration. */
+  async resolveIsolatedClaudeProvider(
+    target: ExplicitAgentBackendTarget
+  ): ReturnType<AgentBackendResolver['resolveExplicitDirectProvider']> {
+    return this.backendResolver.resolveExplicitDirectProvider(target, { customMessagesOnly: true })
+  }
+
+  async resolveIsolatedClaudeExecutable(): Promise<string> {
+    const settings = await this.repository.getSettings()
+    return this.runtimeManager.resolveClaudeExecutable(settings.claude?.resolvedPath)
+  }
+
   async captureActiveExplicitAgentBackendTarget(): Promise<ExplicitAgentBackendTarget> {
     return this.backendResolver.captureExplicitTarget()
   }

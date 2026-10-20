@@ -682,6 +682,9 @@ vi.mock('./composition/project-lifecycle', () => ({
 vi.mock('./composition/research-catalog', () => ({
   composeResearchCatalog: vi.fn(() => rootFixture.owners)
 }))
+vi.mock('./composition/desktop-optimization', () => ({
+  registerDesktopOptimizationComposition: vi.fn()
+}))
 vi.mock('./composition/reviewer', () => ({
   registerReviewerComposition: vi.fn(() => rootFixture.owners)
 }))
@@ -735,6 +738,7 @@ import { composeManagedFiles } from './composition/managed-files'
 import { composeSessionAuthority } from './composition/session-authority'
 import { composeSessionPackages } from './composition/session-packages'
 import { composeAgentControls } from './composition/agent-controls'
+import { registerDesktopOptimizationComposition } from './composition/desktop-optimization'
 import { composeConnectors } from './composition/connectors'
 import { createConnectorApprovalElectronSurface } from './desktop-surface-declarations'
 import { CredentialRequestBroker } from './connectors/credential-request-broker'
@@ -761,6 +765,7 @@ it('connects committed deletion to the same credential broker used by approval s
     sideChatRuntime: { resumeAfterHandoff },
     shutdownCoordinator: { runForQuitPreparation: shutdown },
     reviewerModelRuntimeShutdown: { current: { hasActiveWork: vi.fn(() => true) } },
+    optimizationRuntimeShutdown: { current: { hasActiveWork: vi.fn(() => false) } },
     settingsService: {
       setClosePreference,
       getActiveInstallId: vi.fn(() => 'install'),
@@ -808,6 +813,15 @@ it('connects committed deletion to the same credential broker used by approval s
     >[0],
     { add } as unknown as Parameters<typeof createApplicationModules>[1],
     { phase } as unknown as Parameters<typeof createApplicationModules>[2]
+  )
+  expect(registerDesktopOptimizationComposition).toHaveBeenLastCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      lifecycle: owners.optimizationRuntimeShutdown,
+      settings: owners.settingsService,
+      archive: owners.archiveCoordinator,
+      sessions: owners.sessionPersistenceCoordinator
+    })
   )
   const lifecycle = vi.mocked(composeProjectLifecycle).mock.calls.at(-1)![0]
   const info = {
