@@ -36,6 +36,9 @@ export interface DesktopOptimizationManagerOptions {
   /** Test seam only. Production always uses the original persisted method composition. */
   run?: typeof runPersistentOptimization
 }
+/** Only fixed, application-authored setup messages may cross the desktop boundary. */
+export class DesktopOptimizationSetupError extends Error {}
+
 interface SavedRun {
   digest: string
   requestKey: string
@@ -141,7 +144,19 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       validate(captured)
       await this.options.validateSession(captured.projectId, captured.sourceSessionId)
       if (this.closing || this.updateGate) throw new Error('Optimization admission is closed')
-      const digest = createHash('sha256').update(JSON.stringify(captured)).digest('hex')
+      const digest = createHash('sha256')
+        .update(
+          JSON.stringify({
+            projectId: captured.projectId,
+            sourceSessionId: captured.sourceSessionId,
+            requestKey: captured.requestKey,
+            prompt: captured.prompt,
+            files: captured.files.map((file) => ({ path: file.path, content: file.content })),
+            criteria: captured.criteria,
+            executionLimit: captured.executionLimit
+          })
+        )
+        .digest('hex')
       const prior = [...this.saved.values()].find(
         (entry) =>
           entry.progress.projectId === captured.projectId &&
@@ -319,7 +334,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       saved.progress.assessments = result.assessments
       saved.progress.state = controller.signal.aborted ? 'cancelled' : 'completed'
       saved.progress.stage = saved.progress.state
-    } catch {
+    } catch (error) {
       const unknownCleanup =
         (workRoot ? existsSync(join(workRoot, 'execution.json.lock')) : false) ||
         (last?.records.some((record) => record.cleanup !== 'confirmed') ?? false)
@@ -333,7 +348,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         ? 'Execution cleanup requires reconciliation.'
         : controller.signal.aborted
           ? 'Optimization stopped.'
-          : 'Optimization or independent assessment failed. Inspect the recorded Sessions.'
+          : error instanceof DesktopOptimizationSetupError
+            ? error.message
+            : 'Optimization or independent assessment failed. Inspect the recorded Sessions.'
     } finally {
       try {
         if (saved.progress.state !== 'interrupted') await prepared?.releaseAdmission?.()
