@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto'
 import { resolveActiveConversationMessages } from '../../shared/conversation-graph'
 import type { PersistedChatSession } from '../../shared/session-persistence'
-import type { NotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
+import {
+  isSupportedNotebookOptimizationMessage,
+  notebookOptimizationSourceReferences,
+  type NotebookOptimizationSource
+} from '../../shared/earthnano/notebook-source'
 import {
   normalizeFrozenNotebookInputs,
   type FrozenNotebookInput
@@ -32,74 +36,9 @@ export async function resolveOptimizationNotebookInputs(options: {
     ? resolveActiveConversationMessages(session.conversationGraph)
     : session.messages
   const message = messages.find((entry) => entry.id === options.source.promptMessageId)
-  if (
-    !message ||
-    message.role !== 'user' ||
-    message.status !== 'complete' ||
-    message.content !== options.prompt ||
-    message.images?.length ||
-    message.annotations?.length ||
-    message.pdfContext ||
-    message.structuredOutputEvidence ||
-    message.structuredOutputEvidenceInvalid ||
-    message.attribution ||
-    message.delegatedTask ||
-    message.turnIntent ||
-    message.relayedFrom ||
-    message.delegatedCallerSource ||
-    message.delegatedInputVersionIds?.length ||
-    message.parts?.some((part) => part.type !== 'text' && part.type !== 'artifact')
-  )
+  if (!isSupportedNotebookOptimizationMessage(message) || message.content !== options.prompt)
     throw new Error('Notebook optimization requires an exact supported source task')
-  const expected: Array<{
-    source: 'upload' | 'artifact'
-    fileId: string
-    versionId: string
-    checksum?: string
-    sessionId?: string
-    name: string
-    size?: number
-  }> = []
-  for (const upload of message.uploads ?? []) {
-    if (!upload.id || !upload.versionId || !upload.sha256 || upload.sessionId !== session.id)
-      throw new Error('Notebook source upload has no fixed authority')
-    expected.push({
-      source: 'upload',
-      fileId: upload.id,
-      versionId: upload.versionId,
-      checksum: upload.sha256,
-      sessionId: upload.sessionId,
-      name: upload.name,
-      size: upload.size
-    })
-  }
-  for (const reference of message.parts ?? []) {
-    if (reference.type !== 'artifact') continue
-    if (
-      (reference.source !== 'upload' && reference.source !== 'artifact') ||
-      !reference.sourceFileId ||
-      !reference.versionId
-    )
-      throw new Error('Notebook source reference has no fixed authority')
-    expected.push({
-      source: reference.source,
-      fileId: reference.sourceFileId,
-      versionId: reference.versionId,
-      checksum: reference.checksum,
-      name: reference.name
-    })
-  }
-  if (!expected.length || expected.length > 32)
-    throw new Error('Notebook source inputs unavailable')
-  const unique = [
-    ...new Map(
-      expected.map((entry) => [
-        JSON.stringify([entry.source, entry.fileId, entry.versionId]),
-        entry
-      ])
-    ).values()
-  ]
-  if (unique.length > 10) throw new Error('Notebook task exceeds the original attachment limit')
+  const unique = notebookOptimizationSourceReferences(message, session.id)
   const inputs: FrozenNotebookInput[] = []
   for (const reference of unique) {
     options.signal?.throwIfAborted()
