@@ -6,7 +6,7 @@
       "repository": "https://github.com/aipoch/open-science",
       "commit": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
       "path": ".",
-      "integration": "Repository baseline with upstream commit history retained",
+      "integration": "Upstream history retained; EarthNano shared execution core and opt-in ACP driver added; TaskAgentPort dispatch extracted with legacy behavior preserved",
       "license": "Apache-2.0",
       "licenseFile": "LICENSE"
     },
@@ -16,7 +16,7 @@
       "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
       "tree": "edc756a4d03a2826a248115482084a176e60e751",
       "path": "vendor/harness2",
-      "integration": "EarthNano execution-contract additions; tree records the original upstream baseline, no longer the current vendor tree",
+      "integration": "EarthNano generated execution contract and method execution seam integrated across schedule, recursion, proposal and selection; legacy remains default; tree records original upstream baseline, not current vendor tree",
       "license": "Apache-2.0",
       "licenseFile": "vendor/harness2/LICENSE"
     }
