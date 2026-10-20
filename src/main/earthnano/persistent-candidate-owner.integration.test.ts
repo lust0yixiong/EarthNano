@@ -13,6 +13,10 @@ import { composeAcpRuntimeSessionOwners } from '../acp/runtime-session-compositi
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { ReviewRepository } from '../reviewer/repository'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
+import { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
+import { ManagedFileIndexRepository } from '../project-files/repository'
+import { ManagedFileVersionService } from '../managed-file-versions/service'
+import { UploadRepository } from '../uploads/repository'
 import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
@@ -86,6 +90,7 @@ it
   .skipIf(process.platform === 'win32')
   .each([
     'original',
+    'shared-session-hydration',
     'pre-admission-rejection',
     'six-outputs-and-skills',
     'uppercase-invalid-json',
@@ -106,10 +111,56 @@ it
     const configRoot = join(root, 'config')
     await mkdir(configRoot)
     const client = createProjectDbClient(configRoot)
+    const repository = new SessionRepository(configRoot)
+    const coordinator = new SessionPersistenceCoordinator(
+      repository,
+      new ManagedFileIndexRepository(
+        async () => client,
+        root,
+        new ManagedFileVersionService({ storageRoot: root, getClient: async () => client }),
+        new UploadRepository(root, { getClient: async () => client })
+      )
+    )
+    const hydratedSessions: string[] = []
+    const revokeLiveness = vi.fn<() => void>()
+    if (scenario === 'shared-session-hydration') {
+      const register = repository.registerRuntimeSessionLiveness.bind(repository)
+      vi.spyOn(repository, 'registerRuntimeSessionLiveness').mockImplementation((scope) => {
+        expect(scope.isLive()).toBe(true)
+        const release = register(scope)
+        revokeLiveness.mockImplementation(release)
+        return revokeLiveness
+      })
+      const admit = coordinator.admitTaskTurn.bind(coordinator)
+      vi.spyOn(coordinator, 'admitTaskTurn').mockImplementation(async (input) => {
+        const result = await admit(input)
+        expect(repository.hasLiveRuntimeSession(input.session.projectId, input.session.id)).toBe(
+          true
+        )
+        // A renderer hydration in the original Task-admit -> Runtime-begin gap must see the
+        // actual private ACP attachment through the application's original persistence owner.
+        await coordinator.loadAll()
+        const current = await loadSessionMutationAuthority(
+          repository,
+          input.session.projectId,
+          input.session.id
+        )
+        expect(current.status).toBe('found')
+        if (current.status !== 'found') throw new Error('Hydrated Session is unavailable')
+        expect(current.session.activeRun?.promptMessageId).toBe(
+          input.session.activeRun?.promptMessageId
+        )
+        hydratedSessions.push(input.session.id)
+        return result
+      })
+    }
     let owners = createPersistentCandidateOwners({
       dataRoot: root,
       configRoot,
       getClient: async () => client,
+      ...(scenario === 'shared-session-hydration'
+        ? { sessionPersistence: { repository, coordinator } }
+        : {}),
       ...(scenario === 'pre-admission-rejection'
         ? {
             runtimeFactory: (options) => {
@@ -386,6 +437,13 @@ it
       promptAttemptId: expect.any(String),
       runId: expect.any(String)
     })
+    if (scenario === 'shared-session-hydration') {
+      expect(hydratedSessions).toEqual([record.identity.sessionId])
+      expect(revokeLiveness).toHaveBeenCalledTimes(1)
+      expect(repository.hasLiveRuntimeSession(request.projectId, record.identity.sessionId!)).toBe(
+        false
+      )
+    }
     expect(record.evidence.artifacts).toHaveLength(expectedOutputs.length)
     const session = await loadSessionMutationAuthority(
       new SessionRepository(configRoot),

@@ -76,6 +76,11 @@ export interface PersistentCandidateNotebookOptions {
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
   notebook?: PersistentCandidateNotebookOptions
+  /** Share the application's original Session persistence and serialization authority. */
+  sessionPersistence?: {
+    repository: SessionRepository
+    coordinator: SessionPersistenceCoordinator
+  }
   /** Database initialization/migration remains the host's responsibility. */
   configRoot: string
   getClient(): Promise<PrismaClient>
@@ -222,12 +227,15 @@ export function createPersistentCandidateOwners(
     versions,
     uploads
   )
-  const sessions = new SessionRepository(
-    options.configRoot,
-    {},
-    new SessionProjectionRepository(options.getClient)
-  )
-  const coordinator = new SessionPersistenceCoordinator(sessions, index)
+  const sessions =
+    options.sessionPersistence?.repository ??
+    new SessionRepository(
+      options.configRoot,
+      {},
+      new SessionProjectionRepository(options.getClient)
+    )
+  const coordinator =
+    options.sessionPersistence?.coordinator ?? new SessionPersistenceCoordinator(sessions, index)
   const reviews = new ReviewRepository(options.getClient, { snapshotStorageRoot: options.dataRoot })
   const load = async (projectId: string, sessionId: string): Promise<PersistedChatSession> => {
     const result = await loadSessionMutationAuthority(sessions, projectId, sessionId)
@@ -246,6 +254,7 @@ export function createPersistentCandidateOwners(
     () => { projectId: string; sessionId: string; workspaceCwd: string } | undefined
   >()
   const notebookPolicyReleases = new Map<AcpRuntimeCoordinator, () => void>()
+  const runtimeLivenessReleases = new Map<AcpRuntimeCoordinator, () => void>()
   const runtimes = new Set<AcpRuntimeCoordinator>()
   const shutdowns = new Map<AcpRuntimeCoordinator, Promise<{ reaped: boolean }>>()
   let closing = false
@@ -264,6 +273,8 @@ export function createPersistentCandidateOwners(
           results[0].status === 'fulfilled' &&
           (results[0].value as { reaped: boolean }).reaped
         if (reaped) {
+          runtimeLivenessReleases.get(runtime)?.()
+          runtimeLivenessReleases.delete(runtime)
           notebookPolicyReleases.get(runtime)?.()
           notebookPolicyReleases.delete(runtime)
         }
@@ -587,6 +598,17 @@ export function createPersistentCandidateOwners(
           permissionProfile: 'ask'
         })
         sessionId = created.sessionId
+        const privateSessionId = sessionId
+        if (!runtime.hasLiveSession(request.projectId, privateSessionId))
+          throw new Error('Candidate runtime has no live Session')
+        runtimeLivenessReleases.set(
+          runtime,
+          sessions.registerRuntimeSessionLiveness({
+            projectId: request.projectId,
+            sessionId: privateSessionId,
+            isLive: () => runtime.hasLiveSession(request.projectId, privateSessionId)
+          })
+        )
         if (science && frozenRuntime) {
           notebookPolicyReleases.set(
             runtime,

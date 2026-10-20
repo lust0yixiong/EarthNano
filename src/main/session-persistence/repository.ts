@@ -803,7 +803,38 @@ class SessionRepository {
   }
 
   hasLiveRuntimeSession(projectId: string, sessionId: string): boolean {
-    return this.dependencies.hasLiveRuntimeSession(projectId, sessionId)
+    return (
+      this.dependencies.hasLiveRuntimeSession(projectId, sessionId) ||
+      [...(this.runtimeSessionLiveness.get(JSON.stringify([projectId, sessionId])) ?? [])].some(
+        (isLive) => isLive()
+      )
+    )
+  }
+
+  // Main's additional ACP coordinators share this repository's mutation/recovery authority. These
+  // revocable probes consult their real attached-runtime lifecycle; they are neither durable
+  // admission evidence nor a resource-release receipt. A cold process has no registrations.
+  private readonly runtimeSessionLiveness = new Map<string, Set<() => boolean>>()
+  registerRuntimeSessionLiveness(input: {
+    projectId: string
+    sessionId: string
+    isLive(): boolean
+  }): () => void {
+    const key = JSON.stringify([
+      assertSafeSegment(input.projectId),
+      assertSafeSegment(input.sessionId)
+    ])
+    const probes = this.runtimeSessionLiveness.get(key) ?? new Set<() => boolean>()
+    const probe = input.isLive.bind(input)
+    probes.add(probe)
+    this.runtimeSessionLiveness.set(key, probes)
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      probes.delete(probe)
+      if (probes.size === 0) this.runtimeSessionLiveness.delete(key)
+    }
   }
 
   // Decode-only preservation for Main's live release after exhausted writes. This is not evidence
@@ -1043,7 +1074,7 @@ class SessionRepository {
   ): Promise<PersistedChatSession> {
     return this.operationScheduler.runSession(session.projectId, session.id, async () => {
       if (
-        this.dependencies.hasLiveRuntimeSession(session.projectId, session.id) ||
+        this.hasLiveRuntimeSession(session.projectId, session.id) ||
         this.dependencies.hasActiveRuntimePrompt(session.projectId, session.id)
       ) {
         throw new Error('Cannot repair Session graph bindings while its runtime is attached.')
@@ -2038,7 +2069,7 @@ class SessionRepository {
           ? preserveRuntimeState
           : (sessionId) =>
               this.dependencies.hasActiveRuntimePrompt(projectId, sessionId) ||
-              this.dependencies.hasLiveRuntimeSession(projectId, sessionId) ||
+              this.hasLiveRuntimeSession(projectId, sessionId) ||
               this.retainedRuntimeState.has(JSON.stringify([projectId, sessionId]))
     })
     if (decoded.status === 'unsupported-version') throw new UnsupportedSessionFileError()
