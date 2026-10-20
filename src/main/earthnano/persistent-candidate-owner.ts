@@ -9,6 +9,7 @@ import { NotebookRunRepository } from '../notebook/repository'
 import type { FileReference } from '../../shared/artifacts'
 import type { NotebookRunInputFile } from '../../shared/notebook'
 import {
+  notebookLanguageForTools,
   normalizeFrozenNotebookInputs,
   normalizeFrozenNotebookRuntime,
   type FrozenNotebookInput
@@ -350,7 +351,7 @@ export function createPersistentCandidateOwners(
         throw new Error('Semantic sources require a completed original scientific target')
       await pinnedTurn(target)
       const frozen = await snapshots.resolve(target.request)
-      if (frozen.harness.tools !== 'notebook-python')
+      if (!notebookLanguageForTools(frozen.harness.tools))
         throw new Error('Target has no host-frozen scientific profile')
       return readSemanticSourceVersions({
         versions,
@@ -366,7 +367,8 @@ export function createPersistentCandidateOwners(
     context
   }) => {
     if (closing) throw new Error('Candidate owner factory is shutting down')
-    const scientific = materialized.snapshots.harness.tools === 'notebook-python'
+    const scientificLanguage = notebookLanguageForTools(materialized.snapshots.harness.tools)
+    const scientific = scientificLanguage !== undefined
     const science = scientific ? options.notebook : undefined
     const frozenInputs = scientific
       ? normalizeFrozenNotebookInputs(materialized.snapshots.task.managedInputs)
@@ -374,6 +376,8 @@ export function createPersistentCandidateOwners(
     const frozenRuntime = scientific
       ? normalizeFrozenNotebookRuntime(materialized.snapshots.environment.notebook?.runtime)
       : undefined
+    if (frozenRuntime && frozenRuntime.language !== scientificLanguage)
+      throw new Error('Frozen Notebook runtime and profile language mismatch')
     if (scientific && (!science || !['baseline', 'candidate'].includes(request.role)))
       throw new Error('Scientific candidate original Notebook owners unavailable')
     const grants = new ConversationPermissionGrantStore()
@@ -649,7 +653,7 @@ export function createPersistentCandidateOwners(
           })
           try {
             const result = await science.service.bindRuntime(
-              { ...scope, language: 'python', runtimeId: frozenRuntime.runtimeId },
+              { ...scope, language: frozenRuntime.language, runtimeId: frozenRuntime.runtimeId },
               context.signal
             )
             if (!('bound' in result) || !same(result.bound))
@@ -658,7 +662,7 @@ export function createPersistentCandidateOwners(
             releasePermit()
           }
           for (const category of [
-            'mcp:open-science-notebook/notebook_execute:python',
+            `mcp:open-science-notebook/notebook_execute:${frozenRuntime.language}`,
             'mcp:open-science-notebook/notebook_state',
             'mcp:open-science-notebook/list_notebook_runtimes',
             'mcp:open-science-artifacts/write_artifact_file'
@@ -667,7 +671,7 @@ export function createPersistentCandidateOwners(
         }
         const now = Date.now()
         const text = scientific
-          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound Python Notebook and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound ${frozenRuntime!.language === 'r' ? 'R' : 'Python'} Notebook (execute with explicit language:${frozenRuntime!.language}) and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
           : `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nINPUT: ${materialized.inputDir}\nOUTPUT: ${materialized.outputDir}\nTask files are in INPUT. Inputs and embedded context are read-only reference material. Write deliverables under OUTPUT. For proposer/composer harness output, write OUTPUT/context/harness/instructions.md and optional OUTPUT/context/harness/skills/<name>/SKILL.md. Do not use the Python working directory.`
         const idle = await coordinator.saveSession({
           id: sessionId,
@@ -839,7 +843,7 @@ export function createPersistentCandidateOwners(
               const validRuns = runs.filter(
                 (run) =>
                   run.status === 'completed' &&
-                  run.kernelKind === 'python' &&
+                  run.kernelKind === frozenRuntime!.language &&
                   run.executionInvocationId &&
                   (run.runtimeId ?? run.frozenRuntimeTarget?.runtimeId) ===
                     frozenRuntime!.runtimeId &&
@@ -849,7 +853,7 @@ export function createPersistentCandidateOwners(
               )
               if (!validRuns.length)
                 throw new Error(
-                  'Scientific candidate has no original completed fixed-input Python Run'
+                  `Scientific candidate has no original completed fixed-input ${frozenRuntime!.language} Run`
                 )
               for (const artifact of artifacts) {
                 const { execution } = await provenance.getVersionExecution({

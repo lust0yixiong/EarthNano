@@ -43,7 +43,7 @@ afterEach(async () => {
 })
 const fixture = async (
   skills: readonly CandidateTextFile[] = [],
-  scientific = false
+  scientific: boolean | 'r' = false
 ): Promise<{
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
@@ -77,7 +77,7 @@ const fixture = async (
     harness: {
       instructions: 'SYSTEM_ALPHA',
       skills,
-      tools: scientific ? 'notebook-python' : 'workspace-only'
+      tools: scientific === 'r' ? 'notebook-r' : scientific ? 'notebook-python' : 'workspace-only'
     },
     agent: {
       backend: 'claude-code',
@@ -91,11 +91,11 @@ const fixture = async (
           network: 'provider-and-notebook-policy',
           notebook: {
             runtime: {
-              language: 'python',
-              runtimeId: '/usr/bin/python3',
+              language: scientific === 'r' ? 'r' : 'python',
+              runtimeId: scientific === 'r' ? '/usr/bin/R' : '/usr/bin/python3',
               source: 'external',
               provenance: 'user-own',
-              interpreterPath: '/usr/bin/python3'
+              interpreterPath: scientific === 'r' ? '/usr/bin/R' : '/usr/bin/python3'
             }
           }
         }
@@ -369,6 +369,9 @@ it('routes only exact foreground Python/artifact MCP calls to the original broke
       artifactVersionInputs: ['old-version']
     })
   ).toBe('ask')
+  expect(runGate(root, 'mcp__open_science_notebook__notebook_execute', { code: 'print(1)' })).toBe(
+    'ask'
+  )
   expect(
     runGate(root, 'mcp__open_science_artifacts__write_artifact_file', {
       filename: 'report.json',
@@ -396,4 +399,64 @@ it('routes only exact foreground Python/artifact MCP calls to the original broke
     ['Bash', { command: 'python3 code.py' }]
   ] as const)
     expect(runGate(root, tool, args)).toBe('deny')
+})
+
+it('requires explicit R in the R native gate and keeps original scoped broker ownership', async () => {
+  const f = await fixture([], 'r')
+  await prepareClaudeCandidate(f)
+  const root = f.materialized.root
+  for (const prefix of ['mcp__open_science_notebook__', 'mcp__open-science-notebook__']) {
+    expect(
+      runGate(root, prefix + 'notebook_execute', {
+        code: 'print(1)',
+        language: 'r',
+        artifactVersionInputs: ['old-version']
+      })
+    ).toBe('ask')
+    expect(runGate(root, prefix + 'notebook_state', {})).toBe('ask')
+    expect(runGate(root, prefix + 'list_notebook_runtimes', {})).toBe('ask')
+    for (const args of [
+      { code: 'print(1)' },
+      { code: 'print(1)', language: 'python' },
+      { code: 'print(1)', language: 'r', background: true },
+      { code: 'print(1)', language: 'r', artifactVersionInputs: ['foreign'] },
+      { code: 'print(1)', language: 'r', kernelSkillIds: ['unfrozen'] },
+      { code: 'print(1)', language: 'r', runtimeId: '/another/R' }
+    ])
+      expect(runGate(root, prefix + 'notebook_execute', args)).toBe('deny')
+    for (const tool of [
+      'manage_packages',
+      'notebook_bind_runtime',
+      'notebook_switch_runtime',
+      'shell_execute'
+    ])
+      expect(runGate(root, prefix + tool, { language: 'r', runtimeId: '/usr/bin/R' })).toBe('deny')
+  }
+  expect(runGate(root, 'mcp__other__notebook_execute', { code: 'print(1)', language: 'r' })).toBe(
+    'deny'
+  )
+  expect(runGate(root, 'Bash', { command: 'Rscript run.R' })).toBe('deny')
+  expect(
+    runGate(root, 'mcp__open_science_artifacts__write_artifact_file', {
+      filename: 'report.json',
+      source: { kind: 'localPath', path: 'report.json' },
+      producerRunId: 'real-r-run'
+    })
+  ).toBe('ask')
+})
+
+it('rejects an R profile whose runtime language was replaced before native preparation', async () => {
+  const f = await fixture([], 'r')
+  const resolved: ResolvedCandidateSnapshots = {
+    ...f.resolved,
+    environment: {
+      ...f.resolved.environment,
+      notebook: {
+        runtime: { ...f.resolved.environment.notebook!.runtime, language: 'python' }
+      }
+    }
+  }
+  await expect(prepareClaudeCandidate({ ...f, resolved })).rejects.toThrow(
+    'Unsupported Claude candidate profile'
+  )
 })

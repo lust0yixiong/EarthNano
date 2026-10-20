@@ -82,6 +82,53 @@ const binding = async (): Promise<never> => {
 }
 
 describe('Claude candidate lifecycle composition', () => {
+  it.each(['notebook-python', 'notebook-r'] as const)(
+    'denies %s for a method role before provider binding or runtime construction',
+    async (tools) => {
+      const f = fixture()
+      f.request = { ...f.request, role: 'reviewer' }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools }
+      } as never)
+      const resolveBinding = vi.fn(binding)
+      const openOwner = vi.fn(async () => f.owner)
+      expect(
+        await createClaudeCandidateDriver({ ...f, binding: resolveBinding, openOwner }).execute(
+          f.request,
+          f.context
+        )
+      ).toMatchObject({ phase: 'failed', cleanup: 'confirmed' })
+      expect(resolveBinding).not.toHaveBeenCalled()
+      expect(openOwner).not.toHaveBeenCalled()
+      expect(f.snapshots.materialize).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['baseline', 'candidate'] as const)(
+    'keeps %s R execution on the original ACP admission and physical retirement path',
+    async (role) => {
+      const f = fixture()
+      f.request = { ...f.request, role }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools: 'notebook-r' }
+      } as never)
+      expect(
+        await createClaudeCandidateDriver({
+          ...f,
+          binding,
+          openOwner: async () => f.owner
+        }).execute(f.request, f.context)
+      ).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+      expect(f.context.identity).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: 'target-session', promptMessageId: 'target-prompt' })
+      )
+      expect(f.owner.agent.prompt).toHaveBeenCalledOnce()
+      expect(f.owner.shutdown).toHaveBeenCalledOnce()
+    }
+  )
+
   it('uses the ACP admission path and waits for physical owner shutdown', async () => {
     const f = fixture()
     const driver = createClaudeCandidateDriver({ ...f, binding, openOwner: async () => f.owner })

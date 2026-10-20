@@ -1,3 +1,4 @@
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { TaskAgentPort } from '../tasks/task-runner'
 import {
@@ -73,7 +74,7 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const resolved = await options.snapshots.resolve(request)
         if (
-          resolved.harness?.tools === 'notebook-python' &&
+          notebookLanguageForTools(resolved.harness?.tools) !== undefined &&
           !['baseline', 'candidate'].includes(request.role)
         )
           throw new Error('Only task candidates may receive scientific tools')

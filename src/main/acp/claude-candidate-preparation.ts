@@ -13,6 +13,8 @@ import type {
 import type { EffectiveConfiguration } from '../../shared/earthnano/execution-port'
 import type { ResolvedProvider } from '../settings/provider-env'
 import type { AcpRuntimeOptions } from './runtime-contract'
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 
 export interface ClaudeCandidateBinding {
   executablePath: string
@@ -114,11 +116,12 @@ const gateSource = (
   output: string,
   plugin: string,
   names: string[],
-  scientificInputs?: readonly string[]
+  scientificInputs?: readonly string[],
+  scientificLanguage?: NotebookLanguage
 ): string => `
 const fs = require('node:fs');
 const path = require('node:path');
-const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs })};
+const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs, scientificLanguage })};
 const inside = (root, target) => { const rel=path.relative(root,target); return rel==='' || (rel!=='..' && !rel.startsWith('..'+path.sep) && !path.isAbsolute(rel)); };
 const checked = target => {
   if (!path.isAbsolute(target)) throw Error('Absolute path required');
@@ -147,7 +150,7 @@ process.stdin.on('end', ()=>{
     const artifact = /^(?:mcp__open_science_artifacts__|mcp__open-science-artifacts__)write_artifact_file$/.test(tool);
     if (scientific && (mcp || artifact)) {
       if (mcp?.[1]==='notebook_execute') {
-        if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside scientific Python profile');
+        if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (roots.scientificLanguage==='r' ? args.language!=='r' : args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside frozen scientific language profile');
       } else if (artifact && (typeof args.producerRunId!=='string' || !args.producerRunId)) throw Error('Notebook producer required');
       decision='ask';
       process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:decision,permissionDecisionReason:'Original application permission broker owns this scoped MCP call'}}));
@@ -183,7 +186,8 @@ export const prepareClaudeCandidate = async ({
   if (process.platform === 'win32')
     throw new Error('Claude candidate command hooks require the POSIX profile')
   const { agent, harness, environment, invocation } = resolved
-  const scientific = harness.tools === 'notebook-python'
+  const scientificLanguage = notebookLanguageForTools(harness.tools)
+  const scientific = scientificLanguage !== undefined
   const scientificInputs = scientific
     ? resolved.task.managedInputs?.map((input) => input.inputFileVersionId)
     : undefined
@@ -196,10 +200,11 @@ export const prepareClaudeCandidate = async ({
     assertClaudeCandidateText(text)
   if (
     agent.backend !== 'claude-code' ||
-    !['workspace-only', 'notebook-python'].includes(harness.tools) ||
+    (!scientific && harness.tools !== 'workspace-only') ||
     environment.isolation !== 'directory-process' ||
     (scientific
       ? !environment.notebook ||
+        environment.notebook.runtime.language !== scientificLanguage ||
         !scientificInputs?.length ||
         environment.network !== 'provider-and-notebook-policy'
       : environment.network !== 'provider-only')
@@ -296,7 +301,14 @@ export const prepareClaudeCandidate = async ({
   const gate = join(materialized.runtimeHome, 'tool-gate.cjs')
   await writeFile(
     gate,
-    gateSource(materialized.inputDir, materialized.outputDir, plugin, names, scientificInputs),
+    gateSource(
+      materialized.inputDir,
+      materialized.outputDir,
+      plugin,
+      names,
+      scientificInputs,
+      scientificLanguage
+    ),
     {
       mode: 0o400,
       flag: 'wx'
@@ -413,7 +425,8 @@ export const prepareClaudeCandidate = async ({
                   materialized.outputDir,
                   plugin,
                   names,
-                  scientificInputs
+                  scientificInputs,
+                  scientificLanguage
                 )
               )
               .digest('hex')
