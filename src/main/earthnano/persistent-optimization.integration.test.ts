@@ -334,15 +334,25 @@ async function exercise(
   })
   onTestFinished(async () => {
     if (live && desktop && !liveReportWritten && process.env.EARTHNANO_LIVE_DEEPSEEK_REPORT) {
-      let records: Array<{ role: string; phase: string; cleanup: string }> = []
+      let records: Array<{ role: string; phase: string; cleanup: string; artifactCount: number }> = []
       if (desktopRunDirectory)
         try {
           const journal = JSON.parse(
             await readFile(join(desktopRunDirectory, 'execution/execution.json'), 'utf8')
           )
           records = Object.values(journal.records).map((record: unknown) => {
-            const r = record as { request: { role: string }; phase: string; cleanup: string }
-            return { role: r.request.role, phase: r.phase, cleanup: r.cleanup }
+            const r = record as {
+              request: { role: string }
+              phase: string
+              cleanup: string
+              evidence: { artifacts: unknown[] }
+            }
+            return {
+              role: r.request.role,
+              phase: r.phase,
+              cleanup: r.cleanup,
+              artifactCount: r.evidence.artifacts.length
+            }
           })
         } catch {
           /* Failure can precede journal creation. */
@@ -710,6 +720,7 @@ async function exercise(
           reopened: true,
           configurationChanged: true,
           fallbackStages: [],
+          selection: (result.methodResult as { selection?: unknown }).selection,
           ...(desktop
             ? {
                 desktop: true,
