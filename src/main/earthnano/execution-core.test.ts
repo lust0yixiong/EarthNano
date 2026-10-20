@@ -33,7 +33,7 @@ interface Setup {
   completions: Map<string, (value: ExecutionOutcome) => void>
   store: ExecutionStore
 }
-function setup(limit = 10, eventLimit = 256): Setup {
+function setup(limit = 10, eventLimit = 256, concurrency?: number): Setup {
   let state = emptyExecutionState()
   const store: ExecutionStore = {
     load: () => structuredClone(state),
@@ -48,7 +48,7 @@ function setup(limit = 10, eventLimit = 256): Setup {
     ctx.running()
     return new Promise<ExecutionOutcome>((resolve) => completions.set(req.requestKey, resolve))
   })
-  const core = new ExecutionCore(store, { execute }, eventLimit)
+  const core = new ExecutionCore(store, { execute }, eventLimit, { concurrency })
   cores.push(core)
   core.configureBudget('demo', 'trial', limit)
   return { core, execute, contexts, completions, store }
@@ -345,5 +345,122 @@ describe('execution lifecycle contract', () => {
     const s = setup()
     await expect(s.core.get('__proto__')).rejects.toMatchObject({ code: 'not-found' })
     await expect(s.core.cancel('constructor')).rejects.toMatchObject({ code: 'not-found' })
+  })
+})
+
+describe('bounded concurrent execution', () => {
+  it('reserves queued budget atomically and drains in admission order within the bound', async () => {
+    const s = setup(4, 256, 2)
+    const handles = await Promise.all(['a', 'b', 'c', 'd'].map((id) => s.core.submit(request(id))))
+    await waitStarted(s, 'b')
+    expect(s.execute.mock.calls.map(([q]) => q.requestKey)).toEqual(['a', 'b'])
+    expect((await s.core.get(handles[2].executionId)).phase).toBe('queued')
+    expect(Object.values(s.store.load().budgets)[0]).toEqual({ limit: 4, admitted: 4 })
+    await expect(s.core.submit(request('over'))).rejects.toMatchObject({ code: 'budget-exhausted' })
+    expect((await s.core.submit(request('c'))).executionId).toBe(handles[2].executionId)
+    s.completions.get('b')!(successful)
+    await waitStarted(s, 'c')
+    expect(s.contexts.has('d')).toBe(false)
+    s.completions.get('a')!(successful)
+    await waitStarted(s, 'd')
+    expect(s.execute.mock.calls.map(([q]) => q.requestKey)).toEqual(['a', 'b', 'c', 'd'])
+  })
+  it('cancels active and queued admissions without starting a queued provider', async () => {
+    const s = setup(3, 256, 2)
+    const handles = await Promise.all(['a', 'b', 'c'].map((id) => s.core.submit(request(id))))
+    await waitStarted(s, 'b')
+    await Promise.all(handles.map((h) => s.core.cancel(h.executionId)))
+    expect(s.contexts.get('a')!.signal.aborted).toBe(true)
+    expect(s.contexts.get('b')!.signal.aborted).toBe(true)
+    expect((await s.core.get(handles[2].executionId)).phase).toBe('cancelled')
+    for (const name of ['a', 'b'])
+      s.completions.get(name)!({ phase: 'cancelled', cleanup: 'confirmed' })
+    await vi.waitFor(async () =>
+      expect((await s.core.get(handles[0].executionId)).phase).toBe('cancelled')
+    )
+    expect(s.execute).toHaveBeenCalledTimes(2)
+    expect(Object.values(s.store.load().budgets)[0].admitted).toBe(3)
+  })
+  it('fences already queued work after unknown cleanup even when another slot becomes free', async () => {
+    const s = setup(4, 256, 2)
+    const handles = await Promise.all(['a', 'b', 'c'].map((id) => s.core.submit(request(id))))
+    await waitStarted(s, 'b')
+    s.completions.get('a')!({ phase: 'failed', cleanup: 'unknown' })
+    await vi.waitFor(async () =>
+      expect((await s.core.get(handles[0].executionId)).phase).toBe('failed')
+    )
+    s.completions.get('b')!(successful)
+    await vi.waitFor(async () =>
+      expect((await s.core.get(handles[1].executionId)).phase).toBe('completed')
+    )
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(s.execute).toHaveBeenCalledTimes(2)
+    expect((await s.core.get(handles[2].executionId)).phase).toBe('queued')
+    await expect(s.core.submit(request('d'))).rejects.toMatchObject({ code: 'cleanup-unconfirmed' })
+    expect((await s.core.cancel(handles[2].executionId)).status).toBe('cancelled')
+  })
+  it('does not drain after timeout or let late success release a fenced slot', async () => {
+    const s = setup(3, 256, 1)
+    const first = { ...request('a'), timeoutMs: 20 }
+    const a = await s.core.submit(first)
+    const b = await s.core.submit(request('b'))
+    await vi.waitFor(async () =>
+      expect((await s.core.get(a.executionId)).phase).toBe('interrupted')
+    )
+    s.completions.get('a')!(successful)
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(s.execute).toHaveBeenCalledTimes(1)
+    expect((await s.core.get(b.executionId)).phase).toBe('queued')
+    await s.core.cancel(b.executionId)
+  })
+})
+
+describe('original result owner settlement', () => {
+  it('waits for every concurrent driver terminal commit after cancellation, including a slower owner', async () => {
+    const s = setup(3, 256, 2)
+    const handles = await Promise.all(['a', 'b', 'queued'].map((id) => s.core.submit(request(id))))
+    await waitStarted(s, 'b')
+    await Promise.all(handles.map((handle) => s.core.cancel(handle.executionId)))
+    let settled = false
+    const pending = s.core.settle(1000).then((value) => {
+      settled = true
+      return value
+    })
+    s.completions.get('a')!({ phase: 'cancelled', cleanup: 'confirmed' })
+    await vi.waitFor(async () =>
+      expect((await s.core.get(handles[0].executionId)).phase).toBe('cancelled')
+    )
+    expect(settled).toBe(false)
+    expect((await s.core.get(handles[1].executionId)).phase).toBe('running')
+    s.completions.get('b')!({ phase: 'cancelled', cleanup: 'confirmed' })
+    expect(await pending).toBe(true)
+    expect(
+      Object.values(s.store.load().records).every(
+        (record) => record.phase === 'cancelled' && record.cleanup === 'confirmed'
+      )
+    ).toBe(true)
+    expect(s.execute).toHaveBeenCalledTimes(2)
+  })
+  it('bounds settlement without fabricating terminal cleanup and preserves unknown-cleanup fencing', async () => {
+    const s = setup(3, 256, 1)
+    const active = await s.core.submit(request('a'))
+    const queued = await s.core.submit(request('queued'))
+    await waitStarted(s, 'a')
+    await s.core.cancel(active.executionId)
+    expect(await s.core.settle(20)).toBe(false)
+    expect(await s.core.get(active.executionId)).toMatchObject({
+      phase: 'running',
+      cleanup: 'pending'
+    })
+    s.completions.get('a')!({ phase: 'cancelled', cleanup: 'unknown' })
+    expect(await s.core.settle(1000)).toBe(true)
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(await s.core.get(active.executionId)).toMatchObject({
+      phase: 'cancelled',
+      cleanup: 'unknown'
+    })
+    expect((await s.core.get(queued.executionId)).phase).toBe('queued')
+    expect(s.execute).toHaveBeenCalledTimes(1)
+    await s.core.cancel(queued.executionId)
   })
 })

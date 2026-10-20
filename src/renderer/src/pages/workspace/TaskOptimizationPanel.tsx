@@ -5,6 +5,12 @@ import type {
   DesktopOptimizationApi,
   OptimizationProgress
 } from '../../../../shared/earthnano/desktop-optimization'
+import {
+  DEFAULT_OPTIMIZATION_METHOD,
+  minimumOptimizationExecutions,
+  MAX_OPTIMIZATION_EXECUTIONS,
+  type OptimizationMethodOptions
+} from '../../../../shared/earthnano/optimization-method'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../../shared/web-event-connection'
 
 type Props = {
@@ -44,6 +50,10 @@ function OptimizationSessionPanel({
   const [criteria, setCriteria] = useState('')
   const [files, setFiles] = useState<Array<{ path: string; content: string }>>([])
   const [limit, setLimit] = useState(12)
+  const [method, setMethod] = useState<OptimizationMethodOptions>({
+    ...DEFAULT_OPTIMIZATION_METHOD
+  })
+  const minimum = minimumOptimizationExecutions(method)
   const [progress, setProgress] = useState<OptimizationProgress | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<false | 'request' | 'files'>(false)
@@ -69,7 +79,7 @@ function OptimizationSessionPanel({
         if (!disposed && revision === actionRevision.current) setProgress(value)
       })
       .catch(() => {
-        if (!disposed) setError('request')
+        if (!disposed && revision === actionRevision.current) setError('request')
       })
     return () => {
       disposed = true
@@ -86,17 +96,22 @@ function OptimizationSessionPanel({
     let timer: ReturnType<typeof setTimeout> | undefined
     const poll = (): void => {
       timer = setTimeout(() => {
+        const revision = actionRevision.current
         void api
           .get({ projectId, sourceSessionId: sessionId, runId: runningRunId })
           .then((value) => {
             if (disposed) return
+            if (revision !== actionRevision.current) {
+              poll()
+              return
+            }
             setProgress(value)
             setError(false)
             if (!terminal(value.state)) poll()
           })
           .catch(() => {
             if (!disposed) {
-              setError('request')
+              if (revision === actionRevision.current) setError('request')
               poll()
             }
           })
@@ -121,6 +136,7 @@ function OptimizationSessionPanel({
         ?.role ?? progress.stage
     if (progress.state === 'assessing' || progress.stage.includes('assessment'))
       return t('Assessing')
+    if (currentStage.includes('select')) return t('Selecting')
     if (currentStage.includes('baseline')) return t('Baseline')
     if (currentStage.includes('propos')) return t('Proposing')
     if (currentStage.includes('compos')) return t('Composing')
@@ -139,9 +155,11 @@ function OptimizationSessionPanel({
         prompt,
         criteria,
         files,
-        executionLimit: limit
+        executionLimit: limit,
+        method
       })
       if (alive.current) {
+        actionRevision.current += 1
         setProgress(result)
         requestKey.current = null
       }
@@ -162,7 +180,10 @@ function OptimizationSessionPanel({
         sourceSessionId: sessionId,
         runId: progress.runId
       })
-      if (alive.current) setProgress(result)
+      if (alive.current) {
+        actionRevision.current += 1
+        setProgress(result)
+      }
     } catch {
       if (alive.current) setError('request')
     } finally {
@@ -220,8 +241,9 @@ function OptimizationSessionPanel({
     lines.length >= 1 &&
     lines.length <= 16 &&
     Number.isInteger(limit) &&
-    limit >= 9 &&
-    limit <= 20
+    lines.every((line) => line.length <= 2000) &&
+    limit >= minimum &&
+    limit <= MAX_OPTIMIZATION_EXECUTIONS
   const inputClass =
     'w-full rounded border border-border bg-bg-10 p-2 text-sm text-text-100 disabled:opacity-60'
   return (
@@ -245,6 +267,35 @@ function OptimizationSessionPanel({
                 active: progress.budget.active
               })}
             </p>
+            {progress.method && (
+              <p>
+                {t('Method: {{mode}} · k={{k}} · concurrency={{concurrency}}', {
+                  mode: progress.method.mode === 'parallel' ? t('Parallel') : t('Sequential'),
+                  k: progress.method.k,
+                  concurrency: progress.method.concurrency
+                })}
+              </p>
+            )}
+            {progress.selection && (
+              <div>
+                <p>
+                  {t('Selected {{label}} from {{candidateCount}} candidates', {
+                    label: progress.selection.chosenLabel,
+                    candidateCount: progress.selection.candidateCount
+                  })}
+                </p>
+                <p>
+                  {progress.selection.trivial ? t('Trivial selection') : t('Selector comparison')}
+                </p>
+                {progress.selection.fallback && <p>{t('Selection fallback')}</p>}
+                <p className="whitespace-pre-wrap break-words">{progress.selection.reason}</p>
+              </div>
+            )}
+            {progress.executions
+              .filter((entry) => entry.stageId)
+              .map((entry) => (
+                <p key={entry.executionId}>{t('Stage: {{stage}}', { stage: entry.stageId })}</p>
+              ))}
             {active && (
               <button
                 type="button"
@@ -372,13 +423,80 @@ function OptimizationSessionPanel({
         </label>
         <p className="text-xs text-text-400">{t('Write 1–16 independent checks, one per line.')}</p>
         <label className="block">
+          {t('Optimization mode')}
+          <select
+            aria-label={t('Optimization mode')}
+            className={inputClass}
+            value={method.mode}
+            disabled={active || busy}
+            onChange={(event) => {
+              setMethod({
+                ...method,
+                mode: event.target.value as OptimizationMethodOptions['mode']
+              })
+              requestKey.current = null
+            }}
+          >
+            <option value="sequential">{t('Sequential')}</option>
+            <option value="parallel">{t('Parallel')}</option>
+          </select>
+        </label>
+        <label className="block">
+          {t('Recursion parameter (k)')}
+          <input
+            aria-label={t('Recursion parameter (k)')}
+            className={inputClass}
+            type="number"
+            min={1}
+            max={8}
+            step={1}
+            value={method.k}
+            disabled={active || busy}
+            onChange={(event) => {
+              const k = Number(event.target.value)
+              if (Number.isInteger(k) && k >= 1 && k <= 8) {
+                const next = { ...method, k }
+                setMethod(next)
+                setLimit((value) => Math.max(value, minimumOptimizationExecutions(next)))
+                requestKey.current = null
+              }
+            }}
+          />
+        </label>
+        <label className="block">
+          {t('Concurrent executions')}
+          <input
+            aria-label={t('Concurrent executions')}
+            className={inputClass}
+            type="number"
+            min={1}
+            max={4}
+            step={1}
+            value={method.concurrency}
+            disabled={active || busy}
+            onChange={(event) => {
+              const concurrency = Number(event.target.value)
+              if (Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 4) {
+                setMethod({ ...method, concurrency })
+                requestKey.current = null
+              }
+            }}
+          />
+        </label>
+        <p className="text-xs text-text-400">
+          {t(
+            'First attempts require {{minimum}} executions including assessments; retries use the same limit.',
+            { minimum }
+          )}
+        </p>
+        <label className="block">
           {t('Execution limit (includes two assessments)')}
           <input
             aria-label={t('Execution limit (includes two assessments)')}
             className={inputClass}
             type="number"
-            min={9}
-            max={20}
+            min={minimum}
+            max={MAX_OPTIMIZATION_EXECUTIONS}
             step={1}
             value={limit}
             disabled={active || busy}

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -243,4 +243,97 @@ describe('DesktopOptimizationManager', () => {
     expect(await manager.shutdown()).toEqual({ reaped: true })
     await expect(manager.start({ ...task, requestKey: 'new' })).rejects.toThrow('closed')
   })
+})
+
+it.each(['sequential', 'parallel'] as const)(
+  'persists and forwards explicit %s method, selector stage and selection summary',
+  async (mode) => {
+    const method = { mode, k: 2, concurrency: 3 }
+    const selector = record('s', 'selector', 'completed')
+    selector.request.origin = { kind: 'optimization', optimizationId: 'opt', stageId: 'selection' }
+    const selection = {
+      chosenLabel: 'final2',
+      candidateCount: 2,
+      trivial: false,
+      fallback: false,
+      reason: 'Matches task evidence'
+    }
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      options.onProgress!({ optimizationId: 'opt', stage: 'optimizing', records: [selector] })
+      return { ...complete, methodResult: { selection }, records: [selector] }
+    })
+    const { manager, root, options } = fixture(run)
+    const admitted = await manager.start({ ...task, method, executionLimit: 17 })
+    await vi.waitFor(async () =>
+      expect((await manager.get(key(admitted.runId))).state).toBe('completed')
+    )
+    const progress = await manager.get(key(admitted.runId))
+    expect(progress.method).toEqual(method)
+    expect(progress.selection).toEqual(selection)
+    expect(progress.executions[0]).toMatchObject({ role: 'selector', stageId: 'selection' })
+    expect(run.mock.calls[0][0]).toMatchObject({ method, executionLimit: 17 })
+    const reopened = new DesktopOptimizationManager(options)
+    expect((await reopened.get(key(admitted.runId))).selection).toEqual(selection)
+    const saved = JSON.parse(readFileSync(join(root, admitted.runId, 'desktop.json'), 'utf8'))
+    expect(saved.progress.method).toEqual(method)
+    await expect(
+      manager.start({
+        ...task,
+        method: { ...method, mode: mode === 'sequential' ? 'parallel' : 'sequential' },
+        executionLimit: 17
+      })
+    ).rejects.toThrow('conflicts')
+    await expect(
+      manager.start({ ...task, method: { ...method, concurrency: 1 }, executionLimit: 17 })
+    ).rejects.toThrow('conflicts')
+    await expect(
+      manager.start({ ...task, method: { ...method, k: 1 }, executionLimit: 17 })
+    ).rejects.toThrow('conflicts')
+  }
+)
+it('rejects insufficient first-attempt budgets and invalid method before session or provider side effects', async () => {
+  const run = vi.fn(async () => complete)
+  const { manager, options, root } = fixture(run)
+  await expect(
+    manager.start({
+      ...task,
+      method: { mode: 'parallel', k: 2, concurrency: 2 },
+      executionLimit: 16
+    })
+  ).rejects.toThrow('Invalid')
+  await expect(
+    manager.start({
+      ...task,
+      method: { mode: 'parallel', k: 8, concurrency: 4 },
+      executionLimit: 58
+    })
+  ).rejects.toThrow('Invalid')
+  await expect(manager.start({ ...task, executionLimit: 129 })).rejects.toThrow('Invalid')
+  await expect(
+    manager.start({ ...task, method: { mode: 'parallel', k: 1, concurrency: 5 } })
+  ).rejects.toThrow('Invalid')
+  expect(options.validateSession).not.toHaveBeenCalled()
+  expect(options.createOptions).not.toHaveBeenCalled()
+  expect(run).not.toHaveBeenCalled()
+  expect(readdirSync(root)).toEqual([])
+})
+it('keeps legacy omitted-option digest byte-compatible and treats explicit method as request content', async () => {
+  const run = vi.fn(async () => complete)
+  const { manager, options, root } = fixture(run)
+  const admitted = await manager.start(task)
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(admitted.runId))).state).toBe('completed')
+  )
+  const { createHash } = await import('node:crypto')
+  const legacyDigest = createHash('sha256').update(JSON.stringify(task)).digest('hex')
+  const saved = JSON.parse(readFileSync(join(root, admitted.runId, 'desktop.json'), 'utf8'))
+  expect(saved.digest).toBe(legacyDigest)
+  delete saved.progress.method
+  writeFileSync(join(root, admitted.runId, 'desktop.json'), JSON.stringify(saved))
+  const reopened = new DesktopOptimizationManager(options)
+  expect((await reopened.start(task)).runId).toBe(admitted.runId)
+  await expect(
+    reopened.start({ ...task, method: { mode: 'sequential', k: 1, concurrency: 1 } })
+  ).rejects.toThrow('conflicts')
+  expect(run).toHaveBeenCalledOnce()
 })

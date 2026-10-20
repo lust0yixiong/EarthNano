@@ -79,7 +79,7 @@ type Fixture = {
   setFault(value: FixtureFault): void
   options: Parameters<typeof evaluateOptimizationSemantics>[0]
 }
-async function setup(limit = 9): Promise<Fixture> {
+async function setup(limit = 9, baselineCount = 1): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-semantic-unit-'))
   roots.push(root)
   const snapshots = await createCandidateSnapshotStore({
@@ -204,7 +204,7 @@ async function setup(limit = 9): Promise<Fixture> {
   cores.push(core)
   core.configureBudget('project', 'budget', limit)
   const roles: ExecutionRequest['role'][] = [
-    'baseline',
+    ...Array.from({ length: baselineCount }, () => 'baseline' as const),
     'proposer',
     'proposer',
     'candidate',
@@ -221,7 +221,11 @@ async function setup(limit = 9): Promise<Fixture> {
       ...refs,
       invocationRef,
       role,
-      origin: { kind: 'optimization', optimizationId: 'optimization', stageId: `seed-${index}` },
+      origin: {
+        kind: 'optimization',
+        optimizationId: 'optimization',
+        stageId: role === 'baseline' ? `base${index + 1}` : `seed-${index}`
+      },
       interactionPolicy: 'deny-unresolved',
       budgetRef: 'budget',
       timeoutMs: 5000
@@ -273,7 +277,13 @@ async function setup(limit = 9): Promise<Fixture> {
       owners,
       input,
       records,
-      methodResult: { status: 'ok', chosenArtifacts: records[6]!.evidence.artifacts },
+      methodResult: {
+        status: 'ok',
+        chosenArtifacts: records.at(-1)!.evidence.artifacts,
+        ...(baselineCount > 1
+          ? { method: { mode: 'parallel', k: baselineCount, concurrency: 2 } }
+          : {})
+      },
       projectId: 'project',
       optimizationId: 'optimization',
       taskId: 'task',
@@ -283,6 +293,34 @@ async function setup(limit = 9): Promise<Fixture> {
     }
   }
 }
+
+describe('fixed reference assessment for multiple original baselines', () => {
+  it('evaluates base1 even when another reference precedes it in the execution projection', async () => {
+    const f = await setup(10, 2)
+    const result = await evaluateOptimizationSemantics({
+      ...f.options,
+      records: [...f.records].reverse()
+    })
+    expect(result.baseline.targetExecutionId).toBe(f.records[0]!.executionId)
+    expect(result.candidate.targetExecutionId).toBe(f.records.at(-1)!.executionId)
+    expect(f.admissions).toHaveLength(2)
+  })
+
+  it.each(['missing', 'duplicate', 'omitted'])(
+    'rejects %s base1 provenance before admitting an independent reviewer',
+    async (fault) => {
+      const f = await setup(10, 2)
+      let records = structuredClone(f.records)
+      if (fault === 'missing') records[0]!.request.origin.stageId = 'base3'
+      else if (fault === 'omitted') records = records.slice(1)
+      else records[1]!.request.origin.stageId = 'base1'
+      await expect(evaluateOptimizationSemantics({ ...f.options, records })).rejects.toThrow(
+        'fixed base1'
+      )
+      expect(f.admissions).toEqual([])
+    }
+  )
+})
 
 describe('strict grounded semantic assessment parser', () => {
   it('accepts exact pinned evidence and complete criteria coverage', () => {

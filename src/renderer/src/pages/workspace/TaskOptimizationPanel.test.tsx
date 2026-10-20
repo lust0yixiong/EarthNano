@@ -111,7 +111,7 @@ it('starts a bounded task using edited inputs, polls typed progress and stops', 
   })
   expect(container.textContent).toContain('Cancelled')
 })
-it('requires 1–16 criteria and a 9–20 budget, and shows safe errors', async () => {
+it('requires 1–16 criteria and a sufficient execution budget, and shows safe errors', async () => {
   await render()
   await input('Acceptance criteria (one per line)', 'criterion')
   await input('Execution limit (includes two assessments)', '8')
@@ -237,4 +237,130 @@ it('puts progress and stop before configuration, resets scroll only for a new ru
   vi.mocked(api.start).mockResolvedValue({ ...progress(), runId: 'next-run' })
   await click('Start optimization')
   expect(panel.scrollTop).toBe(0)
+})
+
+it.each(['sequential', 'parallel'] as const)(
+  'submits %s k=2 with explicit concurrency and sufficient budget',
+  async (mode) => {
+    await render()
+    await input('Acceptance criteria (one per line)', 'criterion')
+    const select = container.querySelector('[aria-label="Optimization mode"]') as HTMLSelectElement
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, mode)
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await input('Recursion parameter (k)', '2')
+    await input('Concurrent executions', '3')
+    const executionLimit = container.querySelector(
+      '[aria-label="Execution limit (includes two assessments)"]'
+    ) as HTMLInputElement
+    expect(executionLimit.value).toBe('17')
+    expect(executionLimit.max).toBe('128')
+    expect(container.textContent).toContain('First attempts require 17 executions')
+    await input('Execution limit (includes two assessments)', '16')
+    await click('Start optimization')
+    expect(api.start).not.toHaveBeenCalled()
+    await input('Execution limit (includes two assessments)', '20')
+    await click('Start optimization')
+    expect(api.start).toHaveBeenCalledWith(
+      expect.objectContaining({ method: { mode, k: 2, concurrency: 3 }, executionLimit: 20 })
+    )
+  }
+)
+it('shows persisted upstream selection, method and exact stage identifiers', async () => {
+  vi.mocked(api.latest).mockResolvedValue({
+    ...progress('completed'),
+    method: { mode: 'parallel', k: 2, concurrency: 2 },
+    executions: [
+      { executionId: 's', role: 'selector', stageId: 'select_final', phase: 'completed' }
+    ],
+    selection: {
+      chosenLabel: 'final2',
+      candidateCount: 2,
+      trivial: false,
+      fallback: true,
+      reason: 'Selector recovery reason'
+    }
+  })
+  await render()
+  expect(container.textContent).toContain('Method: Parallel · k=2 · concurrency=2')
+  expect(container.textContent).toContain('Selected final2 from 2 candidates')
+  expect(container.textContent).toContain('Selector comparison')
+  expect(container.textContent).toContain('Selection fallback')
+  expect(container.textContent).toContain('Selector recovery reason')
+  expect(container.textContent).toContain('Stage: select_final')
+})
+
+it.each(['snapshot', 'error'] as const)(
+  'discards a pre-Stop polling %s after Stop is acknowledged and keeps polling',
+  async (kind) => {
+    vi.mocked(api.latest).mockResolvedValue(progress())
+    vi.mocked(api.stop).mockResolvedValue(progress('stopping'))
+    let resolve!: (value: OptimizationProgress) => void
+    let reject!: (error: Error) => void
+    vi.mocked(api.get)
+      .mockReturnValueOnce(
+        new Promise((done, fail) => {
+          resolve = done
+          reject = fail
+        })
+      )
+      .mockResolvedValue(progress('cancelled'))
+    await render()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(api.get).toHaveBeenCalledOnce()
+    await click('Stop optimization')
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+    await act(async () => {
+      if (kind === 'snapshot') resolve(progress())
+      else reject(new Error('Old poll failed'))
+    })
+    const button = [...container.querySelectorAll('button')].find(
+      (node) => node.textContent === 'Stop optimization'
+    )!
+    expect(button.disabled).toBe(true)
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+    expect(container.querySelector('[role=alert]')).toBeNull()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[role=status]')?.textContent).toContain('Cancelled')
+  }
+)
+it('also discards a snapshot requested while Stop was pending after its acknowledgement', async () => {
+  vi.mocked(api.latest).mockResolvedValue(progress())
+  let finishStop!: (value: OptimizationProgress) => void
+  vi.mocked(api.stop).mockReturnValue(
+    new Promise((done) => {
+      finishStop = done
+    })
+  )
+  let finishPoll!: (value: OptimizationProgress) => void
+  vi.mocked(api.get)
+    .mockReturnValueOnce(
+      new Promise((done) => {
+        finishPoll = done
+      })
+    )
+    .mockResolvedValue(progress('cancelled'))
+  await render()
+  await click('Stop optimization')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(api.get).toHaveBeenCalledOnce()
+  await act(async () => {
+    finishStop(progress('stopping'))
+  })
+  await act(async () => {
+    finishPoll(progress())
+  })
+  expect(container.querySelector('[role=status]')?.textContent).toContain('Stopping')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(container.querySelector('[role=status]')?.textContent).toContain('Cancelled')
 })

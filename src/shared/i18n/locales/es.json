@@ -7672,6 +7672,19 @@
     "Proposing": "Generando propuestas",
     "Flagged": "Con observaciones",
     "Stopping": "Deteniendo",
-    "Working": "En curso"
+    "Working": "En curso",
+    "Selecting": "Seleccionando",
+    "Sequential": "Secuencial",
+    "Parallel": "Paralelo",
+    "Optimization mode": "Modo de optimización",
+    "Concurrent executions": "Ejecuciones simultáneas",
+    "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "Los primeros intentos requieren {{minimum}} ejecuciones, incluidas las evaluaciones; los reintentos usan el mismo límite.",
+    "Method: {{mode}} · k={{k}} · concurrency={{concurrency}}": "Método: {{mode}} · k={{k}} · simultaneidad={{concurrency}}",
+    "Trivial selection": "Selección trivial",
+    "Selector comparison": "Comparación del selector",
+    "Selection fallback": "Selección alternativa",
+    "Stage: {{stage}}": "Etapa: {{stage}}",
+    "Selected {{label}} from {{candidateCount}} candidates": "Se seleccionó {{label}} entre {{candidateCount}} candidatos",
+    "Recursion parameter (k)": "Parámetro de recursión (k)"
   }
 }

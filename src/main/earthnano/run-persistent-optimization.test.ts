@@ -1,34 +1,44 @@
 import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const f = vi.hoisted(() => ({
   method: vi.fn(),
   evaluate: vi.fn(),
   shutdown: vi.fn(),
-  dispose: vi.fn()
+  dispose: vi.fn(),
+  core: vi.fn(),
+  get: vi.fn(),
+  exportResult: vi.fn(),
+  readReviews: vi.fn(),
+  executionIds: ['baseline'],
+  settle: vi.fn(async () => true)
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
 vi.mock('./execution-core', async (original) => ({
   ...(await original<typeof import('./execution-core')>()),
   ExecutionCore: class {
+    constructor(...args: unknown[]) {
+      f.core(...args)
+    }
     configureBudget = vi.fn()
-    get = async (): Promise<unknown> => ({ phase: 'completed', cleanup: 'confirmed' })
+    get = f.get
     dispose = f.dispose
+    settle = f.settle
   }
 }))
 vi.mock('./harness-optimization', () => ({
   HarnessOptimizationBinding: class {
-    executionIds = ['baseline']
+    executionIds = f.executionIds
     stop = async (): Promise<void> => {}
   },
   runHarnessProcess: f.method
 }))
 vi.mock('./persistent-candidate-owner', () => ({
   createPersistentCandidateOwners: () => ({
-    exportResult: async (): Promise<void> => {},
-    readReviews: async (): Promise<unknown[]> => [{ lifecycle: 'complete', outcome: 'pass' }],
+    exportResult: f.exportResult,
+    readReviews: f.readReviews,
     shutdown: f.shutdown
   })
 }))
@@ -46,6 +56,12 @@ import {
   HARNESS_RPC_TIMEOUT_MARGIN_MS
 } from './execution-timeout'
 const roots: string[] = []
+beforeEach(() => {
+  f.executionIds = ['baseline']
+  f.get.mockResolvedValue({ phase: 'completed', cleanup: 'confirmed' })
+  f.exportResult.mockResolvedValue(undefined)
+  f.readReviews.mockResolvedValue([{ lifecycle: 'complete', outcome: 'pass' }])
+})
 afterEach(async () => {
   vi.clearAllMocks()
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
@@ -186,4 +202,124 @@ it('retains supported maximum and default deadlines without overflowing the Pyth
     MAX_HARNESS_EXECUTION_TIMEOUT_MS + HARNESS_RPC_TIMEOUT_MARGIN_MS
   )
   expect(maxConfig.rpcTimeoutMs).toBe(3_600_000)
+})
+
+it.each(['sequential', 'parallel'] as const)(
+  'forwards %s k=2 unchanged into private upstream config and bounded core',
+  async (mode) => {
+    const o = await options()
+    o.method = { mode, k: 2, concurrency: 3 }
+    f.method.mockImplementation(async () => {
+      // Caller mutation after admission cannot change the frozen method.
+      o.method = { mode: 'sequential', k: 1, concurrency: 1 }
+      return { status: 'ok' }
+    })
+    f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+    f.shutdown.mockResolvedValue({ reaped: true })
+    await runPersistentOptimization(o)
+    const config = JSON.parse(await readFile(join(o.workRoot, 'method-config.json'), 'utf8'))
+    expect(config.method).toEqual({ mode, k: 2, concurrency: 3 })
+    const plan = JSON.parse(await readFile(join(o.workRoot, 'assessment-plan.json'), 'utf8'))
+    expect(plan.baselineStageId).toBe('base1')
+    expect(f.core.mock.calls[0].slice(2)).toEqual([256, { concurrency: 3 }])
+  }
+)
+it('rejects invalid method or excessive budget before allocating any run resources', async () => {
+  const o = await options()
+  await expect(runPersistentOptimization({ ...o, executionLimit: 129 })).rejects.toThrow(
+    'Invalid optimization limits'
+  )
+  await expect(
+    runPersistentOptimization({ ...o, method: { mode: 'parallel', k: 9, concurrency: 1 } })
+  ).rejects.toThrow('Invalid optimization method')
+  await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+  expect(f.method).not.toHaveBeenCalled()
+  expect(f.core).not.toHaveBeenCalled()
+})
+
+it('retains charged failed attempts while accepting an upstream retry with verified completed results', async () => {
+  const o = await options()
+  f.executionIds = ['failed-attempt', 'successful-retry']
+  const failed = { phase: 'failed', cleanup: 'confirmed', error: { code: 'provider-failed' } }
+  const completed = { phase: 'completed', cleanup: 'confirmed' }
+  f.get.mockImplementation(async (id) => (id === 'failed-attempt' ? failed : completed))
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await runPersistentOptimization(o)
+  expect(f.evaluate.mock.calls[0][0].records).toEqual([failed, completed])
+  expect(f.exportResult).toHaveBeenCalledExactlyOnceWith(completed)
+  expect(f.readReviews).toHaveBeenCalledExactlyOnceWith(completed)
+})
+
+it.each([
+  { phase: 'failed', cleanup: 'unknown' },
+  { phase: 'cancelled', cleanup: 'confirmed' },
+  { phase: 'interrupted', cleanup: 'confirmed' },
+  ...['timeout', 'budget-exhausted', 'cleanup-unconfirmed', 'request-conflict'].map((code) => ({
+    phase: 'failed',
+    cleanup: 'confirmed',
+    error: { code }
+  }))
+])('never treats a control stop as a recoverable attempt: %j', async (stopped) => {
+  const o = await options()
+  f.executionIds = ['successful-retry', 'stopped']
+  f.get.mockImplementation(async (id) =>
+    id === 'stopped' ? stopped : { phase: 'completed', cleanup: 'confirmed' }
+  )
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toThrow(
+    'Optimization has incomplete executions'
+  )
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
+
+it('still requires passing persisted integrity reviews after a retry', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.readReviews.mockResolvedValue([{ lifecycle: 'complete', outcome: 'flagged' }])
+  await expect(runPersistentOptimization(o)).rejects.toThrow('passing integrity review')
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
+
+it('waits for both original result commits after resource shutdown before retiring the execution core', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  let finish!: (settled: boolean) => void
+  f.settle.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  let returned = false
+  const result = runPersistentOptimization(o).then((value) => {
+    returned = true
+    return value
+  })
+  await vi.waitFor(() => expect(f.settle).toHaveBeenCalledOnce())
+  expect(f.shutdown).toHaveBeenCalledOnce()
+  expect(f.dispose).not.toHaveBeenCalled()
+  expect(returned).toBe(false)
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).resolves.toBeUndefined()
+  finish(true)
+  await result
+  expect(f.dispose).toHaveBeenCalledOnce()
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).rejects.toMatchObject({
+    code: 'ENOENT'
+  })
+})
+it('retains the writer lock when result-owner settlement times out despite confirmed process reap', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.settle.mockResolvedValueOnce(false)
+  await expect(runPersistentOptimization(o)).rejects.toThrow('cleanup requires reconciliation')
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).resolves.toBeUndefined()
+  expect(f.dispose).toHaveBeenCalledOnce()
 })

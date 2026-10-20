@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import {
+  normalizeOptimizationMethod,
+  MAX_OPTIMIZATION_EXECUTIONS,
+  type OptimizationMethodOptions
+} from '../../shared/earthnano/optimization-method'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
 import {
@@ -43,6 +48,7 @@ export interface PersistentOptimizationOptions {
   python?: string
   ownerOptions: PersistentCandidateOwnersOptions
   binding: ClaudeCandidateDriverOptions['binding']
+  method?: OptimizationMethodOptions
   executionLimit?: number
   executionTimeoutMs?: number
   /** Overall execution deadline, including independent assessments; cleanup is always awaited. */
@@ -66,6 +72,7 @@ export async function runPersistentOptimization(
   options: PersistentOptimizationOptions
 ): Promise<PersistentOptimizationResult> {
   options.signal?.throwIfAborted()
+  const method = normalizeOptimizationMethod(options.method)
   const input = structuredClone(options.input)
   const semanticCriteria = options.semanticCriteria
   if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
@@ -75,6 +82,7 @@ export async function runPersistentOptimization(
   const executionTimeoutMs = options.executionTimeoutMs ?? 120_000
   const timeoutMs = options.timeoutMs ?? 600_000
   if (
+    limit > MAX_OPTIMIZATION_EXECUTIONS ||
     ![limit, executionTimeoutMs, timeoutMs].every(
       (value) => Number.isSafeInteger(value) && value > 0
     )
@@ -103,6 +111,7 @@ export async function runPersistentOptimization(
         join(options.workRoot, 'assessment-plan.json'),
         JSON.stringify({
           schemaVersion: 1,
+          ...(method.k > 1 ? { baselineStageId: 'base1' } : {}),
           criteria: semanticCriteria,
           criteriaDigest: semanticDigest(semanticCriteria)
         }),
@@ -125,7 +134,9 @@ export async function runPersistentOptimization(
         snapshots,
         binding: options.binding,
         openOwner: owners.openOwner
-      })
+      }),
+      256,
+      { concurrency: method.concurrency }
     )
     core.configureBudget(options.projectId, optimizationId, limit)
     binding = new HarnessOptimizationBinding({
@@ -141,6 +152,7 @@ export async function runPersistentOptimization(
     })
     const config = {
       configVersion: 1,
+      method,
       taskId: options.taskId,
       task: input.task,
       baseHarnessFiles: [
@@ -179,13 +191,34 @@ export async function runPersistentOptimization(
     )
       throw new Error('Harness method did not adopt a valid final result')
     const records = await Promise.all(binding.executionIds.map((id) => core!.get(id)))
+    // Match upstream PortMethodExecution's control stops. Ordinary failed attempts remain
+    // charged and recorded, but a successful upstream retry may still produce a valid result.
+    const controlCodes = new Set([
+      'budget-exhausted',
+      'budget-rejected',
+      'cleanup-unconfirmed',
+      'timeout',
+      'cancelled',
+      'interrupted',
+      'process_restarted',
+      'invalid-request',
+      'request-conflict',
+      'not-found'
+    ])
     if (
       !records.length ||
-      records.some((record) => record.phase !== 'completed' || record.cleanup !== 'confirmed')
+      !records.some((record) => record.phase === 'completed') ||
+      records.some(
+        (record) =>
+          !['completed', 'failed'].includes(record.phase) ||
+          record.cleanup !== 'confirmed' ||
+          controlCodes.has(record.error?.code ?? '')
+      )
     )
       throw new Error('Optimization has incomplete executions')
     // Re-read original owners after the method ends; Python summaries cannot attest persistence.
     for (const record of records) {
+      if (record.phase === 'failed') continue
       await owners.exportResult(record)
       const reviews = await owners.readReviews(record)
       if (
@@ -226,11 +259,13 @@ export async function runPersistentOptimization(
     try {
       await binding?.stop()
       const cleanup = owners ? await owners.shutdown() : { reaped: true }
+      const settled = (await core?.settle()) ?? true
       const state = store.load()
       stage = 'settled'
       publish()
       const safeToUnlock =
         cleanup.reaped &&
+        settled &&
         Object.values(state.records).every(
           (record) =>
             ['completed', 'failed', 'cancelled'].includes(record.phase) &&

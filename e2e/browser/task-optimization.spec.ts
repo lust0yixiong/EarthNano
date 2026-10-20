@@ -113,3 +113,33 @@ test('keeps errors credential-free and hides unsupported web entry', async ({ pa
   await page.goto('/task-optimization.html?web')
   await expect(page.getByTestId('task-optimization-panel')).toHaveCount(0)
 })
+
+for (const mode of ['sequential', 'parallel']) {
+  test(`submits ${mode} k2 and displays the original selector result`, async ({ page }) => {
+    await page.goto('/task-optimization.html?complete')
+    await page.getByText('Optimize task', { exact: true }).click()
+    await page.getByLabel('Optimization mode', { exact: true }).selectOption(mode)
+    await page.getByLabel('Recursion parameter (k)', { exact: true }).fill('2')
+    await page.getByLabel('Concurrent executions', { exact: true }).fill('2')
+    const budget = page.getByLabel('Execution limit (includes two assessments)', { exact: true })
+    await expect(budget).toHaveValue('17')
+    await budget.fill('20')
+    await page
+      .getByLabel('Acceptance criteria (one per line)', { exact: true })
+      .fill('The requested output is complete')
+    await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
+    await expect(page.getByText('Selector comparison', { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(`Selected ${mode === 'parallel' ? 'agg2' : 'c2'} from 2 candidates`, {
+        exact: true
+      })
+    ).toBeVisible()
+    expect(
+      await page.evaluate(
+        () =>
+          (window as unknown as { optimizationFixture: { start: unknown[] } }).optimizationFixture
+            .start[0]
+      )
+    ).toMatchObject({ method: { mode, k: 2, concurrency: 2 }, executionLimit: 20 })
+  })
+}

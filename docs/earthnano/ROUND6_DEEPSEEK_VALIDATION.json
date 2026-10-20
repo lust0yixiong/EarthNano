@@ -1,0 +1,303 @@
+{
+  "date": "2026-10-20",
+  "provider": "DeepSeek Anthropic-compatible endpoint through original Claude Code/ACP runtime",
+  "runtimeVersion": "2.1.232",
+  "implementationCommit": "76903e56db131d5a71439122e1af4fd58be9ef2a",
+  "sourceNote": "Later test-only diagnostics capture selector summary/artifact count. No production prompt, assessment criterion or gate was relaxed between these three attempts.",
+  "authorization": "Previously authorized local key file; credential never included in committed reports",
+  "perAttemptLimits": {
+    "executionAdmissions": 20,
+    "eligibleProviderRequests": 96,
+    "maxOutputTokensPerResponse": 1536,
+    "overallTimeoutMs": 480000,
+    "thinking": "disabled"
+  },
+  "attempts": [
+    {
+      "attempt": "sequential-attempt1",
+      "status": "failed",
+      "error": "Assessor must publish only assessment.json",
+      "method": {
+        "mode": "sequential",
+        "k": 2,
+        "concurrency": 2
+      },
+      "requests": 52,
+      "rejects": 17,
+      "usage": {
+        "input": 145145,
+        "cacheRead": 283776,
+        "output": 15675
+      },
+      "records": [
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "baseline",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "proposer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "composer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "candidate",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "selector",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        },
+        {
+          "role": "reviewer",
+          "phase": "completed",
+          "cleanup": "confirmed"
+        }
+      ]
+    },
+    {
+      "attempt": "parallel-attempt1",
+      "status": "passed",
+      "model": "deepseek-flash",
+      "method": {
+        "mode": "parallel",
+        "k": 2,
+        "concurrency": 2
+      },
+      "executions": 17,
+      "roles": [
+        "baseline",
+        "baseline",
+        "proposer",
+        "proposer",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "candidate",
+        "candidate",
+        "composer",
+        "composer",
+        "candidate",
+        "candidate",
+        "selector",
+        "reviewer",
+        "reviewer"
+      ],
+      "sessions": 17,
+      "versionCount": 21,
+      "reviewCount": 19,
+      "verifiedInputReads": 8,
+      "reopened": true,
+      "configurationChanged": true,
+      "fallbackStages": [],
+      "selection": {
+        "chosenLabel": "agg1",
+        "candidateCount": 2,
+        "trivial": false,
+        "fallback": false,
+        "reason": "Both candidates render as the identical single-line JSON object {\"count\": 3, \"sum\": 6}, which matches the source (three data rows: 1, 2, 3, header excluded; sum 6) and the requested shape (only count and sum), so delivery, conformance and fidelity are equal. The deciding criterion is finish/cleanliness: A's file is the exact JSON object and nothing else, the plainest form the instruction (\"write only a JSON object\") asks for. B is identical in visible content, so there is no evidence-based reason to prefer it; the tie resolves toward the plainer artifact, and neither has a defect that eliminates it."
+      },
+      "desktop": true,
+      "observedStates": ["running", "assessing", "completed"],
+      "assessments": {
+        "baseline": {
+          "executionId": "98c164a7-e951-41a1-8c39-681dfa0eae36",
+          "targetExecutionId": "4d87c6a0-cf0e-43cc-ab60-577facddc421",
+          "reviewId": "cmvgfh5lq000xxjs9aqnbjcgq",
+          "outcome": "pass",
+          "score": 100,
+          "rationale": "The task's embedded values.csv contains one header line (id,value) and three data rows: one,1; two,2; three,3. The sole target artifact result.json (artifactId 608d0b32-3ad1-4b97-98c9-db2aa4088289, versionId 0b0c0b6a-66c0-4db7-9587-12191e266d3d) contains {\"count\": 3, \"sum\": 6}. count=3 matches the three non-header rows, excluding the header as required. sum=6 matches 1+2+3=6. Both frozen criteria are satisfied by direct reading of the supplied artifact content against the source data in task.json. Note this is a model judgment on frozen evidence, not a proven fact; no other artifacts were supplied to assess."
+        },
+        "candidate": {
+          "executionId": "feef8229-301f-4519-8d9b-5c31b1b03483",
+          "targetExecutionId": "9609468a-c00e-49f5-9c56-01117af7fec3",
+          "reviewId": "cmvgfhb5p0011xjs9rjqge6ph",
+          "outcome": "pass",
+          "score": 100,
+          "rationale": "The single target artifact (result.json, artifactId 5a589925-bba8-4806-a588-8184e0568213, versionId bc54d521-9ced-44d3-82b4-81e5338a97df, checksum 39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479) contains the JSON object {\"count\": 3, \"sum\": 6}. Comparing against the source values.csv supplied in task.json, which has header id,value followed by three data rows (one,1; two,2; three,3), the count of 3 correctly equals the number of data rows excluding the header, and the sum of 6 correctly equals 1+2+3. The task asked only for a JSON object with count and sum written to OUTPUT/result.json, and the artifact contains exactly those fields. Both frozen criteria are satisfied."
+        }
+      },
+      "sharedBudget": {
+        "limit": 20,
+        "admitted": 17
+      },
+      "requests": 67,
+      "rejects": 17,
+      "usage": {
+        "input": 136475,
+        "cacheRead": 410496,
+        "output": 20761
+      },
+      "testOverrides": {
+        "thinking": "disabled",
+        "maxOutputTokens": 1536,
+        "requestLimit": 96
+      },
+      "limitations": [
+        "Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity",
+        "Original anonymous finals-only selector; independent comparison uses predeclared base1, not an aggregate of all baselines",
+        "Real model via test-only bounded observer",
+        "No paid cancellation/adversarial replay"
+      ]
+    },
+    {
+      "attempt": "sequential-attempt2",
+      "status": "passed",
+      "model": "deepseek-flash",
+      "method": {
+        "mode": "sequential",
+        "k": 2,
+        "concurrency": 2
+      },
+      "executions": 18,
+      "roles": [
+        "baseline",
+        "baseline",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "composer",
+        "candidate",
+        "proposer",
+        "proposer",
+        "proposer",
+        "candidate",
+        "candidate",
+        "composer",
+        "candidate",
+        "selector",
+        "reviewer",
+        "reviewer"
+      ],
+      "sessions": 18,
+      "versionCount": 28,
+      "reviewCount": 20,
+      "verifiedInputReads": 8,
+      "reopened": true,
+      "configurationChanged": true,
+      "fallbackStages": [],
+      "selection": {
+        "chosenLabel": "c2",
+        "candidateCount": 2,
+        "trivial": false,
+        "fallback": false,
+        "reason": "Delivery broke the decision: both candidates lack OUTPUT/result.json. Instead each shows a markdown heading \"# result.json\" over JSON text. So \"count\" and \"sum\" never exist as fields in the requested file. Conformance is fine, since the data is exactly {\"count\": 3, \"sum\": 6} with nothing extra, and fidelity matches the source (3 rows 1,2,3 = 6). The two candidates tie on shape, so I chose A by id order. I did not open the workspace files because the provided paths wouldn't resolve, so I relied on the complete frozen context."
+      },
+      "desktop": true,
+      "observedStates": ["running", "assessing", "completed"],
+      "assessments": {
+        "baseline": {
+          "executionId": "1953139a-2d3b-43d2-ac8f-7ea533603acf",
+          "targetExecutionId": "c5032c5a-72a0-4c58-ab7f-0f943aeacb1d",
+          "reviewId": "cmvgfka4x000zxjcm4n83xmg7",
+          "outcome": "pass",
+          "score": 96,
+          "rationale": "The single target artifact result.json (artifactId 17d423b3-98cd-478d-b579-cd67fde52575, versionId f663e56a-88ea-4387-a859-e8697facb712, checksum 39fe4ab6e33099a5616c4dd4b4d05aa2b48ff8e2787923db477ca8386c16a479) contains the object {\"count\": 3, \"sum\": 6}. The supplied values.csv in task.json has header \"id,value\" followed by three data rows (one,1; two,2; three,3). c1: count 3 equals the three non-header rows. c2: 1+2+3 = 6 equals the reported sum. Both values independently verified from the source CSV content, not from the artifact's prose. Caveat: the task instructed writing only a JSON object with count and sum, which the artifact satisfies; minor risk is that no supporting work is shown, but the reported numbers are verifiably correct."
+        },
+        "candidate": {
+          "executionId": "81fab081-fba6-44a2-a328-0cde1aeda550",
+          "targetExecutionId": "6b076e0b-fe8e-4af5-a822-4e92c1095606",
+          "reviewId": "cmvgfkf6a0013xjcmkthdssu7",
+          "outcome": "pass",
+          "score": 100,
+          "rationale": "The supplied task source (task.json) contains a CSV with header 'id,value' followed by three data rows: one=1, two=2, three=3. The only target artifact, result.json (artifactId 197642d7-831a-4d0e-b89b-7aaef66ccd32, versionId ee2ce81f-f0da-4ae4-b234-1ee7a684c08a, checksum 39fe4ab6...a479), contains {\"count\": 3, \"sum\": 6}. Comparing to the source: count 3 matches the number of data rows excluding the header (one, two, three), and sum 6 matches 1+2+3. Both frozen criteria are satisfied. Note: the artifact is compact JSON serialization; the quoted substrings are exact contiguous text within its decoded content field. The score is a model judgment based on the supplied evidence, not a proven fact."
+        }
+      },
+      "sharedBudget": {
+        "limit": 20,
+        "admitted": 18
+      },
+      "requests": 64,
+      "rejects": 18,
+      "usage": {
+        "input": 167295,
+        "cacheRead": 454784,
+        "output": 21604
+      },
+      "testOverrides": {
+        "thinking": "disabled",
+        "maxOutputTokens": 1536,
+        "requestLimit": 96
+      },
+      "limitations": [
+        "Independent model semantic judgments with exact quoted version evidence, not a proof of scientific validity",
+        "Original anonymous finals-only selector; independent comparison uses predeclared base1, not an aggregate of all baselines",
+        "Real model via test-only bounded observer",
+        "No paid cancellation/adversarial replay"
+      ]
+    }
+  ],
+  "interpretation": [
+    "Parallel passed on its first attempt; sequential passed on its second whole-run validation attempt. The first sequential run correctly failed because the final assessor did not deliver the sole required assessment.json.",
+    "The second sequential run admitted 18 executions and retained the extra attempt within its shared budget; parallel admitted 17.",
+    "Scores were 96/100 for sequential baseline/candidate, and 100/100 for parallel. Both independent reviewers judged their criteria passing; this single synthetic task and model score variation do not establish quality improvement.",
+    "Rerunning the failed validation was a bounded developer test action, not automatic replay or an implemented semantic-review retry policy.",
+    "The local observer blocks auxiliary requests that lack the task role; rejects are recorded separately and are not automatically provider failures.",
+    "Usage fields are raw observed provider usage; no verified currency calculation is claimed.",
+    "Successful paths use the production desktop manager and real persistence owners, not a paid Electron button journey."
+  ]
+}

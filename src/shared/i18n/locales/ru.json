@@ -7812,6 +7812,19 @@
     "Proposing": "Подготовка предложений",
     "Flagged": "Есть замечания",
     "Stopping": "Остановка",
-    "Working": "Выполняется"
+    "Working": "Выполняется",
+    "Selecting": "Выбор",
+    "Sequential": "Последовательно",
+    "Parallel": "Параллельно",
+    "Optimization mode": "Режим оптимизации",
+    "Concurrent executions": "Одновременные выполнения",
+    "First attempts require {{minimum}} executions including assessments; retries use the same limit.": "Первые попытки требуют {{minimum}} выполнений, включая оценки; повторные попытки используют тот же лимит.",
+    "Method: {{mode}} · k={{k}} · concurrency={{concurrency}}": "Метод: {{mode}} · k={{k}} · параллельность={{concurrency}}",
+    "Trivial selection": "Тривиальный выбор",
+    "Selector comparison": "Сравнение селектора",
+    "Selection fallback": "Резервный выбор",
+    "Stage: {{stage}}": "Этап: {{stage}}",
+    "Selected {{label}} from {{candidateCount}} candidates": "Выбран {{label}} из {{candidateCount}} кандидатов",
+    "Recursion parameter (k)": "Параметр рекурсии (k)"
   }
 }

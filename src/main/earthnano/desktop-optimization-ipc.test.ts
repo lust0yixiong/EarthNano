@@ -10,7 +10,10 @@ vi.mock('../ipc-handler-registry', () => ({
     handler: (event: IpcMainInvokeEvent, request: unknown) => Promise<unknown>
   ) => handlers.set(channel, handler)
 }))
-import { registerDesktopOptimizationIpcHandlers } from './desktop-optimization-ipc'
+import {
+  invokeDesktopOptimization,
+  registerDesktopOptimizationIpcHandlers
+} from './desktop-optimization-ipc'
 const frame = {}
 const event = (): IpcMainInvokeEvent =>
   ({
@@ -73,4 +76,55 @@ it('does not disclose raw provider errors', async () => {
   await expect(handlers.get('optimization:start')!(event(), request)).rejects.toThrow(
     'Optimization request could not be completed. Check the selected model and runtime settings.'
   )
+})
+
+it.each(['sequential', 'parallel'] as const)(
+  'validates and forwards explicit %s k=2 through the desktop transport',
+  async (mode) => {
+    const dto = { ...request, executionLimit: 17, method: { mode, k: 2, concurrency: 3 } }
+    await invokeDesktopOptimization(api, 'start', dto)
+    expect(api.start).toHaveBeenCalledWith(dto)
+    await handlers.get('optimization:start')!(event(), dto)
+    expect(api.start).toHaveBeenCalledTimes(2)
+  }
+)
+it('accepts old callers without adding a method field or changing request identity', async () => {
+  await invokeDesktopOptimization(api, 'start', request)
+  expect(api.start).toHaveBeenCalledWith(request)
+  expect(vi.mocked(api.start).mock.calls[0][0]).not.toHaveProperty('method')
+})
+it.each([
+  null,
+  { mode: 'other', k: 2, concurrency: 2 },
+  { mode: 'parallel', k: 9, concurrency: 2 },
+  { mode: 'parallel', k: 2, concurrency: 5 },
+  { mode: 'parallel', k: 2 },
+  { mode: 'parallel', k: 2, concurrency: 2, key: 'synthetic-private-key' }
+])('rejects malformed explicit method before invoking desktop authority: %j', async (method) => {
+  await expect(invokeDesktopOptimization(api, 'start', { ...request, method })).rejects.toThrow(
+    'Optimization request could not be completed'
+  )
+  expect(api.start).not.toHaveBeenCalled()
+})
+it('rejects unknown top-level keys, missing required fields, and method fields on read requests', async () => {
+  const missingFiles: Partial<typeof request> = { ...request }
+  delete missingFiles.files
+  await expect(
+    invokeDesktopOptimization(api, 'start', {
+      ...request,
+      extra: true,
+      method: { mode: 'sequential', k: 1, concurrency: 1 }
+    })
+  ).rejects.toThrow()
+  await expect(invokeDesktopOptimization(api, 'start', missingFiles)).rejects.toThrow()
+  await expect(
+    invokeDesktopOptimization(api, 'get', {
+      projectId: 'p',
+      sourceSessionId: 's',
+      runId: 'r',
+      method: { mode: 'sequential', k: 1, concurrency: 1 }
+    })
+  ).rejects.toThrow()
+  expect(api.start).not.toHaveBeenCalled()
+  expect(api.get).not.toHaveBeenCalled()
 })

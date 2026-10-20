@@ -117,6 +117,24 @@ const setup = async (): Promise<{
 }
 
 describe('trusted Harness optimization binding', () => {
+  it('preserves the original selector reply protocol while persisting its decision as an artifact', async () => {
+    const f = await setup()
+    const offered = invocation('selector')
+    const request = (await f.binding.dispatch('freezeInvocation', {
+      ...offered,
+      contextFiles: [
+        { path: 'context/candidates/A.md', content: 'candidate A final output' },
+        { path: 'context/candidates/B.md', content: 'candidate B final output' }
+      ]
+    })) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(request)
+    expect(request.role).toBe('selector')
+    expect(resolved.invocation.mission).toContain('candidate A final output')
+    expect(resolved.invocation.mission).toContain('candidate B final output')
+    expect(resolved.invocation.mission).toContain('choice block and why format')
+    expect(resolved.invocation.mission).toContain('OUTPUT/selection.md')
+    expect(resolved.invocation.mission).not.toContain('Emit the complete revised harness')
+  })
   it('freezes role context separately while retaining the same research task across changed harnesses', async () => {
     const f = await setup()
     const a = (await f.binding.dispatch('freezeInvocation', invocation())) as ExecutionRequest

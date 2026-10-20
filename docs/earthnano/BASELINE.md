@@ -1,5 +1,9 @@
 # EarthNano 首个整合开发基线
 
+本页记录第一至第五轮已合并基线。第六轮候选分支新增模式、k 和并发选项，
+预算上限调整为 128；其范围和独立验证见 [ROUND6.md](ROUND6.md)。
+以下 9–20 的预算和 k=1 描述仅适用于原整合基线。
+
 日期：2026-10-20。范围为第一至第五轮 PR [#2](https://github.com/lust0yixiong/EarthNano/pull/2)、
 [#3](https://github.com/lust0yixiong/EarthNano/pull/3)、
 [#4](https://github.com/lust0yixiong/EarthNano/pull/4)、
