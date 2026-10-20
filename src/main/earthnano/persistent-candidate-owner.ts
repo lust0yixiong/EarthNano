@@ -574,46 +574,85 @@ export function createPersistentCandidateOwners(
               ExecutionRecord,
               'request' | 'evidence'
             >)
-            const checks: NewCheck[] = files.map((file, sortIndex) => {
-              let valid = true
-              if (file.path.endsWith('.json')) {
+            const integrity = files.map((file) => {
+              let jsonSyntax: 'valid' | 'invalid' | 'not-applicable' = 'not-applicable'
+              if (/\.json$/i.test(file.path)) {
                 try {
                   JSON.parse(file.content)
+                  jsonSyntax = 'valid'
                 } catch {
-                  valid = false
+                  jsonSyntax = 'invalid'
                 }
               }
               return {
-                status: valid ? 'pass' : 'fail',
-                claim:
-                  'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
-                evidence: `${file.path}: ${file.digest}; JSON syntax ${valid ? 'valid or not applicable' : 'invalid'}`,
-                artifactVersionId: file.artifactRef.versionId,
-                sortIndex
+                path: file.path,
+                digest: file.digest,
+                artifactRef: file.artifactRef,
+                jsonSyntax
               }
             })
-            if (!checks.length)
-              checks.push({
-                status: 'warn',
-                claim: 'Deterministic output inventory only; no semantic assessment',
-                evidence: 'No output ArtifactVersion was published.'
+            // Review has a five-Finding domain limit. Aggregate the complete output inventory
+            // into one Finding; retain every exact version/digest and syntax result in its log.
+            const manifest = { schemaVersion: 1, files: integrity }
+            const summary = {
+              fileCount: integrity.length,
+              invalidJsonCount: integrity.filter((file) => file.jsonSyntax === 'invalid').length,
+              manifestDigest: digest(canonical(manifest))
+            }
+            const checks: NewCheck[] = [
+              {
+                status: !integrity.length ? 'warn' : summary.invalidJsonCount ? 'fail' : 'pass',
+                claim:
+                  'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
+                evidence: JSON.stringify(summary),
+                ...(files[0] ? { artifactVersionId: files[0].artifactRef.versionId } : {}),
+                sortIndex: 0
+              }
+            ]
+            let reviewId: string | undefined
+            let committed: ReviewWithChecks
+            try {
+              // Already-cancelled prompt settlement retains its existing cancellation projection.
+              // A new Stop during result persistence must never leave a late passing Review.
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+              const review = await reviews.createReview({
+                projectId: request.projectId,
+                sessionId,
+                turnMessageId: promptMessageId,
+                scope: frozen.scope,
+                scopeSnapshot: frozen.blocks,
+                model: 'deterministic-file-integrity-v1',
+                lifecycle: 'running'
               })
-            const review = await reviews.createReview({
-              projectId: request.projectId,
-              sessionId,
-              turnMessageId: promptMessageId,
-              scope: frozen.scope,
-              scopeSnapshot: frozen.blocks,
-              model: 'deterministic-file-integrity-v1',
-              lifecycle: 'running'
-            })
-            const committed = await reviews.commitScopedSubmission({
-              mode: 'initial',
-              reviewId: review.id,
-              checks,
-              expectedSourceFindingIds: [],
-              keepFlaggedReviewRunning: false
-            })
+              reviewId = review.id
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+              committed = await reviews.commitScopedSubmission({
+                mode: 'initial',
+                reviewId,
+                checks,
+                expectedSourceFindingIds: [],
+                keepFlaggedReviewRunning: false,
+                reviewerLog: [
+                  {
+                    kind: 'tool',
+                    toolName: 'earthnano.file-integrity-manifest',
+                    title: 'Fixed-version candidate output integrity inventory',
+                    rawInput: canonical(manifest),
+                    rawOutput: JSON.stringify(summary),
+                    status: summary.invalidJsonCount ? 'error' : 'ok'
+                  }
+                ]
+              })
+              if (!settlement.cancellationRequested) settlement.signal.throwIfAborted()
+            } catch (error) {
+              if (reviewId)
+                await reviews.updateReview(reviewId, {
+                  lifecycle: 'error',
+                  outcome: null,
+                  errorMessage: 'Candidate integrity review could not be completed.'
+                })
+              throw error
+            }
             const reviewRef: Ref = {
               id: `review:${committed.id}`,
               version: String(committed.updatedAt),
