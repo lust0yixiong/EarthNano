@@ -453,9 +453,10 @@ const cloneRun = (run: MutableTaskRun): TaskRun => ({
 
 const cloneRunForJournal = (run: MutableTaskRun): TaskRunJournalEntry => {
   const sessionCommit = run.sessionCommit
+  const status = run.terminalStatus ?? run.status
   return {
     ...cloneRun(run),
-    status: run.terminalStatus ?? run.status,
+    status,
     completedAt: run.completedAt,
     cancelledAt: run.cancelledAt,
     ...(run.promptMessageId ? { promptMessageId: run.promptMessageId } : {}),
@@ -467,10 +468,13 @@ const cloneRunForJournal = (run: MutableTaskRun): TaskRunJournalEntry => {
             ? { cancelledAt: sessionCommit.completedAt }
             : {}),
           output: sessionCommit.output,
-          error: sessionCommit.error,
-          failureCode: sessionCommit.failureCode,
+          error: status === 'failed' ? (run.error ?? sessionCommit.error) : sessionCommit.error,
+          failureCode:
+            status === 'failed'
+              ? (run.failureCode ?? sessionCommit.failureCode)
+              : sessionCommit.failureCode,
           artifacts: [...sessionCommit.artifacts],
-          attention: sessionCommit.attention
+          attention: status === 'completed' ? sessionCommit.attention : undefined
         }
       : {})
   }

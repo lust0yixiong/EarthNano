@@ -277,7 +277,14 @@ describe('TaskRunner', () => {
       })
       let ownerCommitted!: Promise<void>
       const progress: string[] = []
+      let persisted: readonly TaskRunJournalEntry[] = []
       const runner = createRunner({
+        runJournal: {
+          load: async () => [],
+          replace: async (entries) => {
+            persisted = structuredClone(entries)
+          }
+        },
         agent: {
           prompt: async (_request, observer) => {
             expect(observer?.ownerCompletion).toBeDefined()
