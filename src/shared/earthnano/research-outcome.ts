@@ -169,10 +169,35 @@ export function normalizeOptimizationDomain(value: unknown): OptimizationDomainS
       const f = fields(entry, ['path', 'content'])
       return { path: text(f.path, 180), content: text(f.content, 64000, false) }
     })
+    const paths = new Set<string>()
+    let bytes = 0
+    for (const file of files) {
+      const key = file.path.normalize('NFC').toLowerCase()
+      const size = new TextEncoder().encode(file.content).length
+      bytes += size
+      if (
+        !file.path
+          .split('/')
+          .every((part) => /^[A-Za-z0-9_. -]+$/.test(part) && part !== '.' && part !== '..') ||
+        paths.has(key) ||
+        [...paths].some((other) => other.startsWith(key + '/') || key.startsWith(other + '/')) ||
+        size > 64000 ||
+        bytes > 128000
+      )
+        return fail()
+      paths.add(key)
+    }
+    const criteria = text(task.criteria, 16000)
+    const lines = criteria
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+    if (!lines.length || lines.length > 16 || lines.some((line) => line.length > 2000))
+      return fail()
     return {
       prompt: text(task.prompt, 32000),
       files,
-      criteria: text(task.criteria, 16000),
+      criteria,
       ...(task.checks === undefined ? {} : { checks: normalizeOutputChecks(task.checks) })
     }
   })
