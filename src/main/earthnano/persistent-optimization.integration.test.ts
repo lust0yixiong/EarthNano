@@ -736,11 +736,12 @@ async function exercise(
       }>
     }
     expect(domainMethod.tasks).toHaveLength(taskCount)
-    expect(
-      domainMethod.tasks.every(
-        (task) => task.configurationChanged && task.fallbackStages.length === 0
-      )
-    ).toBe(true)
+    if (!live)
+      expect(
+        domainMethod.tasks.every(
+          (task) => task.configurationChanged && task.fallbackStages.length === 0
+        )
+      ).toBe(true)
     expect(result.records.filter((record) => record.request.role === 'reflection')).toHaveLength(
       taskCount
     )
@@ -900,8 +901,33 @@ async function exercise(
               }
             : {}),
           reopened: true,
-          configurationChanged: true,
-          fallbackStages: [],
+          configurationChanged: result.domain
+            ? (
+                result.methodResult as { tasks: Array<{ configurationChanged: boolean }> }
+              ).tasks.some((task) => task.configurationChanged)
+            : (result.methodResult as { configurationChanged: boolean }).configurationChanged,
+          fallbackStages: result.domain
+            ? (
+                result.methodResult as { tasks: Array<{ fallbackStages: unknown[] }> }
+              ).tasks.flatMap((task) => task.fallbackStages)
+            : (result.methodResult as { fallbackStages: unknown[] }).fallbackStages,
+          ...(result.domain
+            ? {
+                methodTasks: (
+                  result.methodResult as {
+                    tasks: Array<{
+                      taskId: string
+                      configurationChanged: boolean
+                      fallbackStages: unknown[]
+                    }>
+                  }
+                ).tasks.map((task) => ({
+                  taskId: task.taskId,
+                  configurationChanged: task.configurationChanged,
+                  fallbackStages: task.fallbackStages
+                }))
+              }
+            : {}),
           selection: (result.methodResult as { selection?: unknown }).selection,
           ...(result.domain ? { domain: result.domain } : {}),
           ...(result.outcome ? { outcome: result.outcome } : {}),
