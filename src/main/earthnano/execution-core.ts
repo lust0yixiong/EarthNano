@@ -13,6 +13,7 @@ import type {
   CancellationReceipt,
   ExecutionHandle
 } from '../../shared/earthnano/execution-port'
+import { assertExecutionTimeout } from './execution-timeout'
 import {
   ExecutionContractError,
   requestDigest,
@@ -125,6 +126,7 @@ export class ExecutionCore implements ExecutionPort {
   private disposed = false
   private readonly concurrency: number
   private drainScheduled = false
+  private readonly drivers = new Set<Promise<void>>()
 
   constructor(
     private readonly store: ExecutionStore,
@@ -296,6 +298,24 @@ export class ExecutionCore implements ExecutionPort {
     for (const event of events) if (event.sequence > afterSequence) yield event
   }
 
+  /** After admission is stopped and queued work cancelled, wait for original result owners to
+   * finish committing. Process retirement alone does not attest to those durable terminal facts.
+   * A timeout never confirms cleanup or releases a fenced execution. */
+  async settle(timeoutMs = 25_000): Promise<boolean> {
+    assertExecutionTimeout(timeoutMs)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        Promise.allSettled([...this.drivers]).then(() => true),
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(false), timeoutMs)
+        })
+      ])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
+
   /** Retires this owner for controlled restart. Late driver callbacks cannot write to the store. */
   dispose(): void {
     this.disposed = true
@@ -364,7 +384,13 @@ export class ExecutionCore implements ExecutionPort {
           Object.values(this.state.records).some((entry) => entry.cleanup === 'unknown')
         )
           break
-        if (this.require(record.executionId).phase === 'queued') void this.drive(record.executionId)
+        if (this.require(record.executionId).phase !== 'queued') continue
+        const driver = this.drive(record.executionId)
+        this.drivers.add(driver)
+        void driver.then(
+          () => this.drivers.delete(driver),
+          () => this.drivers.delete(driver)
+        )
       }
     })
   }

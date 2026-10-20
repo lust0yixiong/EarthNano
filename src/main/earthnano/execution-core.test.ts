@@ -414,3 +414,53 @@ describe('bounded concurrent execution', () => {
     await s.core.cancel(b.executionId)
   })
 })
+
+describe('original result owner settlement', () => {
+  it('waits for every concurrent driver terminal commit after cancellation, including a slower owner', async () => {
+    const s = setup(3, 256, 2)
+    const handles = await Promise.all(['a', 'b', 'queued'].map((id) => s.core.submit(request(id))))
+    await waitStarted(s, 'b')
+    await Promise.all(handles.map((handle) => s.core.cancel(handle.executionId)))
+    let settled = false
+    const pending = s.core.settle(1000).then((value) => {
+      settled = true
+      return value
+    })
+    s.completions.get('a')!({ phase: 'cancelled', cleanup: 'confirmed' })
+    await vi.waitFor(async () =>
+      expect((await s.core.get(handles[0].executionId)).phase).toBe('cancelled')
+    )
+    expect(settled).toBe(false)
+    expect((await s.core.get(handles[1].executionId)).phase).toBe('running')
+    s.completions.get('b')!({ phase: 'cancelled', cleanup: 'confirmed' })
+    expect(await pending).toBe(true)
+    expect(
+      Object.values(s.store.load().records).every(
+        (record) => record.phase === 'cancelled' && record.cleanup === 'confirmed'
+      )
+    ).toBe(true)
+    expect(s.execute).toHaveBeenCalledTimes(2)
+  })
+  it('bounds settlement without fabricating terminal cleanup and preserves unknown-cleanup fencing', async () => {
+    const s = setup(3, 256, 1)
+    const active = await s.core.submit(request('a'))
+    const queued = await s.core.submit(request('queued'))
+    await waitStarted(s, 'a')
+    await s.core.cancel(active.executionId)
+    expect(await s.core.settle(20)).toBe(false)
+    expect(await s.core.get(active.executionId)).toMatchObject({
+      phase: 'running',
+      cleanup: 'pending'
+    })
+    s.completions.get('a')!({ phase: 'cancelled', cleanup: 'unknown' })
+    expect(await s.core.settle(1000)).toBe(true)
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(await s.core.get(active.executionId)).toMatchObject({
+      phase: 'cancelled',
+      cleanup: 'unknown'
+    })
+    expect((await s.core.get(queued.executionId)).phase).toBe('queued')
+    expect(s.execute).toHaveBeenCalledTimes(1)
+    await s.core.cancel(queued.executionId)
+  })
+})

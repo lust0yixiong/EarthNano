@@ -259,11 +259,13 @@ export async function runPersistentOptimization(
     try {
       await binding?.stop()
       const cleanup = owners ? await owners.shutdown() : { reaped: true }
+      const settled = (await core?.settle()) ?? true
       const state = store.load()
       stage = 'settled'
       publish()
       const safeToUnlock =
         cleanup.reaped &&
+        settled &&
         Object.values(state.records).every(
           (record) =>
             ['completed', 'failed', 'cancelled'].includes(record.phase) &&

@@ -11,7 +11,8 @@ const f = vi.hoisted(() => ({
   get: vi.fn(),
   exportResult: vi.fn(),
   readReviews: vi.fn(),
-  executionIds: ['baseline']
+  executionIds: ['baseline'],
+  settle: vi.fn(async () => true)
 }))
 vi.mock('./candidate-snapshot', () => ({ createCandidateSnapshotStore: async () => ({}) }))
 vi.mock('./claude-candidate-driver', () => ({ createClaudeCandidateDriver: () => ({}) }))
@@ -24,6 +25,7 @@ vi.mock('./execution-core', async (original) => ({
     configureBudget = vi.fn()
     get = f.get
     dispose = f.dispose
+    settle = f.settle
   }
 }))
 vi.mock('./harness-optimization', () => ({
@@ -280,4 +282,44 @@ it('still requires passing persisted integrity reviews after a retry', async () 
   f.readReviews.mockResolvedValue([{ lifecycle: 'complete', outcome: 'flagged' }])
   await expect(runPersistentOptimization(o)).rejects.toThrow('passing integrity review')
   expect(f.evaluate).not.toHaveBeenCalled()
+})
+
+it('waits for both original result commits after resource shutdown before retiring the execution core', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  let finish!: (settled: boolean) => void
+  f.settle.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  let returned = false
+  const result = runPersistentOptimization(o).then((value) => {
+    returned = true
+    return value
+  })
+  await vi.waitFor(() => expect(f.settle).toHaveBeenCalledOnce())
+  expect(f.shutdown).toHaveBeenCalledOnce()
+  expect(f.dispose).not.toHaveBeenCalled()
+  expect(returned).toBe(false)
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).resolves.toBeUndefined()
+  finish(true)
+  await result
+  expect(f.dispose).toHaveBeenCalledOnce()
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).rejects.toMatchObject({
+    code: 'ENOENT'
+  })
+})
+it('retains the writer lock when result-owner settlement times out despite confirmed process reap', async () => {
+  const o = await options()
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.settle.mockResolvedValueOnce(false)
+  await expect(runPersistentOptimization(o)).rejects.toThrow('cleanup requires reconciliation')
+  await expect(access(join(o.workRoot, 'execution.json.lock'))).resolves.toBeUndefined()
+  expect(f.dispose).toHaveBeenCalledOnce()
 })
