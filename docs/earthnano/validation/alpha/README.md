@@ -42,3 +42,25 @@
 | `harness-candidate.json`                | `f1a29b96a67ca7574982b64707ac3026144b42314a59dab6205992b640e39b0c` |
 | `harness-comparison.json`               | `3ba465966c77f2ed47a0d4841439bdde37a4a5a8d012eec08ebec523aa7d6a03` |
 | `original-missing-harvest-control.json` | `6e5489292c9fe1b26fb6c93fc0618652780e3495ddff1635f9818ad85b87bb15` |
+
+## 原用量与多模式准备（后续一轮）
+
+固定应用源码 `b1cb766d6bc13fbb67787c18450b17df7c83d1a4` 的离线与第五次 DeepSeek 使用相同构建并通过，见 [本轮边界与验证](../../ALPHA_USAGE.md)。本轮首次离线缺少实时 runtime identity 的失败、原 journal及同场景修复前/后日志均保留；失败报告的60704869c工作树为dirty，不能冒充干净提交验收。候选 Python66项对照报告在干净 d4b20667d生成；v2原 scheduler control 的范围与源码摘要见 [专页](../../ALPHA_SWEEP_BINDING_V2.md)，并未启用 sweep。
+
+第五次为21/24接纳、19/21优化用量覆盖，118本地/117上游请求，0拒绝、1确认取消、不完整用量1次。两项独立评分均95，没有收益证明；API/费用生产采集仍未知。
+
+| 原始文件                                   | SHA-256                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `usage-offline-token-missing.json`         | `819aafca59039810d2a2e6a0048a4fe1997d3c25a8dddc8d6ae5b77e04130c04` |
+| `usage-offline-token-missing-journal.json` | `8bb03626e5f2fb6d93abb8f7ed3dd5dfcbf0a7343dc155a729ce4b94b2906e78` |
+| `usage-offline-fixed.json`                 | `1c79f58f98ffa93ed92fedbc35334cde4b65aec45243d5840aacfce31284ad54` |
+| `deepseek-attempt-5-usage.json`            | `3b287fa112e8b979ca691bf287b8c45e43dc058224c9ec511025bc783d0e70f9` |
+| `usage-harness-baseline.json`              | `7f9b4af1cb3b5bf8ef949ad9bdf9a71f9bf0d92f5f285250a9fa082365618448` |
+| `usage-harness-candidate.json`             | `6eeef0806b52160f7d97ed1111cea3dc68bc7724e2fcc4ee25b7b74c3bcc983e` |
+| `usage-harness-comparison.json`            | `58b42e4c3ecb5b048b322dbf6dc38448397d2db0e9b7630d1c4ae44f1ce5c583` |
+| `sweep-binding-v2-control.json`            | `80aa516396473fc478957901e998c6884c38655db8bcf5476fc6d5dd4608168b` |
+| `usage-identity-red.log`                   | `f42232bd6b65da6f385256167f906de7a7081408a504559794dfe9fb47d2c11e` |
+| `usage-identity-green.log`                 | `0a3bb4fa89fbb529ad7fefc7ae944bf9d6c75d3f795be75281e295d75b5fdebd` |
+| `windows-runtime-cold-timeout.log.gz`      | `f567df43ca37098859ee3e705ac7238762991d0165e8aa16a9608ea6c3a81cb6` |
+
+Windows日志是bootstrap run [39438006915](https://github.com/lust0yixiong/EarthNano/actions/runs/39438006915) 的完整原始日志gzip副本，解压后 SHA-256 `1d5caccd7683c930baffbfda56affebcb306ab84eec7cdc469dc5f5810e11af0`。90分钟取消发生在原 Node约85分钟编译完成后、PowerShell crossgen2 阶段；后续source/native均跳过，不能计作通过。新CI的冷编译预算150分钟及Unix独立启动仅经过本机结构检查，hosted结果另记。

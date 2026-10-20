@@ -2,6 +2,8 @@
 
 本分支延续第十轮 Notebook 深度融合，当前版本号为 `0.1.0-alpha.1`，尚未完成 Alpha 验收或发布。最终完成标准仍为 [ALPHA_CONTRACT.md](ALPHA_CONTRACT.md)，不能用本批已经完成的子集替代。
 
+后续固定提交 `b1cb766d6` 的原用量接线、第五次 DeepSeek 和 CI 调度修复另见 [当前用量与验证](ALPHA_USAGE.md)。下文四次尝试与 `5812df666` 记录按其原提交保留。原生 bootstrap 的Windows冷构建后来在90分钟时限被取消，尚无跨平台包验收通过；新CI保留原门槛并单独处理冷编译等待。
+
 ## 基线与已有 PR
 
 - PR #12 的精确审查 head 为 `129a1f70fd834d7c29e7dae025d38af825092a54`。GitHub Codex 审查完成，无发现；既有验证范围见第十轮记录。
