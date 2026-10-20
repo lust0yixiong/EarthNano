@@ -275,6 +275,7 @@ type TaskRunEventAccumulator = {
 type MutableTaskRun = TaskRun & {
   eventAccumulator?: TaskRunEventAccumulator
   executionPending?: boolean
+  cancelExecution?: () => Promise<unknown>
   completion: Promise<void>
   promptMessageId: string
   progressPhase: TaskRunProgressPhase
@@ -1608,7 +1609,8 @@ class TaskRunner {
         await queuedJournalWrites
         const sessionCommitBarrier = run.sessionCommitBarrier
         if (sessionCommitBarrier) await sessionCommitBarrier
-        await this.dependencies.agent.cancelPrompt(run.sessionId)
+        if (run.cancelExecution) await run.cancelExecution()
+        else await this.dependencies.agent.cancelPrompt(run.sessionId)
       })
       .then(async () => {
         if (run.sessionCommit && run.sessionCommit.status !== 'failed') {
@@ -2017,6 +2019,7 @@ class TaskRunner {
         }
         link = value
         run.executionId = value.executionId
+        run.cancelExecution = value.cancel
         run.executionPending = true
         linkPersisted = this.persistRuns()
         void linkPersisted.catch(() => undefined)
@@ -2063,6 +2066,7 @@ class TaskRunner {
           await this.persistTerminalRun(run, 'failed')
         } finally {
           run.executionPending = false
+          run.cancelExecution = undefined
           this.publishProgress(run, run.status === 'running' ? 'failed' : run.status)
         }
       }

@@ -49,14 +49,14 @@ interface Setup {
   input: AcpExecutionDispatch
   prepare: ReturnType<typeof vi.fn<SessionExecutionHost['prepare']>>
   readResult: ReturnType<typeof vi.fn<ResultReader>>
-  close: ReturnType<typeof vi.fn>
+  close: ReturnType<typeof vi.fn<() => void>>
   journal: ExecutionStore
   committed: Deferred<void>
   link(): AcpExecutionLink
 }
 function setup(): Setup {
   const journal = store()
-  const close = vi.fn()
+  const close = vi.fn<() => void>()
   const readResult = vi.fn<Awaited<ReturnType<SessionExecutionHost['prepare']>>['readResult']>(
     async () => ({ phase: 'completed', cleanup: 'confirmed' })
   )
@@ -96,6 +96,91 @@ function setup(): Setup {
 }
 
 describe('one ACP execution authority', () => {
+  it('allows an original correction or next Send after native release while retaining the prior commit barrier and exact cancel target', async () => {
+    const s = setup()
+    s.prepare.mockImplementation(async (input) => ({
+      request: { ...request(), requestKey: input.attemptId, budgetRef: input.attemptId },
+      budgetLimit: 1,
+      store: store(),
+      readResult: s.readResult,
+      close: s.close
+    }))
+    await s.boundary.execute(s.input)
+    const first = s.link()
+    const secondNative = deferred<PromptResponse>()
+    const secondCommitted = deferred<void>()
+    let second!: AcpExecutionLink
+    const secondCancel = vi.fn(async () => undefined)
+    const next = s.boundary.execute({
+      ...s.input,
+      attemptId: 'correction-attempt',
+      operation: 'sendApplicationPrompt',
+      request: { ...s.input.request, provenanceContext: { promptMessageId: 'correction' } },
+      ownerCompletion: {
+        committed: secondCommitted.promise,
+        linked: (link) => {
+          second = link
+        }
+      },
+      dispatch: async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'correction' })
+        return secondNative.promise
+      },
+      cancelOwned: secondCancel
+    })
+    await vi.waitFor(() => expect(second).toBeDefined())
+    expect(second.executionId).not.toBe(first.executionId)
+    await first.cancel!()
+    expect(s.input.cancelOwned).toHaveBeenCalledOnce()
+    expect(secondCancel).not.toHaveBeenCalled()
+    s.committed.resolve()
+    secondNative.resolve(response)
+    secondCommitted.resolve()
+    await next
+    await Promise.all([first.settled, second.settled])
+  })
+
+  it('retains a late uncertain prior resource fence after a newer turn has settled', async () => {
+    const s = setup()
+    s.prepare.mockImplementation(async (input) => ({
+      request: { ...request(), requestKey: input.attemptId, budgetRef: input.attemptId },
+      budgetLimit: 1,
+      store: store(),
+      readResult: s.readResult,
+      close: s.close
+    }))
+    s.readResult.mockImplementation(async ({ identity }) => ({
+      phase: identity.promptMessageId === 'prompt' ? 'failed' : 'completed',
+      cleanup: identity.promptMessageId === 'prompt' ? 'unknown' : 'confirmed'
+    }))
+    await s.boundary.execute(s.input)
+    const first = s.link()
+    const nextCommitted = deferred<void>()
+    let second!: AcpExecutionLink
+    await s.boundary.execute({
+      ...s.input,
+      attemptId: 'next',
+      request: { ...s.input.request, provenanceContext: { promptMessageId: 'next' } },
+      ownerCompletion: {
+        committed: nextCommitted.promise,
+        linked: (link) => {
+          second = link
+        }
+      },
+      dispatch: async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'next' })
+        return response
+      }
+    })
+    s.committed.resolve()
+    nextCommitted.resolve()
+    expect((await first.settled).cleanup).toBe('unknown')
+    await second.settled
+    await expect(s.boundary.execute({ ...s.input, attemptId: 'third' })).rejects.toThrow(
+      'remains owned'
+    )
+  })
+
   it('returns native results before owner commit, withholds canonical terminal and reads original evidence after commit', async () => {
     const s = setup()
     expect(await s.boundary.execute(s.input)).toEqual(response)

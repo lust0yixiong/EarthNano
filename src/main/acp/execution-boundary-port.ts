@@ -10,6 +10,8 @@ export interface AcpExecutionObservation {
 
 export interface AcpExecutionLink {
   executionId: string
+  /** Exact execution control; a later turn in the same Session must never receive this cancel. */
+  cancel?(): Promise<unknown>
   /** Resolves only after original owners and the canonical execution record have settled. */
   settled: Promise<ExecutionRecord>
 }

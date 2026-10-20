@@ -35,6 +35,7 @@ export function createSessionExecutionHost(
   options: SessionExecutionHostOptions
 ): SessionExecutionHost {
   const generation = randomUUID()
+  const ownedAttempts = new Set<string>()
   const projection = new SessionProjectionRepository(options.getClient)
   // Desktop Session JSON follows the original config-root repository; scientific files and
   // execution journals follow dataRoot. These roots may be selected independently.
@@ -58,7 +59,9 @@ export function createSessionExecutionHost(
       directory: join(options.dataRoot, 'executions', 'session-attempts'),
       targetEnvironmentId: `session-environment:${sessionId}`,
       matches: (record) =>
-        record.request.projectId === projectId && record.request.origin.sessionId === sessionId,
+        record.request.projectId === projectId &&
+        record.request.origin.sessionId === sessionId &&
+        !ownedAttempts.has(record.requestKey),
       readOriginal: async (record, { recoveredOwnerPid }) => {
         const promptId = record.identity.promptMessageId
         const token =
@@ -217,11 +220,15 @@ export function createSessionExecutionHost(
           originalEvidenceDigest(attemptId).slice(7) + '.json'
         )
       )
+      ownedAttempts.add(requestKey)
       return {
         request,
         budgetLimit: 1,
         store,
-        close: () => store.close(),
+        close: () => {
+          store.close()
+          ownedAttempts.delete(requestKey)
+        },
         async readResult(settlement) {
           const identity = structuredClone(settlement.identity)
           const promptId = identity.promptMessageId

@@ -61,8 +61,25 @@ export function createAcpExecutionBoundary({
   host: SessionExecutionHost
   delegatedOwner?: TrustedDelegatedExecutionOwner
 }): AcpExecutionBoundary {
-  const active = new Map<string, { core: ExecutionCore; executionId: string; owned: boolean }>()
+  type Entry = {
+    core: ExecutionCore
+    executionId: string
+    owned: boolean
+    nativeActive: boolean
+    record?: ExecutionRecord
+  }
+  const active = new Map<string, Set<Entry>>()
   const owners = new Set<ExecutionCore>()
+  const add = (sessionId: string, entry: Entry): void => {
+    const entries = active.get(sessionId) ?? new Set<Entry>()
+    entries.add(entry)
+    active.set(sessionId, entries)
+  }
+  const remove = (sessionId: string, entry: Entry): void => {
+    const entries = active.get(sessionId)
+    entries?.delete(entry)
+    if (!entries?.size) active.delete(sessionId)
+  }
 
   return {
     async execute(input) {
@@ -99,9 +116,10 @@ export function createAcpExecutionBoundary({
         const entry = {
           core: inherited.core,
           executionId: inherited.context.executionId,
-          owned: false
+          owned: false,
+          nativeActive: true
         }
-        active.set(input.request.sessionId, entry)
+        add(input.request.sessionId, entry)
         try {
           const observer = delegatedOwner
             ? {
@@ -122,20 +140,24 @@ export function createAcpExecutionBoundary({
             : observation(inherited.context, input, {})
           return await withExecutionScope(inherited, () => input.dispatch(observer))
         } finally {
+          entry.nativeActive = false
           void inherited.core
             .waitForTerminal(entry.executionId)
             .then((record) => {
-              if (record.cleanup === 'confirmed' && active.get(input.request.sessionId) === entry)
-                active.delete(input.request.sessionId)
+              Object.assign(entry, { record })
+              if (record.cleanup === 'confirmed') remove(input.request.sessionId, entry)
             })
             .catch(() => undefined)
         }
       }
 
-      if (active.has(input.request.sessionId))
-        throw new Error(
-          'Session execution remains owned pending original result and resource settlement'
-        )
+      for (const previous of active.get(input.request.sessionId) ?? []) {
+        const record = previous.record ?? (await previous.core.get(previous.executionId))
+        if (record.cleanup === 'unknown' || previous.nativeActive)
+          throw new Error(
+            'Session execution remains owned pending original result and resource settlement'
+          )
+      }
 
       const prepared = await host.prepare(input)
       const native = deferred<PromptResponse>()
@@ -156,6 +178,7 @@ export function createAcpExecutionBoundary({
               native.reject(failure)
             } finally {
               nativeFinished = true
+              entry.nativeActive = false
             }
             try {
               await input.ownerCompletion?.committed
@@ -194,10 +217,11 @@ export function createAcpExecutionBoundary({
         prepared.close()
         throw error
       }
-      const entry = { core, executionId, owned: true }
-      active.set(input.request.sessionId, entry)
+      const entry: Entry = { core, executionId, owned: true, nativeActive: true }
+      add(input.request.sessionId, entry)
       const terminal = core.waitForTerminal(executionId)
       const settled: Promise<ExecutionRecord> = terminal.then(async (record) => {
+        entry.record = record
         if (!nativeFinished)
           native.reject(
             new Error(record.error?.message ?? `Execution ${record.phase} before dispatch settled`)
@@ -205,8 +229,7 @@ export function createAcpExecutionBoundary({
         // Timeout may leave original owners committing. Never release their resource fence early.
         if (await core.settle()) {
           if (record.cleanup === 'confirmed') {
-            if (active.get(input.request.sessionId) === entry)
-              active.delete(input.request.sessionId)
+            remove(input.request.sessionId, entry)
             owners.delete(core)
             core.dispose()
             prepared.close()
@@ -215,12 +238,17 @@ export function createAcpExecutionBoundary({
         return record
       })
       void settled.catch((error) => native.reject(error))
-      input.ownerCompletion?.linked?.({ executionId, settled })
+      input.ownerCompletion?.linked?.({
+        executionId,
+        settled,
+        cancel: () => core.cancel(executionId)
+      })
       return native.promise
     },
     async cancel(sessionId, cancelOriginal, readState: () => AcpRuntimeState) {
       if (isPhysicalCancellation()) return cancelOriginal()
-      const entry = active.get(sessionId)
+      const entries = [...(active.get(sessionId) ?? [])]
+      const entry = entries.findLast((candidate) => candidate.nativeActive) ?? entries.at(-1)
       if (!entry) return cancelOriginal()
       await entry.core.cancel(entry.executionId)
       return readState()
@@ -228,7 +256,7 @@ export function createAcpExecutionBoundary({
     async settle() {
       const results = await Promise.all([...owners].map((owner) => owner.settle()))
       if (!results.every(Boolean)) return false
-      for (const entry of active.values()) {
+      for (const entry of [...active.values()].flatMap((entries) => [...entries])) {
         // An inherited driver's terminal depends on this runtime's physical shutdown. Its original
         // outer owner must join that Core after shutdown; waiting here would create a cycle.
         if (!entry.owned) continue

@@ -268,6 +268,35 @@ const createRunner = (overrides: TaskRunnerOverrides = {}): TaskRunner => {
   })
 }
 describe('TaskRunner', () => {
+  it('uses its exact execution cancellation link instead of a later Session turn', async () => {
+    let finish!: () => void
+    const native = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const cancelSession = vi.fn(async () => undefined)
+    const cancelExecution = vi.fn(async () => {
+      finish()
+    })
+    const prompt = vi.fn<TaskAgentPort['prompt']>(async (_request, observer) => {
+      const completion = observer!.ownerCompletion!
+      completion.linked!({
+        executionId: 'owned-execution',
+        cancel: cancelExecution,
+        settled: completion.committed.then(() => ({ phase: 'cancelled' }) as ExecutionRecord)
+      })
+      await native
+    })
+    const runner = createRunner({ agent: { prompt, cancelPrompt: cancelSession } })
+    const run = await runner.startRun({
+      project: project.id,
+      prompt: 'Use the exact execution owner.'
+    })
+    await vi.waitFor(() => expect(prompt).toHaveBeenCalledOnce())
+    expect((await runner.cancelRun(run.id)).status).toBe('cancelled')
+    expect(cancelExecution).toHaveBeenCalledOnce()
+    expect(cancelSession).not.toHaveBeenCalled()
+  })
+
   it.each(['completed', 'failed', 'interrupted'] as const)(
     'waits for canonical %s after original owner commits before exposing terminal Task state',
     async (phase) => {
