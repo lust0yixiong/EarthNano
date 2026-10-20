@@ -217,3 +217,13 @@ actool. No macOS/Linux/Windows hosted native packaging result, signing result, o
 comparison is claimed by these preparation checks. Those remain required external execution.
 
 Current matched local inventory after the reply-persistence and diagnostic fixes: exact Git-pinned original Harness **5 passed**, integrated source at `5812df666` **63 passed**, no failures or skips, with the same Python3.12.13 executable, source/tree provenance and license digest checked by the new runner. Raw reports and comparison are under `validation/alpha/`. These replace the earlier5/55 preparation count for the current source; they do not replace hosted source/native package checks.
+
+## Native producer fingerprint correction
+
+PR14 run39454904669's Linux candidate shard1 job118739141566 failed in npm postinstall, before typecheck/tests. Two previously updated Action SHAs in the inherited `.github/workflows/native-components.yml` changed `sourceFingerprint`: the complete producer workflow is a signed-release input even when native C++ sources are unchanged. The current catalog remains byte-identical to the fixed upstream, so accepting the new hash would falsely describe the existing release.
+
+Restoring that file byte-for-byte from OpenScience9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5 restores `24cd5bc90f7f2c68bc0c4df4a17f91854801073feb5f5fe197260d4a21d0bdf0`, matching every target in the original catalog. The actual change is exactly the two Action pins. Original native source/spec, node-gyp lock input, catalog, fingerprint function, digest and signature checks are unchanged. The inherited producer workflow remains `disabled_manually`; EarthNano CI is the active workflow.
+
+A new guard validates the actual checked-in release catalog against the complete actual source fingerprint, in addition to the original fixture cases. Combined native-component/CI gates pass61 tests locally. Independent reconstruction, actual failed source report and raw npm log are retained under validation/alpha/ci-native-* and ci-linux-fingerprint-*.
+
+Linux shard2 job118739140680 separately failed with npm ECONNRESET before postinstall. Its log identifies no package or endpoint; no source-code cause is inferred and no network retry rule is changed. The original Linux baseline was still running at the saved observation; no baseline test result is claimed. New CI must still demonstrate installation and all original source/native checks on the corrected head.

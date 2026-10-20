@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "candidate",
+  "shard": 2,
+  "total": 4,
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v24.22.0",
+  "image": "ubuntu24:20261018.339.1",
+  "lockDigest": "0eeb220227bc4fc274fde06f429604a0ebd7142dc01989043c8cf37b09e33e77",
+  "source": "6a910b720a4f469c95c4d855b7b8eb0a69265411",
+  "testRoot": "/home/runner/work/EarthNano/EarthNano",
+  "stages": [
+    {
+      "name": "npm-ci",
+      "status": 152,
+      "signal": null
+    }
+  ],
+  "profile": "original-full",
+  "exclusions": [
+    "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+  ],
+  "pins": {
+    "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+    "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+  },
+  "unavailable": "Dependency installation unavailable"
+}

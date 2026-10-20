@@ -64,3 +64,23 @@
 | `windows-runtime-cold-timeout.log.gz`      | `f567df43ca37098859ee3e705ac7238762991d0165e8aa16a9608ea6c3a81cb6` |
 
 Windows日志是bootstrap run [39438006915](https://github.com/lust0yixiong/EarthNano/actions/runs/39438006915) 的完整原始日志gzip副本，解压后 SHA-256 `1d5caccd7683c930baffbfda56affebcb306ab84eec7cdc469dc5f5810e11af0`。90分钟取消发生在原 Node约85分钟编译完成后、PowerShell crossgen2 阶段；后续source/native均跳过，不能计作通过。新CI的冷编译预算150分钟及Unix独立启动仅经过本机结构检查，hosted结果另记。
+
+## PR14首次托管CI的失败原件
+
+Run [39454904669](https://github.com/lust0yixiong/EarthNano/actions/runs/39454904669)，head2fc2a58f4，实际merge6a910b720与head文件相同。macOS job118739140883在安装Python3.12.13时失败；Linux候选job118739141566为native recipe fingerprint不匹配、job118739140680为独立npm ECONNRESET，均未执行源码测试。对照及修复见 [CI说明](../../ALPHA_CI.md)。保存观察时原Linux baseline仍运行，不能声称原版测试已通过或失败。
+
+版本清单文件是官方manifest的两个版本条目投影，明确不是完整原始manifest；记录完整manifest SHA和投影生成UTC时间。gzip文件解压为原始日志，无文字改写。workflow状态文件为修复前真实API响应，确认原producer保持disabled_manually。
+
+| 文件                                      | SHA-256                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `ci-python-macos-unavailable-job.json`    | `eba06d07af70deb0638c32d30e3b27eb0b7eb41417cc4e60af7d97f93a3e2fbd` |
+| `ci-python-macos-unavailable.log.gz`      | `8faf5b2d01a2a9bae0acd8be6f19b630ad1cab76c9922dda060953148408e9be` |
+| `ci-python-availability-projection.json`  | `94625041765f6d2ed44dfd1000319ca7e757afcb34feed7a2240426c3cd51992` |
+| `ci-native-fingerprint-control.json`      | `dda66acbd0c38eba5ccf5f3cbd3543a547665800689d916291650f7570a9b3fe` |
+| `ci-native-workflow-disabled.json`        | `bcdf8d393c7b62aa2a3aa8598a49a978cd2c19bdc2727c0935c27bc6757bdd95` |
+| `ci-linux-fingerprint-source-report.json` | `aafb1b2f60a91161596440bb13d6a18538ec337c8eba6b23430765dfdc2786e9` |
+| `ci-linux-fingerprint-npm.log.gz`         | `097654e0f42b687267d78ab31b5abe75d0ac26cc0864ccf9735c80a020188893` |
+| `ci-linux-network-source-report.json`     | `dd94b3172fe57c1b52cfc408267692252e2eb0233c5b701e04108072db325a25` |
+| `ci-linux-network-npm.log.gz`             | `2bf4d642ec40d388713b270237f735906e4ad652a2294d72f70683625254d061` |
+
+解压日志 SHA-256：macOS=`70ff6e10235ef9819e7007221092e65f2afc77e4a7aedf21cdd37e389573a0ff`；Linux指纹失败=`d58d2cd300b1580d6b0a9d02a1687337b09a28a3d80fd7166abac26759a3c047`；Linux网络失败=`14df712586c7e6080ee6da8e3a5ff883e838611715eb57229cd8856371dc5641`。

@@ -42,3 +42,9 @@
 ## 下一步
 
 先核对新的三平台源码 CI 与四目标原生包真实结果。完整 sweep 接通仍需由主智能体冻结有序 catalog/stream/多mode 契约，再调用原 `task_stream → run_sweep → run_domain → run_task`，共用原基线、Library、同一 Core、总预算和每 task/mode 独立评估。v2 descriptor 必须在查缓存和接纳前持久化核对，不能只换 slot 哈希。R、远程 Compute、二进制候选、跨任务采用与回滚、自动策略、时间统计和最终发布验收仍在原 Alpha 完成范围内。
+
+## 首次托管 CI 暴露的环境缺口
+
+PR14 首次运行39454904669在源码测试前暴露两个独立问题：macOS无法安装3.12.13；Linux候选的原生组件构建指纹不匹配。现用唯一CI版本文件固定共同可用的3.12.10（只改变CI，不覆盖本机/DeepSeek的3.12.13历史证据）；并恢复原生组件 producer workflow 的两个原上游Action固定值，重新匹配原目录的24cd5bc...指纹。没有放宽指纹、摘要、签名、原测试或失败门槛，旧producer仍禁用。
+
+Linux另一分片为独立ECONNRESET，不能归因为同一个源码问题。失败日志、官方版本清单投影、原生指纹对照和workflow禁用状态均保留。四文件61项原生组件/CI回归通过；新的托管检查仍需完成，见 [CI事实与边界](ALPHA_CI.md)。
