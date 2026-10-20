@@ -263,7 +263,7 @@ describe('original reviewer execution owner', () => {
       })
     ).rejects.toMatchObject({ code: 'reviewer-cleanup-unconfirmed' })
     expect(originalCommitted).toBe(true)
-    expect((await records(input))[0]).toMatchObject({ phase: 'failed', cleanup: 'unknown' })
+    expect((await records(input))[0]).toMatchObject({ phase: 'completed', cleanup: 'unknown' })
   })
 
   it('does not let an abort relabel an independent original commit failure', async () => {

@@ -147,7 +147,7 @@ export async function runReviewerExecution(
           return {
             phase: cancelled
               ? ('cancelled' as const)
-              : unsuccessful || !cleanupConfirmed
+              : unsuccessful
                 ? ('failed' as const)
                 : ('completed' as const),
             cleanup: cleanupConfirmed ? ('confirmed' as const) : ('unknown' as const),
@@ -205,6 +205,7 @@ export async function runReviewerExecution(
     if (failed) throw failure
     if (!result) throw new Error(record.error?.message ?? 'Reviewer result owner did not complete')
     if (
+      (record.cleanup !== 'confirmed' && result.review.lifecycle !== 'error') ||
       record.phase === 'interrupted' ||
       (record.phase !== 'completed' && result.review.lifecycle !== 'error')
     ) {
