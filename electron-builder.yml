@@ -1,9 +1,9 @@
 appId: com.aipoch.open-science
 protocols:
-  - name: Open-Science browser import
+  - name: EarthNano browser import
     schemes:
       - open-science
-productName: Open-Science
+productName: EarthNano
 copyright: Copyright © 2026 AIPOCH
 directories:
   buildResources: build
@@ -108,7 +108,7 @@ win:
   fileAssociations:
     - ext: science
       name: Open Science Session package
-      description: Open-Science Session package
+      description: EarthNano Session package
       mimeType: application/x-open-science-session
       role: Viewer
       rank: Default
@@ -160,8 +160,8 @@ mac:
   # Windows ProgID is a persisted association identity; other platforms use a display name.
   fileAssociations:
     - ext: science
-      name: Open-Science Session package
-      description: Open-Science Session package
+      name: EarthNano Session package
+      description: EarthNano Session package
       mimeType: application/x-open-science-session
       role: Viewer
       rank: Default
@@ -179,16 +179,16 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     # Electron locates its Helper bundles using this internal name. Keep it aligned with productName.
-    CFBundleName: Open-Science
-    CFBundleDisplayName: Open-Science
+    CFBundleName: EarthNano
+    CFBundleDisplayName: EarthNano
     NSCameraUsageDescription: Application requests access to the device's camera.
     NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    NSDesktopFolderUsageDescription: Open-Science needs access to Desktop files to browse, open, and save your research files.
-    NSDocumentsFolderUsageDescription: Open-Science needs access to Documents files to browse, open, and save your research files.
-    NSDownloadsFolderUsageDescription: Open-Science needs access to Downloads files to browse, open, and save your research files.
-    NSNetworkVolumesUsageDescription: Open-Science needs access to network volumes to browse, open, and save your research files.
-    NSRemovableVolumesUsageDescription: Open-Science needs access to removable volumes to browse, open, and save your research files.
-    NSLocalNetworkUsageDescription: Open-Science needs local network access to connect to compute hosts and services you configure.
+    NSDesktopFolderUsageDescription: EarthNano needs access to Desktop files to browse, open, and save your research files.
+    NSDocumentsFolderUsageDescription: EarthNano needs access to Documents files to browse, open, and save your research files.
+    NSDownloadsFolderUsageDescription: EarthNano needs access to Downloads files to browse, open, and save your research files.
+    NSNetworkVolumesUsageDescription: EarthNano needs access to network volumes to browse, open, and save your research files.
+    NSRemovableVolumesUsageDescription: EarthNano needs access to removable volumes to browse, open, and save your research files.
+    NSLocalNetworkUsageDescription: EarthNano needs local network access to connect to compute hosts and services you configure.
   notarize: false
   extraResources:
     # Ship the ad-hoc-signed micromamba mach-O at Contents/Resources/micromamba, where
@@ -199,14 +199,14 @@ mac:
 dmg:
   # Bzip2 reduces the full desktop payload without changing the installed application.
   format: UDBZ
-  title: Open-Science
+  title: EarthNano
   background: build/dmg-background.png
   iconSize: 88
   iconTextSize: 12
   contents:
     - x: 130
       y: 286
-      name: Open-Science.app
+      name: EarthNano.app
     - x: 530
       y: 286
       type: link
@@ -227,8 +227,8 @@ linux:
   # Windows ProgID is a persisted association identity; other platforms use a display name.
   fileAssociations:
     - ext: science
-      name: Open-Science Session package
-      description: Open-Science Session package
+      name: EarthNano Session package
+      description: EarthNano Session package
       mimeType: application/x-open-science-session
       role: Viewer
       rank: Default

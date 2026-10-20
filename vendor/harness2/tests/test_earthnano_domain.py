@@ -222,6 +222,34 @@ class DomainTests(unittest.TestCase):
                 self.assertEqual(reflect.call_count, 2)
                 self.assert_stream(cfg, peer, result)
 
+    def test_four_task_reference_order_retains_only_preceding_original_library_entries(self):
+        for mode in ("sequential", "parallel"):
+            with self.subTest(mode=mode):
+                cfg = self.cfg("four-task-" + mode, mode=mode)
+                for index in (3, 4):
+                    cfg["tasks"].append({"taskId": f"experiment-{index:04d}", "task": {
+                        "prompt": f"Task {index}: reconcile its supplied source.",
+                        "files": [{"path": f"source-{index}.txt", "content": f"SOURCE ROWS {index}"}]}})
+                peer = DomainPeer(cfg)
+                result = earthnano_domain.run(cfg, peer)
+                ids = [item["taskId"] for item in cfg["tasks"]]
+                self.assertEqual(result["order"], ids)
+                self.assertEqual(result["library"]["entries"], ids)
+                self.assertEqual([task["libraryEntriesBefore"] for task in result["tasks"]], [0, 1, 2, 3])
+                self.assertEqual(len(peer.requests), 32)
+                for offered in peer.invocations.values():
+                    invocation = offered["invocation"]
+                    if invocation["role"] not in ("proposer", "composer"):
+                        continue
+                    current = ids.index(invocation["taskId"])
+                    paths = [file["path"] for file in offered["contextFiles"]]
+                    for index, task_id in enumerate(ids):
+                        found = any(path.startswith(f"library/harnesses/{task_id}/") for path in paths)
+                        self.assertEqual(found, index < current)
+                    body = json.dumps(offered["contextFiles"])
+                    self.assertNotIn("private-grade", body)
+                    self.assertNotIn("pass_rate", body)
+
     def test_real_stdio_both_modes_preserve_task_routing_and_library_transfer(self):
         for mode in ("sequential", "parallel"):
             with self.subTest(mode=mode):

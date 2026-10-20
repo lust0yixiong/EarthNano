@@ -78,6 +78,57 @@ const key = (runId: string): OptimizationRunKey => ({
 })
 
 describe('DesktopOptimizationManager', () => {
+  it('retains resolved source provenance and domain files instead of overwriting them with the raw desktop DTO', async () => {
+    const inputArtifacts = [
+      {
+        artifactId: 'artifact',
+        versionId: 'version-1',
+        path: 'source.json',
+        checksum: 'a'.repeat(64)
+      }
+    ]
+    const domain = {
+      name: 'science',
+      nextTasks: [{ prompt: 'Next', criteria: 'Keep source', files: [] }]
+    }
+    const preparedDomain = {
+      ...domain,
+      nextTasks: [{ ...domain.nextTasks[0], files: [{ path: 'source.json', content: 'fixed' }] }]
+    }
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => ({
+      ...complete,
+      domain: {
+        name: options.domain!.name,
+        order: [],
+        tasks: [],
+        library: { scope: 'experiment' as const, entries: [], digest: 'digest' }
+      }
+    }))
+    const { manager, options } = fixture(run, {
+      createOptions: vi.fn(async () => ({
+        inputArtifacts,
+        domain: preparedDomain
+      })) as unknown as DesktopOptimizationManagerOptions['createOptions']
+    })
+    const started = await manager.start({ ...task, executionLimit: 24, domain, inputArtifacts })
+    await vi.waitFor(async () =>
+      expect((await manager.get(key(started.runId))).state).toBe('completed')
+    )
+    expect(vi.mocked(run).mock.calls[0][0]).toMatchObject({
+      domain: preparedDomain,
+      inputArtifacts
+    })
+    expect((await manager.get(key(started.runId))).inputArtifacts).toEqual(inputArtifacts)
+    await expect(
+      manager.start({
+        ...task,
+        executionLimit: 24,
+        domain,
+        inputArtifacts: [{ ...inputArtifacts[0], versionId: 'version-2' }]
+      })
+    ).rejects.toThrow('conflicts')
+    expect(options.createOptions).toHaveBeenCalledOnce()
+  })
   it('projects committed role admissions, includes assessment costs and persists readable completion without replay', async () => {
     const run = vi.fn(async (options: PersistentOptimizationOptions) => {
       options.onProgress!({

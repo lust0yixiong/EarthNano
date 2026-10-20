@@ -1,6 +1,7 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import type { DesktopOptimizationApi } from '../../shared/earthnano/desktop-optimization'
 import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
+import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 import {
   normalizeOutputChecks,
   normalizeOptimizationDomain
@@ -30,7 +31,10 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
         : operation === 'latest'
           ? ['projectId', 'sourceSessionId']
           : ['projectId', 'sourceSessionId', 'runId']
-    const allowed = operation === 'start' ? [...required, 'method', 'checks', 'domain'] : required
+    const allowed =
+      operation === 'start'
+        ? [...required, 'method', 'checks', 'domain', 'inputArtifacts']
+        : required
     if (
       required.some((key) => !Object.hasOwn(request, key)) ||
       Object.keys(request).some((key) => !allowed.includes(key))
@@ -39,6 +43,7 @@ export async function invokeDesktopOptimization<K extends keyof DesktopOptimizat
     if (operation === 'start' && Object.hasOwn(request, 'method'))
       normalizeOptimizationMethod((request as Record<string, unknown>).method)
     if (operation === 'start') {
+      normalizeOptimizationArtifactInputs((request as Record<string, unknown>).inputArtifacts)
       normalizeOutputChecks((request as Record<string, unknown>).checks)
       normalizeOptimizationDomain((request as Record<string, unknown>).domain)
     }

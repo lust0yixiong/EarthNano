@@ -1,6 +1,9 @@
 import { mkdtemp, rm, writeFile, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
+import type { PersistedChatSession } from '../../shared/session-persistence'
+import type { ManagedFileReadLease } from '../managed-file-versions/read-port'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { SettingsService } from '../settings/service'
 import type { ApplicationModuleBuilder } from '../application-runtime'
@@ -294,4 +297,72 @@ it('passes explicit method, private checks and experiment domain through origina
   expect(options.input.task).toEqual({ prompt: request.prompt, files: request.files })
   expect(JSON.stringify(options.input)).not.toContain('"expected"')
   options.releaseAdmission()
+})
+
+it('keeps original admissions until a failing source-version lease closes, without starting sibling reads', async () => {
+  const deps = dependencies(),
+    bytes = Buffer.from('fixed source')
+  const ref = {
+    artifactId: 'artifact',
+    versionId: 'version',
+    checksum: createHash('sha256').update(bytes).digest('hex'),
+    path: 'source.txt'
+  }
+  let rejectRead!: (error: Error) => void
+  const close = vi.fn(async () => {})
+  let opened = 0
+  const versions = {
+    openVersion: vi.fn(
+      async () =>
+        ({
+          logicalFile: { projectId: 'p', sessionId: 's', id: ref.artifactId },
+          version: { id: ref.versionId, checksum: ref.checksum },
+          size: bytes.length,
+          readRange:
+            ++opened === 1
+              ? async () => bytes
+              : () =>
+                  new Promise<Uint8Array>((_resolve, reject) => {
+                    rejectRead = reject
+                  }),
+          verifyUnchanged: async () => {},
+          close
+        }) as unknown as ManagedFileReadLease
+    )
+  }
+  const loadSession = async (): Promise<PersistedChatSession> =>
+    ({
+      projectId: 'p',
+      id: 's',
+      artifacts: [
+        {
+          id: 'version',
+          artifactId: ref.artifactId,
+          versionId: ref.versionId,
+          sha256: ref.checksum
+        }
+      ]
+    }) as PersistedChatSession
+  const result = createDesktopOptimizationOptions(
+    {
+      ...request,
+      inputArtifacts: [ref],
+      domain: {
+        name: 'science',
+        nextTasks: [1, 2].map((i) => ({ prompt: `Task ${i}`, criteria: 'Keep source', files: [] }))
+      }
+    },
+    { ...deps, versions, loadSession }
+  )
+  const rejected = expect(result).rejects.toThrow('read failed')
+  await vi.waitFor(() => expect(rejectRead).toBeTypeOf('function'))
+  expect(versions.openVersion).toHaveBeenCalledTimes(2)
+  expect(mocks.releaseWriter).not.toHaveBeenCalled()
+  rejectRead(new Error('read failed'))
+  await rejected
+  expect(close).toHaveBeenCalledTimes(2)
+  expect(close.mock.invocationCallOrder[1]).toBeLessThan(
+    mocks.releaseWriter.mock.invocationCallOrder[0]
+  )
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
 })

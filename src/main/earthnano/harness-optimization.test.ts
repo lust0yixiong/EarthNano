@@ -1,7 +1,13 @@
+import { execFileSync } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import {
+  MAX_HARNESS_FRAME_BYTES,
+  MAX_HARNESS_EVIDENCE_BYTES,
+  MAX_HARNESS_EVIDENCE_FILES
+} from './harness-binding-limits'
 import { MAX_TIMER_TIMEOUT_MS } from './execution-timeout'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -221,6 +227,94 @@ describe('trusted Harness optimization binding', () => {
     const f = await setup()
     await f.binding.stop()
     await expect(f.binding.dispatch('freezeInvocation', invocation())).rejects.toThrow('stopped')
+  })
+  it('keeps Python and TS evidence/frame limits identical', () => {
+    const limits = JSON.parse(
+      execFileSync(
+        'python3',
+        [
+          '-B',
+          '-c',
+          'import json; from harness2.core.earthnano_binding import MAX_MESSAGE_BYTES,MAX_EVIDENCE_BYTES,MAX_FILES; print(json.dumps([MAX_MESSAGE_BYTES,MAX_EVIDENCE_BYTES,MAX_FILES]))'
+        ],
+        { cwd: resolve('vendor/harness2'), encoding: 'utf8' }
+      )
+    )
+    expect(limits).toEqual([
+      MAX_HARNESS_FRAME_BYTES,
+      MAX_HARNESS_EVIDENCE_BYTES,
+      MAX_HARNESS_EVIDENCE_FILES
+    ])
+  })
+  it('accepts a bounded role evidence package larger than the old input-file budget without clipping it', async () => {
+    const f = await setup()
+    const content = 'Fixed output row\n'.repeat(40000)
+    const request = (await f.binding.dispatch('freezeInvocation', {
+      ...invocation(),
+      contextFiles: [{ path: 'deliverables/base1/result.csv', content }]
+    })) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(request)
+    expect(resolved.invocation.mission).toContain(JSON.stringify(content))
+    expect(resolved.task).toEqual(input.task)
+    await expect(
+      f.binding.dispatch('freezeInvocation', {
+        ...invocation(),
+        contextFiles: [
+          { path: 'oversized.txt', content: 'x'.repeat(MAX_HARNESS_EVIDENCE_BYTES + 1) }
+        ]
+      })
+    ).rejects.toThrow()
+    expect(f.binding.executionIds).toEqual([])
+  })
+  it('rejects an oversized unterminated stdout frame before it can dispatch anything', async () => {
+    const dispatch = vi.fn(async () => undefined),
+      stop = vi.fn(async () => undefined)
+    await expect(
+      runHarnessProcess({
+        binding: { dispatch, stop },
+        python: 'python3',
+        args: [
+          '-c',
+          `import sys,time; sys.stdout.write('x'*${MAX_HARNESS_FRAME_BYTES + 1}); sys.stdout.flush(); time.sleep(2)`
+        ],
+        cwd: process.cwd(),
+        env: { PATH: process.env.PATH },
+        timeoutMs: 3000
+      })
+    ).rejects.toThrow('did not complete')
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(stop).toHaveBeenCalled()
+  })
+  it('rejects oversized responses and floods while retaining finite queued work', async () => {
+    const responseDispatch = vi.fn(async () => 'x'.repeat(MAX_HARNESS_FRAME_BYTES))
+    const options = {
+      python: 'python3',
+      cwd: process.cwd(),
+      env: { PATH: process.env.PATH },
+      timeoutMs: 3000
+    }
+    const script =
+      'import json,sys; print(json.dumps({"id":1,"operation":"get","executionId":"owned"}),flush=True); sys.stdin.readline()'
+    await expect(
+      runHarnessProcess({
+        ...options,
+        binding: { dispatch: responseDispatch, stop: vi.fn(async () => undefined) },
+        args: ['-c', script]
+      })
+    ).rejects.toThrow('did not complete')
+    expect(responseDispatch).toHaveBeenCalledOnce()
+    const pending = vi.fn(async () => new Promise<never>(() => undefined))
+    await expect(
+      runHarnessProcess({
+        ...options,
+        binding: { dispatch: pending, stop: vi.fn(async () => undefined) },
+        args: [
+          '-c',
+          'import json,sys; [print(json.dumps({"id":i,"operation":"get","executionId":"owned"}),flush=True) for i in range(1,5)]; sys.stdin.readline()'
+        ]
+      })
+    ).rejects.toThrow('did not complete')
+    expect(pending.mock.calls.length).toBeLessThanOrEqual(1)
   })
   it('private stdio acknowledges done and rejects malformed protocol without replay', async () => {
     const f = await setup()

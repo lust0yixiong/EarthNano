@@ -1,13 +1,13 @@
 {
   "name": "open-science",
-  "productName": "Open-Science",
+  "productName": "EarthNano",
   "desktopName": "open-science.desktop",
   "version": "1.0.0",
-  "description": "Open-Science \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
+  "description": "EarthNano \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
   "main": "./out/main/index.js",
   "author": "aipoch",
   "license": "Apache-2.0",
-  "homepage": "https://www.aipoch.com/open-science",
+  "homepage": "https://github.com/lust0yixiong/EarthNano",
   "bin": {
     "open-science": "cli/index.mjs"
   },

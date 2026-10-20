@@ -1,4 +1,5 @@
 import type { OptimizationMethodOptions } from './optimization-method'
+import type { OptimizationArtifactInput } from './optimization-input'
 import type {
   OutputCheckSpec,
   OptimizationDomainSpec,
@@ -13,6 +14,8 @@ export interface StartDesktopOptimization {
   requestKey: string
   prompt: string
   files: Array<{ path: string; content: string }>
+  /** Same fixed source versions are shared by explicit domain tasks. Main resolves the bytes. */
+  inputArtifacts?: OptimizationArtifactInput[]
   criteria: string
   /** Shared admission budget including both independent assessments. */
   executionLimit: number
@@ -67,6 +70,8 @@ export interface OptimizationProgress {
     sessionId?: string
   }>
   assessments?: { baseline: SemanticAssessmentSummary; candidate: SemanticAssessmentSummary }
+  /** Verified source versions frozen at admission, retained on reopen without rerunning. */
+  inputArtifacts?: OptimizationArtifactInput[]
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
   error?: string

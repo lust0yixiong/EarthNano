@@ -1,6 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import {
+  normalizeOptimizationArtifactInputs,
+  type OptimizationArtifactInput
+} from '../../shared/earthnano/optimization-input'
 import {
   normalizeOptimizationMethod,
   MAX_OPTIMIZATION_EXECUTIONS,
@@ -54,8 +58,11 @@ export interface PersistentOptimizationProgress {
 export interface PersistentOptimizationOptions {
   /** Existing project identity in the original OpenScience repositories. */
   projectId: string
+  sourceSessionId?: string
   taskId: string
   input: CandidateSnapshotInput
+  /** Host-verified immutable source provenance; never an authority to read files. */
+  inputArtifacts?: OptimizationArtifactInput[]
   /** New exclusive run directory; never reuse a prior optimization workspace. */
   workRoot: string
   harnessRoot: string
@@ -92,6 +99,13 @@ export async function runPersistentOptimization(
   options.signal?.throwIfAborted()
   const method = normalizeOptimizationMethod(options.method)
   const input = structuredClone(options.input)
+  const inputArtifacts = normalizeOptimizationArtifactInputs(options.inputArtifacts)
+  const sourceSessionId = options.sourceSessionId
+  if (
+    inputArtifacts?.length &&
+    (!sourceSessionId || !/^[A-Za-z0-9_-]{1,128}$/.test(sourceSessionId))
+  )
+    throw new Error('Optimization source Session identity missing')
   const semanticCriteria = options.semanticCriteria
   const checks = normalizeOutputChecks(options.checks)
   const domain = normalizeOptimizationDomain(options.domain)
@@ -110,6 +124,12 @@ export async function runPersistentOptimization(
         }))
       ]
     : [{ taskId: options.taskId, input, criteria: semanticCriteria, checks }]
+  for (const task of tasks)
+    for (const ref of inputArtifacts ?? []) {
+      const file = task.input.task.files.find((file) => file.path === ref.path)
+      if (!file || createHash('sha256').update(file.content, 'utf8').digest('hex') !== ref.checksum)
+        throw new Error('Frozen optimization input differs from its source version')
+    }
   if (semanticCriteria !== undefined) validateSemanticCriteria(semanticCriteria)
   if (!isAbsolute(options.workRoot) || !isAbsolute(options.harnessRoot))
     throw new Error('Optimization paths must be absolute')
@@ -156,6 +176,21 @@ export async function runPersistentOptimization(
   let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
   try {
+    if (inputArtifacts?.length)
+      await writeFile(
+        join(options.workRoot, 'input-artifacts.json'),
+        canonicalOutput({
+          schemaVersion: 1,
+          projectId: options.projectId,
+          sourceSessionId,
+          artifacts: inputArtifacts,
+          tasks: tasks.map((task) => ({
+            taskId: task.taskId,
+            inputDigest: outputDigest(task.input.task)
+          }))
+        }),
+        { mode: 0o600, flag: 'wx' }
+      )
     if (semanticCriteria !== undefined)
       await writeFile(
         join(options.workRoot, 'assessment-plan.json'),

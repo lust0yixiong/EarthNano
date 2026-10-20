@@ -33,6 +33,7 @@ import {
   type DomainOptimizationSummary
 } from '../../shared/earthnano/research-outcome'
 import { runPersistentOptimization } from './run-persistent-optimization'
+import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 
 export interface DesktopOptimizationManagerOptions {
   root: string
@@ -73,6 +74,7 @@ const validate = (request: StartDesktopOptimization): void => {
   const method = normalizeOptimizationMethod(request?.method)
   const domain = normalizeOptimizationDomain(request?.domain)
   normalizeOutputChecks(request?.checks)
+  const inputArtifacts = normalizeOptimizationArtifactInputs(request?.inputArtifacts)
   const criteriaLines =
     typeof request?.criteria === 'string'
       ? request.criteria
@@ -90,6 +92,7 @@ const validate = (request: StartDesktopOptimization): void => {
           'requestKey',
           'prompt',
           'files',
+          'inputArtifacts',
           'criteria',
           'executionLimit',
           'method',
@@ -113,7 +116,7 @@ const validate = (request: StartDesktopOptimization): void => {
     request.executionLimit < minimumResearchExecutions(method, domain) ||
     request.executionLimit > MAX_OPTIMIZATION_EXECUTIONS ||
     !Array.isArray(request.files) ||
-    request.files.length > 32
+    request.files.length + (inputArtifacts?.length ?? 0) > 32
   )
     throw new Error('Invalid optimization task or execution limit')
   let size = 0
@@ -132,6 +135,11 @@ const validate = (request: StartDesktopOptimization): void => {
     size += Buffer.byteLength(file.content)
   }
   if (size > 128_000) throw new Error('Optimization inputs exceed the text profile limit')
+  for (const file of inputArtifacts ?? []) {
+    const key = file.path.normalize('NFC').toLowerCase()
+    if (seen.has(key)) throw new Error('Optimization inputs collide')
+    seen.add(key)
+  }
   for (const task of domain?.nextTasks ?? [])
     validate({ ...request, ...task, checks: task.checks, domain: undefined })
 }
@@ -193,6 +201,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
             requestKey: captured.requestKey,
             prompt: captured.prompt,
             files: captured.files.map((file) => ({ path: file.path, content: file.content })),
+            ...(captured.inputArtifacts === undefined
+              ? {}
+              : { inputArtifacts: normalizeOptimizationArtifactInputs(captured.inputArtifacts) }),
             criteria: captured.criteria,
             executionLimit: captured.executionLimit,
             ...(captured.method === undefined
@@ -336,6 +347,8 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       controller.signal.throwIfAborted()
       prepared = await this.options.createOptions(request)
       controller.signal.throwIfAborted()
+      if (prepared.inputArtifacts)
+        saved.progress.inputArtifacts = structuredClone(prepared.inputArtifacts)
       const executionRoot = this.options.executionRoot?.() ?? this.options.root
       if (!isAbsolute(executionRoot)) throw new Error('Execution root must be absolute')
       mkdirSync(join(executionRoot, saved.progress.runId), { recursive: true, mode: 0o700 })
@@ -385,7 +398,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         ...(request.checks === undefined ? {} : { checks: normalizeOutputChecks(request.checks) }),
         ...(request.domain === undefined
           ? {}
-          : { domain: normalizeOptimizationDomain(request.domain) }),
+          : { domain: prepared.domain ?? normalizeOptimizationDomain(request.domain) }),
         semanticCriteria: request.criteria,
         signal: controller.signal,
         onProgress: projectProgress

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
+import { requestDigest } from './execution-contract'
 import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
 import { fixture, input, reflectionText } from './research-domain.test-fixture'
 
@@ -82,6 +83,41 @@ describe('experiment Library fixed-version provenance', () => {
         selectedHarnessRevisionRef: f.selected[index]!.request.harnessRevisionRef
       })
     expect(summary).not.toHaveProperty('published')
+  })
+  it('retains two complete maximum-file-count candidate trees beyond the old Library budget', async () => {
+    const f = await setup()
+    for (const [index, selected] of f.selected.entries()) {
+      const skills = Array.from({ length: 63 }, (_, number) => ({
+        path: `skill-${number}/SKILL.md`,
+        content:
+          `---\nname: skill-${number}\ndescription: Source checking guidance\n---\n` +
+          'Read and check each row. '.repeat(220)
+      }))
+      const original = await f.snapshots.resolve(selected.request)
+      const refs = await f.snapshots.freeze({ ...input, harness: { ...original.harness, skills } })
+      const invocationRef = await f.snapshots.freezeInvocation({
+        taskSnapshotRef: refs.taskSnapshotRef,
+        harnessRevisionRef: refs.harnessRevisionRef,
+        mission: original.invocation.mission
+      })
+      Object.assign(selected.request, refs, { invocationRef })
+      selected.requestDigest = requestDigest(selected.request)
+      selected.configuration.requestedDigest = refs.harnessRevisionRef.digest
+      for (const file of skills)
+        f.result.library.files.push({
+          path: `seq/rows/harnesses/${f.options.taskIds[index]}/harness/skills/${file.path}`,
+          content: file.content
+        })
+    }
+    expect(f.result.library.files.length).toBeGreaterThan(128)
+    expect(
+      f.result.library.files.reduce((sum, file) => sum + Buffer.byteLength(file.content), 0)
+    ).toBeGreaterThan(512000)
+    await expect(prepareDomainSummary(f.options)).resolves.toHaveProperty('tasks.1.experience')
+    f.result.library.files.at(-1)!.content += 'Unpinned change'
+    await expect(prepareDomainSummary(f.options)).rejects.toThrow(
+      'selected execution configuration'
+    )
   })
   it('allows native assistant prefaces when the owner preserves the entire same committed reply', async () => {
     const f = await setup()

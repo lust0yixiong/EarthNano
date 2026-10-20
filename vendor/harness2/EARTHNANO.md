@@ -16,11 +16,11 @@ The private configuration contains no credential or endpoint:
 {
   "configVersion": 1,
   "taskId": "synthetic-1",
-  "task": {"prompt": "Complete the supplied task.", "files": []},
-  "baseHarnessFiles": [{"path": "instructions.md", "content": "Read and verify the source."}],
+  "task": { "prompt": "Complete the supplied task.", "files": [] },
+  "baseHarnessFiles": [{ "path": "instructions.md", "content": "Read and verify the source." }],
   "workRoot": "/absolute/private/new-method-directory",
   "model": "explicit-platform-model",
-  "method": {"mode": "sequential", "k": 2, "concurrency": 2},
+  "method": { "mode": "sequential", "k": 2, "concurrency": 2 },
   "executionTimeoutMs": 100000,
   "rpcTimeoutMs": 120000
 }
@@ -112,3 +112,20 @@ records, ledger ordering, selected IDs and complete evidence trees, including se
 and parallel shared pools; fixtures distinguish finals by their contents. Overlapping candidate
 cancellation and selector budget refusal never become an ordinary fallback. Real provider behavior, TS persistence owners,
 desktop startup and OS sandboxing are outside these Python tests.
+
+The explicit domain entry `python -m harness2.earthnano_domain --config FILE` reuses upstream
+`task_stream(seed=None)`, `run_domain`, `reflect_adoption` and experiment-local `Library` for one
+named domain and one to four ordered tasks. Ordinary single-task entry behavior is unchanged.
+Neither entry resumes a paid experiment from legacy summaries or runmarks.
+
+Private transport budgets are 32 MiB per serialized JSONL frame including its newline, and
+16 MiB / 512 files per role evidence package and exported Library. TypeScript and Python use the
+same limits. Evidence is preserved in full or rejected; it is never clipped to fit. The TS peer
+bounds incomplete frames, responses and queued work; stderr diagnostics retain their separate
+1 MiB cumulative ceiling. Valid protocol traffic is not subject to the former 16 MiB cumulative
+stdout ceiling. These are evidence-carriage limits, not additional candidate tools or input/output
+capabilities. The native candidate profile retains its existing four MiB total output limit.
+
+See [the Round9 source coverage and validation matrix](../../docs/earthnano/ROUND9_HARNESS2.md)
+for exact reused functions, recovery and scientific-data limitations, and the distinction between
+method equivalence, immutable output checks and actual scientific-workflow acceptance.
