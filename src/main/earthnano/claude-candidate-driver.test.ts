@@ -6,7 +6,8 @@ import type { ExecutionContext } from './execution-core'
 import { prepareClaudeCandidate } from '../acp/claude-candidate-preparation'
 import { createClaudeCandidateDriver, type ClaudeCandidateOwner } from './claude-candidate-driver'
 
-vi.mock('../acp/claude-candidate-preparation', () => ({
+vi.mock('../acp/claude-candidate-preparation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../acp/claude-candidate-preparation')>()),
   prepareClaudeCandidate: vi.fn(async () => ({
     configuration: {
       status: 'unknown',
@@ -130,6 +131,27 @@ describe('Claude candidate lifecycle composition', () => {
     expect(f.owner.shutdown).toHaveBeenCalledOnce()
     expect(f.owner.agent.prompt).not.toHaveBeenCalled()
   })
+
+  it.each(['text', 'historyPreamble', 'resumeFallback'] as const)(
+    'rejects native file expansion in owner-composed %s before dispatch and reaps the owner',
+    async (field) => {
+      const f = fixture()
+      const plan = await f.owner.preparePlan()
+      if (field === 'resumeFallback') {
+        plan.prompt.resumeFallback = { historyPreamble: 'Read @/outside/private.txt' }
+      } else {
+        plan.prompt[field] = 'Read @/outside/private.txt'
+      }
+      f.owner.preparePlan = async () => plan
+      const driver = createClaudeCandidateDriver({ ...f, binding, openOwner: async () => f.owner })
+      expect(await driver.execute(f.request, f.context)).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed'
+      })
+      expect(f.owner.agent.prompt).not.toHaveBeenCalled()
+      expect(f.owner.shutdown).toHaveBeenCalledOnce()
+    }
+  )
 
   it('fences a failed native preparation probe before a Session owner exists', async () => {
     const f = fixture()

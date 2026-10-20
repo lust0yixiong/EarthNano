@@ -5,6 +5,7 @@ import {
   type PreparedAcpExecution
 } from '../acp/earthnano-execution-driver'
 import {
+  assertClaudeCandidateText,
   prepareClaudeCandidate,
   type ClaudeCandidateBinding,
   type PreparedClaudeCandidate
@@ -87,6 +88,11 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const plan = await owner.preparePlan()
         context.signal.throwIfAborted()
+        // Owners may add history after frozen snapshot validation. Check the actual dispatch
+        // payload too, including the history used on resume fallback, before any prompt is sent.
+        assertClaudeCandidateText(plan.prompt.text)
+        assertClaudeCandidateText(plan.prompt.historyPreamble ?? '')
+        assertClaudeCandidateText(plan.prompt.resumeFallback?.historyPreamble ?? '')
         const driver = createAcpExecutionDriver({
           agent: owner.agent,
           resolver: {
