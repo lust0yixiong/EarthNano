@@ -7864,6 +7864,11 @@
     "Shared execution limit (all task assessments and reflections)": "Общий лимит выполнений (все оценки и рефлексии задач)",
     "Task {{number}} · {{taskId}}": "Задача {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "Используйте буквы, цифры, подчёркивания или дефисы в названии эксперимента.",
-    "Task result unavailable": "Результат задачи недоступен"
+    "Task result unavailable": "Результат задачи недоступен",
+    "Independent assessment flagged the selected result.": "Независимая оценка выявила проблемы в выбранном результате.",
+    "An expected output check failed.": "Проверка ожидаемого вывода не пройдена.",
+    "No deterministic output checks were supplied.": "Детерминированные проверки вывода не заданы.",
+    "The candidate scored below the baseline.": "Оценка кандидата ниже базовой.",
+    "Configuration admission needs further review.": "Допуск конфигурации требует дополнительной проверки."
   }
 }

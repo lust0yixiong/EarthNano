@@ -7724,6 +7724,11 @@
     "Shared execution limit (all task assessments and reflections)": "Limite d’exécutions partagées (évaluations et réflexions de toutes les tâches)",
     "Task {{number}} · {{taskId}}": "Tâche {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "Utilisez des lettres, chiffres, traits de soulignement ou traits d’union pour le nom de l’expérience.",
-    "Task result unavailable": "Résultat de la tâche indisponible"
+    "Task result unavailable": "Résultat de la tâche indisponible",
+    "Independent assessment flagged the selected result.": "L’évaluation indépendante a signalé un problème dans le résultat sélectionné.",
+    "An expected output check failed.": "Une vérification de la sortie attendue a échoué.",
+    "No deterministic output checks were supplied.": "Aucune vérification déterministe de sortie n’a été fournie.",
+    "The candidate scored below the baseline.": "Le score du candidat est inférieur à celui de référence.",
+    "Configuration admission needs further review.": "L’admission de la configuration nécessite une revue supplémentaire."
   }
 }

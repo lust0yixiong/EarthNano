@@ -7555,6 +7555,11 @@
     "Shared execution limit (all task assessments and reflections)": "Gemeinsames Ausführungslimit (alle Aufgabenbewertungen und Reflexionen)",
     "Task {{number}} · {{taskId}}": "Aufgabe {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "Buchstaben, Zahlen, Unterstriche oder Bindestriche für den Versuchsnamen verwenden.",
-    "Task result unavailable": "Aufgabenergebnis nicht verfügbar"
+    "Task result unavailable": "Aufgabenergebnis nicht verfügbar",
+    "Independent assessment flagged the selected result.": "Die unabhängige Bewertung hat das gewählte Ergebnis beanstandet.",
+    "An expected output check failed.": "Eine Prüfung der erwarteten Ausgabe ist fehlgeschlagen.",
+    "No deterministic output checks were supplied.": "Es wurden keine deterministischen Ausgabeprüfungen angegeben.",
+    "The candidate scored below the baseline.": "Der Kandidat wurde niedriger bewertet als der Basiswert.",
+    "Configuration admission needs further review.": "Die Konfigurationszulassung erfordert weitere Prüfung."
   }
 }

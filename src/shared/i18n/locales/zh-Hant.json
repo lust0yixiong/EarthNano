@@ -7394,6 +7394,11 @@
     "Shared execution limit (all task assessments and reflections)": "共用執行上限（含所有任務的評估與反思）",
     "Task {{number}} · {{taskId}}": "任務 {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "實驗名稱請使用字母、數字、底線或連字號。",
-    "Task result unavailable": "任務結果無法取得"
+    "Task result unavailable": "任務結果無法取得",
+    "Independent assessment flagged the selected result.": "獨立評估對選定結果提出了問題。",
+    "An expected output check failed.": "一項預期輸出檢查未通過。",
+    "No deterministic output checks were supplied.": "未提供確定性輸出檢查。",
+    "The candidate scored below the baseline.": "候選評分低於基準評分。",
+    "Configuration admission needs further review.": "組態准入需要進一步審查。"
   }
 }

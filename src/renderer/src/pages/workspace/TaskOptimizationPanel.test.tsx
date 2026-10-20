@@ -555,3 +555,94 @@ it('shows ordered per-task assessments, output checks and fixed experiment exper
   expect(results.textContent).toContain('sha256:library')
   expect(results.textContent).not.toContain('Publish')
 })
+
+it.each(['blocked', 'pending'] as const)(
+  'keeps a passing first task scoped when the second domain outcome is %s',
+  async (second) => {
+    const firstOutcome = {
+      artifact: { status: 'passed' as const, checks: [] },
+      configuration: { status: 'eligible' as const, reasons: [] }
+    }
+    const blockedOutcome = {
+      artifact: { status: 'failed' as const, checks: [] },
+      configuration: { status: 'blocked' as const, reasons: ['output-check-failed'] }
+    }
+    const assessment = {
+      executionId: 'r',
+      targetExecutionId: 'first-final',
+      reviewId: 'review',
+      outcome: 'pass' as const,
+      score: 90,
+      rationale: 'First scoped assessment'
+    }
+    const assessments = { baseline: { ...assessment, score: 80 }, candidate: assessment }
+    vi.mocked(api.latest).mockResolvedValue({
+      ...progress(second === 'pending' ? 'cancelled' : 'completed'),
+      outcome: firstOutcome,
+      assessments,
+      domain: {
+        name: 'two-tasks',
+        order: ['first', 'second'],
+        tasks: [
+          { taskId: 'first', outcome: firstOutcome, assessments },
+          { taskId: 'second', ...(second === 'blocked' ? { outcome: blockedOutcome } : {}) }
+        ],
+        library: { scope: 'experiment', entries: [], digest: 'digest' }
+      }
+    })
+    await render()
+    const results = container.querySelector('[data-testid="domain-results"]')!
+    const sections = results.querySelectorAll('section')
+    expect(sections[0].textContent).toContain('Eligible for further configuration validation')
+    expect(sections[0].textContent).toContain('First scoped assessment')
+    expect(sections[1].textContent).toContain(
+      second === 'blocked' ? 'Configuration admission blocked' : 'Task result unavailable'
+    )
+    expect(sections[1].textContent).not.toContain('Eligible for further configuration validation')
+    expect(container.querySelectorAll('[data-testid="research-outcome"]')).toHaveLength(
+      second === 'blocked' ? 2 : 1
+    )
+    const outcomes = [...container.querySelectorAll('[data-testid="research-outcome"]')]
+    expect(outcomes.every((node) => results.contains(node))).toBe(true)
+    expect(
+      [...container.querySelectorAll('p')].filter(
+        (node) => node.textContent === 'Baseline assessment'
+      )
+    ).toHaveLength(1)
+    expect(container.textContent).not.toContain('output-check-failed')
+    if (second === 'blocked')
+      expect(sections[1].textContent).toContain('An expected output check failed.')
+  }
+)
+it('explains admission reasons in user-facing language and safely handles newer reason codes', async () => {
+  vi.mocked(api.latest).mockResolvedValue({
+    ...progress('completed'),
+    outcome: {
+      artifact: { status: 'unverified', checks: [] },
+      configuration: {
+        status: 'blocked',
+        reasons: [
+          'semantic-flagged',
+          'output-check-failed',
+          'no-deterministic-checks',
+          'score-regression',
+          'future-internal-reason'
+        ]
+      }
+    }
+  })
+  await render()
+  expect(container.textContent).toContain('Independent assessment flagged the selected result.')
+  expect(container.textContent).toContain('An expected output check failed.')
+  expect(container.textContent).toContain('No deterministic output checks were supplied.')
+  expect(container.textContent).toContain('The candidate scored below the baseline.')
+  expect(container.textContent).toContain('Configuration admission needs further review.')
+  for (const code of [
+    'semantic-flagged',
+    'output-check-failed',
+    'no-deterministic-checks',
+    'score-regression',
+    'future-internal-reason'
+  ])
+    expect(container.textContent).not.toContain(code)
+})

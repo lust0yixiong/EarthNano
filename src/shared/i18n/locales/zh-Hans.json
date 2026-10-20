@@ -7394,6 +7394,11 @@
     "Shared execution limit (all task assessments and reflections)": "共享执行上限（含所有任务的评估与反思）",
     "Task {{number}} · {{taskId}}": "任务 {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "实验名称请使用字母、数字、下划线或连字符。",
-    "Task result unavailable": "任务结果不可用"
+    "Task result unavailable": "任务结果不可用",
+    "Independent assessment flagged the selected result.": "独立评估对选定结果提出了问题。",
+    "An expected output check failed.": "一项预期输出检查未通过。",
+    "No deterministic output checks were supplied.": "未提供确定性输出检查。",
+    "The candidate scored below the baseline.": "候选评分低于基线评分。",
+    "Configuration admission needs further review.": "配置准入需要进一步评审。"
   }
 }

@@ -345,7 +345,7 @@ function OptimizationSessionPanel({
                 })}
               </p>
             )}
-            {progress.outcome && (
+            {progress.outcome && !progress.domain && (
               <ResearchOutcomeView
                 outcome={progress.outcome}
                 sessionId={
@@ -441,7 +441,7 @@ function OptimizationSessionPanel({
               </button>
             )}
             {progress.error && <ErrorNotice role="alert" level="error" description={message} />}
-            {progress.assessments && (
+            {progress.assessments && !progress.domain && (
               <IndependentAssessmentsView
                 assessments={progress.assessments}
                 executions={progress.executions}

@@ -7394,6 +7394,11 @@
     "Shared execution limit (all task assessments and reflections)": "共有実行数の上限（全タスクの評価と振り返りを含む）",
     "Task {{number}} · {{taskId}}": "タスク {{number}} · {{taskId}}",
     "Use letters, numbers, underscores or hyphens for the experiment name.": "実験名には英数字、アンダースコア、ハイフンを使用してください。",
-    "Task result unavailable": "タスク結果を取得できません"
+    "Task result unavailable": "タスク結果を取得できません",
+    "Independent assessment flagged the selected result.": "独立評価で選択した結果に問題が指摘されました。",
+    "An expected output check failed.": "期待する出力の検証に不合格でした。",
+    "No deterministic output checks were supplied.": "決定的な出力検証が指定されていません。",
+    "The candidate scored below the baseline.": "候補のスコアがベースラインを下回りました。",
+    "Configuration admission needs further review.": "構成の受け入れには追加のレビューが必要です。"
   }
 }

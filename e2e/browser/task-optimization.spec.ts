@@ -143,3 +143,51 @@ for (const mode of ['sequential', 'parallel']) {
     ).toMatchObject({ method: { mode, k: 2, concurrency: 2 }, executionLimit: 20 })
   })
 }
+
+test('keeps domain admission scoped to each task and submits private JSON expectations', async ({
+  page
+}) => {
+  await page.goto('/task-optimization.html?complete')
+  await page.getByText('Optimize task', { exact: true }).click()
+  await page.getByLabel('Acceptance criteria (one per line)', { exact: true }).fill('Correct count')
+  await page.getByLabel('Domain experiment name (optional)', { exact: true }).fill('csv-count')
+  await page.getByRole('button', { name: 'Add next task', exact: true }).click()
+  await page
+    .getByLabel('Next task description 1', { exact: true })
+    .fill('Count the second data set')
+  await page.getByLabel('Next task criteria 1', { exact: true }).fill('Correct second count')
+  await page.getByLabel('Check expected JSON output', { exact: true }).first().check()
+  await page.getByLabel('Expected JSON value', { exact: true }).fill('{"count":3}')
+  await expect(
+    page.getByLabel('Shared execution limit (all task assessments and reflections)', {
+      exact: true
+    })
+  ).toHaveValue('20')
+  await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
+  const results = page.getByTestId('domain-results')
+  const tasks = results.locator('section')
+  await expect(tasks.first()).toContainText('Eligible for further configuration validation')
+  await expect(tasks.last()).toContainText('Configuration admission blocked')
+  await expect(tasks.last()).toContainText('An expected output check failed.')
+  await expect(page.getByTestId('research-outcome')).toHaveCount(2)
+  await expect(
+    page.getByText('Eligible for further configuration validation', { exact: true })
+  ).toHaveCount(1)
+  await expect(page.getByRole('status')).not.toContainText('output-check-failed')
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { optimizationFixture: { start: unknown[] } }).optimizationFixture
+          .start[0]
+    )
+  ).toMatchObject({
+    executionLimit: 20,
+    checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 3 } }],
+    domain: {
+      name: 'csv-count',
+      nextTasks: [
+        { prompt: 'Count the second data set', criteria: 'Correct second count', files: [] }
+      ]
+    }
+  })
+})

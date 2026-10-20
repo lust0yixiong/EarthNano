@@ -28,6 +28,20 @@ export function ResearchOutcomeView({
         return t('Expected value did not match')
     }
   }
+  const admissionReason = (reason: string): string => {
+    switch (reason) {
+      case 'semantic-flagged':
+        return t('Independent assessment flagged the selected result.')
+      case 'output-check-failed':
+        return t('An expected output check failed.')
+      case 'no-deterministic-checks':
+        return t('No deterministic output checks were supplied.')
+      case 'score-regression':
+        return t('The candidate scored below the baseline.')
+      default:
+        return t('Configuration admission needs further review.')
+    }
+  }
   return (
     <div className="space-y-1 rounded border border-border p-2" data-testid="research-outcome">
       <p>
@@ -55,7 +69,7 @@ export function ResearchOutcomeView({
       ))}
       {outcome.configuration.reasons.map((reason, index) => (
         <p key={index} className="whitespace-pre-wrap break-words">
-          {reason}
+          {admissionReason(reason)}
         </p>
       ))}
       {outcome.configuration.harnessRevisionRef && (
