@@ -1,0 +1,250 @@
+{
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com/anthropic/v1/messages",
+  "nativeVersion": "2.1.232",
+  "candidateLimit": 2,
+  "maxTurnsPerCandidate": 5,
+  "requestLimit": 12,
+  "outputTokensPerRequest": 768,
+  "attempts": 10,
+  "forwardedRequests": 8,
+  "rejectedRequests": 2,
+  "observations": [
+    {
+      "label": "B",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": false,
+      "inputReadResultSeen": false,
+      "toolsCalled": ["Skill"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 4269,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 43
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "A",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": false,
+      "inputReadResultSeen": false,
+      "toolsCalled": ["Skill"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 4278,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 43
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "A",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": false,
+      "toolsCalled": ["Read"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 229,
+        "cacheReadTokens": 4224,
+        "cacheWriteTokens": 0,
+        "outputTokens": 117
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "B",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": false,
+      "toolsCalled": ["Read"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 217,
+        "cacheReadTokens": 4224,
+        "cacheWriteTokens": 0,
+        "outputTokens": 114
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "A",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": true,
+      "toolsCalled": ["Write"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 241,
+        "cacheReadTokens": 4352,
+        "cacheWriteTokens": 0,
+        "outputTokens": 163
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "B",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": true,
+      "toolsCalled": ["Write"],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 226,
+        "cacheReadTokens": 4352,
+        "cacheWriteTokens": 0,
+        "outputTokens": 160
+      },
+      "stopReason": "tool_use"
+    },
+    {
+      "label": "A",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": true,
+      "toolsCalled": [],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 261,
+        "cacheReadTokens": 4608,
+        "cacheWriteTokens": 0,
+        "outputTokens": 6
+      },
+      "stopReason": "end_turn"
+    },
+    {
+      "label": "B",
+      "model": "deepseek-flash",
+      "ownSystemOnly": true,
+      "skillContextSeen": true,
+      "inputReadResultSeen": true,
+      "toolsCalled": [],
+      "maxTokens": 768,
+      "thinkingDisabled": true,
+      "nativeThinking": "omitted",
+      "status": 200,
+      "usage": {
+        "inputTokens": 240,
+        "cacheReadTokens": 4608,
+        "cacheWriteTokens": 0,
+        "outputTokens": 6
+      },
+      "stopReason": "end_turn"
+    }
+  ],
+  "shutdownResults": ["fulfilled", "fulfilled"],
+  "candidates": [
+    {
+      "label": "A",
+      "processCount": 1,
+      "reaped": true,
+      "outputMatches": true,
+      "finalMatches": true,
+      "record": {
+        "phase": "completed",
+        "cleanup": "confirmed",
+        "identity": {
+          "sessionId": "660fe1e4-599b-49b5-90ed-4b2df64cc18f",
+          "providerSessionId": "660fe1e4-599b-49b5-90ed-4b2df64cc18f",
+          "promptMessageId": "prompt-b26dc1a7-2ad9-4ea0-8eff-9429663f76d1"
+        },
+        "usage": {
+          "status": "known",
+          "inputTokens": 18193,
+          "outputTokens": 329
+        }
+      }
+    },
+    {
+      "label": "B",
+      "processCount": 1,
+      "reaped": true,
+      "outputMatches": true,
+      "finalMatches": true,
+      "record": {
+        "phase": "completed",
+        "cleanup": "confirmed",
+        "identity": {
+          "sessionId": "7f06705b-3ede-4b7c-9582-51f552654ad9",
+          "providerSessionId": "7f06705b-3ede-4b7c-9582-51f552654ad9",
+          "promptMessageId": "prompt-0017aa7d-e39c-46a7-afec-420bd201889d"
+        },
+        "usage": {
+          "status": "known",
+          "inputTokens": 18136,
+          "outputTokens": 323
+        }
+      }
+    }
+  ],
+  "date": "2026-10-20",
+  "liveTest": {
+    "passed": 1,
+    "failed": 0,
+    "seconds": 5.2,
+    "reruns": 0
+  },
+  "usageSummary": {
+    "uncachedInputTokens": 9961,
+    "cacheReadTokens": 26368,
+    "inputIncludingCacheTokens": 36329,
+    "outputTokens": 652
+  },
+  "preflight": {
+    "httpStatus": 200,
+    "inputTokens": 39,
+    "outputTokens": 32,
+    "stopReason": "max_tokens",
+    "taskPassed": false
+  },
+  "testOverrides": {
+    "thinking": "disabled by observer; native request omitted field",
+    "maxTokens": "capped at 768 by observer",
+    "maxTurns": 5
+  },
+  "limitations": [
+    "Synthetic tasks only; not a scientific quality or optimization benefit evaluation",
+    "Live test does not repeat cancellation or adversarial isolation cases",
+    "Configuration remains unknown and artifact evidence partial; no application owner persistence",
+    "Output and request bounds are not a total monetary budget"
+  ],
+  "testSourceCommit": "7c2821836fac1424050c6cc85aada761da46c2f3",
+  "checks": {
+    "defaultMode": "1 skipped, exit 0",
+    "nodeStrictTypecheck": "exit 0",
+    "eslint": "exit 0",
+    "prettier": "exit 0",
+    "independentReadOnlyReview": "no remaining blocking findings"
+  }
+}
