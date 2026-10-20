@@ -42,7 +42,8 @@ afterEach(async () => {
   }
 })
 const fixture = async (
-  skills: readonly CandidateTextFile[] = []
+  skills: readonly CandidateTextFile[] = [],
+  scientific = false
 ): Promise<{
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
@@ -55,15 +56,50 @@ const fixture = async (
     candidatesRoot: join(root, 'candidates')
   })
   const refs = await store.freeze({
-    task: { prompt: 'Read the frozen input', files: [{ path: 'input.txt', content: 'frozen' }] },
-    harness: { instructions: 'SYSTEM_ALPHA', skills, tools: 'workspace-only' },
+    task: scientific
+      ? {
+          prompt: 'Analyze the frozen CSV',
+          files: [],
+          managedInputs: [
+            {
+              sourceKind: 'upload-version',
+              sourceProjectId: 'project',
+              sourceSessionId: 'source',
+              sourceFileId: 'upload',
+              inputFileVersionId: 'old-version',
+              filename: 'data.csv',
+              sizeBytes: 4,
+              checksum: 'a'.repeat(64)
+            }
+          ]
+        }
+      : { prompt: 'Read the frozen input', files: [{ path: 'input.txt', content: 'frozen' }] },
+    harness: {
+      instructions: 'SYSTEM_ALPHA',
+      skills,
+      tools: scientific ? 'notebook-python' : 'workspace-only'
+    },
     agent: {
       backend: 'claude-code',
       model: 'claude-sonnet-4-5',
       providerRef: 'local-probe',
       runtimeVersion: '2.1.232'
     },
-    environment: { isolation: 'directory-process', network: 'provider-only' }
+    environment: scientific
+      ? {
+          isolation: 'directory-process',
+          network: 'provider-and-notebook-policy',
+          notebook: {
+            runtime: {
+              language: 'python',
+              runtimeId: '/usr/bin/python3',
+              source: 'external',
+              provenance: 'user-own',
+              interpreterPath: '/usr/bin/python3'
+            }
+          }
+        }
+      : { isolation: 'directory-process', network: 'provider-only' }
   })
   const invocationRef = await store.freezeInvocation({
     taskSnapshotRef: refs.taskSnapshotRef,
@@ -320,4 +356,44 @@ describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate pre
       })
     ).toBe('deny')
   })
+})
+
+it('routes only exact foreground Python/artifact MCP calls to the original broker', async () => {
+  const f = await fixture([], true)
+  await prepareClaudeCandidate(f)
+  const root = f.materialized.root
+  expect(
+    runGate(root, 'mcp__open_science_notebook__notebook_execute', {
+      code: 'print(1)',
+      language: 'python',
+      artifactVersionInputs: ['old-version']
+    })
+  ).toBe('ask')
+  expect(
+    runGate(root, 'mcp__open_science_artifacts__write_artifact_file', {
+      filename: 'report.json',
+      source: { kind: 'localPath', path: 'report.json' },
+      producerRunId: 'real-run'
+    })
+  ).toBe('ask')
+  for (const [tool, args] of [
+    ['mcp__other__notebook_execute', { code: 'print(1)' }],
+    ['mcp__open_science_notebook__notebook_execute', { code: 'print(1)', language: 'r' }],
+    ['mcp__open_science_notebook__notebook_execute', { code: 'print(1)', background: true }],
+    [
+      'mcp__open_science_notebook__notebook_execute',
+      { code: 'print(1)', artifactVersionInputs: ['foreign'] }
+    ],
+    ['mcp__open_science_notebook__manage_packages', { language: 'python', packages: ['x'] }],
+    [
+      'mcp__open_science_notebook__notebook_switch_runtime',
+      { language: 'python', runtimeId: 'other' }
+    ],
+    [
+      'mcp__open_science_artifacts__write_artifact_file',
+      { filename: 'report.json', content: '{}' }
+    ],
+    ['Bash', { command: 'python3 code.py' }]
+  ] as const)
+    expect(runGate(root, tool, args)).toBe('deny')
 })

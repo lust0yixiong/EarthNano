@@ -81,6 +81,7 @@ import type { UploadRepository } from '../uploads/repository'
 import { AgentMcpHttpHost } from './mcp-http-host'
 import { projectRegistrySessionGrants } from './permission-broker'
 import { AcpRuntime } from './runtime'
+import { createAcpNotebookBinding } from './notebook-binding'
 import { composeAcpRuntimeBaseOwners } from './runtime-base-composition'
 import type { AcpRuntimeCallbacks, AcpRuntimeOptions } from './runtime-contract'
 import { AcpRuntimeCoordinator } from './runtime-coordinator'
@@ -784,57 +785,16 @@ const createAcpRuntime = ({
                 (await grantedRootsRepository.list()).find((root) => root.id === rootId)
             }
           : undefined,
-        notebook: {
-          canOwnRuntimeBindingDecision: async (request) => {
-            const trustedRequest = notebookRpcServer.runtimeBindingAdmissionRequest(
-              request,
-              delegatedNotebookConnection
-            )
-            return trustedRequest && canOwnRuntimeBindingDecision
-              ? canOwnRuntimeBindingDecision(trustedRequest)
-              : false
-          },
-          authorizeRuntimeBindingAdmission: (admission) =>
-            notebookRpcServer.authorizeRuntimeBindingAdmission(
-              admission,
-              delegatedNotebookConnection
-            ),
+        notebook: createAcpNotebookBinding({
+          rpc: notebookRpcServer,
           projectId: DEFAULT_ARTIFACT_PROJECT_ID,
           mcpEntryPath,
-          memoryTools: !delegatedNotebookConnection,
+          delegatedConnection: delegatedNotebookConnection,
+          canOwnRuntimeBindingDecision,
           isMemoryEnabled: () => memory?.isEnabled?.() ?? Promise.resolve(false),
           getShellRuntimeBinding,
-          getRpcConnection: ({ sessionId, projectId, memoryTools }) =>
-            delegatedNotebookConnection
-              ? Promise.resolve(delegatedNotebookConnection)
-              : notebookRpcServer.issueSessionConnection(
-                  sessionId,
-                  projectId,
-                  `root-frame-${sessionId}`,
-                  memoryTools
-                ),
-          ...(delegatedNotebookConnection
-            ? {}
-            : {
-                registerSessionAlias: (aliasSessionId, sessionId) =>
-                  notebookRpcServer.registerSessionAlias(aliasSessionId, sessionId),
-                releaseSessionCapabilities: (sessionId, capabilityTokens) =>
-                  notebookRpcServer.releaseSessionCapabilitiesIfOwned(sessionId, capabilityTokens),
-                registerSessionSpecialist: (sessionId, specialistId) =>
-                  notebookRpcServer.registerSessionSpecialist(sessionId, specialistId),
-                authorizeExecution: (authorization) =>
-                  notebookRpcServer.authorizeExecution(authorization),
-                setArtifactTurnBinding: (sessionId, binding) =>
-                  notebookRpcServer.setArtifactTurnBinding(sessionId, binding),
-                clearArtifactTurnBinding: (sessionId, ownerExecutionId) =>
-                  notebookRpcServer.clearArtifactTurnBinding(sessionId, ownerExecutionId),
-                prepareTurnInputs: (request) =>
-                  notebookRpcServer.prepareNotebookTurnInputs(request),
-                registerTurnInputs: (request) =>
-                  notebookRpcServer.registerNotebookTurnInputs(request),
-                peekHandoffContext: peekNotebookHandoffContext
-              })
-        },
+          peekHandoffContext: peekNotebookHandoffContext
+        }),
         ...(delegatedNotebookConnection
           ? {}
           : {

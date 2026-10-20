@@ -109,10 +109,16 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
 
 // A CLI command hook, not an SDK callback serialized over ACP. Unknown tools/fields fail closed.
 // This is a capability gate for this directory/process profile, not an OS filesystem sandbox.
-const gateSource = (input: string, output: string, plugin: string, names: string[]): string => `
+const gateSource = (
+  input: string,
+  output: string,
+  plugin: string,
+  names: string[],
+  scientificInputs?: readonly string[]
+): string => `
 const fs = require('node:fs');
 const path = require('node:path');
-const roots = ${JSON.stringify({ input, output, plugin, names })};
+const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs })};
 const inside = (root, target) => { const rel=path.relative(root,target); return rel==='' || (rel!=='..' && !rel.startsWith('..'+path.sep) && !path.isAbsolute(rel)); };
 const checked = target => {
   if (!path.isAbsolute(target)) throw Error('Absolute path required');
@@ -136,6 +142,17 @@ process.stdin.on('end', ()=>{
   try {
     const event=JSON.parse(data), tool=event.tool_name, args=event.tool_input;
     if(event.hook_event_name!=='PreToolUse' || !args || typeof args!=='object' || Array.isArray(args)) throw Error('Invalid hook');
+    const scientific = roots.scientificInputs;
+    const mcp = /^(?:mcp__open_science_notebook__|mcp__open-science-notebook__)(notebook_execute|notebook_state|list_notebook_runtimes)$/.exec(tool);
+    const artifact = /^(?:mcp__open_science_artifacts__|mcp__open-science-artifacts__)write_artifact_file$/.test(tool);
+    if (scientific && (mcp || artifact)) {
+      if (mcp?.[1]==='notebook_execute') {
+        if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside scientific Python profile');
+      } else if (artifact && (typeof args.producerRunId!=='string' || !args.producerRunId)) throw Error('Notebook producer required');
+      decision='ask';
+      process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:decision,permissionDecisionReason:'Original application permission broker owns this scoped MCP call'}}));
+      return;
+    }
     const fields={Read:['file_path','offset','limit','pages'],Write:['file_path','content'],Edit:['file_path','old_string','new_string','replace_all'],Skill:['skill','args']}[tool];
     if(!fields || Object.keys(args).some(key=>!fields.includes(key))) throw Error('Unsupported tool/input');
     if(tool==='Skill') {
@@ -166,6 +183,10 @@ export const prepareClaudeCandidate = async ({
   if (process.platform === 'win32')
     throw new Error('Claude candidate command hooks require the POSIX profile')
   const { agent, harness, environment, invocation } = resolved
+  const scientific = harness.tools === 'notebook-python'
+  const scientificInputs = scientific
+    ? resolved.task.managedInputs?.map((input) => input.inputFileVersionId)
+    : undefined
   for (const text of [
     resolved.task.prompt,
     invocation.mission,
@@ -175,9 +196,13 @@ export const prepareClaudeCandidate = async ({
     assertClaudeCandidateText(text)
   if (
     agent.backend !== 'claude-code' ||
-    harness.tools !== 'workspace-only' ||
+    !['workspace-only', 'notebook-python'].includes(harness.tools) ||
     environment.isolation !== 'directory-process' ||
-    environment.network !== 'provider-only'
+    (scientific
+      ? !environment.notebook ||
+        !scientificInputs?.length ||
+        environment.network !== 'provider-and-notebook-policy'
+      : environment.network !== 'provider-only')
   )
     throw new Error('Unsupported Claude candidate profile')
   if (
@@ -269,10 +294,14 @@ export const prepareClaudeCandidate = async ({
   )
   const names = [...skillNames].map((name) => `${pluginName}:${name}`).sort()
   const gate = join(materialized.runtimeHome, 'tool-gate.cjs')
-  await writeFile(gate, gateSource(materialized.inputDir, materialized.outputDir, plugin, names), {
-    mode: 0o400,
-    flag: 'wx'
-  })
+  await writeFile(
+    gate,
+    gateSource(materialized.inputDir, materialized.outputDir, plugin, names, scientificInputs),
+    {
+      mode: 0o400,
+      flag: 'wx'
+    }
+  )
   const modelConfig = claudeCodeFramework.prepareModelConfig(binding.provider, {
     storageRoot: materialized.runtimeHome,
     executablePath: binding.executablePath
@@ -378,7 +407,15 @@ export const prepareClaudeCandidate = async ({
             provider: { ref: binding.providerRef, endpoint: endpoint.href, model: agent.model },
             nativeSessionSetup: sessionSetup,
             gateDigest: createHash('sha256')
-              .update(gateSource(materialized.inputDir, materialized.outputDir, plugin, names))
+              .update(
+                gateSource(
+                  materialized.inputDir,
+                  materialized.outputDir,
+                  plugin,
+                  names,
+                  scientificInputs
+                )
+              )
               .digest('hex')
           })
         )
