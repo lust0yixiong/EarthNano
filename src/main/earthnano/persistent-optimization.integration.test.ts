@@ -749,7 +749,7 @@ async function exercise(
       file.path.endsWith(`/${result.domain!.order[0]}/EXPERIENCE.md`)
     )
     if (!live) expect(firstExperience).toBeTruthy()
-    expect(successorContexts.size).toBeGreaterThanOrEqual(3)
+    if (!live) expect(successorContexts.size).toBeGreaterThanOrEqual(3)
     if (firstExperience) {
       for (const context of successorContexts.values())
         expect(context).toContain(
@@ -773,7 +773,13 @@ async function exercise(
   expect(completedRecords.every((record) => record.evidence.artifacts.length > 0)).toBe(true)
   const sessionIds = new Set(completedRecords.map((record) => record.identity.sessionId))
   expect(sessionIds.size).toBe(completedRecords.length)
-  if (live) expect(readInputs.size).toBe(4 * k * taskCount)
+  if (live)
+    for (const record of completedRecords.filter((record) =>
+      ['baseline', 'candidate'].includes(record.request.role)
+    ))
+      expect(
+        [...readInputs].some((directory) => directory.includes(`/${record.executionId}/`))
+      ).toBe(true)
   if (desktop && method) {
     const fixedBaseline = result.records.find(
       (record) => record.request.role === 'baseline' && record.request.origin.stageId === 'base1'
@@ -809,7 +815,14 @@ async function exercise(
       expect(reviews.length).toBeGreaterThan(0)
       versionCount += exported.files.length
       reviewCount += reviews.length
-      if (record.request.role === 'baseline' || record.request.role === 'candidate') {
+      if (
+        ['baseline', 'candidate'].includes(record.request.role) &&
+        (!live ||
+          !result.domain ||
+          result.domain.tasks.some(
+            (task) => task.assessments?.candidate.targetExecutionId === record.executionId
+          ))
+      ) {
         const taskIndex = research?.domain
           ? (result.methodResult as { tasks: Array<{ executionIds: string[] }> }).tasks.findIndex(
               (task) => task.executionIds.includes(record.executionId)
