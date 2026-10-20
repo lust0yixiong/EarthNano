@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -40,6 +40,11 @@ import {
   runPersistentOptimization,
   type PersistentOptimizationOptions
 } from './run-persistent-optimization'
+import {
+  MAX_TIMER_TIMEOUT_MS,
+  MAX_HARNESS_EXECUTION_TIMEOUT_MS,
+  HARNESS_RPC_TIMEOUT_MARGIN_MS
+} from './execution-timeout'
 const roots: string[] = []
 afterEach(async () => {
   vi.clearAllMocks()
@@ -122,4 +127,63 @@ it('freezes the criteria and input before the method runs and keeps the plan out
   expect(await readFile(join(o.workRoot, 'method-config.json'), 'utf8')).not.toContain(
     'Original criterion'
   )
+})
+
+it.each([2_147_483_648, 4_294_967_296, Number.MAX_SAFE_INTEGER])(
+  'rejects overflowing overall timeout %s before persistence or execution',
+  async (timeoutMs) => {
+    const o = await options()
+    const timer = vi.spyOn(AbortSignal, 'timeout')
+    try {
+      await expect(runPersistentOptimization({ ...o, timeoutMs })).rejects.toThrow(
+        'Invalid optimization timeout'
+      )
+      await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(timer).not.toHaveBeenCalled()
+      expect(f.method).not.toHaveBeenCalled()
+      expect(f.evaluate).not.toHaveBeenCalled()
+      expect(f.shutdown).not.toHaveBeenCalled()
+      expect(f.dispose).not.toHaveBeenCalled()
+    } finally {
+      timer.mockRestore()
+    }
+  }
+)
+it.each([MAX_HARNESS_EXECUTION_TIMEOUT_MS + 1, 2_147_483_648, Number.MAX_SAFE_INTEGER])(
+  'rejects unsupported Python/RPC execution timeout %s before persistence or execution',
+  async (executionTimeoutMs) => {
+    const o = await options()
+    await expect(runPersistentOptimization({ ...o, executionTimeoutMs })).rejects.toThrow(
+      'Invalid optimization timeout'
+    )
+    await expect(access(o.workRoot)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(f.method).not.toHaveBeenCalled()
+    expect(f.shutdown).not.toHaveBeenCalled()
+  }
+)
+it('retains supported maximum and default deadlines without overflowing the Python RPC budget', async () => {
+  f.method.mockResolvedValue({ status: 'ok' })
+  f.evaluate.mockResolvedValue({ baseline: {}, candidate: {} })
+  f.shutdown.mockResolvedValue({ reaped: true })
+  const defaults = await options()
+  delete defaults.timeoutMs
+  await runPersistentOptimization(defaults)
+  expect(f.method.mock.calls[0]![0].timeoutMs).toBe(600_000)
+  const defaultConfig = JSON.parse(
+    await readFile(join(defaults.workRoot, 'method-config.json'), 'utf8')
+  )
+  expect(defaultConfig.executionTimeoutMs).toBe(120_000)
+  expect(defaultConfig.rpcTimeoutMs).toBe(150_000)
+  const maximums = await options()
+  maximums.timeoutMs = MAX_TIMER_TIMEOUT_MS
+  maximums.executionTimeoutMs = MAX_HARNESS_EXECUTION_TIMEOUT_MS
+  await runPersistentOptimization(maximums)
+  expect(f.method.mock.calls[1]![0].timeoutMs).toBe(MAX_TIMER_TIMEOUT_MS)
+  const maxConfig = JSON.parse(
+    await readFile(join(maximums.workRoot, 'method-config.json'), 'utf8')
+  )
+  expect(maxConfig.rpcTimeoutMs).toBe(
+    MAX_HARNESS_EXECUTION_TIMEOUT_MS + HARNESS_RPC_TIMEOUT_MARGIN_MS
+  )
+  expect(maxConfig.rpcTimeoutMs).toBe(3_600_000)
 })

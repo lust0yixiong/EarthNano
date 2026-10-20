@@ -9,6 +9,11 @@ import {
 } from './claude-candidate-driver'
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
+import {
+  assertExecutionTimeout,
+  HARNESS_RPC_TIMEOUT_MARGIN_MS,
+  MAX_HARNESS_EXECUTION_TIMEOUT_MS
+} from './execution-timeout'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
 import {
   evaluateOptimizationSemantics,
@@ -75,6 +80,9 @@ export async function runPersistentOptimization(
     )
   )
     throw new Error('Invalid optimization limits')
+  // Reject before allocating timers, creating a run directory, or opening persistent owners.
+  assertExecutionTimeout(timeoutMs)
+  assertExecutionTimeout(executionTimeoutMs, MAX_HARNESS_EXECUTION_TIMEOUT_MS)
   const deadline = AbortSignal.timeout(timeoutMs)
   const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
   await mkdir(options.workRoot, { mode: 0o700 })
@@ -145,7 +153,7 @@ export async function runPersistentOptimization(
       workRoot: join(options.workRoot, 'method'),
       model: input.agent.model,
       executionTimeoutMs,
-      rpcTimeoutMs: executionTimeoutMs + 30_000
+      rpcTimeoutMs: executionTimeoutMs + HARNESS_RPC_TIMEOUT_MARGIN_MS
     }
     const configPath = join(options.workRoot, 'method-config.json')
     await writeFile(configPath, JSON.stringify(config), { mode: 0o600, flag: 'wx' })

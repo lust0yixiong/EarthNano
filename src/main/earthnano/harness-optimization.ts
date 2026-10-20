@@ -15,6 +15,7 @@ import type {
 } from './candidate-snapshot'
 import { requestDigest, validateRequest } from './execution-contract'
 import { assertClaudeCandidateText } from '../acp/claude-candidate-preparation'
+import { assertExecutionTimeout } from './execution-timeout'
 
 /** Read exclusively from the original Session and immutable ArtifactVersion owners. */
 export interface PersistentExecutionExport {
@@ -99,7 +100,7 @@ export class HarnessOptimizationBinding {
   private stopped = false
   constructor(options: HarnessOptimizationBindingOptions) {
     this.options = { ...options, input: structuredClone(options.input) }
-    if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1) fail()
+    assertExecutionTimeout(options.timeoutMs)
   }
   get executionIds(): string[] {
     return [...this.admitted]
@@ -251,6 +252,7 @@ export async function runHarnessProcess(options: {
   timeoutMs: number
   signal?: AbortSignal
 }): Promise<unknown> {
+  assertExecutionTimeout(options.timeoutMs)
   options.signal?.throwIfAborted()
   const child = spawn(options.python, options.args, {
     cwd: options.cwd,
