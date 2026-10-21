@@ -10,6 +10,8 @@ import type { OptimizationMethodOptions } from './optimization-method'
 import type { OptimizationArtifactInput } from './optimization-input'
 import type { ExecutionUsageSummary } from './execution-usage'
 import type {
+  SemanticAssessmentSummary,
+  OptimizationSelectionSummary,
   OutputCheckSpec,
   OptimizationDomainSpec,
   ResearchOutcome,
@@ -40,21 +42,7 @@ export interface OptimizationRunKey {
   sourceSessionId: string
   runId: string
 }
-export interface SemanticAssessmentSummary {
-  executionId: string
-  targetExecutionId: string
-  reviewId: string
-  outcome: 'pass' | 'flagged'
-  score: number
-  rationale: string
-}
-export interface OptimizationSelectionSummary {
-  chosenLabel: string
-  candidateCount: number
-  trivial: boolean
-  fallback: boolean
-  reason: string
-}
+export type { SemanticAssessmentSummary, OptimizationSelectionSummary } from './research-outcome'
 export interface OptimizationProgress {
   runId: string
   projectId: string

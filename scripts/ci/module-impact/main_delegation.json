@@ -64,7 +64,9 @@
     "src/main/delegation/process-ownership.ts",
     "src/main/delegation/process-ownership.test.ts",
     "src/main/delegation/artifact-evidence-contract.ts",
-    "src/main/delegation/delegate-request-contract.ts"
+    "src/main/delegation/delegate-request-contract.ts",
+    "src/main/delegation/delegated-execution-owner.test.ts",
+    "src/main/delegation/delegated-execution-owner.ts"
   ],
   "interfacePaths": [
     "src/main/delegation/delegated-artifact-publication.ts",
@@ -83,7 +85,8 @@
     "src/main/delegation/structured-output.ts",
     "src/main/delegation/certification-contract.test.ts",
     "src/main/delegation/execution-contract.test.ts",
-    "src/main/delegation/process-ownership.ts"
+    "src/main/delegation/process-ownership.ts",
+    "src/main/delegation/delegated-execution-owner.ts"
   ],
   "consumerModules": [],
   "testFiles": {
@@ -114,7 +117,8 @@
       "src/main/delegation/settlement-continuation-dispatch.test.ts",
       "src/main/delegation/specialist-runtime-consumption.test.ts",
       "src/main/delegation/structured-output-owner.test.ts",
-      "src/main/delegation/process-ownership.test.ts"
+      "src/main/delegation/process-ownership.test.ts",
+      "src/main/delegation/delegated-execution-owner.test.ts"
     ],
     "contract": [
       "src/preload/index.test.ts",

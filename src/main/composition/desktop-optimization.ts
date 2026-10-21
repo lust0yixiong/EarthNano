@@ -21,7 +21,7 @@ import type { SettingsService } from '../settings/service'
 import { createDefaultDetectDeps } from '../settings/claude-detect'
 import { isSupportedClaudeCliVersion } from '../../shared/claude-runtime'
 import type { ArchiveCoordinator } from '../archive/coordinator'
-import type { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
+import type { SessionPersistenceCommands } from '../session-persistence/coordinator'
 import type { SessionRepository } from '../session-persistence/repository'
 import type { ApplicationModuleBuilder } from '../application-runtime'
 import { BackendShutdownOutcomeError, QUIT_SHUTDOWN_BUDGET_MS } from '../lifecycle-shutdown'
@@ -139,6 +139,7 @@ export async function resolveOptimizationPython(
 export interface DesktopOptimizationDependencies {
   settings: Pick<
     SettingsService,
+    | 'getStoredSettings'
     | 'captureActiveExplicitAgentBackendTarget'
     | 'resolveIsolatedClaudeProvider'
     | 'resolveIsolatedClaudeExecutable'
@@ -336,9 +337,8 @@ export async function createDesktopOptimizationOptions(
         dataRoot,
         configRoot,
         getClient: () => getProjectDbClient(configRoot),
-        ...(dependencies.sessionPersistence
-          ? { sessionPersistence: dependencies.sessionPersistence }
-          : {}),
+        settings: { getSettings: () => dependencies.settings.getStoredSettings() },
+        sessionPersistence: requireSessionPersistence(dependencies),
         ...(scientific ? { notebook: dependencies.notebook } : {})
       },
       input: {
@@ -516,9 +516,8 @@ export async function createDesktopSweepOptions(
         dataRoot,
         configRoot,
         getClient: () => getProjectDbClient(configRoot),
-        ...(dependencies.sessionPersistence
-          ? { sessionPersistence: dependencies.sessionPersistence }
-          : {}),
+        settings: { getSettings: () => dependencies.settings.getStoredSettings() },
+        sessionPersistence: requireSessionPersistence(dependencies),
         ...(tasks.some((task) => notebookLanguageForTools(task.input.harness.tools) !== undefined)
           ? { notebook: dependencies.notebook }
           : {})
@@ -532,12 +531,27 @@ export async function createDesktopSweepOptions(
   }
 }
 
+function requireSessionPersistence(
+  dependencies: DesktopOptimizationDependencies
+): NonNullable<DesktopOptimizationDependencies['sessionPersistence']> {
+  if (!dependencies.sessionPersistence)
+    throw new Error('Original Session persistence authority is required')
+  return dependencies.sessionPersistence
+}
+
 export async function registerDesktopOptimizationComposition(
   modules: ApplicationModuleBuilder,
   options: {
     settings: SettingsService
     archive: ArchiveCoordinator
-    sessions: SessionPersistenceCoordinator
+    sessions: Pick<
+      SessionPersistenceCommands,
+      | 'mutateRuntimeSession'
+      | 'assertSessionAvailable'
+      | 'saveSession'
+      | 'admitTaskTurn'
+      | 'readSessionSnapshot'
+    >
     sessionRepository: SessionRepository
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
     notebook?: PersistentCandidateNotebookOptions

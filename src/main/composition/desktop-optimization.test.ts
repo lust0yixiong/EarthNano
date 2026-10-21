@@ -96,10 +96,14 @@ const selected = () => ({
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- preserve concrete Vitest mocks
 const dependencies = () => ({
   settings: {
+    getStoredSettings: vi.fn(),
     captureActiveExplicitAgentBackendTarget: vi.fn().mockResolvedValue(target),
     resolveIsolatedClaudeProvider: vi.fn().mockResolvedValue(selected()),
     resolveIsolatedClaudeExecutable: vi.fn().mockResolvedValue('/synthetic/claude')
   },
+  sessionPersistence: { repository: {}, coordinator: {} } as NonNullable<
+    Parameters<typeof createDesktopOptimizationOptions>[1]['sessionPersistence']
+  >,
   validateSession: vi.fn().mockResolvedValue(undefined),
   admitSessionWork: vi.fn().mockReturnValue(vi.fn()),
   harnessRoot: mocks.root,

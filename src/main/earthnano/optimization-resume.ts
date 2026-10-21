@@ -13,12 +13,12 @@ import { dirname, join } from 'node:path'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { canonicalOutput, outputDigest } from './output-checks'
 import { requestDigest, validateRecord } from './execution-contract'
-import type { PersistentSingleOptimizationOptions } from './run-persistent-optimization'
+import type { OptimizationTaskInput } from './optimization-task-contract'
 import type { ResolvedOptimizationSweep } from './sweep-contract'
 import { assertHarnessBindingV2Identity, type HarnessBindingV2Identity } from './harness-binding-v2'
 
 export type SingleOptimizationResumeIdentity = Pick<
-  PersistentSingleOptimizationOptions,
+  OptimizationTaskInput,
   | 'projectId'
   | 'sourceSessionId'
   | 'sourcePromptMessageId'
@@ -30,7 +30,7 @@ export type SingleOptimizationResumeIdentity = Pick<
   | 'domain'
 > & {
   sweep?: never
-  method: NonNullable<PersistentSingleOptimizationOptions['method']>
+  method: NonNullable<OptimizationTaskInput['method']>
   executionLimit: number
   executionTimeoutMs: number
 }

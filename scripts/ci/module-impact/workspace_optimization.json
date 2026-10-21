@@ -1,0 +1,29 @@
+{
+  "ownerPaths": [
+    "src/renderer/src/pages/workspace/OptimizationCatalogSource.tsx",
+    "src/renderer/src/pages/workspace/OptimizationResearchInputs.tsx",
+    "src/renderer/src/pages/workspace/OptimizationResearchResults.tsx",
+    "src/renderer/src/pages/workspace/OptimizationUsageView.tsx",
+    "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
+    "src/renderer/src/pages/workspace/TaskOptimizationPanel.tsx",
+    "src/renderer/src/pages/workspace/optimization-catalog-input.ts",
+    "src/renderer/src/pages/workspace/optimization-research-input.ts"
+  ],
+  "interfacePaths": [
+    "src/renderer/src/pages/workspace/OptimizationCatalogSource.tsx",
+    "src/renderer/src/pages/workspace/OptimizationResearchInputs.tsx",
+    "src/renderer/src/pages/workspace/OptimizationResearchResults.tsx",
+    "src/renderer/src/pages/workspace/OptimizationUsageView.tsx",
+    "src/renderer/src/pages/workspace/TaskOptimizationPanel.tsx",
+    "src/renderer/src/pages/workspace/optimization-catalog-input.ts",
+    "src/renderer/src/pages/workspace/optimization-research-input.ts"
+  ],
+  "consumerModules": [],
+  "testFiles": {
+    "owner": ["src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx"],
+    "contract": [],
+    "consumer": []
+  },
+  "capabilityOverlays": ["e2e_regressions"],
+  "fallbackCapability": "renderer_view"
+}

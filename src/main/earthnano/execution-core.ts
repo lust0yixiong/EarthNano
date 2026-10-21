@@ -35,15 +35,8 @@ export interface ExecutionOutcome {
   configuration?: EffectiveConfiguration
   error?: { code: string; message: string }
 }
-export interface ExecutionContext {
-  readonly executionId: string
-  readonly signal: AbortSignal
-  running(): void
-  identity(value: ExecutionIdentity): void
-  emit(type: 'provider-accepted' | 'session-admitted'): void
-  /** Original owner may reject cancellation. No abort is published before its acknowledgment. */
-  onCancellation?(handler: () => Promise<void>): () => void
-}
+export type { ExecutionContext } from './execution-contract'
+import type { ExecutionContext } from './execution-contract'
 /** Resolves only after original owners have committed their result; never owns Session/Review state. */
 export interface ExecutionDriver {
   execute(request: ExecutionRequest, context: ExecutionContext): Promise<ExecutionOutcome>

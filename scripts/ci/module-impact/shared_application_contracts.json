@@ -168,7 +168,9 @@
     "src/shared/provider-url-policy.ts",
     "src/shared/reasoning-effort-presets.test.ts",
     "src/shared/reasoning-effort.test.ts",
-    "src/shared/reasoning-effort.ts"
+    "src/shared/reasoning-effort.ts",
+    "src/shared/renderer-contracts/optimization.ts",
+    "src/shared/earthnano/release-identity.test.ts"
   ],
   "interfacePaths": [
     "src/shared/interface-scale.ts",
@@ -254,7 +256,8 @@
     "src/shared/provider-error.ts",
     "src/shared/provider-model-policy.ts",
     "src/shared/provider-url-policy.ts",
-    "src/shared/reasoning-effort.ts"
+    "src/shared/reasoning-effort.ts",
+    "src/shared/renderer-contracts/optimization.ts"
   ],
   "consumerModules": [
     "host_command_runtime",
@@ -309,7 +312,8 @@
       "src/shared/provider-model-policy.test.ts",
       "src/shared/provider-presentation-policy.test.ts",
       "src/shared/reasoning-effort-presets.test.ts",
-      "src/shared/reasoning-effort.test.ts"
+      "src/shared/reasoning-effort.test.ts",
+      "src/shared/earthnano/release-identity.test.ts"
     ],
     "contract": [],
     "consumer": [

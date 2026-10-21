@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
 import { chosenExecution, evaluateResearchOutcome } from './research-verification'
-import { fixture } from './research-domain.test-fixture'
+import { fixture } from '../../../test/earthnano/research-domain'
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 async function setup() {

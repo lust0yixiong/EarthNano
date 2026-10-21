@@ -1,10 +1,22 @@
 import type { ArtifactReference, Ref } from './execution-port'
 import type { OptimizationMethodOptions } from './optimization-method'
 import { minimumOptimizationExecutions } from './optimization-method'
-import type {
-  OptimizationSelectionSummary,
-  SemanticAssessmentSummary
-} from './desktop-optimization'
+
+export interface SemanticAssessmentSummary {
+  executionId: string
+  targetExecutionId: string
+  reviewId: string
+  outcome: 'pass' | 'flagged'
+  score: number
+  rationale: string
+}
+export interface OptimizationSelectionSummary {
+  chosenLabel: string
+  candidateCount: number
+  trivial: boolean
+  fallback: boolean
+  reason: string
+}
 
 export type JsonValue =
   null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
