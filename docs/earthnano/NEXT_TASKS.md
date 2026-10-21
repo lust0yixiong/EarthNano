@@ -8,7 +8,7 @@
 
 0.1 最终发布时，安装包清单与更新 feed 也须显式使用 macOS/Linux 范围；现存上游 stable 发布工具的五目标默认保留，不可直接用于本版，也不能把缺少已延期 Windows 包当作未完成四目标验收。范围调整的本地检查见 [CI 证据](validation/alpha/unix-0.1-ci/manifest.json)，当前尚未公开发布。
 
-Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由。原提交/调度/采集/后台投递服务链现已通过完整离线 k=2 验证：18/24 admissions、8 次 Job、76 次本地 fixture 请求、零上游请求，重开不重复执行；外部连接仍为协议 fixture。前三次实际 DeepSeek 尝试保留为失败/中断，已据证据补齐 context 只读文件和原 metrics-source Version，干净源码真实模型验收仍待完成，通过后才提交本轮 PR。普通 Python/R 的原路由与 unknown 锁边界保持，最终 Unix CI、PR 审查与发布包也未完成。当前范围见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)，原始红绿见 [服务链验证](validation/alpha/compute-original-workflow/manifest.json)。
+Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由。原完整服务链离线 k=2 通过；实际 DeepSeek 第五次实验沿原 manager 恢复后完成 22/24、8 Job、累计 156/240 模型请求，独立评估 88/92 pass、产物 passed。原方法18次执行/既有Job未重提；干净提交8ec对完成实例复核1/1，零模型/运输调用。原反思缺闭合标签，原 parser 正确不保留 Library entry；离线正向 Library、失败工具后修正、24个真实 producer/Version 仍验证。全部先前模型、身份和验收断言失败保留；外部连接/加密器仍为协议 fixture，不能据此声称外部 SSH、科学提升或完整GUI/发布包通过。普通 Python/R 原路由与 unknown 锁边界保持。当前 head Unix 对照、堆叠 PR 审查与最终四目标包待完成；原 hosted 失败和模块登记修复已核对。当前范围见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)，原始红绿见 [服务链验证](validation/alpha/compute-original-workflow/manifest.json)。
 
 2026-10-21 更新：R 已通过同一构建的真实桌面离线和首次 DeepSeek 双模式/停止续跑/独立审阅，详见 [R 实际验收](ALPHA_R_CONTRACT.md#后续实际验收2026-10-21)。原 108 个新增失败 ID 的本地定向修复已逐项通过，仍需以修复 head 完成 hosted 比较及 PR 审查。仓库已公开且 runner 已实际执行，旧账户限额不再作为当前阻断。继续收尾这些已有 PR/回归和原生包；二进制原 owner/方法资产、真实 RDS/PNG 及 4746 同构建桌面/DeepSeek 已接通，最终平台包仍待，见 [二进制集成](ALPHA_BINARY.md)。Compute 候选融合仍须复用原模块，不另造工具运行时。自动触发、平台配置发布/回滚及完整精确账本与上游功能补全分别标注，见 [来源说明](ALPHA_CONTRACT.md#功能来源说明)。
 

@@ -2,7 +2,7 @@
 
 固定来源仍为 `UPSTREAMS.json` 的 OpenScience `9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5` 与 Harness² `1cfe254e8d25b15f37048c3730134686abe60335`。在已验证二进制融合 `ce0e1d498` 上继续实施；Windows 版本延期 0.2，当前验收为 macOS/Linux。
 
-当前状态见文末“真实 owner 与桌面整合”；下列共享类型阶段的准入关闭描述保留为历史。当前已随真实 owner 开放 Compute snapshot 和同一任务目录入口，但完整原 Compute 服务链及 DeepSeek 验收仍未完成。
+当前状态见文末“原完整 Compute 服务链及 context 文件”。同一任务目录、真实 owner 与完整原 Compute 服务链已通过受控离线及实际 DeepSeek 联验；后者完成后以原记录重开复核，未重放模型或 Job。下列共享类型阶段的准入关闭描述保留为历史。当前 host 联验不代替最终 GUI、Unix CI 或安装包验收。
 
 复用原 Node control REPL、ComputeService/Job repository、审批、结果回投、Notebook producer、ArtifactVersion 和 Review。不能新增 SSH/Job 引擎、第二份任务状态或产物存储。下文是实施契约；共享类型通过不等于 Compute 候选已可用。
 
@@ -100,4 +100,20 @@
 
 context/snapshot/native preparation 4 文件 160/160、共用 binding/resume/method 3 文件 99/99、离线 Compute/provider 2 文件 21/21，通过完整 Node/sandbox/Web compiled types、lint、格式及 derived-consumer 检查。分组重叠，不相加；完整普通生命周期结果以原始报告为准。该次离线 Compute 是提交调用层改造前的工作树，不能称干净源码真实模型验收。
 
-前三次实际 DeepSeek 尝试分别保留为中断/失败。第三次 132 次 HTTP 请求全部成功，但反思提示过长、候选独立审阅正确 flagged，没有配置推广；受控任务现明确发布原 metrics-source Version，数值与评分要求不变。修复后的干净源码真实模型验收仍待执行，通过前不提交“验证通过”的 Compute PR。代理请求数不是生产费用账本，PNG 字节/Read 不证明图像语义正确，当前 host composition 也不代替 GUI 或最终安装包。原始红绿及失败见 [完整服务链记录](validation/alpha/compute-original-workflow/manifest.json)。Windows 全部按用户决定留至 [0.2-Alpha](WINDOWS_0_2_ALPHA.md)。
+实际 DeepSeek 尝试的失败全部保留。第三次 132 次 HTTP 请求全部成功，但反思提示过长、候选独立审阅 flagged；第四次实际完成 21/24、两侧独立评估 88/93 pass，测试误要求每个中间 Notebook 工具 Run 都成功而失败。原上游允许错误后修正，实际 24 个发布 Version 的 producer 均 completed；11 个失败工具 Run 仍保留，未改记通过。第五次完成原方法及 8 个 Job，但候选语义回复给二进制 PNG 提供空引文，被原 parser 拒绝；baseline 原回复实际有效，不是 JSON 双重转义缺陷。
+
+`bfd2396dd` 只澄清语义 mission 中“实际文本内容”与“JSON 信封”的区别，parser、schema、验收标准和评分规则不改。同一第五次实验沿原 manager 显式续跑；恢复测试还原原 provider endpoint，保留身份检查与原预算，没有重建 Task、Core、Job 或重提任务。只新增两次 reviewer 执行和 7 次实际 DeepSeek 请求；累计 149+7=156/240，Core 22/24 全部 completed/cleanup confirmed，独立评估 baseline 88/pass、candidate 92/pass，数值产物检查 passed，配置仅 eligible。
+
+这次反思的原回复缺少 `</experience>`，原 Harness² `_distil` 返回 `{}`，Library 为空；不是字面 `NO_ENTRY`，也不能宣称已积累可复用经验。原反思执行及 immutable reply 完整保留。新测试先前强制 experience 存在而失败，现改为核对原 distillation 结果：有 entry 必须绑定原 reflection/Version，无 entry 不伪造经验。正向 Library 仍由完整离线 18/24、8 Job、76 次 fixture 请求及原 provenance guards 验证；最终离线 Compute/Library 两套 26/26。
+
+干净测试提交 `8ec476031` 已对原完成实例重开：1/1 通过，22 条 Core、8 个 Job、24 个实际 producer/Version 均不变，零新模型请求、零运输调用；156/240 预算累计值保留。原始 22 个 Session、8 份 Notebook 文档、183 个 native Read 回执和 reflection 原文已归档。这是已完成实验的证据复核，不是重新从零付费运行通过；原失败报告没有覆盖。另修复全仓 lint 暴露的四个既有测试风格错误，仅补返回类型、清理无用变量和显式空 close；两文件 63/63，完整 lint 通过，原红报告保留。
+
+全部红绿、原始模型失败及复核见 [完整服务链记录](validation/alpha/compute-original-workflow/manifest.json)。代理请求数不是生产费用账本；原 API/美元统计仍 unknown。PNG 字节及 native Read 不证明图像语义正确，数值模型评分不证明科学提升；当前 host composition 也不代替 GUI 或最终安装包。Windows 全部按用户决定留至 [0.2-Alpha](WINDOWS_0_2_ALPHA.md)。
+
+## Unix CI 与剩余交付
+
+PR18 `39583693350` 和 PR20 `39585343040` 均已实际完成失败，不再记 pending。下载原报告及 sidecar 后，用各运行原 normalize/validate/compare 重新核对，Linux inventory 完整、零全局错误；PR18 为 baseline29/candidate29、零新增失败，但原失败和新增 skip 均保留。macOS 存一个原高亮测试的新增 timeout，原生产/测试/dependency 字节未改，本地原版和候选各 52/52；原因未在 hosted 证明，不改超时或比较规则、不称 flake。
+
+PR20 两个 Unix 平台相同的 28 个新增失败 ID 中，27 个归属/DAG 登记已由先前 `56c083b1b` 修复；余下精确路径分类登记由 `e916b7dee` 修复。本地原静态检查 480/480，真实模块审计 8039/8039。该修复没有运行 Windows；完整原始 Linux 报告保留在 Actions artifact 及本地，仓库收录完整 comparison、摘要、哈希和原脚本复核，不冒称嵌入全部 753MB 原始语料。见 [Unix CI 后续证据](validation/alpha/compute-unix-ci-followup/manifest.json)。
+
+当前 head 的完整 Unix 对照、堆叠 PR 审查和四个当前 macOS/Linux 原生包及公开发布仍待完成。固定原 Core/scope、TaskRunner、Job/Notebook/delivery repositories 与 Harness² 原方法继续保留；独立评估、配置治理或自动触发不能变成新的执行规则。

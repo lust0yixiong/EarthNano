@@ -1,0 +1,246 @@
+{
+  "scope": "Original hosted Unix comparisons and minimal static registration; no Windows operation. Original raw753MB corpus is preserved externally and in named GitHub artifacts; this archive retains full comparisons, hashes, original-helper re-verification, red/green and source review. No claim that raw Vitest/runtime corpus is embedded here.",
+  "staticSource": "9bb2cd183072a770ced834f374f5587da7738fee",
+  "rootCherry": "e916b7dee",
+  "checks": {
+    "classifyRed": {
+      "passed": 129,
+      "failed": 1
+    },
+    "staticGreen": {
+      "passed": 480,
+      "failed": 0
+    },
+    "realAudit": "8039/8039; zero missing/routing gaps"
+  },
+  "runs": {
+    "PR18": "39583693350 Linux no-new-regressions29/29; Mac original1 new highlight failure retained",
+    "PR20": "39585343040 same28 new regressions across Mac/Linux; existing56c resolves27 and this static registration resolves1, verified original IDs locally"
+  },
+  "limits": [
+    "Linux baseline29 failures and all original skip inventories preserved; not a claim of all upstream tests passing.",
+    "Mac native highlighting production blobs and dependency lock entries unchanged; original/candidate local52/52 only, hosted1s timeout remains a failed observation, no flake or hosted-green claim.",
+    "Current-head hosted comparison, four current Unix native packages and publication still pending."
+  ],
+  "archives": [
+    {
+      "file": "REPORT.md.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/REPORT.md",
+      "originalBytes": 6072,
+      "sha256": "f6f1eae8e064b2b481eb16f9eb195cc624580997addeb09d6cd09d5599ed0104",
+      "gzipSha256": "b6ba8414602de3d039eb500436d66910b465dd967add37d3eb5081887d1e1ca9"
+    },
+    {
+      "file": "SUMMARY.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/SUMMARY.json",
+      "originalBytes": 15326,
+      "sha256": "7ce7c06b589694cac719f02533580656bb8f6c76f4098e2968ecec004273db90",
+      "gzipSha256": "2e68e9df86f41f4dc4a2dae7515807f99ca875d4ebfeda260196658e7e9b1a15"
+    },
+    {
+      "file": "original-helper-reverification.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/original-helper-reverification.json",
+      "originalBytes": 24649,
+      "sha256": "37277f7c71ad8e04c54c333b5be1cf2183e10dd4828472dc4d5c72dc9605697d",
+      "gzipSha256": "10e00ab8272837ecc22bf73d34ae46927d3c7649e92fd6b42048b1935ddf39bf"
+    },
+    {
+      "file": "downloaded-artifacts-sha256.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/downloaded-artifacts-sha256.json",
+      "originalBytes": 23143,
+      "sha256": "9f273df7bc52aa2bac51de89b0f0448925f73d191f407ece52d2af7800716c2f",
+      "gzipSha256": "c55c202c3e1502573e9332b6a6fac242734dcc2fdaca92218e9635c1a50208ab"
+    },
+    {
+      "file": "pr18-run.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr18-run.json",
+      "originalBytes": 29700,
+      "sha256": "866fe9ace0068016a65c3ff44cfb9fffd102da210edb92e5e59060de66cf246b",
+      "gzipSha256": "d19f2d1b24474c48f01b1c455c19d5a1b624648c8300e1e90049c54988bed5f3"
+    },
+    {
+      "file": "pr20-run.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr20-run.json",
+      "originalBytes": 29700,
+      "sha256": "ef7cf4a28a155c14f0934614e7dfd00ad91390cb9ec3a67c4e634c647cb547f7",
+      "gzipSha256": "57259af61dda0f1192aa2caa2e85d78f5316d2d766832728fac80606c96f5a3a"
+    },
+    {
+      "file": "pr18-checkout-commit.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr18-checkout-commit.json",
+      "originalBytes": 304,
+      "sha256": "05a974b5da59b40d454ebbe8965c7e685413a566efb382690efb5d749d165f32",
+      "gzipSha256": "01b29a08850353fe8e52b00f65b3cd4d6f84aa39582d8cc74335198be1faf66e"
+    },
+    {
+      "file": "pr20-checkout-commit.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr20-checkout-commit.json",
+      "originalBytes": 304,
+      "sha256": "b88eb796177fb0aa3f2224d9669e10360faab9ea31cf0b516f9f6ed4b13a4092",
+      "gzipSha256": "b6e226f7affb53984a061f08460459b268060ab464fa8edfd9f9b645fedc03f2"
+    },
+    {
+      "file": "classify-red.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/classify-red.json",
+      "originalBytes": 47397,
+      "sha256": "5cf27a9bc7cba354e482961a2b0331489805f432a1b3fa1bda47682d81866923",
+      "gzipSha256": "7c0c2401a15e8ea47800b12c915a2ce5435c8bd584bd712f686b7f002d258aca"
+    },
+    {
+      "file": "classify-red.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/classify-red.log",
+      "originalBytes": 12541,
+      "sha256": "3bb6bf5786a90370f4bbad4a2dc8c15e523d8ffa5556182c871f86d3abef219c",
+      "gzipSha256": "420ebb60e38174c3a0c3af5b118358ee4636c42d3467c18536c7056f66264caf"
+    },
+    {
+      "file": "static-green.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/static-green.json",
+      "originalBytes": 174739,
+      "sha256": "937316a9639a4df54bb6a6d122d1b4695ba4fd85c618bba6b346e1ccf8fa6058",
+      "gzipSha256": "05c24fcc1590a09836d821946d9da70a420a23abda7540a203c157ce6f78f38a"
+    },
+    {
+      "file": "static-green.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/static-green.log",
+      "originalBytes": 1276,
+      "sha256": "4c2fbf666e34a53ac50fa54204b7e642bc8e993909644e9c1cee4487063c7b48",
+      "gzipSha256": "ca7140d0fe8d3d4a1106033a65988b89a7b70fd20580f63eb2d27c296a06512a"
+    },
+    {
+      "file": "static-green-real-audit.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/static-green-real-audit.json",
+      "originalBytes": 21991,
+      "sha256": "0251f827719ffad2baba3a3ca05f299c0353993f882dc4c5309cf2cd09595b04",
+      "gzipSha256": "bd5931a0987d17a7189400f6c8dbaeea95fcefc8c42cd4a555923b0183d10c3a"
+    },
+    {
+      "file": "current-b72-audit-guards.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/current-b72-audit-guards.json",
+      "originalBytes": 127963,
+      "sha256": "5da5fa3e05c2f9e7ca57d3daa991bfbad4cb32214b1188c14dc8eb9224d07b65",
+      "gzipSha256": "8861cee18cf9266cadf006c85a8381335d5ddc50d19ed2d98fb11287e37b1c7c"
+    },
+    {
+      "file": "current-b72-host-classify.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/current-b72-host-classify.json",
+      "originalBytes": 48536,
+      "sha256": "3ed5ee566c13bc9779f466bab911fe138e003efb78e1777bb2918960db37754c",
+      "gzipSha256": "028eae684ed0a9eef1559add430a27edd18d0b144376bb8773622a6c8e9aea2b"
+    },
+    {
+      "file": "current-b72-real-audit.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/current-b72-real-audit.json",
+      "originalBytes": 21991,
+      "sha256": "0251f827719ffad2baba3a3ca05f299c0353993f882dc4c5309cf2cd09595b04",
+      "gzipSha256": "bd5931a0987d17a7189400f6c8dbaeea95fcefc8c42cd4a555923b0183d10c3a"
+    },
+    {
+      "file": "pr18__earthnano-source-comparison__comparison.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr18/earthnano-source-comparison/comparison.json",
+      "originalBytes": 7763600,
+      "sha256": "0e1cc40bac72b76293cef8ce960868365e6846417b7952a3c93eede1dba32175",
+      "gzipSha256": "6f3eef8c71fb923def1042044f7ea62aaed2ed4f060a330fb35e42eb5a4506d3"
+    },
+    {
+      "file": "pr20__earthnano-source-comparison__comparison.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr20/earthnano-source-comparison/comparison.json",
+      "originalBytes": 7876177,
+      "sha256": "e18637d3c55e353d1e5d4954d89a03539c4a1bc7503ab3f8f1ad1f59931a142f",
+      "gzipSha256": "e97aef8fcdb38b6ebe6d916e854645aea0789140b5f0dc08e91c068995119670"
+    },
+    {
+      "file": "pr18-linux-recomputed__comparison.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr18-linux-recomputed/comparison.json",
+      "originalBytes": 3924636,
+      "sha256": "1fb03ee95e241a0cd0e4f59ae8322983bbc65663f64fa3c7671af03a8aa718d1",
+      "gzipSha256": "bb4d469a0879bd894d329bf288ecb40be7be2b970ae4c3f97665f970671c9747"
+    },
+    {
+      "file": "pr20-linux-recomputed__comparison.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/hosted-linux-final/pr20-linux-recomputed/comparison.json",
+      "originalBytes": 3981571,
+      "sha256": "b2177632cb0340fea1d0338132c415c56f734a0e2d9f41244a0c4c7e14fe55d8",
+      "gzipSha256": "9fa4e5e228aee37e0c09556d70cd9d7140f309e6ec27f496de5673b42c4fdcda"
+    },
+    {
+      "file": "highlighter__current-target.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/current-target.json",
+      "originalBytes": 16719,
+      "sha256": "8a333af1f72a87f13f254cd478afc282298af29f21f8b160503d0673239442f2",
+      "gzipSha256": "56a6a890cea9bdbb3819c1fc317dd3896f0e25b5b4be1f1cacafc467c56eb58e"
+    },
+    {
+      "file": "highlighter__original-target.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/original-target.json",
+      "originalBytes": 16767,
+      "sha256": "9b3ae9ec420e8cb8e404a7d7c105e788ed3a17983ca7f7524e2e1206b368406e",
+      "gzipSha256": "c08416440fc10acc04affe8c758a73caec67a5ac58253c41c48ea7a1bd40d19a"
+    },
+    {
+      "file": "highlighter__current-file.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/current-file.log",
+      "originalBytes": 140,
+      "sha256": "7fa082ffdffcc494af0055affd1105601c5cddbdb9d67b201ea90c36c8c18c39",
+      "gzipSha256": "db2f2f2e334d6d56f15b584f9120fc9231c60eee325e59ea5d5390ef2e20b929"
+    },
+    {
+      "file": "highlighter__original-file.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/original-file.json",
+      "originalBytes": 18206,
+      "sha256": "86fd87720dbc7632970bc31bfbb62735f478e41b7f6e09b83050b3a2060b07b5",
+      "gzipSha256": "12fb6d48db49317e02d456a9450f4165c2893158ee04adf49e9319c06cd33fda"
+    },
+    {
+      "file": "highlighter__REPORT.md.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/REPORT.md",
+      "originalBytes": 6873,
+      "sha256": "93b6410b9dfe090e8486a85f5fdd72c6b5d71ddf0ad6c6a140c9db7df496cda9",
+      "gzipSha256": "798b49e409ea9793a7a131630a818898563001fa7e10bf7f74ec69d9a97a295a"
+    },
+    {
+      "file": "highlighter__original-file.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/original-file.log",
+      "originalBytes": 141,
+      "sha256": "5b688bdf33081fc9c37f6b8b3c46dd5a7af6f0705ed0c81f017aad8a7bc5d42d",
+      "gzipSha256": "492c23a26849c8ac354508398869dd5885708a6635643c015bf5a4c9eceb71d0"
+    },
+    {
+      "file": "highlighter__current-target.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/current-target.log",
+      "originalBytes": 142,
+      "sha256": "cd621451bc67b425ea1d6b460979bce1adceb2fa138209281b01795ad4943bc3",
+      "gzipSha256": "2a8d9213d8f37ecac60ee3c91dfd363dedc00a002103c66250e55a2969201db7"
+    },
+    {
+      "file": "highlighter__original-target.log.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/original-target.log",
+      "originalBytes": 143,
+      "sha256": "1b7e2e0c2d3a3a23772d2466f0f88155b43e106a387f086d26ada74d096acd09",
+      "gzipSha256": "efcecd816ab9666b0ed1c558aed3f2b549132aee8e091182bcf0cac9c7826085"
+    },
+    {
+      "file": "highlighter__facts.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/facts.json",
+      "originalBytes": 14326,
+      "sha256": "489becb318beb04693b0067c2c4f4c591bb0bf2b48a1b394b6c12d856701edb3",
+      "gzipSha256": "47569210708a85dd9ecb84b8ea2a00b8adc8f8122636ac4df1eb01080e780382"
+    },
+    {
+      "file": "highlighter__current-file.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/current-file.json",
+      "originalBytes": 18166,
+      "sha256": "92aee9123532c4c99351adbd198d7635c2aebcb89995fe7dfeebaada0fef0ccc",
+      "gzipSha256": "faeb7cf28bb72e6f492987fec65e561ca3e604a7dc7416170c9e1f938a1a7337"
+    },
+    {
+      "file": "highlighter__source-comparison.json.gz",
+      "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/highlighter-hosted-review/source-comparison.json",
+      "originalBytes": 3177,
+      "sha256": "a7f1b6115a98b3a366f0bceae4dae748a49160ee0537a8133721f393e80bf7c3",
+      "gzipSha256": "5f5195cdee665906181d77f0975b0e27323c3d1689308d93f24d35c1ee604279"
+    }
+  ],
+  "actualKeyMatches": 0,
+  "roundtripVerified": 31
+}
