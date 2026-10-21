@@ -147,6 +147,8 @@ export interface DesktopOptimizationDependencies {
   validateSession(projectId: string, sessionId: string): Promise<void>
   admitSessionWork(projectId: string, sessionId: string): () => void
   harnessRoot: string
+  /** Same host-platform injection used by original runtime detection; production defaults to its host. */
+  platform?: NodeJS.Platform
   resolvePython?: () => Promise<string>
   probeClaudeVersion?: (executablePath: string) => Promise<string | undefined>
   loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
@@ -167,7 +169,10 @@ async function captureDesktopOptimizationRuntime(
   dependencies: DesktopOptimizationDependencies
 ): Promise<DesktopOptimizationRuntime> {
   const target = await dependencies.settings.captureActiveExplicitAgentBackendTarget()
-  if (process.platform === 'win32' || target.frameworkId !== 'claude-code')
+  if (
+    (dependencies.platform ?? process.platform) === 'win32' ||
+    target.frameworkId !== 'claude-code'
+  )
     throw new DesktopOptimizationSetupError(
       'Optimization requires a supported Claude Code runtime. Check the selected model and runtime settings.'
     )
