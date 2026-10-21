@@ -30,6 +30,7 @@ import { ArtifactRepository } from '../artifacts/repository'
 import { ArtifactRunRegistry } from '../artifacts/run-registry'
 import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository'
 import { ArtifactTurnOwner } from '../acp/artifact-turn-owner'
+import { SettingsRepository } from '../settings/repository'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { ManagedFileIndexRepository } from '../project-files/repository'
 import { UploadRepository } from '../uploads/repository'
@@ -378,6 +379,8 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   let promptContext: import('../../shared/acp').AgentTurnProvenanceContext | undefined = undefined
   let exported = false
   const host = createSessionExecutionHost({
+    settings: new SettingsRepository(configRoot),
+    versions,
     dataRoot,
     configRoot,
     getClient: async () => client,
@@ -833,7 +836,16 @@ it.each(['missing', 'corrupt'] as const)(
       condition === 'missing' ? 'missing' : 'unreadable'
     )
     const dispatch = vi.fn()
-    const host = createSessionExecutionHost({ dataRoot, configRoot, getClient: async () => client })
+    const host = createSessionExecutionHost({
+      dataRoot,
+      configRoot,
+      getClient: async () => client,
+      settings: new SettingsRepository(configRoot),
+      versions: new ManagedFileVersionService({
+        storageRoot: dataRoot,
+        getClient: async () => client
+      })
+    })
     await expect(
       host.prepare({
         attemptId: 'first-send',

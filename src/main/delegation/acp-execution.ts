@@ -346,6 +346,7 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
     let providerPromptStarted = false
     let missionOutcome: DelegateExecutionOutcome | undefined
     let missionFailure: unknown
+    let missionAcceptanceFailure: unknown
     let executionContext: ExecutionContext | undefined
 
     const settleAccepted = (
@@ -671,11 +672,8 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         ownsWorkspace = true
         if (cancelRequested) {
           await settleOutcome({ status: 'cancelled' })
-          settleAccepted(
-            'provider_prompt_completed',
-            new DelegateMessagePreAcceptanceError(
-              'delegate execution was cancelled before provider acceptance'
-            )
+          missionAcceptanceFailure = new DelegateMessagePreAcceptanceError(
+            'delegate execution was cancelled before provider acceptance'
           )
           return
         }
@@ -697,11 +695,8 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         })
         if (cancelRequested) {
           await settleOutcome({ status: 'cancelled' })
-          settleAccepted(
-            'provider_prompt_completed',
-            new DelegateMessagePreAcceptanceError(
-              'delegate execution was cancelled before provider acceptance'
-            )
+          missionAcceptanceFailure = new DelegateMessagePreAcceptanceError(
+            'delegate execution was cancelled before provider acceptance'
           )
           return
         }
@@ -796,7 +791,7 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
           terminalError = cleanupError
         }
         missionFailure = terminalError
-        settleAccepted('provider_prompt_completed', acceptanceError)
+        missionAcceptanceFailure = acceptanceError
       }
     }
     const work = (async (): Promise<void> => {
@@ -824,12 +819,17 @@ const createAcpDelegateExecution = (options: AcpDelegateExecutionOptions): Deleg
         } catch (cleanupError) {
           missionFailure = cleanupError
         }
-        settleAccepted('provider_prompt_completed', error)
+        missionAcceptanceFailure = error
       } finally {
         terminalSettled = true
         if (missionFailure !== undefined) terminal.reject(missionFailure)
         else if (missionOutcome) terminal.resolve(missionOutcome)
         else terminal.reject(new Error('Delegated mission has no terminal outcome'))
+        // Durable delegation races initial acceptance against completion. Publish the original
+        // cleanup-bearing terminal result first, after the shared Core owner has committed it;
+        // rejecting acceptance earlier would hide an unreaped runtime behind its startup error.
+        if (missionAcceptanceFailure !== undefined)
+          settleAccepted('provider_prompt_completed', missionAcceptanceFailure)
       }
     })()
 
