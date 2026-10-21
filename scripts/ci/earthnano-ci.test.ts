@@ -10,6 +10,7 @@ import {
   compareReports,
   exactElectronVersion,
   normalizeVitest,
+  sourceTestInvocation,
   validateSourceExecution,
   HARNESS_PIN,
   HARNESS_TREE,
@@ -609,4 +610,59 @@ describe('EarthNano original-baseline gates', () => {
     expect(recipes).toContain('linux-package-smoke.mjs --artifact-dir dist')
     expect(recipes).toContain('if-no-files-found: error')
   })
+})
+
+it.each(['win32', 'darwin', 'linux'] as const)(
+  'preserves the original npm test environment and exact source flags on %s',
+  (platform) => {
+    const args = [
+      '--shard=7/8',
+      '--maxWorkers=2',
+      '--testTimeout=30000',
+      '--hookTimeout=60000',
+      '--reporter=json',
+      '--reporter=/source/original-runtime-reporter.mjs',
+      '--outputFile=/reports/vitest.json'
+    ]
+    expect(sourceTestInvocation(args, platform)).toEqual({
+      command: platform === 'win32' ? 'npm.cmd' : 'npm',
+      args: ['--ignore-scripts', 'test', '--', ...args],
+      shell: platform === 'win32'
+    })
+  }
+)
+it('runs the original test script with npm_execpath without repeating the recorded pretest', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'earthnano-npm-test-env-'))
+  roots.push(root)
+  const resultFile = join(root, 'test-environment.json')
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({
+      name: 'earthnano-original-source-test-environment',
+      private: true,
+      scripts: {
+        pretest: 'node -e "throw new Error(\'pretest must remain a separate recorded stage\')"',
+        test: 'node capture.mjs'
+      }
+    })
+  )
+  await writeFile(
+    join(root, 'capture.mjs'),
+    `import { writeFileSync } from 'node:fs'; writeFileSync(process.env.EARTHNANO_TEST_ENV_OUTPUT, JSON.stringify({ npmExecpath: process.env.npm_execpath, lifecycleEvent: process.env.npm_lifecycle_event, args: process.argv.slice(2) }))`
+  )
+  const invocation = sourceTestInvocation(['--shard=7/8', '--maxWorkers=2'])
+  const child = spawnSync(invocation.command, invocation.args, {
+    cwd: root,
+    shell: invocation.shell,
+    encoding: 'utf8',
+    timeout: 15_000,
+    env: { ...process.env, EARTHNANO_TEST_ENV_OUTPUT: resultFile }
+  })
+  expect(child.status, child.stdout + child.stderr).toBe(0)
+  const observed = JSON.parse(await readFile(resultFile, 'utf8'))
+  expect(observed).toMatchObject({
+    lifecycleEvent: 'test',
+    args: ['--shard=7/8', '--maxWorkers=2']
+  })
+  expect(observed.npmExecpath).toMatch(/[\\/]npm-cli\.js$/)
 })

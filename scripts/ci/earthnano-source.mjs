@@ -245,6 +245,14 @@ export async function verifyPins(root) {
     throw new Error('Original OpenScience license differs or cannot be verified')
   return manifest
 }
+export function sourceTestInvocation(args, platform = process.platform) {
+  // pretest has its own recorded stage. npm still supplies the original test lifecycle environment.
+  return {
+    command: platform === 'win32' ? 'npm.cmd' : 'npm',
+    args: ['--ignore-scripts', 'test', '--', ...args],
+    shell: platform === 'win32'
+  }
+}
 export async function sourceShard({ root, kind, shard, total, out }) {
   if (
     !['baseline', 'candidate'].includes(kind) ||
@@ -350,9 +358,7 @@ export async function sourceShard({ root, kind, shard, total, out }) {
       ['run', 'typecheck:compiled'],
       { shell: process.platform === 'win32' }
     )
-    await stage('tests', process.execPath, [
-      'node_modules/vitest/vitest.mjs',
-      'run',
+    const testInvocation = sourceTestInvocation([
       `--shard=${shard}/${total}`,
       '--maxWorkers=2',
       '--testTimeout=30000',
@@ -361,6 +367,9 @@ export async function sourceShard({ root, kind, shard, total, out }) {
       `--reporter=${fileURLToPath(new URL('./earthnano-runtime-reporter.mjs', import.meta.url))}`,
       `--outputFile=${join(out, 'vitest.json')}`
     ])
+    await stage('tests', testInvocation.command, testInvocation.args, {
+      shell: testInvocation.shell
+    })
     metadata.tests = normalizeVitest(await json(join(out, 'vitest.json')), selected)
     validateSourceExecution(metadata, await json(join(out, 'runtime.json')))
   } catch (error) {
