@@ -52,6 +52,7 @@ describe('Windows installer smoke plan', () => {
     const failure = new Error('installer stalled')
     const run = vi.fn().mockRejectedValue(failure)
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {})
     try {
       await expect(installApplication('setup.exe', installDirectory, {}, run)).rejects.toBe(failure)
       expect(run).toHaveBeenCalledWith('setup.exe', ['/S', `/D=${installDirectory}`], {
@@ -63,10 +64,62 @@ describe('Windows installer smoke plan', () => {
         installedEntries: [],
         archiveBytes: 0
       })
+      expect(JSON.parse(diagnostic.mock.calls[0][0])).toMatchObject({
+        phase: 'installApplication',
+        args: ['/S', `/D=${installDirectory}`],
+        windowsVerbatimArguments: false,
+        installDirectory,
+        error: { message: 'installer stalled', exitCode: null, signal: null }
+      })
     } finally {
       log.mockRestore()
+      diagnostic.mockRestore()
       await rm(root, { recursive: true, force: true })
     }
+  })
+
+  it('retains bounded installer failure evidence without dumping unrelated environment values', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'open-science-install-diagnostics-'))
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const failure = Object.assign(new Error('failure'), {
+      exitCode: 2,
+      signal: null,
+      stdout: 'a'.repeat(9000),
+      stderr: 'publication output'
+    })
+    const env = { TEMP: join(root, 'Temp'), USERPROFILE: root, SECRET: 'must not log' }
+    try {
+      await expect(
+        installApplication('setup.exe', join(root, 'installed app 程序'), env, async () => {
+          throw failure
+        })
+      ).rejects.toBe(failure)
+      const evidence = JSON.parse(diagnostic.mock.calls[0][0])
+      expect(evidence.profile).toEqual({ TEMP: env.TEMP, USERPROFILE: root })
+      expect(evidence.error).toMatchObject({ exitCode: 2, stderr: 'publication output' })
+      expect(evidence.error.stdout).toHaveLength(8192)
+      expect(diagnostic.mock.calls[0][0]).not.toContain('must not log')
+    } finally {
+      log.mockRestore()
+      diagnostic.mockRestore()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('attaches the actual child exit and output to the original nonzero rejection', async () => {
+    await expect(
+      runProcess(process.execPath, [
+        '-e',
+        "process.stdout.write('stage output'); process.stderr.write('stage failure'); process.exitCode = 2"
+      ])
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('exited with 2'),
+      exitCode: 2,
+      signal: null,
+      stdout: 'stage output',
+      stderr: 'stage failure'
+    })
   })
 
   it('selects one setup executable and rejects ambiguous artifacts', async () => {
