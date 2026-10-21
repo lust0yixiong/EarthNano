@@ -47,6 +47,7 @@ import {
 } from './run-persistent-optimization'
 import type { PersistentOptimizationResume } from './optimization-resume'
 import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 
 type DesktopRequest = StartDesktopOptimization | StartDesktopSweep
@@ -701,6 +702,12 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       return request
     }
     if (saved.kind === 'sweep-v2') throw new Error('Original sweep identity unavailable')
+    const notebookLanguage = notebookLanguageForTools(identity.input.harness.tools)
+    if (
+      notebookLanguage &&
+      identity.input.environment.notebook?.runtime.language !== notebookLanguage
+    )
+      throw new Error('Original Notebook profile differs from its frozen runtime language')
     const artifactPaths = new Set(identity.inputArtifacts?.map((entry) => entry.path) ?? [])
     const rawFiles = (
       files: readonly { path: string; content: string }[]
@@ -719,7 +726,13 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         ? { inputArtifacts: structuredClone(identity.inputArtifacts) }
         : {}),
       ...(identity.sourcePromptMessageId
-        ? { notebook: { promptMessageId: identity.sourcePromptMessageId } }
+        ? {
+            notebook: {
+              promptMessageId: identity.sourcePromptMessageId,
+              // Omission is the original Python DTO. Restore R only from the frozen identity.
+              ...(notebookLanguage === 'r' ? { language: 'r' as const } : {})
+            }
+          }
         : {}),
       ...(identity.checks ? { checks: structuredClone(identity.checks) } : {}),
       ...(identity.domain

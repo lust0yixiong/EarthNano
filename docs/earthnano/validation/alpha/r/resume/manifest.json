@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "scope": "Desktop legacy Notebook resume reconstruction only. Mock execution/option factories; no native R, original Session/Artifact/Review integration, full project types, or DeepSeek acceptance. Original manager regression: 2 failed/25 passed; repaired current files: 27 passed. Earlier intermediate fixture/assertion failures are retained without claiming production regressions.",
+  "credentialScan": "actual authorized key tokens absent from all decompressed receipts",
+  "files": [
+    {
+      "path": "manager-resume-current.log.gz",
+      "sourceBytes": 2188,
+      "sourceSha256": "7940b3c74aafff37e43d1071043fd43bf87e40359db95415def672741fbe3af6",
+      "storedSha256": "96c8d0d41eb727067151a28c3bf3b54800f5cf7e99bb2bd40a28576a8215ad83",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-fixed.log.gz",
+      "sourceBytes": 3155,
+      "sourceSha256": "dfc02e9a91d6a7370ae0747b05ad51e6ef56b3f46aad6434c3e38db2c0479e0c",
+      "storedSha256": "43e2b5936dd5dfd6046076db33afdb15c0e04ddd0e25049bd943237769cf41b1",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-final.log.gz",
+      "sourceBytes": 1777,
+      "sourceSha256": "e2356c0542e0250068207fbaded8fa430897f1e4a1561df5fe57305b68adf26f",
+      "storedSha256": "abe9a555beae3ce1018a31185204de740a8eaa3360d3239961fb5b088bb32492",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-green.log.gz",
+      "sourceBytes": 254,
+      "sourceSha256": "5200078e67c42acc09716b8126aa006fe4c229dfb380ef6905b6fd07bb5d3478",
+      "storedSha256": "12ef6b6d063056914d4e87bc8fbafeb5a9382b06ce55f685bbc2b5245188c422",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-original-regression.log.gz",
+      "sourceBytes": 3074,
+      "sourceSha256": "d2fc16ffd35d845b8ae121b86782b5a8d59e0bb19d89c5ed789e5ddb2685430f",
+      "storedSha256": "379bef44411f9fe65bc6a91168607bebc46ada140e8d47ea2b843951cfef8029",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-original-regression.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "storedSha256": "e90a5df1e4731c80807cd1158a710d9d52313a7930921de3488037d616dbf3ac",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-confirmed.log.gz",
+      "sourceBytes": 309,
+      "sourceSha256": "64156c9c2cee55c8a57c8ba45f3daefb0818226d01a5a18c3461956c3e081f0b",
+      "storedSha256": "830753541b8588bd4876be2ecb35bdde1c76ba5e683fe363a70ea990b2dad492",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-confirmed.json.gz",
+      "sourceBytes": 740,
+      "sourceSha256": "c26229236e3c9144ab0592512bc6b096444e239bb3db43567ca351a6d14b70a4",
+      "storedSha256": "570adea2caa97b286db3ff7661315a57a36e59eb88378364f612be04a310fc95",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-confirmed.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "storedSha256": "20c148978dbd3180469fa3f43c2076f7a1f97fe430474622903cf1c2954751c0",
+      "compression": "gzip"
+    }
+  ]
+}

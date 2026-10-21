@@ -30,12 +30,14 @@
 
 先前在 `/tmp/earthnano-r-original-provision-20261021` 的隔离供给和探针记录，随临时目录清理已不可复核；不能作为本轮当前验收证据。2026-10-21 重新检查确认旧依赖链接失效，找到的另一份依赖缺失五项原生二进制，只可用于静态检查。现按原锁文件、完整安装流程和原 `createProductionProvisioner.provisionR` 在持久验证目录重建。必须重新取得原发现返回的 canonical interpreter/runtime ID、原 r_loop.R 探针和实际应用/Core/Artifact/Review 的日志后，才记录对应通过。新增测试使用隔离 env prefix，保持普通用户 runtime/config 不变。
 
-先做合同红绿和原 R 同环境基线，再做有界离线 provider +真实原 kernel/Artifact/RPC 的科研流程。离线完整通过才启动有界 DeepSeek，不因随机模型响应或高分反复付费。旧 Python 单任务及逐任务来源路径须有适用回归。所有失败、辅助脚本误设、跳过条件、runtime/源码/build身份和用量缺失如实保存；hosted CI 的账户限制不等于源码通过，也不阻止本地其余 Alpha 工作。
+先做合同红绿和原 R 同环境基线，再做有界离线 provider +真实原 kernel/Artifact/RPC 的科研流程。离线完整通过才启动有界 DeepSeek，不因随机模型响应或高分反复付费。旧 Python 单任务及逐任务来源路径须有适用回归。所有失败、辅助脚本误设、跳过条件、runtime/源码/build身份和用量缺失如实保存。仓库公开后 hosted CI 已实际运行，先前的账户限制不能继续作为当前阻断理由；仍以具体 job 和固定提交的结果为准。
 
 ### 重建期间可复核的预检
 
 固定 Harness² pin 的原 5 项 unittest 和 EarthNano vendor 的 72 项 unittest 在同一 Python3.12.13 下全部通过；原清单比较结果为 `no-new-regressions`，新增 67 项，没有跳过。这是离线方法回归，不证明 R kernel 或真实模型效果。新增 Main 调用关系使 derived-consumer 索引过期，按原生成器更新后检查通过。
 
-旧依赖的 manager 测试启动因文件读取 `errno -70` 在收集前失败；类型检查另有七项原模块声明缺失。两者均不能记为功能测试通过。审查同时发现 legacy 单任务恢复会丢失 R 语言；修复从冻结 profile 恢复 R 并核对 runtime 语言，Python 保留旧无字段 DTO，回归测试待新环境执行。
+旧依赖的 manager 测试首次启动因文件读取 `errno -70` 在收集前失败；类型检查另有七项原模块声明缺失，不能记为全项目类型通过。后续该依赖能执行不依赖原生模块的 manager 单测：修复从冻结 profile 恢复 R 并核对 runtime 语言，Python 保留旧无字段 DTO。原未修 manager 配合同一新回归为 2 项失败、25 项通过；修复后的当前文件再次执行为 27/27 通过，文件摘要和精确命令见 [恢复回归记录](validation/alpha/r/resume/manifest.json)。这些测试使用 mock 执行入口，只证明桌面恢复身份和转发，不能替代 R kernel、原 Session/产物/Review 或 DeepSeek 验收。中间 fixture 错误的失败日志也保留在该目录。
+
+2026-10-21 04:05 UTC 后检查确认旧安装、R 下载及 continuation 的三个 PID 已不存在，且没有成功退出记录；旧 `running` 状态已失效。04:13 UTC 在持久目录启动第二次有限恢复作业，保留原下载片段，并继续使用原锁文件、完整 `npm ci`、原 `fetchLanguagePack` / `resilientDownload` 与生产 provisioner。运行中的状态文件不算环境完成证据；须取得真实退出码、原校验和及探针结果后再更新验收状态。审计后的当前实施顺序是先收尾 R、已有 PR/CI 与可运行安装包，其他开发中的候选能力保存原工作树，暂不展开新功能；这段实施安排不新增用户验收要求。
 
 现有白底图标的 ICNS 解包与尺寸检查通过（ICNS 最高 1024px），不等于已完成原生包外观验收。以上原始记录、失败、摘要与证据范围见 [预检清单](validation/alpha/r/preflight/manifest.json)；该目录不含 R 原生或 DeepSeek 验收通过声明。

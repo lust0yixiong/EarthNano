@@ -13,7 +13,7 @@ import type {
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { PersistentOptimizationOptions } from './run-persistent-optimization'
 import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
-import { writeResumeJson, type OptimizationResumeIdentity } from './optimization-resume'
+import { writeResumeJson, type SingleOptimizationResumeIdentity } from './optimization-resume'
 import { outputDigest } from './output-checks'
 
 const roots: string[] = []
@@ -29,6 +29,39 @@ const task: StartDesktopOptimization = {
   criteria: 'The count matches the data rows.',
   executionLimit: 9
 }
+const notebookInput = {
+  sourceKind: 'upload-version' as const,
+  sourceProjectId: task.projectId,
+  sourceSessionId: task.sourceSessionId,
+  sourceFileId: 'source-file',
+  inputFileVersionId: 'source-version',
+  filename: 'values.csv',
+  sizeBytes: 7,
+  checksum: 'a'.repeat(64)
+}
+const notebookSnapshot = (language: 'python' | 'r'): SingleOptimizationResumeIdentity['input'] => ({
+  task: { prompt: task.prompt, files: [], managedInputs: [notebookInput] },
+  harness: { instructions: 'Original harness', tools: `notebook-${language}`, skills: [] },
+  agent: {
+    backend: 'claude-code',
+    model: 'fixture',
+    providerRef: 'fixture',
+    runtimeVersion: 'fixture'
+  },
+  environment: {
+    isolation: 'directory-process',
+    network: 'provider-and-notebook-policy',
+    notebook: {
+      runtime: {
+        language,
+        runtimeId: `/original/${language}`,
+        interpreterPath: `/original/${language}`,
+        source: 'external',
+        provenance: 'user-own'
+      }
+    }
+  }
+})
 const fixture = (
   run: DesktopOptimizationManagerOptions['run'],
   overrides: Partial<DesktopOptimizationManagerOptions> = {}
@@ -81,10 +114,11 @@ const key = (runId: string): OptimizationRunKey => ({
 })
 const writeResumeFixture = (
   options: PersistentOptimizationOptions,
-  cleanup = 'confirmed'
+  cleanup = 'confirmed',
+  overrides: Partial<SingleOptimizationResumeIdentity> = {}
 ): void => {
   mkdirSync(options.workRoot, { recursive: true })
-  const identity: OptimizationResumeIdentity = {
+  const identity: SingleOptimizationResumeIdentity = {
     projectId: task.projectId,
     sourceSessionId: task.sourceSessionId,
     taskId: options.taskId,
@@ -102,7 +136,8 @@ const writeResumeFixture = (
     semanticCriteria: task.criteria,
     executionLimit: task.executionLimit,
     executionTimeoutMs: 120_000,
-    method: normalizeOptimizationMethod(task.method)
+    method: normalizeOptimizationMethod(task.method),
+    ...overrides
   }
   writeResumeJson(join(options.workRoot, 'resume.json'), {
     schemaVersion: 1,
@@ -120,6 +155,95 @@ const writeResumeFixture = (
 }
 
 describe('DesktopOptimizationManager', () => {
+  it.each(['python', 'r'] as const)(
+    'restores the frozen %s language for a legacy Notebook experiment after reopen',
+    async (language) => {
+      const notebook = {
+        promptMessageId: 'source-prompt',
+        ...(language === 'r' ? { language } : {})
+      }
+      const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+        writeResumeFixture(options, 'confirmed', {
+          sourcePromptMessageId: notebook.promptMessageId,
+          input: notebookSnapshot(language)
+        })
+        if (!options.resume) throw new Error('Interrupted original experiment')
+        return complete
+      })
+      const f = fixture(run, {
+        createOptions: vi.fn(
+          async () =>
+            ({ input: notebookSnapshot(language) }) as unknown as PersistentOptimizationOptions
+        )
+      })
+      const started = await f.manager.start({ ...task, files: [], notebook })
+      await vi.waitFor(async () =>
+        expect(await f.manager.get(key(started.runId))).toMatchObject({
+          state: 'failed',
+          resumeAvailable: true
+        })
+      )
+      const original = run.mock.calls[0]![0]
+      const reopened = new DesktopOptimizationManager(f.options)
+      await reopened.resume(key(started.runId))
+      await vi.waitFor(async () =>
+        expect((await reopened.get(key(started.runId))).state).toBe('completed')
+      )
+      expect(f.options.createOptions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ notebook }),
+        expect.any(AbortSignal)
+      )
+      const requests = vi.mocked(f.options.createOptions).mock.calls
+      expect(requests[requests.length - 1]![0].notebook).toStrictEqual(notebook)
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(run.mock.calls[1]![0]).toMatchObject({
+        resume: true,
+        taskId: original.taskId,
+        workRoot: original.workRoot,
+        executionLimit: task.executionLimit
+      })
+    }
+  )
+
+  it('refuses legacy Notebook resume when the frozen profile and runtime languages disagree', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      writeResumeFixture(options)
+      const filename = join(options.workRoot, 'resume.json')
+      const manifest = JSON.parse(readFileSync(filename, 'utf8'))
+      manifest.identity.sourcePromptMessageId = 'source-prompt'
+      manifest.identity.input.task = {
+        prompt: task.prompt,
+        files: [],
+        managedInputs: [notebookInput]
+      }
+      manifest.identity.input.harness.tools = 'notebook-r'
+      manifest.identity.input.environment.notebook = { runtime: { language: 'python' } }
+      manifest.identityDigest = outputDigest(manifest.identity)
+      writeResumeJson(filename, manifest)
+      throw new Error('Interrupted original experiment')
+    })
+    const f = fixture(run, {
+      createOptions: vi.fn(
+        async () => ({ input: notebookSnapshot('r') }) as unknown as PersistentOptimizationOptions
+      )
+    })
+    const started = await f.manager.start({
+      ...task,
+      files: [],
+      notebook: { promptMessageId: 'source-prompt', language: 'r' }
+    })
+    await vi.waitFor(async () =>
+      expect((await f.manager.get(key(started.runId))).state).toBe('failed')
+    )
+    const reopened = new DesktopOptimizationManager(f.options)
+    expect((await reopened.get(key(started.runId))).resumeAvailable).not.toBe(true)
+    await expect(reopened.resume(key(started.runId))).rejects.toThrow(
+      'Original Notebook profile differs from its frozen runtime language'
+    )
+    expect(f.options.createOptions).toHaveBeenCalledTimes(1)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
   it('resumes only the original stopped experiment after reopen, retaining its task, path and budget', async () => {
     const run = vi.fn(async (options: PersistentOptimizationOptions) => {
       // This seam tests desktop authority/forwarding; the original runner validates the real
