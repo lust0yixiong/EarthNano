@@ -11,7 +11,7 @@ on:
         options: [macos-26-intel, macos-26]
         default: macos-26-intel
       mode:
-        description: Science acceptance or read-only Keychain context diagnosis
+        description: Science acceptance or Keychain metadata and isolated HOME setup controls
         type: choice
         options: [science, keychain-context-diagnostic]
         default: science
@@ -111,7 +111,7 @@ jobs:
       - name: Original packaged Keychain wrapper and offline same-Task explicit resume
         if: inputs.mode == 'science'
         run: bash qa-operation/scripts/ci/packaged-qa/run.sh
-      - name: Diagnostic only - original packaged Keychain metadata contexts
+      - name: Diagnostic only - metadata and isolated HOME setup controls
         if: inputs.mode == 'keychain-context-diagnostic'
         run: node qa-operation/scripts/ci/packaged-qa/keychain-context-diagnostic.mjs
       - name: Retain original failed or successful acceptance evidence
