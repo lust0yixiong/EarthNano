@@ -88,7 +88,7 @@ export interface ComputeWorkflowFixture {
   changes: { status: ComputeJob['status']; jobId: string; harvested: boolean; notified: boolean }[]
   frozenCompute: Awaited<ReturnType<typeof freezeComputeContext>>
   start(): void | Promise<void>
-  close(): Promise<void>
+  close(options?: { preserveEvidence?: boolean }): Promise<void>
 }
 
 /** Original workflow assembly shared by owner and Desktop/Harness tests. No factory, Core or model
@@ -417,7 +417,7 @@ export async function createComputeWorkflowFixture(options: {
   })
   let closed = false
   let closing: Promise<void> | undefined
-  const close = async (): Promise<void> => {
+  const close = async (closeOptions?: { preserveEvidence?: boolean }): Promise<void> => {
     if (closed) return
     if (closing) return closing
     closing = (async () => {
@@ -445,6 +445,12 @@ export async function createComputeWorkflowFixture(options: {
       // Closing local ports never upgrades unknown cleanup. Preserve every owned file on failure.
       if (failures.length)
         throw new AggregateError(failures, `Compute workflow evidence retained at ${root}`)
+      // Opt-in acceptance reports may need original native/Session files after all real owners
+      // close. Keeping their directory is not a resource reaping or remote cleanup attestation.
+      if (closeOptions?.preserveEvidence) {
+        closed = true
+        return
+      }
       const unlock = async (path: string): Promise<void> => {
         const info = await lstat(path)
         if (info.isSymbolicLink()) throw new Error('Fixture acquired an unexpected link')

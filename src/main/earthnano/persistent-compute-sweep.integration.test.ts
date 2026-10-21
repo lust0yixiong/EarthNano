@@ -232,7 +232,9 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       report.transport = f.transport.calls
     })
     await attempt(() => disconnectProjectDbClient())
-    await attempt(() => f.close())
+    await attempt(() =>
+      f.close({ preserveEvidence: Boolean(process.env.EARTHNANO_COMPUTE_ACCEPTANCE_REPORT) })
+    )
     if (failures.length)
       throw new AggregateError(failures, 'Original workflow cleanup/report failed')
   })
