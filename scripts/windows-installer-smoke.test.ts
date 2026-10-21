@@ -57,7 +57,9 @@ describe('Windows installer smoke plan', () => {
       await expect(installApplication('setup.exe', installDirectory, {}, run)).rejects.toBe(failure)
       expect(run).toHaveBeenCalledWith('setup.exe', ['/S', `/D=${installDirectory}`], {
         env: {},
-        timeoutMs: 300_000
+        timeoutMs: 300_000,
+        windowsVerbatimArguments: true,
+        argv0: '"setup.exe"'
       })
       expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({
         installer: 'setup.exe',
@@ -67,7 +69,8 @@ describe('Windows installer smoke plan', () => {
       expect(JSON.parse(diagnostic.mock.calls[0][0])).toMatchObject({
         phase: 'installApplication',
         args: ['/S', `/D=${installDirectory}`],
-        windowsVerbatimArguments: false,
+        windowsVerbatimArguments: true,
+        argv0: '"setup.exe"',
         installDirectory,
         error: { message: 'installer stalled', exitCode: null, signal: null }
       })
@@ -105,6 +108,15 @@ describe('Windows installer smoke plan', () => {
       diagnostic.mockRestore()
       await rm(root, { recursive: true, force: true })
     }
+  })
+
+  it('forwards the explicit executable argv0 to the real child without enabling a shell', async () => {
+    const argv0 = 'fixture executable 程序.exe'
+    const result = await runProcess(process.execPath, ['-p', 'process.argv0'], {
+      argv0: `"${argv0}"`,
+      windowsVerbatimArguments: true
+    })
+    expect(result.stdout.trim()).toBe(process.platform === 'win32' ? argv0 : `"${argv0}"`)
   })
 
   it('attaches the actual child exit and output to the original nonzero rejection', async () => {
