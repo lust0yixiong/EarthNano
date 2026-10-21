@@ -69,7 +69,7 @@ asarUnpack:
 # the two extraResources lists don't collide.
 extraResources:
   - from: vendor/harness2
-    to: earthnano/harness2
+    to: backend/resources/earthnano/harness2
     filter: ['harness2/**/*.py', 'harness2/**/*.json', 'LICENSE*', 'README*']
   - from: out/desktop-backend
     to: backend
