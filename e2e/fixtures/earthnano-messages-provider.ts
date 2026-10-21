@@ -100,6 +100,8 @@ export async function createEarthnanoMessagesProvider(
   testOptions: {
     /** Offline decision fixture only; live requests and tools remain untouched. */
     scientificLanguage?: NotebookLanguage
+    /** Native R binary fixture; production tools and immutable versions remain real. */
+    scientificBinary?: boolean
     keyFile?: string
     upstreamFetch?: typeof fetch
     /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
@@ -127,6 +129,9 @@ export async function createEarthnanoMessagesProvider(
   const scientificLanguage = testOptions.scientificLanguage ?? 'python'
   if (scientificLanguage !== 'python' && scientificLanguage !== 'r')
     throw new Error('Unsupported acceptance scientific language')
+  const scientificBinary = testOptions.scientificBinary === true
+  if (scientificBinary && (!scientificOptimization || scientificLanguage !== 'r'))
+    throw new Error('Binary scientific acceptance requires the original R Notebook profile')
   const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
   if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
     throw new Error('Invalid bounded acceptance request limit')
@@ -356,13 +361,23 @@ export async function createEarthnanoMessagesProvider(
           const source =
             inputs &&
             JSON.parse(inputs).find(
-              (input: { filename: string }) => input.filename === 'measurements.csv'
+              (input: { filename: string }) =>
+                input.filename === (scientificBinary ? 'measurements.rds' : 'measurements.csv')
             )
           if (!source) throw new Error('Uploaded scientific input unavailable')
           return call('notebook_execute', {
             language: scientificLanguage,
-            code:
-              scientificLanguage === 'r'
+            code: scientificBinary
+              ? [
+                  `values <- readRDS(${JSON.stringify(source.notebookPath)})`,
+                  'report <- list(count=length(values), sum=sum(values), mean=mean(values))',
+                  "jsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)",
+                  "grDevices::png('measurements.png', width=480, height=320, type='cairo')",
+                  "graphics::plot(seq_along(values), values, type='b', xlab='Observation', ylab='Value')",
+                  'grDevices::dev.off()',
+                  'print(report)'
+                ].join('\n')
+              : scientificLanguage === 'r'
                 ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(report)`
                 : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
           })
@@ -377,6 +392,27 @@ export async function createEarthnanoMessagesProvider(
             filename: 'research-results.json',
             mimeType: 'application/json',
             source: { kind: 'localPath', path: 'research-results.json' },
+            producerRunId: runId
+          })
+        }
+        if (
+          scientificBinary &&
+          !blocks.some(
+            (block) =>
+              block.type === 'tool_use' &&
+              block.name?.endsWith('write_artifact_file') &&
+              block.input?.filename === 'measurements.png'
+          )
+        ) {
+          const runId = nested(
+            blocks.filter((block) => block.type === 'tool_result'),
+            'runId'
+          )
+          if (typeof runId !== 'string') throw new Error('Notebook producer identity missing')
+          return call('write_artifact_file', {
+            filename: 'measurements.png',
+            mimeType: 'image/png',
+            source: { kind: 'localPath', path: 'measurements.png' },
             producerRunId: runId
           })
         }
