@@ -31,6 +31,16 @@ const save = async (file, data) =>
 const git = (source, ...args) =>
   execFileSync("git", args, { cwd: source, encoding: "utf8" }).trim();
 
+export function targetProfile(
+  target = process.env.QA_MAC_TARGET ?? "macos-26",
+) {
+  assert(
+    ["macos-26", "macos-26-intel"].includes(target),
+    "Explicit supported macOS QA target required",
+  );
+  return { target, arch: target === "macos-26-intel" ? "x64" : "arm64" };
+}
+
 export function validateRun(record, expectedId, native = false) {
   assert.equal(record.databaseId, expectedId);
   assert.equal(record.headSha, SOURCE_SHA);
@@ -46,12 +56,17 @@ export function validateRun(record, expectedId, native = false) {
     ].includes(record.status),
   );
   if (native) {
+    const { target } = targetProfile();
     const jobs = record.jobs.filter((job) =>
       job.name
         .split(" / ")
-        .includes("Unsigned native build and original launch macos-26"),
+        .includes(`Unsigned native build and original launch ${target}`),
     );
-    assert.equal(jobs.length, 1, "Require exactly the ARM64 native job");
+    assert.equal(
+      jobs.length,
+      1,
+      "Require exactly the selected macOS native job",
+    );
     assert.equal(jobs[0].status, "completed");
     assert.equal(jobs[0].conclusion, "success");
     for (const name of [
@@ -113,7 +128,7 @@ export function releaseGates(native, source) {
       .filter(([, gate]) => gate.result === "failed")
       .map(([name]) => name),
     purpose:
-      "Mac ARM64 scientific acceptance only; never publication authorization",
+      "Selected macOS scientific acceptance only; never publication authorization",
   };
 }
 
@@ -130,7 +145,7 @@ export function validateManifest(
   assert.equal(manifest.version, VERSION);
   assert.equal(manifest.productName, "EarthNano");
   assert.equal(manifest.platform, "darwin");
-  assert.equal(manifest.arch, "arm64");
+  assert.equal(manifest.arch, targetProfile().arch);
   assert.equal(manifest.distribution, "unsigned-ci");
   assert.equal(manifest.packageArtifactCount, 2);
   assert.deepEqual(manifest.upstreams, upstreams);
@@ -142,9 +157,10 @@ export function validateManifest(
 }
 
 export async function verifyPackageDirectory(directory, manifest) {
+  const { arch } = targetProfile();
   const required = [
-    `EarthNano-${VERSION}-mac-arm64.dmg`,
-    `EarthNano-${VERSION}-mac-arm64.zip`,
+    `EarthNano-${VERSION}-mac-${arch}.dmg`,
+    `EarthNano-${VERSION}-mac-${arch}.zip`,
   ];
   const names = await readdir(directory);
   for (const name of required) assert(names.includes(name), `Missing ${name}`);
@@ -152,9 +168,9 @@ export async function verifyPackageDirectory(directory, manifest) {
     assert(
       required.includes(name) ||
         name === "alpha-mac.yml" ||
-        /^EarthNano-0\.1\.0-alpha\.1-mac-arm64\.(?:dmg|zip)\.blockmap$/.test(
-          name,
-        ),
+        new RegExp(
+          `^EarthNano-0\\.1\\.0-alpha\\.1-mac-${arch}\\.(?:dmg|zip)\\.blockmap$`,
+        ).test(name),
       `Unexpected package file: ${name}`,
     );
     const entries = manifest.files.filter(
@@ -262,6 +278,8 @@ async function verifyRuns(source, root) {
     releaseGates(native, sourceRun),
   );
   await save(join(root, "evidence/origins.json"), {
+    macTarget: targetProfile().target,
+    macArch: targetProfile().arch,
     applicationSource: SOURCE_SHA,
     applicationTree: git(source, "rev-parse", "HEAD^{tree}"),
     nativeRun: NATIVE_RUN,
@@ -307,7 +325,10 @@ async function prepare(source, root, operation) {
     [
       "-x",
       "-k",
-      join(root, `packages/EarthNano-${VERSION}-mac-arm64.zip`),
+      join(
+        root,
+        `packages/EarthNano-${VERSION}-mac-${targetProfile().arch}.zip`,
+      ),
       extracted,
     ],
     { stdio: "inherit" },
@@ -412,6 +433,8 @@ async function prepare(source, root, operation) {
         app,
         executable: join(app, "Contents/MacOS/EarthNano"),
         version: VERSION,
+        macTarget: targetProfile().target,
+        macArch: targetProfile().arch,
         profile:
           "real packaged; offline model; original same-task Notebook + explicit resume",
       },
@@ -476,6 +499,8 @@ async function finalize(source, root) {
     status: "passed",
     originalBusinessAssertions: "unchanged",
     source: SOURCE_SHA,
+    macTarget: targetProfile().target,
+    macArch: targetProfile().arch,
     upstreamRequests: 0,
     samePackageReopened: true,
     explicitStopResume: true,
