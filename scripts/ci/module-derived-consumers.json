@@ -719,18 +719,21 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "connector_builtins": [
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "connector_core": [
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "connector_mcp_client": [
@@ -824,6 +827,7 @@
     ],
     "desktop_composition": [
       "src/main/earthnano/persistent-candidate-owner.binary.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
       "src/main/earthnano/persistent-scientific-candidate.integration.test.ts",
       "src/main/earthnano/research-workflow.integration.test.ts",
@@ -1979,6 +1983,7 @@
     "main_connectors": [
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "main_database": [
@@ -2156,6 +2161,7 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "main_local_models": [
@@ -3593,6 +3599,7 @@
     "package_literature_reading": [
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
       "src/main/literature/full-text-index-storage.test.ts",
       "src/main/settings/codex-bridge-tools.test.ts"
@@ -4944,6 +4951,7 @@
     "reviewer_tool_contracts": [
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
       "src/main/earthnano/research-workflow.integration.test.ts",
       "src/main/earthnano/reviewer-execution-owner.test.ts"
@@ -5176,6 +5184,7 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "settings_network_model": [
@@ -5230,6 +5239,7 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "settings_provider_limits": [
@@ -5259,6 +5269,7 @@
     "settings_provider_resolution": [
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "settings_proxy_runtime": [
@@ -5380,6 +5391,7 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "settings_token_policy": [
@@ -5508,6 +5520,7 @@
       "src/main/background-result-delivery/repository.test.ts",
       "src/main/composition/background-results.test.ts",
       "src/main/composition/desktop-optimization.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.integration.test.ts",
       "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
     ],
     "skill_package": [

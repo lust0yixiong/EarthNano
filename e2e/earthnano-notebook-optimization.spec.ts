@@ -340,7 +340,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     await panel.locator('summary').click()
     console.info('Scientific workflow: optimization panel open')
     await panel.getByLabel('Repeat this task with Notebook', { exact: true }).check()
-    await panel.getByLabel('Notebook language', { exact: true }).selectOption(language)
+    await panel.getByLabel('Notebook runtime', { exact: true }).selectOption(language)
     await expect(panel.getByLabel('Task description', { exact: true })).toHaveValue(prompt)
     await expect(panel.getByLabel('Task description', { exact: true })).toBeDisabled()
     await panel
