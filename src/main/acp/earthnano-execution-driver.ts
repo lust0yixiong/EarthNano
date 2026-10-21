@@ -218,16 +218,18 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
     }
     await cancellation?.catch(() => undefined)
     try {
-      const result = await plan.readResult({
+      const settlement: AcpPromptSettlement = {
         promptError,
         signal: context.signal,
-        get cancellationRequested() {
-          return context.signal.aborted
-        },
-        get cancellationError() {
-          return cancellationError
-        }
-      })
+        cancellationRequested: context.signal.aborted,
+        cancellationError
+      }
+      if (plan.cancelOwnedBackground)
+        Object.defineProperties(settlement, {
+          cancellationRequested: { enumerable: true, get: () => context.signal.aborted },
+          cancellationError: { enumerable: true, get: () => cancellationError }
+        })
+      const result = await plan.readResult(settlement)
       // Cancellation can begin while readResult is waiting for original Job/continuation facts.
       await cancellation?.catch(() => undefined)
       if (backgroundCancellationError !== undefined) {

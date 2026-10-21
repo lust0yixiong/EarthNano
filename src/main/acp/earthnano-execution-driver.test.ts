@@ -562,6 +562,30 @@ describe('opt-in ACP ExecutionCore adapter', () => {
       cleanup: 'confirmed'
     })
   })
+  it('retains the original ordinary result-owner cancellation snapshot during a late Stop', async () => {
+    const s = setup(),
+      result = deferred()
+    vi.mocked(s.plan.readResult).mockImplementation(async (settlement) => {
+      expect(settlement.cancellationRequested).toBe(false)
+      await result.promise
+      expect(settlement.signal.aborted).toBe(true)
+      expect(settlement.cancellationRequested).toBe(false)
+      expect(settlement.cancellationError).toBeUndefined()
+      // Original Review owners must still check the live signal before accepting a late commit.
+      settlement.signal.throwIfAborted()
+      return s.outcome
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    await s.core.cancel(h.executionId)
+    result.resolve()
+    expect(await finished(s.core, h.executionId)).toMatchObject({
+      phase: 'failed',
+      cleanup: 'unknown',
+      error: { code: 'owner-result-unavailable' }
+    })
+    expect(s.runtime.cancelPrompt).not.toHaveBeenCalled()
+  })
   it('cancels owned background work at the same deadline after native completion without upgrading a late cleanup witness', async () => {
     const s = setup(),
       background = deferred(),
