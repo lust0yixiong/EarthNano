@@ -4,7 +4,7 @@
 
 本轮先完成候选结果导出和方法上下文中的原产物资产。Notebook 来源继续由既有 `managedInputs`、版本租约和原 input staging 传递原始字节；不能从文本来源的 UTF-8 限制推断这条路径也不能处理二进制。普通文本来源的形状和限制保持原语义，不另造输入或产物存储。
 
-## 已核对的原模块
+## 实施前核对的原模块
 
 - `ArtifactReference`、`ArtifactVersion` 和 `ManagedFileVersionReadPort` 继续是身份、字节与固定版本租约的权威。原 `readRange`、`copyTo`、`verifyUnchanged` 可直接复用，不新增字节存储或模型可调用的任意版本读取器。
 - `PersistentCandidateOwners.readFiles` 已沿原版本读取并核对摘要，但目前总是 fatal UTF-8 解码。原 Notebook/Artifact producer 已能发布二进制，候选导出会在此失败。
@@ -47,3 +47,5 @@
 最初分支的四项共享元数据测试及独立 normalizer 类型检查通过；第一次范围内类型检查因 TypeScript7 的 CLI 配置选择规则未启动，改为显式 `--ignoreConfig` 与完整参数后通过。该历史结果当时没有完整依赖环境，不作为原生验收。
 
 本轮恢复到 `fdf3a26cb` 后，四项契约测试及完整 Node/sandbox/Web compiled types 均通过，原始记录保存在工作区的 `EarthNano-validation/binary-current-20261021/contract-vitest.json` 和 `binary-contract-current-types.log`。旧文本分支类型、JSON 字节及精确引用继续受检；这仍仅证明共享契约，不证明 owner 字节导出、匿名资产、独立审阅或原生/DeepSeek 链路已经接通。后续集成以同一当前源码和实际 producer/Version/lease 证据验收，不把保留的旧 WIP 测试当成本轮通过。
+
+当前 owner、方法资产与真实 RDS/PNG 验收已进一步完成，模块调用、证据及尚未取得的桌面/模型/平台结果见 [本轮集成状态](ALPHA_BINARY.md)。上面的 UTF-8 导出和未使用资产路径描述是实施前故障，不是当前实现结论。
