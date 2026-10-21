@@ -56,8 +56,8 @@ export async function packagedEntrypointSha256() {
     ),
     "Contents/Info.plist": await hashFile(join(app, "Contents/Info.plist")),
     "Contents/Resources/app.asar": await hashFile(archive),
-    "Contents/Resources/backend/index.cjs": await hashFile(
-      join(app, "Contents/Resources/backend/index.cjs"),
+    "Contents/Resources/backend/out/backend/index.cjs": await hashFile(
+      join(app, "Contents/Resources/backend/out/backend/index.cjs"),
     ),
   };
   for (const member of [

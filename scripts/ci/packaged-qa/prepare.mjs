@@ -349,7 +349,7 @@ async function prepare(source, root, operation) {
     "Contents/MacOS/EarthNano",
     "Contents/Info.plist",
     "Contents/Resources/app.asar",
-    "Contents/Resources/backend/index.cjs",
+    "Contents/Resources/backend/out/backend/index.cjs",
   ]) {
     const entries = manifest.files.filter((file) =>
       file.path.endsWith(`/EarthNano.app/${relative}`),
