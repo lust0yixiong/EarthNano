@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readFile, readdir, writeFile } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { readFile, readdir, realpath, writeFile } from 'node:fs/promises'
+import { isAbsolute, join, relative } from 'node:path'
 import { expect } from '@playwright/test'
 import { isArtifactNotebookProducer } from '../src/shared/artifact-provenance'
 import type { PersistedChatSession } from '../src/shared/session-persistence'
@@ -141,6 +141,25 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       },
       { language, path: interpreter } as const
     )
+    const externalRuntimeRoot = process.env.EARTHNANO_E2E_R_READONLY_ROOT
+    if (language === 'r' && externalRuntimeRoot) {
+      // A conda Rscript starts lib/R/bin/R outside its bin directory. Exercise the original
+      // user's explicit Files read-only grant, rather than widening the runtime sandbox.
+      const root = await realpath(externalRuntimeRoot)
+      const interpreterWithinRoot = relative(root, await realpath(interpreter))
+      if (
+        root === '/' ||
+        interpreterWithinRoot.startsWith('..') ||
+        isAbsolute(interpreterWithinRoot)
+      )
+        throw new Error('The explicit read-only R root must contain the selected interpreter')
+      const grants = await page.evaluate(
+        (path) => window.api.localFs.grantRoot({ path, access: 'ro' }),
+        root
+      )
+      expect(grants.find((grant) => grant.path === root)).toMatchObject({ access: 'ro' })
+      runtime = { ...runtime, externalRuntimeAccess: { path: root, access: 'ro' } }
+    }
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.addLocatorHandler(page.getByTestId('permission-card'), async (card) => {
       await card.getByTestId('allow-primary').click()
