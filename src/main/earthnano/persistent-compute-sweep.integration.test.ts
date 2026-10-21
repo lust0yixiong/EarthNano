@@ -240,7 +240,9 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     projectId: f.projectId,
     sourceSessionId: f.sourceSessionId,
     requestKey: 'compute-original-harness-k2',
-    executionLimit: 20,
+    // Same bounded headroom as the existing live scientific acceptance. Original proposal retries
+    // consume this budget; no experiment can raise its limit after admission.
+    executionLimit: 24,
     catalog: [
       {
         taskId: 'compute-fixture',
@@ -286,7 +288,9 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   const completed = await manager.get(key)
   report.progress = completed
   expect(completed, JSON.stringify(completed)).toMatchObject({ state: 'completed' })
-  expect(completed.budget.admitted).toBe(preview.minimumExecutions)
+  expect(completed.budget.limit).toBe(request.executionLimit)
+  expect(completed.budget.admitted).toBeGreaterThanOrEqual(preview.minimumExecutions)
+  expect(completed.budget.admitted).toBeLessThanOrEqual(request.executionLimit)
   expect(completed.budget.active).toBe(0)
   expect(completed.budget.completed).toBe(completed.budget.admitted)
   const journal = readDesktopOptimizationResume(join(executionRoot, key.runId, 'execution'))
