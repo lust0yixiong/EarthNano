@@ -202,7 +202,8 @@
     "src/main/runtime-network-node.test.ts",
     "src/main/composition/document-reading.architecture.test.ts",
     "src/main/composition/desktop-optimization.test.ts",
-    "src/main/composition/desktop-optimization.ts"
+    "src/main/composition/desktop-optimization.ts",
+    "src/main/composition/background-results.test.ts"
   ],
   "interfacePaths": [
     "src/main/app-lifecycle.ts",
@@ -378,7 +379,8 @@
       "src/main/runtime-network-node.test.ts",
       "src/main/legacy-service-termination.test.ts",
       "src/main/composition/document-reading.architecture.test.ts",
-      "src/main/composition/desktop-optimization.test.ts"
+      "src/main/composition/desktop-optimization.test.ts",
+      "src/main/composition/background-results.test.ts"
     ],
     "contract": [
       "src/preload/index.test.ts",

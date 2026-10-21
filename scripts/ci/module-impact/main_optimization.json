@@ -58,7 +58,10 @@
     "test/earthnano/research-workflow.ts",
     "src/main/earthnano/candidate-owner-contract.ts",
     "src/main/earthnano/optimization-task-contract.ts",
-    "test/earthnano/candidate-owner-ports.ts"
+    "test/earthnano/candidate-owner-ports.ts",
+    "src/main/earthnano/compute-context.ts",
+    "src/main/earthnano/compute-context.test.ts",
+    "src/main/earthnano/persistent-candidate-owner.binary.test.ts"
   ],
   "interfacePaths": [
     "src/main/earthnano/candidate-settlement-witness.ts",
@@ -87,7 +90,8 @@
     "src/main/earthnano/sweep-plan.ts",
     "src/main/earthnano/sweep-results.ts",
     "src/main/earthnano/candidate-owner-contract.ts",
-    "src/main/earthnano/optimization-task-contract.ts"
+    "src/main/earthnano/optimization-task-contract.ts",
+    "src/main/earthnano/compute-context.ts"
   ],
   "consumerModules": [],
   "testFiles": {
@@ -120,7 +124,9 @@
       "src/main/earthnano/semantic-evaluation.test.ts",
       "src/main/earthnano/sweep-input.test.ts",
       "src/main/earthnano/sweep-plan.test.ts",
-      "src/main/earthnano/sweep-results.test.ts"
+      "src/main/earthnano/sweep-results.test.ts",
+      "src/main/earthnano/compute-context.test.ts",
+      "src/main/earthnano/persistent-candidate-owner.binary.test.ts"
     ],
     "contract": [],
     "consumer": []

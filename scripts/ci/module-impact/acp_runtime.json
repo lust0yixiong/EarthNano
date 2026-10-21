@@ -243,7 +243,8 @@
     "src/main/earthnano/private-session-admission.integration.test.ts",
     "src/main/earthnano/session-execution-host-port.ts",
     "src/main/earthnano/session-execution-host.test.ts",
-    "src/main/earthnano/session-execution-host.ts"
+    "src/main/earthnano/session-execution-host.ts",
+    "src/main/earthnano/compute-candidate-ports.ts"
   ],
   "interfacePaths": [
     "src/main/acp/agent-process.ts",
@@ -294,7 +295,8 @@
     "src/main/acp/task-prompt-execution.ts",
     "src/main/earthnano/acp-execution-boundary.ts",
     "src/main/earthnano/session-execution-host-port.ts",
-    "src/main/earthnano/session-execution-host.ts"
+    "src/main/earthnano/session-execution-host.ts",
+    "src/main/earthnano/compute-candidate-ports.ts"
   ],
   "consumerModules": [
     "reviewer_orchestrator",

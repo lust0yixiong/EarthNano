@@ -1,4 +1,5 @@
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import { isComputeToolsProfile } from '../../shared/earthnano/compute-profile'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { TaskAgentPort } from '../tasks/task-runner'
 import {
@@ -74,7 +75,8 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const resolved = await options.snapshots.resolve(request)
         if (
-          notebookLanguageForTools(resolved.harness?.tools) !== undefined &&
+          (notebookLanguageForTools(resolved.harness?.tools) !== undefined ||
+            isComputeToolsProfile(resolved.harness?.tools)) &&
           !['baseline', 'candidate'].includes(request.role)
         )
           throw new Error('Only task candidates may receive scientific tools')
@@ -88,7 +90,12 @@ export function createClaudeCandidateDriver(
         // Preparation includes a bounded native --version probe. A failed probe may have
         // started resources without returning an owner, so its failure is conservatively fenced.
         preparingRuntime = true
-        prepared = await prepareClaudeCandidate({ resolved, materialized, binding })
+        prepared = await prepareClaudeCandidate({
+          resolved,
+          materialized,
+          binding,
+          role: request.role
+        })
         preparingRuntime = false
         context.signal.throwIfAborted()
         constructingOwner = true

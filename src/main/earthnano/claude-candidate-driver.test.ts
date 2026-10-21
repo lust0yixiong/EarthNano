@@ -82,7 +82,7 @@ const binding = async (): Promise<never> => {
 }
 
 describe('Claude candidate lifecycle composition', () => {
-  it.each(['notebook-python', 'notebook-r'] as const)(
+  it.each(['notebook-python', 'notebook-r', 'notebook-compute'] as const)(
     'denies %s for a method role before provider binding or runtime construction',
     async (tools) => {
       const f = fixture()
@@ -102,6 +102,28 @@ describe('Claude candidate lifecycle composition', () => {
       expect(resolveBinding).not.toHaveBeenCalled()
       expect(openOwner).not.toHaveBeenCalled()
       expect(f.snapshots.materialize).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['baseline', 'candidate'] as const)(
+    'passes the trusted %s Compute role to native preparation before opening the original owner',
+    async (role) => {
+      const f = fixture()
+      f.request = { ...f.request, role }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools: 'notebook-compute' }
+      } as never)
+      const openOwner = vi.fn(async () => f.owner)
+      expect(
+        await createClaudeCandidateDriver({ ...f, binding, openOwner }).execute(
+          f.request,
+          f.context
+        )
+      ).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+      expect(prepareClaudeCandidate).toHaveBeenLastCalledWith(expect.objectContaining({ role }))
+      expect(openOwner).toHaveBeenCalledOnce()
+      expect(f.owner.agent.prompt).toHaveBeenCalledOnce()
     }
   )
 
