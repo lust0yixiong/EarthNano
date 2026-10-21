@@ -14,7 +14,7 @@ import { createRequire } from "node:module";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SOURCE = "4a31b9ae72654cf6ddf7749103abb48b5f85043f";
+const SOURCE = "bdc0246383a25990030854f4c2fa100895f29ea6";
 const identities = ["Open-Science", "Open Science"];
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const save = (path, data) =>

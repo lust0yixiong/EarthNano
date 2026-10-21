@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
 const installed = new WeakSet();
-const SOURCE = "4a31b9ae72654cf6ddf7749103abb48b5f85043f";
+const SOURCE = "bdc0246383a25990030854f4c2fa100895f29ea6";
 const fail = (code) => {
   throw new Error(`Packaged Keychain context: ${code}`);
 };

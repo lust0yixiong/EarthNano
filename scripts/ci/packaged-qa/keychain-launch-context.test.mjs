@@ -465,7 +465,7 @@ test("actual prepare verifier passes exact probe bytes and rejects changed bytes
     await writeFile(probe, bytes, { mode: 0o600 });
     const row = {
       operatorOnly: true,
-      source: "4a31b9ae72654cf6ddf7749103abb48b5f85043f",
+      source: "bdc0246383a25990030854f4c2fa100895f29ea6",
       stage: "metadata-confirmed-before-launch",
       home: join(root, "tmp/open-science-electron-e2e-Pure12/isolated home"),
       homeExisted: false,
