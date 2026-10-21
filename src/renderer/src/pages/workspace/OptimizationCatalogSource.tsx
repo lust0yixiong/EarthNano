@@ -6,7 +6,7 @@ import type { PersistedChatSession, SessionSummary } from '../../../../shared/se
 import { notebookOptimizationSourceMessages } from '../../../../shared/earthnano/notebook-source'
 export type CatalogSessionApi = Pick<Window['api']['sessions'], 'list' | 'loadOne'>
 export interface NotebookSourceSelection {
-  language: NotebookLanguage
+  language: NotebookLanguage | 'compute'
   sourceSessionId: string
   promptMessageId: string
   sourceReady: boolean
@@ -77,7 +77,9 @@ export function OptimizationCatalogSource({
       current = false
     }
   }, [sessions, projectId, value.sourceSessionId, sourceKey])
-  const messages = loaded ? notebookOptimizationSourceMessages(loaded) : []
+  const messages = loaded
+    ? notebookOptimizationSourceMessages(loaded, { allowEmpty: value.language === 'compute' })
+    : []
   const selected = messages.find((m) => m.id === value.promptMessageId)
   // Publish readiness only from this exact loaded source; parent revision invalidates stale previews.
   useEffect(() => {
@@ -88,19 +90,21 @@ export function OptimizationCatalogSource({
   return (
     <div className="space-y-2">
       <label className="block">
-        {t('Notebook language')}
+        {t('Notebook runtime')}
         <select
-          aria-label={t('Notebook language')}
+          aria-label={t('Notebook runtime')}
           className={inputClass}
           value={value.language}
           disabled={disabled}
           onChange={(event) => {
             const language = event.target.value
-            if (language === 'python' || language === 'r') onChange({ ...value, language })
+            if (language === 'python' || language === 'r' || language === 'compute')
+              onChange({ ...value, language })
           }}
         >
           <option value="python">{t('Python')}</option>
           <option value="r">{t('R')}</option>
+          <option value="compute">{t('Compute')}</option>
         </select>
       </label>
       <label className="block">

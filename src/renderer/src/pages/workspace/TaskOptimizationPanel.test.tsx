@@ -1286,14 +1286,14 @@ it('binds an explicit R draft and invalidates its preview on language change and
   const primary = container.querySelector('[data-testid="optimization-catalog-task-task-0001"]')!
   await act(async () => (primary.querySelector('input[type=checkbox]') as HTMLInputElement).click())
   await input('Acceptance criteria (one per line)', 'Verify the fixed R observations')
-  await selectSource(primary, 'Notebook language', 'r')
+  await selectSource(primary, 'Notebook runtime', 'r')
   await click('Preview task stream')
   const startButton = (): HTMLButtonElement =>
     [...container.querySelectorAll('button')].find((b) => b.textContent === 'Start optimization')!
   expect(startButton().disabled).toBe(false)
-  await selectSource(primary, 'Notebook language', 'python')
+  await selectSource(primary, 'Notebook runtime', 'python')
   expect(startButton().disabled).toBe(true)
-  await selectSource(primary, 'Notebook language', 'r')
+  await selectSource(primary, 'Notebook runtime', 'r')
   expect(startButton().disabled).toBe(true)
   await click('Preview task stream')
   await click('Start optimization')
@@ -1302,5 +1302,26 @@ it('binds an explicit R draft and invalidates its preview on language change and
     promptMessageId: 'source-prompt',
     language: 'r'
   })
+  expect(api.start).not.toHaveBeenCalled()
+})
+
+it('submits a zero-file Compute source through the same reviewed catalog without host authority', async () => {
+  const source = sourceSession()
+  delete source.messages[0].uploads
+  vi.mocked(sessions.loadOne).mockResolvedValue(source)
+  await render()
+  const primary = container.querySelector('[data-testid="optimization-catalog-task-task-0001"]')!
+  await act(async () => (primary.querySelector('input[type=checkbox]') as HTMLInputElement).click())
+  await input('Acceptance criteria (one per line)', 'Verify original Compute results')
+  await selectSource(primary, 'Notebook runtime', 'compute')
+  await selectSource(primary, 'Source task', 'source-prompt')
+  await click('Preview task stream')
+  await click('Start optimization')
+  const request = vi.mocked(api.startSweep).mock.calls[0][0]
+  expect(request.catalog[0].source).toEqual({ kind: 'compute', promptMessageId: 'source-prompt' })
+  expect(request.catalog[0].sourceSessionId).toBe('session')
+  expect(request.catalog[0].source).not.toHaveProperty('language')
+  expect(request.catalog[0].source).not.toHaveProperty('hosts')
+  expect(request.previewPlanDigest).toBeDefined()
   expect(api.start).not.toHaveBeenCalled()
 })

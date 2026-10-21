@@ -7430,7 +7430,6 @@
     "Task filter": "任務篩選",
     "Tasks per domain (empty means all)": "每個任務領域的任務數（留空表示全部）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "沒有任務符合預覽的篩選條件。請調整篩選條件後重新預覽。",
-    "Repeat this task with Notebook": "使用 Notebook 重新執行此任務",
-    "Notebook language": "Notebook 語言"
+    "Repeat this task with Notebook": "使用 Notebook 重新執行此任務"
   }
 }

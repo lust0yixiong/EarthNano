@@ -7591,7 +7591,6 @@
     "Task filter": "Aufgabenfilter",
     "Tasks per domain (empty means all)": "Aufgaben pro Domäne (leer bedeutet alle)",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "Keine Aufgaben entsprechen den angezeigten Filtern. Passen Sie die Filter an und zeigen Sie die Vorschau erneut an.",
-    "Repeat this task with Notebook": "Diese Aufgabe mit Notebook erneut ausführen",
-    "Notebook language": "Notebook-Sprache"
+    "Repeat this task with Notebook": "Diese Aufgabe mit Notebook erneut ausführen"
   }
 }

@@ -773,6 +773,17 @@ export const createApplicationModules = async (
   })
   const optimizationCommandOwner = await registerDesktopOptimizationComposition(modules, {
     candidateOwners,
+    compute: {
+      hosts: computeAdmission.hostRepository,
+      hostAccess: computeAdmission.sessionEnabledComputeHostsOwner,
+      jobs: computeAdmission.jobRepository,
+      operations: computeAdmission.operationRepository,
+      service: computeAdmission.computeService,
+      deliveries: backgroundResults.backgroundResultDeliveryRepository,
+      events: applicationEvents,
+      cancelApprovals: (sessionId) =>
+        computeServices.computeIpcModule.handlers.approvalCancelSession(sessionId)
+    },
     settings: settingsBootstrap.settingsService,
     archive: projectLifecycle.archiveCoordinator,
     sessions: sessionAuthority.sessionPersistenceCoordinator,

@@ -68,6 +68,7 @@ import {
 import { normalizeDesktopSweep } from '../earthnano/desktop-sweep-validation'
 import { previewOptimizationSweep } from '../earthnano/sweep-plan'
 import { resolveDesktopSweepTask } from '../earthnano/desktop-sweep-sources'
+import { isComputeToolsProfile } from '../../shared/earthnano/compute-profile'
 import type { ResolvedSweepTask } from '../earthnano/sweep-contract'
 
 const providerRevision = (
@@ -153,6 +154,7 @@ export interface DesktopOptimizationDependencies {
   loadSession?: (projectId: string, sessionId: string) => Promise<PersistedChatSession>
   versions?: Pick<ManagedFileVersionReadPort, 'openVersion'>
   notebook?: PersistentCandidateNotebookOptions
+  compute?: PersistentCandidateOwnersOptions['compute']
   sessionPersistence?: PersistentCandidateOwnersOptions['sessionPersistence']
   signal?: AbortSignal
   onOwnersReady?: PersistentOptimizationOptions['onOwnersReady']
@@ -502,6 +504,7 @@ export async function createDesktopSweepOptions(
           loadSession: dependencies.loadSession,
           versions,
           notebook: dependencies.notebook,
+          compute: dependencies.compute,
           signal: dependencies.signal
         })
       )
@@ -521,8 +524,15 @@ export async function createDesktopSweepOptions(
         getClient: () => getProjectDbClient(configRoot),
         settings: { getSettings: () => dependencies.settings.getStoredSettings() },
         sessionPersistence: requireSessionPersistence(dependencies),
-        ...(tasks.some((task) => notebookLanguageForTools(task.input.harness.tools) !== undefined)
+        ...(tasks.some(
+          (task) =>
+            notebookLanguageForTools(task.input.harness.tools) !== undefined ||
+            isComputeToolsProfile(task.input.harness.tools)
+        )
           ? { notebook: dependencies.notebook }
+          : {}),
+        ...(tasks.some((task) => isComputeToolsProfile(task.input.harness.tools))
+          ? { compute: dependencies.compute }
           : {})
       },
       binding: runtime.binding,
@@ -559,6 +569,7 @@ export async function registerDesktopOptimizationComposition(
     sessionRepository: SessionRepository
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
     notebook?: PersistentCandidateNotebookOptions
+    compute?: PersistentCandidateOwnersOptions['compute']
     candidateOwners?: DesktopCandidateOwnerRouting
     declareElectronAdapter(name: string, install: () => void): void
   }
@@ -583,6 +594,7 @@ export async function registerDesktopOptimizationComposition(
       const dependencies = (signal?: AbortSignal): DesktopOptimizationDependencies => ({
         settings: options.settings,
         notebook: options.notebook,
+        compute: options.compute,
         onOwnersReady: options.candidateOwners?.onOwnersReady,
         sessionPersistence: {
           repository: options.sessionRepository,

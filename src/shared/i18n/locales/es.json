@@ -7760,7 +7760,6 @@
     "Task filter": "Filtro de tareas",
     "Tasks per domain (empty means all)": "Tareas por dominio (vacío incluye todas)",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "Ninguna tarea coincide con los filtros previsualizados. Ajuste los filtros y vuelva a previsualizar.",
-    "Repeat this task with Notebook": "Repetir esta tarea con Notebook",
-    "Notebook language": "Lenguaje de Notebook"
+    "Repeat this task with Notebook": "Repetir esta tarea con Notebook"
   }
 }

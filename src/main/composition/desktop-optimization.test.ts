@@ -627,6 +627,57 @@ it('uses original sweep preview, authorizes only selected independent sources an
   for (const result of deps.admitSessionWork.mock.results)
     expect(result.value).toHaveBeenCalledOnce()
 })
+
+it('routes a selected original Compute task to the same owners while leaving text tasks unchanged', async () => {
+  const deps = catalogDependencies()
+  const request = catalogRequest()
+  request.catalog[0].source = { kind: 'compute', promptMessageId: 'compute-source' }
+  deps.loadSession.mockImplementation(
+    async (projectId, id) =>
+      ({
+        projectId,
+        id,
+        messages:
+          id === 'source-a'
+            ? [
+                {
+                  id: 'compute-source',
+                  role: 'user',
+                  status: 'complete',
+                  content: 'Original remote calculation'
+                }
+              ]
+            : [],
+        enabledComputeHosts: [],
+        selectedComputeHosts: []
+      }) as unknown as PersistedChatSession
+  )
+  const notebook = { service: {}, rpc: {}, mcpEntryPath: '/original/entry' } as NonNullable<
+    Parameters<typeof createDesktopSweepOptions>[1]['notebook']
+  >
+  const compute = { hosts: { get: vi.fn() } } as unknown as NonNullable<
+    Parameters<typeof createDesktopSweepOptions>[1]['compute']
+  >
+  const options = await createDesktopSweepOptions(request, { ...deps, notebook, compute })
+  expect(options.ownerOptions.notebook).toBe(notebook)
+  expect(options.ownerOptions.compute).toBe(compute)
+  expect(options.sweep.tasks[0]).toMatchObject({
+    taskId: 'a',
+    sourcePromptMessageId: 'compute-source',
+    input: {
+      task: { prompt: 'Original remote calculation', files: [], managedInputs: [] },
+      harness: { tools: 'notebook-compute' },
+      environment: { compute: { sourceSessionId: 'source-a' } }
+    }
+  })
+  expect(options.sweep.tasks[1].input.harness.tools).toBe('workspace-only')
+  expect(options.sweep.tasks[1].input.environment).not.toHaveProperty('compute')
+  expect(deps.loadSession).not.toHaveBeenCalledWith('p', 'source-unselected')
+  expect(compute.hosts.get).not.toHaveBeenCalled()
+  options.releaseAdmission()
+  for (const result of deps.admitSessionWork.mock.results)
+    expect(result.value).toHaveBeenCalledOnce()
+})
 it('validates excluded catalog sources before provider capture or admission', async () => {
   const deps = catalogDependencies(),
     request = catalogRequest()

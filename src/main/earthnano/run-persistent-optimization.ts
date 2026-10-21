@@ -1,5 +1,10 @@
-import type { CandidateOwnersReady } from './desktop-candidate-owner-routing'
+import type { CandidateOwnersReady } from './candidate-owner-contract'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import { normalizeFrozenManagedInputs } from '../../shared/earthnano/notebook-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import { mkdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
@@ -186,6 +191,26 @@ export async function runPersistentOptimization(
   const checks = normalizeOutputChecks(options.checks)
   const domain = normalizeOptimizationDomain(options.domain)
   const scientific = notebookLanguageForTools(input.harness.tools) !== undefined
+  if (!sweep && isComputeToolsProfile(input.harness.tools)) {
+    const compute = normalizeFrozenComputeContext(input.environment.compute)
+    normalizeFrozenManagedInputs(input.task.managedInputs)
+    if (
+      !options.sourcePromptMessageId ||
+      !/^[A-Za-z0-9_-]{1,128}$/.test(options.sourcePromptMessageId) ||
+      compute.sourceProjectId !== options.projectId ||
+      compute.sourceSessionId !== sourceSessionId ||
+      input.environment.notebook !== undefined ||
+      input.environment.network !== 'provider-and-notebook-policy' ||
+      input.task.files.length ||
+      inputArtifacts?.length ||
+      domain ||
+      !options.ownerOptions.notebook ||
+      !options.ownerOptions.compute
+    )
+      throw new Error(
+        'Compute optimization requires its own original source, fixed inputs and owners'
+      )
+  }
   if (
     !sweep &&
     scientific &&

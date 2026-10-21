@@ -7430,7 +7430,6 @@
     "Task filter": "タスクフィルター",
     "Tasks per domain (empty means all)": "ドメインごとのタスク数（空欄ですべて）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "プレビューしたフィルターに一致するタスクはありません。フィルターを調整して再度プレビューしてください。",
-    "Repeat this task with Notebook": "Notebook でこのタスクを再実行",
-    "Notebook language": "Notebook の言語"
+    "Repeat this task with Notebook": "Notebook でこのタスクを再実行"
   }
 }

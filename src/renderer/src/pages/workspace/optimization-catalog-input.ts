@@ -17,7 +17,7 @@ export interface CatalogTaskDraft {
   kind: 'text' | 'notebook'
   sourceSessionId: string
   promptMessageId: string
-  language: NotebookLanguage
+  language: NotebookLanguage | 'compute'
   sourceReady: boolean
   prompt: string
   criteria: string
@@ -84,7 +84,9 @@ export function catalogTaskInput(
     ...(checks ? { checks } : {}),
     source:
       task.kind === 'notebook'
-        ? { kind: 'notebook', promptMessageId: task.promptMessageId, language: task.language }
+        ? task.language === 'compute'
+          ? { kind: 'compute', promptMessageId: task.promptMessageId }
+          : { kind: 'notebook', promptMessageId: task.promptMessageId, language: task.language }
         : {
             kind: 'text',
             prompt: validated.prompt,

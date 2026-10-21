@@ -7430,7 +7430,6 @@
     "Task filter": "任务筛选",
     "Tasks per domain (empty means all)": "每个任务域的任务数（留空表示全部）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "没有任务符合预览的筛选条件。请调整筛选条件后重新预览。",
-    "Repeat this task with Notebook": "使用 Notebook 重新执行此任务",
-    "Notebook language": "Notebook 语言"
+    "Repeat this task with Notebook": "使用 Notebook 重新执行此任务"
   }
 }

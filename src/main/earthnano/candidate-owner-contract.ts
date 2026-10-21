@@ -83,3 +83,10 @@ export interface PersistentCandidateOwners {
   }): Promise<CommittedReviewReferences & { outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
 }
+
+/** Host composition registers these same owner capabilities before any execution dispatch. */
+export type CandidateOwnerPorts = Pick<
+  PersistentCandidateOwners,
+  'resolveCandidateDelivery' | 'resolveControlPolicy' | 'shutdown'
+>
+export type CandidateOwnersReady = (ports: CandidateOwnerPorts) => (() => void) | void

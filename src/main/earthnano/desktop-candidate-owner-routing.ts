@@ -14,17 +14,13 @@ import { BackgroundResultDeliveryUnavailableError } from '../background-result-d
 import { acquireDataRootWriter } from '../storage/migration-state'
 import { resolveConfigRoot, resolveDataRoot } from '../storage-root'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
-import type { PersistentCandidateOwners } from './candidate-owner-contract'
+import type { CandidateOwnerPorts, CandidateOwnersReady } from './candidate-owner-contract'
 import type { ResolveCandidateDelivery, TrustedControlPolicy } from './compute-candidate-ports'
 import { requestDigest, validateRecord } from './execution-contract'
 import { outputDigest } from './output-checks'
 import { readPersistentOptimizationResume } from './optimization-resume'
 
-export type CandidateOwnerPorts = Pick<
-  PersistentCandidateOwners,
-  'resolveCandidateDelivery' | 'resolveControlPolicy' | 'shutdown'
->
-export type CandidateOwnersReady = (ports: CandidateOwnerPorts) => (() => void) | void
+export type { CandidateOwnerPorts, CandidateOwnersReady } from './candidate-owner-contract'
 type ControlBinding = Parameters<NonNullable<CandidateOwnerPorts['resolveControlPolicy']>>[0]
 const unavailable = (): BackgroundResultDeliveryUnavailableError =>
   new BackgroundResultDeliveryUnavailableError('Private result delivery owner is unavailable')
