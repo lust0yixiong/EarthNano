@@ -110,6 +110,8 @@ context/snapshot/native preparation 4 文件 160/160、共用 binding/resume/met
 
 全部红绿、原始模型失败及复核见 [完整服务链记录](validation/alpha/compute-original-workflow/manifest.json)。代理请求数不是生产费用账本；原 API/美元统计仍 unknown。PNG 字节及 native Read 不证明图像语义正确，数值模型评分不证明科学提升；当前 host composition 也不代替 GUI 或最终安装包。Windows 全部按用户决定留至 [0.2-Alpha](WINDOWS_0_2_ALPHA.md)。
 
+最终两侧源码审查未发现已证实的新增 P1/P2 业务缺陷；另以原 native/Node/SQLite fixture 区分真实后续 Turn 失败与可修复的工具失败。两个新增窄例在子智能体和主集成树各通过 2/2（其余 6 个原例只是本次过滤，未删除或改名）：后续 Turn 原生失败经原三次投递重试后为 failed/cleanup confirmed；工具错误后修复保留真实 completed/failed/completed Run，而两次逻辑 Turn 完成。原 producer、Version、Review 及重开断言保留，生产 owner/投递规则未改；早期 45 秒截止探针只证明 interrupted/unknown，不是生产回归红。最终 Node compiled types、完整 lint 通过，审查与窄例原始记录同在上述 manifest。
+
 ## Unix CI 与剩余交付
 
 PR18 `39583693350` 和 PR20 `39585343040` 均已实际完成失败，不再记 pending。下载原报告及 sidecar 后，用各运行原 normalize/validate/compare 重新核对，Linux inventory 完整、零全局错误；PR18 为 baseline29/candidate29、零新增失败，但原失败和新增 skip 均保留。macOS 存一个原高亮测试的新增 timeout，原生产/测试/dependency 字节未改，本地原版和候选各 52/52；原因未在 hosted 证明，不改超时或比较规则、不称 flake。

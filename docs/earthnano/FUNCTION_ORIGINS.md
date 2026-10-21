@@ -15,7 +15,7 @@
 | 已完成阶段的缓存与续跑                               | Harness² `harness2/core/runmark.py`、`schedule.py` 的 `_resume`                                                                                     | 与原 Session、固定配置/输入、资源收尾和剩余预算一致；重开不自动重放                  |
 | 模型用量与方法成本记录                               | OpenScience `src/shared/acp-usage-contract.ts`、`src/main/database/migrations/0015-session-model-call-usage.ts`；Harness² `harness2/core/ledger.py` | 复用可得的原记录并关联、去重，保留已知/部分/未知，不从 token 推算真实 API 次数或账单 |
 
-上述上游普通能力必须保留。工具代码留在仓库不等于已经进入候选执行；Compute 的候选接线仍待完成。二进制 owner/方法资产已接通并通过真实 RDS/PNG 原版本验证，但当前提交的桌面模型和 Windows 验收仍需取得，见 [二进制集成](ALPHA_BINARY.md)。完整 sweep、Library 与 R 本身不能称为自行扩散的功能。
+上述上游普通能力必须保留。工具代码留在仓库不等于已经进入候选执行；Compute 现已沿原模块进入同一候选执行，完整服务链的受控离线与 DeepSeek 实验及零重放复核已完成，外部 SSH/Slurm、最终 GUI/包仍分别按实际证据验收，见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)。二进制 owner/方法资产已接通，并有真实 RDS/PNG 原版本及同构建桌面/DeepSeek 证据，见 [二进制集成](ALPHA_BINARY.md)；最终 macOS/Linux 包仍待，Windows 已明确延期 0.2-Alpha。完整 sweep、Library 与 R 本身不能称为自行扩散的功能。
 
 固定源码可从 [OpenScience 基线](https://github.com/aipoch/open-science/tree/9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5) 与 [Harness² 基线](https://github.com/google-research/harness2/tree/1cfe254e8d25b15f37048c3730134686abe60335) 核对。方法对照不得以 EarthNano 的 `earthnano*.py` 代替原调度器。
 
