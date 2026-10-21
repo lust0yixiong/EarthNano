@@ -571,6 +571,7 @@ describe('EarthNano original-baseline gates', () => {
     const invoke = (path: string): ReturnType<typeof spawnSync> =>
       spawnSync(python, [script, vendor, path, '--kind', 'candidate'], {
         encoding: 'utf8',
+        env: { ...process.env, PYTHONUTF8: '0', PYTHONCOERCECLOCALE: '0', LC_ALL: 'C' },
         timeout: 15_000
       })
     expect(invoke(output).status).toBe(0)
