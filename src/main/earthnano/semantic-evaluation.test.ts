@@ -449,6 +449,55 @@ describe('strict grounded semantic assessment parser', () => {
     ])
   })
   it.each([
+    {
+      path: 'values.json',
+      content: '{"values":[2,4,6],"literal":"a\\nb"}\n',
+      quote: '"values":[2,4,6],"literal":"a\\nb"'
+    },
+    {
+      path: 'values.csv',
+      content: 'sample,value\r\n"A,quoted",2\r\nB,4\r\n',
+      quote: '"A,quoted",2\r\nB,4'
+    },
+    {
+      path: 'analysis.ts',
+      content: 'const value = "遥感 🌍";\nconsole.log(value);\n',
+      quote: '"遥感 🌍";\nconsole.log(value)'
+    }
+  ])(
+    'accepts actual $path body quotes after one JSON round trip and rejects wrapper or double-escaped substitutes',
+    ({ path, content, quote }) => {
+      const target: PersistentCandidateFile = {
+        path,
+        content,
+        digest: semanticDigest(content),
+        artifactRef: {
+          artifactId: 'body-artifact',
+          versionId: 'body-version',
+          checksum: createHash('sha256').update(content).digest('hex')
+        }
+      }
+      // The source package is JSON, but its decoded content is still the exact original file text.
+      const [decoded] = JSON.parse(JSON.stringify([target])) as PersistentCandidateFile[]
+      const assessment = document([decoded!])
+      for (const check of assessment.checks) check.evidence[0]!.quote = quote
+      expect(parseSemanticAssessment(JSON.stringify(assessment), [target], criteria)).toEqual(
+        assessment
+      )
+      for (const invalid of [
+        JSON.stringify(quote),
+        JSON.stringify(quote).slice(1, -1),
+        '"artifactId":"body-artifact"'
+      ]) {
+        const forged = structuredClone(assessment)
+        forged.checks[0]!.evidence[0]!.quote = invalid
+        expect(() => parseSemanticAssessment(JSON.stringify(forged), [target], criteria)).toThrow(
+          'existing exact artifact version'
+        )
+      }
+    }
+  )
+  it.each([
     'score',
     'extra',
     'quote',
@@ -527,6 +576,8 @@ describe('independent semantic execution', () => {
       expect(context.invocation.mission).not.toContain('@')
       expect(context.invocation.mission).not.toContain('`')
       expect(context.invocation.mission).toContain('EarthNano execution role: reviewer.')
+      expect(context.invocation.mission).toContain('JSON, CSV and source-code artifact bodies')
+      expect(context.invocation.mission).toContain('after parsing assessment.json once')
     }
   })
   it('fails instead of falling back when the shared ninth admission is refused', async () => {
