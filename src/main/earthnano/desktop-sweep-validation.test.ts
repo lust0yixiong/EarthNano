@@ -65,6 +65,10 @@ describe('desktop catalog source boundary', () => {
     expect(() => normalizeDesktopSweep(request)).toThrow()
   })
   it.each([
+    { kind: 'compute', promptMessageId: 'prompt-a', language: 'python' },
+    { kind: 'compute', promptMessageId: 'prompt-a', hosts: [] },
+    { kind: 'compute', promptMessageId: 'prompt-a', files: [] },
+    { kind: 'compute', promptMessageId: 'prompt-a', prompt: 'Replacement prompt' },
     { kind: 'notebook', promptMessageId: 'prompt-a', runtime: '/host/python' },
     { kind: 'notebook', promptMessageId: 'prompt-a', prompt: 'Replacement prompt' },
     { kind: 'notebook', promptMessageId: 'prompt-a', files: [] },
@@ -103,6 +107,16 @@ describe('desktop catalog source boundary', () => {
     ]
     for (const value of bad) expect(() => normalizeDesktopSweep(value)).toThrow()
   })
+})
+
+it('keeps Compute source identity distinct from data language and renderer host authority', () => {
+  const request = sweepRequest()
+  request.catalog[0].source = { kind: 'compute', promptMessageId: 'prompt-a' }
+  const parsed = normalizeDesktopSweep(request)
+  expect(parsed.catalog[0].source).toEqual(request.catalog[0].source)
+  expect(parsed.catalog[0].source).not.toHaveProperty('language')
+  request.catalog[0].source = { kind: 'compute', promptMessageId: '../other' }
+  expect(() => normalizeDesktopSweep(request)).toThrow()
 })
 
 it('retains an explicit R source but never adds language to legacy requests or text sources', () => {

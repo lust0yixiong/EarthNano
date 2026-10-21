@@ -1,4 +1,6 @@
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import { normalizeFrozenManagedInputs } from '../../shared/earthnano/notebook-profile'
+import { normalizeFrozenComputeContext } from '../../shared/earthnano/compute-profile'
 import { createHash } from 'node:crypto'
 import {
   normalizeOptimizationCatalog,
@@ -60,13 +62,28 @@ export function sweepTasks(value: ResolvedOptimizationSweep): ResolvedSweepTask[
     semanticCriteria(task.criteria)
     task.checks = normalizeOutputChecks(task.checks)
     task.inputArtifacts = normalizeOptimizationArtifactInputs(task.inputArtifacts)
-    if (source.source.kind === 'notebook') {
+    if (source.source.kind === 'compute') {
+      const compute = normalizeFrozenComputeContext(task.input.environment.compute)
+      normalizeFrozenManagedInputs(task.input.task.managedInputs)
+      if (
+        task.sourcePromptMessageId !== source.source.promptMessageId ||
+        task.input.harness.tools !== 'notebook-compute' ||
+        task.input.environment.notebook !== undefined ||
+        task.input.environment.network !== 'provider-and-notebook-policy' ||
+        compute.sourceProjectId !== sweep.request.projectId ||
+        compute.sourceSessionId !== task.sourceSessionId ||
+        task.input.task.files.length ||
+        task.inputArtifacts?.length
+      )
+        throw new Error('Sweep Compute source requires its own original fixed task and hosts')
+    } else if (source.source.kind === 'notebook') {
       if (
         task.sourcePromptMessageId !== source.source.promptMessageId ||
         notebookLanguageForTools(task.input.harness.tools) !==
           (source.source.language ?? 'python') ||
         !task.input.task.managedInputs?.length ||
         !task.input.environment.notebook ||
+        task.input.environment.compute !== undefined ||
         task.input.environment.notebook.runtime.language !== (source.source.language ?? 'python') ||
         task.input.task.files.length ||
         task.inputArtifacts?.length
@@ -77,6 +94,7 @@ export function sweepTasks(value: ResolvedOptimizationSweep): ResolvedSweepTask[
       task.input.harness.tools !== 'workspace-only' ||
       task.input.task.managedInputs !== undefined ||
       task.input.environment.notebook !== undefined ||
+      task.input.environment.compute !== undefined ||
       task.input.task.prompt !== source.source.prompt ||
       canonicalOutput(task.inputArtifacts) !==
         canonicalOutput(normalizeOptimizationArtifactInputs(source.source.inputArtifacts))

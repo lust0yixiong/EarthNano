@@ -100,6 +100,58 @@ async function fixture(notebook = false): Promise<ResolvedOptimizationSweep> {
   }))
   return { plan, tasks, request }
 }
+
+it('binds Compute to its own selected source and frozen hosts in the original sweep', async () => {
+  const sweep = await fixture(true)
+  for (const task of sweep.tasks) {
+    const original = sweep.request.catalog.find((entry) => entry.taskId === task.taskId)!
+    original.source = { kind: 'compute', promptMessageId: task.sourcePromptMessageId! }
+    task.input = {
+      ...task.input,
+      task: { ...task.input.task, managedInputs: [] },
+      harness: { ...task.input.harness, tools: 'notebook-compute' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        compute: {
+          sourceProjectId: 'project',
+          sourceSessionId: task.sourceSessionId,
+          access: { enabledProviderIds: [], selectedProviderIds: [] },
+          hosts: []
+        }
+      }
+    }
+  }
+  expect(sweepTasks(sweep).map((task) => task.taskId)).toEqual(['a', 'b'])
+  for (const mismatch of ['source', 'project', 'profile', 'notebook'] as const) {
+    const bad = structuredClone(sweep)
+    const input = bad.tasks[0].input
+    if (mismatch === 'source' || mismatch === 'project')
+      bad.tasks[0].input = {
+        ...input,
+        environment: {
+          ...input.environment,
+          compute: {
+            ...input.environment.compute!,
+            ...(mismatch === 'source'
+              ? { sourceSessionId: 'foreign' }
+              : { sourceProjectId: 'foreign' })
+          }
+        }
+      }
+    if (mismatch === 'profile')
+      bad.tasks[0].input = { ...input, harness: { ...input.harness, tools: 'workspace-only' } }
+    if (mismatch === 'notebook')
+      bad.tasks[0].input = {
+        ...input,
+        environment: {
+          ...input.environment,
+          notebook: (await fixture(true)).tasks[0].input.environment.notebook
+        }
+      }
+    expect(() => sweepTasks(bad)).toThrow()
+  }
+})
 describe('resolved sweep task/source identity', () => {
   it('orders independently resolved tasks by the original plan without inheriting primary input', async () => {
     const value = await fixture()

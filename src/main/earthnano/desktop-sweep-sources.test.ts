@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { ManagedFileReadLease } from '../managed-file-versions/read-port'
+import type { ComputeHost } from '@aipoch/compute'
 import { resolveDesktopSweepTask } from './desktop-sweep-sources'
 import type { PersistentCandidateNotebookOptions } from './persistent-candidate-owner'
 
@@ -59,6 +60,77 @@ const source = (id: string) => {
 }
 
 describe('independent selected Notebook task sources', () => {
+  it.each([false, true])(
+    'freezes original Compute hosts and exact task inputs without a data-language binding (attachments=%s)',
+    async (attachments) => {
+      const current = source('a')
+      current.session.enabledComputeHosts = ['ssh:original']
+      current.session.selectedComputeHosts = []
+      if (!attachments) delete current.session.messages[0].uploads
+      const get = vi.fn(
+        async () =>
+          ({
+            id: 'host-row',
+            providerId: 'ssh:original',
+            shape: 'direct_ssh',
+            executionMode: 'direct_ssh',
+            config: { host: 'private.example', password: 'never-freeze' },
+            details: 'Mutable host metadata'
+          }) as unknown as ComputeHost
+      )
+      const listRuntimes = vi.fn(() => {
+        throw new Error('Compute must not select Python/R')
+      })
+      const openVersion = vi.fn(async () => current.lease)
+      const resolved = await resolveDesktopSweepTask({
+        projectId: 'p',
+        task: {
+          taskId: 'compute-task',
+          domain: 'science',
+          sourceSessionId: 'a',
+          source: { kind: 'compute', promptMessageId: 'prompt-a' },
+          criteria: 'Verify original result'
+        },
+        agent,
+        harness,
+        loadSession: async () => current.session,
+        versions: { openVersion },
+        compute: { hosts: { get } },
+        notebook: { service: { listRuntimes } } as unknown as PersistentCandidateNotebookOptions
+      })
+      expect(resolved).toMatchObject({
+        sourceSessionId: 'a',
+        sourcePromptMessageId: 'prompt-a',
+        input: {
+          task: { prompt: 'Analyze a', files: [] },
+          harness: { tools: 'notebook-compute' },
+          environment: {
+            network: 'provider-and-notebook-policy',
+            compute: {
+              sourceProjectId: 'p',
+              sourceSessionId: 'a',
+              access: { enabledProviderIds: ['ssh:original'], selectedProviderIds: [] },
+              hosts: [
+                {
+                  id: 'host-row',
+                  providerId: 'ssh:original',
+                  shape: 'direct_ssh',
+                  executionMode: 'direct_ssh'
+                }
+              ]
+            }
+          }
+        }
+      })
+      expect(resolved.input.task.managedInputs).toHaveLength(attachments ? 1 : 0)
+      expect(resolved.input.environment).not.toHaveProperty('notebook')
+      expect(JSON.stringify(resolved)).not.toContain('never-freeze')
+      expect(get).toHaveBeenCalledExactlyOnceWith('ssh:original')
+      expect(listRuntimes).not.toHaveBeenCalled()
+      expect(openVersion).toHaveBeenCalledTimes(attachments ? 1 : 0)
+      if (attachments) expect(current.lease.close).toHaveBeenCalledOnce()
+    }
+  )
   it('freezes two original source prompts, immutable versions and enabled runtimes without primary inheritance', async () => {
     const sources: Record<string, ReturnType<typeof source>> = { a: source('a'), b: source('b') }
     const loadSession = vi.fn(async (_project: string, id: string) => sources[id].session)

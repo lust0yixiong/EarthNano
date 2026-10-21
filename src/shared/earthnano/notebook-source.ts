@@ -121,7 +121,8 @@ export function notebookOptimizationSourceReferences(
 
 /** Current active branch only; unreadable metadata is an unavailable picker option. */
 export function notebookOptimizationSourceMessages(
-  session: PersistedChatSession
+  session: PersistedChatSession,
+  options: { allowEmpty?: boolean } = {}
 ): PersistedChatSession['messages'] {
   const messages = session.conversationGraph
     ? resolveActiveConversationMessages(session.conversationGraph)
@@ -129,7 +130,7 @@ export function notebookOptimizationSourceMessages(
   return messages.filter((message) => {
     if (!isSupportedNotebookOptimizationMessage(message)) return false
     try {
-      notebookOptimizationSourceReferences(message, session.id)
+      notebookOptimizationSourceReferences(message, session.id, options)
       return true
     } catch {
       return false

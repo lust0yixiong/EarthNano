@@ -29,6 +29,8 @@ export interface OptimizationSweepTask extends OptimizationCatalogIdentity {
   sourceSessionId: string
   source:
     | ({ kind: 'notebook' } & NotebookOptimizationSource)
+    /** Original Node control REPL; Compute is not a Python/R data language. */
+    | { kind: 'compute'; promptMessageId: string }
     | {
         kind: 'text'
         prompt: string

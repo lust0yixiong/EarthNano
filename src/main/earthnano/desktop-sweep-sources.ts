@@ -1,5 +1,6 @@
 import { resolveActiveConversationMessages } from '../../shared/conversation-graph'
 import type { PersistedChatSession } from '../../shared/session-persistence'
+import type { ComputeHostRepository } from '@aipoch/compute'
 import type { OptimizationSweepTask } from '../../shared/earthnano/optimization-sweep'
 import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
@@ -9,9 +10,11 @@ import type { CandidateSnapshotInput } from './candidate-snapshot'
 import { notebookOptimizationLanguage } from '../../shared/earthnano/notebook-source'
 import {
   resolveOptimizationNotebookInputs,
+  resolveOptimizationComputeInputs,
   resolveOptimizationNotebookRuntime
 } from './optimization-notebook-input'
 import { resolveOptimizationArtifactInputs } from './optimization-input'
+import { freezeComputeContext } from './compute-context'
 
 /** One selected task's original source authority. The caller owns source-Session deletion admission
  * and the data-root lease; original version readers close every individual immutable read lease. */
@@ -23,6 +26,7 @@ export async function resolveDesktopSweepTask(options: {
   loadSession(projectId: string, sessionId: string): Promise<PersistedChatSession>
   versions: Pick<ManagedFileVersionReadPort, 'openVersion'>
   notebook?: PersistentCandidateNotebookOptions
+  compute?: { hosts: Pick<ComputeHostRepository, 'get'> }
   signal?: AbortSignal
 }): Promise<ResolvedSweepTask> {
   const { task, projectId, signal } = options
@@ -75,7 +79,11 @@ export async function resolveDesktopSweepTask(options: {
     : source.messages
   const message = messages.find((entry) => entry.id === notebookSource.promptMessageId)
   if (!message) throw new Error('Original Notebook source message unavailable')
-  const managedInputs = await resolveOptimizationNotebookInputs({
+  const resolveInputs =
+    task.source.kind === 'compute'
+      ? resolveOptimizationComputeInputs
+      : resolveOptimizationNotebookInputs
+  const managedInputs = await resolveInputs({
     projectId,
     sourceSessionId: task.sourceSessionId,
     source: { promptMessageId: notebookSource.promptMessageId },
@@ -84,6 +92,25 @@ export async function resolveDesktopSweepTask(options: {
     versions: options.versions,
     signal
   })
+  if (task.source.kind === 'compute') {
+    if (!options.compute) throw new Error('Original Compute owner unavailable')
+    const compute = await freezeComputeContext({ source, hosts: options.compute.hosts })
+    signal?.throwIfAborted()
+    return {
+      ...common,
+      sourcePromptMessageId: notebookSource.promptMessageId,
+      input: {
+        task: { prompt: message.content, files: [], managedInputs },
+        agent: structuredClone(options.agent),
+        harness: { ...structuredClone(options.harness), tools: 'notebook-compute' },
+        environment: {
+          isolation: 'directory-process',
+          network: 'provider-and-notebook-policy',
+          compute
+        }
+      }
+    }
+  }
   const language = notebookOptimizationLanguage(notebookSource)
   const runtime = await resolveOptimizationNotebookRuntime({
     service: options.notebook.service,
