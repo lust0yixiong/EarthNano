@@ -1,26 +1,120 @@
 # EarthNano
 
-EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。普通任务、优化基线和候选共用执行核心，保留原科研工具、不可变产物及审阅能力。项目不预设研究学科或任务类型。
+EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入同一执行核心：先在项目与会话中完成科研任务，再对同一个任务比较基线和候选配置，保留 Notebook、产物版本、来源与审阅记录。
 
-**`0.1.0-alpha.1`：macOS 与 Linux 的 Alpha 预览。** [固定版本与安装文件](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1) · [Alpha 更新频道](https://github.com/lust0yixiong/EarthNano/releases/tag/alpha) · [使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)。安装文件与 `SHA256SUMS.txt` 必须取自同一 EarthNano Release；页面公开后才表示该版本可供下载。
+当前版本：**[0.1.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)**，支持 macOS 和 Linux。Windows 安装与分发延期至 0.2-Alpha，见[问题记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
 
-产品源码 `bdc0246383a25990030854f4c2fa100895f29ea6`，tree `25d834714406b65aff26b291a790e5c1749f94b1`。Python/R、Compute、二进制产物及原 Harness² 任务流接入同一执行与证据链。四目标原生构建、安装/启动/数据库检查 `39658781703` 通过；MacARM 原包 Python 同任务科研、独立 Review、停止/续跑/重开 `39662102991` 用离线模型通过。八个原生安装文件经原发布工具汇总校验（`39683248168`）；不扩大为所有科研任务、模型或平台 GUI 均已验收。
+[安装](#安装) · [首次配置](#首次配置) · [第一次科研任务](#第一次科研任务) · [完整使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)
 
-完整 macOS/Linux 固定上游对照 `39658771118` 均为零新增测试/阶段回归、零全局错误；每个平台 115,595→116,940 项。Mac 失败 2→2，Linux 30→29，既有失败和全部跳过保留，不称所有测试全绿。原 Harness² 独立对照 5→77 项通过。 [完整原始证据](docs/earthnano/validation/alpha/source-39658771118/manifest.json)与[原生/科研证据](docs/earthnano/validation/alpha/final-bdc/manifest.json)分层记录。
+## 安装
 
-**Windows 安装问题及 Windows 版本延期至 0.2-Alpha**，保留原源码、配置及失败记录，见[延期清单](docs/earthnano/WINDOWS_0_2_ALPHA.md)。包为 unsigned Alpha，不宣称 Developer ID 签名、公证或稳定版。自动触发、平台级配置治理和完整费用账本单列后续设计。
+普通用户下载已打包的应用即可，无需克隆仓库、安装 Node.js 或执行 `npm ci`。
 
-- [源码试用与开发基线](docs/earthnano/BASELINE.md)
-- [功能来源](docs/earthnano/FUNCTION_ORIGINS.md)、[完成契约](docs/earthnano/ALPHA_CONTRACT.md)与[后续队列](docs/earthnano/NEXT_TASKS.md)
-- [原完整 sweep](docs/earthnano/ALPHA_SWEEP.md)、[多来源桌面入口](docs/earthnano/ALPHA_CATALOG.md)、[R](docs/earthnano/ALPHA_R_CONTRACT.md)、[二进制](docs/earthnano/ALPHA_BINARY.md)与[Compute](docs/earthnano/ALPHA_COMPUTE_CONTRACT.md)
-- [共享执行契约](docs/earthnano/CORE_CONTRACT.md)、[类型/schema](contracts/execution/README.md)与[固定上游/许可证](UPSTREAMS.json)
+| 系统与架构 | 下载文件 |
+| --- | --- |
+| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-mac-arm64.dmg) |
+| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-mac-x64.dmg) |
+| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano_0.1.0-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage) |
+| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano_0.1.0-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-linux-arm64.AppImage) |
 
-应用显示名为 **EarthNano**；原数据目录、凭据身份、CLI/MCP/协议及包名保留 OpenScience 兼容标识，避免仅因更名破坏既有数据和工具。
+macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
+
+```bash
+# macOS：Apple Silicon DMG 示例
+shasum -a 256 EarthNano-0.1.0-alpha.1-mac-arm64.dmg
+
+# Linux：x64 AppImage 示例
+sha256sum EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
+```
+
+### macOS
+
+1. 打开与你处理器架构对应的 `.dmg`。
+2. 将 **EarthNano.app** 拖到 **Applications（应用程序）**，从应用程序目录启动，然后弹出安装磁盘。
+3. 本版是未签名、未公证的 Alpha 预览。若提示无法验证开发者，核对下载来源及摘要后，按 [Apple 官方说明](https://support.apple.com/en-us/102445)，在 **系统设置 → 隐私与安全性 → 仍要打开** 中仅允许该应用；不需要关闭系统整体安全检查。“损坏”或“恶意软件”提示不适用此操作。
+
+已有 OpenScience 用户请先退出原应用并备份数据。EarthNano 保留原数据目录与凭据兼容身份，不要因应用改名删除或手动搬移原数据，也不要同时运行两款应用。
+
+### Linux
+
+Debian/Ubuntu 在下载目录安装 `.deb`，只执行与你架构对应的一条：
+
+```bash
+# x64
+sudo apt install ./EarthNano_0.1.0-alpha.1_amd64.deb
+
+# ARM64
+sudo apt install ./EarthNano_0.1.0-alpha.1_arm64.deb
+```
+
+其他支持 AppImage 的 Linux 环境可赋予文件执行权限后启动；ARM64 请替换为对应文件名：
+
+```bash
+chmod +x EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
+./EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
+```
+
+## 首次配置
+
+1. 跟随首次向导检查环境、选择数据位置，设置智能体运行时和模型提供商。
+2. 在设置中安装或选择 **Claude Code** 并运行检测。普通任务保留原有模型配置能力；当前桌面优化使用 **Claude Code + 明确的自定义 Messages provider**。
+3. 添加自己的模型提供商与 API key。以下为已验证过的 DeepSeek 配置示例，不会自动使用个人订阅设置：
+
+   | 字段 | 示例值 |
+   | --- | --- |
+   | API 类型 | `Messages (/v1/messages) — Claude / Anthropic-compatible` |
+   | Base URL | `https://api.deepseek.com/anthropic` |
+   | 模型 | `deepseek-flash` |
+   | API key | 自己的 DeepSeek API key，在应用提供商表单中保存 |
+
+4. 做 Notebook 科研计算时，在设置中安装或登记并启用需要的 **Python / R** 运行时。优化方法另需 Python 3.11+，本版本验证使用 Python 3.12。仅使用本地 Notebook 无需配置远端 Compute 主机。
+
+API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git。调用模型会产生提供商费用；应用的执行次数预算不等于 API 请求数、token 或美元额度。
+
+## 第一次科研任务
+
+1. 新建 **Project（项目）** 和 **Session（会话）**，选择模型。
+2. 准备一个 `sample.csv` 并作为输入添加到会话：
+
+   ```csv
+   value
+   1
+   2
+   3
+   ```
+
+3. 在聊天中发送：
+
+   > 使用已启用的 Python Notebook 读取 sample.csv，计算 value 列的有效数值行数、总和与均值。不要修改输入文件；将结果写入 summary.json 并发布，保留计算过程和产物来源。
+
+4. 按提示批准任务实际需要的权限，在 Notebook 与文件预览中检查结果。上述示例应得到行数 `3`、总和 `6`、均值 `2`；可从产物版本、Provenance（来源）和 Review（审阅）入口核对过程与证据。
+
+文献、数据、Skills、R、Compute 与普通聊天能力继续保留；更多操作见[完整使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)。
+
+## 使用 Harness² 优化同一个任务
+
+先确认普通任务能够执行，再在桌面 Session 展开 **Optimize task（优化任务）**：
+
+1. 选择任务来源、已启用的 Notebook 运行时与输入文件，填写独立验收标准。
+2. 首次可选择 `sequential`、`k=1`，点击 **Preview task stream** 查看任务与最低执行容量，再设置预算并启动 **Start optimization**。
+3. 查看基线与候选的进度、对应会话、不可变产物版本和独立 Review。它们通过同一核心执行同一个冻结任务；后续可使用 parallel、更高 k 和多任务 sweep。
+4. 需要中断时点击停止。重开应用只读取已有状态；继续工作须显式点击 **Resume optimization**，沿用剩余预算，不自动重放已完成阶段。
+
+优化仍需用户显式启动；单次评审高分不证明科研正确或配置普遍更优，也不会自动发布配置。候选的权限和配置 profile 有明确限制，详见[预算、恢复与支持范围](docs/earthnano/ALPHA_USER_GUIDE.md#显式优化同一个任务)。
+
+## 开发与验证资料
+
+- [源码安装与开发基线](docs/earthnano/BASELINE.md)、[开发依赖](docs/development-quick-reference.md)
+- [功能来源与范围](docs/earthnano/FUNCTION_ORIGINS.md)、[执行契约](docs/earthnano/CORE_CONTRACT.md)、[完成契约与已知限制](docs/earthnano/ALPHA_CONTRACT.md)
+- [原始科研/原生包证据](docs/earthnano/validation/alpha/final-bdc/manifest.json)、[完整上游源码对照](docs/earthnano/validation/alpha/source-39658771118/manifest.json)、[发布文件验证](docs/earthnano/validation/alpha/assets-39683248168/manifest.json)
+- [固定上游与许可证](UPSTREAMS.json)：两侧 Apache-2.0 许可及兼容标识保留。
+
+本版产品源码为 `bdc0246383a25990030854f4c2fa100895f29ea6`；文档更新不会改变已发布安装包。完整 macOS/Linux 上游对照无新增测试或阶段回归，既有失败与跳过保留；真实模型、安装包与科研工作流的验证范围分别记录。当前 Alpha 不承诺所有模型、所有科研任务或全部平台 GUI 都已验收。
 
 <details>
 <summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 EarthNano 交付）</summary>
 
-以下保留上游说明与许可。下载链接和 Homebrew 命令安装的是 OpenScience；EarthNano 当前请按上方源码试用说明操作。上游各语言 README 同属原项目资料。
+以下保留上游说明与许可。下载链接和 Homebrew 命令安装的是 OpenScience；EarthNano 的安装与使用请按本页上方说明操作。上游各语言 README 同属原项目资料。
 
 ---
 

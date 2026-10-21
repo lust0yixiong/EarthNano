@@ -17,7 +17,7 @@ npm run dev
 
 开发使用仓库 `.github/earthnano-node-version` 指定的 Node（本快照为 24.22.0），并满足[原开发依赖](../development-quick-reference.md)。首次安装按原脚本下载、校验 Electron 与原生资源，需要网络；不要把跳过安装脚本的依赖树当成可运行应用。优化方法另需可用的 Python 3.11+，优先使用本次测试采用的 Python 3.12。
 
-在 EarthNano Release 公开后，按处理器架构选包：
+从 EarthNano Release 按处理器架构选包：
 
 | 系统 | 包及安装入口 |
 |---|---|
@@ -26,7 +26,7 @@ npm run dev
 | Linux x64 | `EarthNano_0.1.0-alpha.1_amd64.deb` 或 `EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage`。 |
 | Linux ARM64 | `EarthNano_0.1.0-alpha.1_arm64.deb` 或 `EarthNano-0.1.0-alpha.1-linux-arm64.AppImage`。 |
 
-Debian/Ubuntu 使用原 `.deb` 安装方式，例如 `sudo apt install ./EarthNano_0.1.0-alpha.1_amd64.deb`；AppImage 赋予执行权限后启动，宿主仍须满足原运行依赖。这些 Alpha 包按 **unsigned** 交付，不是稳定版。公开发布后，请从**同一个 EarthNano 实际 Release** 下载安装包和 `SHA256SUMS.txt`，计算下载文件的 SHA-256，例如：
+Debian/Ubuntu 使用原 `.deb` 安装方式，例如 `sudo apt install ./EarthNano_0.1.0-alpha.1_amd64.deb`；AppImage 赋予执行权限后启动，宿主仍须满足原运行依赖。这些 Alpha 包按 **unsigned** 交付，不是稳定版。请从**同一个 EarthNano 实际 Release** 下载安装包和 `SHA256SUMS.txt`，计算下载文件的 SHA-256，例如：
 
 ```bash
 # macOS：以 Apple Silicon DMG 为例
@@ -36,7 +36,7 @@ shasum -a 256 EarthNano-0.1.0-alpha.1-mac-arm64.dmg
 sha256sum EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
 ```
 
-将输出的完整摘要与清单中**相同文件名**的条目对照；使用其他架构或包格式时替换为实际下载的文件名。校验和一致只说明文件字节与清单一致，不单独证明构建来源；本 Alpha 未产出或声明 SLSA attestation、Developer ID 签名或公证。当前尚未公开发布，下载入口与最终清单仍待核定。
+将输出的完整摘要与清单中**相同文件名**的条目对照；使用其他架构或包格式时替换为实际下载的文件名。校验和一致只说明文件字节与清单一致，不单独证明构建来源；本 Alpha 未产出或声明 SLSA attestation、Developer ID 签名或公证。`0.1.0-alpha.1` 已公开发布，安装包与校验清单均使用本页所链的固定版本。
 
 若 macOS 提示未公证或无法验证开发者，确认来源与未篡改并尝试打开后，可按 [Apple 官方说明](https://support.apple.com/en-us/102445)在 **System Settings → Privacy & Security → Open Anyway → Open** 仅允许该 App；该路径不适用于“损坏”或“恶意软件”提示。本轮未观测 Gatekeeper，也未更改系统设置。
 
