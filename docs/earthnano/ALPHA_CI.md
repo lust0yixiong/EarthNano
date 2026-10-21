@@ -239,3 +239,13 @@ PR14 corrected run `39456512139` 的 candidate Ubuntu3/4 job `118745034481` 在 
 ## PR15：账户限制发生在执行前
 
 新 sweep PR15 的 run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/39464594843) 在 runner 分配前被阻止。GitHub annotation 原文为 “The job was not started because recent account payments have failed or your spending limit needs to be increased.” plan 和 Windows runtime 都没有步骤或 runner，因而没有运行依赖安装、版本设置或源码测试。原始 API 返回及 SHA 见 validation/alpha/README.md。需要仓库所属账户在 Billing & plans 恢复付款或可用支出额度后，才能执行托管验证；保留当前严格原版对照和 draft 状态。
+
+## 2026-10-21 原生分项结果
+
+固定干净源码 `4df93008e499941738d91dd75dc653fb033316b0` 的 [原生 run39550528030](https://github.com/lust0yixiong/EarthNano/actions/runs/39550528030) 已取得 Linux x64 分项结果：[job119058437315](https://github.com/lust0yixiong/EarthNano/actions/runs/39550528030/job/119058437315) 成功执行原完整构建、打包、DEB 生命周期及安装、AppImage 资源和安装后启动检查。产生 `EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage`（344,201,268 字节）与 `EarthNano_0.1.0-alpha.1_amd64.deb`（272,735,696 字节），原摘要与源码身份已留存。这是 CI 的 unsigned 分发资产，未发布为正式 Release，不能移用于后续不同源码提交。
+
+同一 run 的两个 Mac 目标在完整应用构建时遇到约 2GB Node heap OOM，尚未进入打包/图标编译及包启动验收。原固定 OpenScience `build.yml` 对打包构建显式设置 `NODE_OPTIONS=--max-old-space-size=8192`；EarthNano native lane 漏继承该设置，修复仅恢复原预算，原命令、矩阵与检查不降低。修复后的 Mac 实际结果仍需取得，不能把失败自动追认为通过。记录时 Windows runtime 仍运行中，不代表 Windows 包结果。
+
+原发布认证覆盖五种 target（macOS arm64/x64、Linux x64/arm64、Windows x64）和七种 installer key；当前 unsigned CI 只有四个 target，缺 Linux arm64。四目标 launch/resource smoke 不等于原完整签名/安装/聚合发布认证，后者门槛保持不变。
+
+原 job/日志、Linux source/artifact manifest 和数据库迁移认证原始字节见 [分项证据清单](validation/alpha/native-39550528030/manifest.json)。这些结果也不替代完整上游源码比较、候选优化的跨平台可达性或 DeepSeek 科研验收。

@@ -1,6 +1,6 @@
 # EarthNano 开发基线与源码试用
 
-`main` 已合并 PR #1–12；Alpha PR #13–17 尚待适用 CI 和审查。当前版本为 `0.1.0-alpha.1`，没有已验收的 EarthNano 安装包或已上线的 Alpha 更新 feed。README 中上游下载安装的是 OpenScience。
+`main` 已合并 PR #1–12；Alpha PR #13–17 尚待适用 CI 和审查。当前版本为 `0.1.0-alpha.1`，尚未发布 EarthNano 安装包或上线 Alpha 更新 feed；平台分项通过不等于最终版本验收。README 中上游下载安装的是 OpenScience。
 
 ## 复核当前源码
 
