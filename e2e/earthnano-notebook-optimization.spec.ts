@@ -4,6 +4,7 @@ import { readFile, readdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative } from 'node:path'
 import { expect } from '@playwright/test'
 import { isArtifactNotebookProducer } from '../src/shared/artifact-provenance'
+import { hasImmutableExecutionFileEvidenceReference } from '../src/shared/execution-file-evidence'
 import type { PersistedChatSession } from '../src/shared/session-persistence'
 import type { CandidateInvocation } from '../src/main/earthnano/candidate-snapshot'
 import type { ExecutionState } from '../src/main/earthnano/execution-core'
@@ -287,9 +288,6 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         'measurements.png',
         'research-results.json'
       ])
-      expect(
-        notebookRuns.some((run) => run.script.includes("grDevices::png('measurements.png'"))
-      ).toBe(true)
       for (const output of source.artifacts!) {
         expect(ordinaryRecord.evidence.artifacts).toContainEqual({
           artifactId: output.artifactId,
@@ -312,6 +310,11 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         const runId = isArtifactNotebookProducer(producer.evidence.producer)
           ? producer.evidence.producer.producer_run_id
           : undefined
+        expect(
+          hasImmutableExecutionFileEvidenceReference(
+            notebookRuns.find((run) => run.runId === runId)?.fileEvidence
+          )
+        ).toBe(true)
         expect(notebookRuns.find((run) => run.runId === runId)).toMatchObject({
           kernelKind: language,
           status: 'completed',
@@ -785,8 +788,6 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         `Notebook computation for ${record.request.origin.kind === 'optimization' ? record.request.origin.stageId : record.executionId}`
       ).toBeDefined()
       expect(record.evidence.artifacts).toHaveLength(artifactCount)
-      if (binaryAcceptance)
-        expect(computation!.script).toContain("grDevices::png('measurements.png'")
       const artifactProducers: Array<{
         output: ExecutionRecord['evidence']['artifacts'][number]
         producerRunId: string | undefined
@@ -840,6 +841,8 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
           producingRun,
           'Artifact producer is an original completed Run in the frozen language and this same fixed-input Session'
         ).toBeDefined()
+        if (binaryAcceptance)
+          expect(hasImmutableExecutionFileEvidenceReference(producingRun!.fileEvidence)).toBe(true)
         const preview = await page.evaluate(
           async ({ projectId, sessionId }) => {
             const session = (await window.api.sessions.loadAll()).sessions.find(
@@ -934,15 +937,17 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
             contentType: 'image/png'
           })
           expect(asset.artifact).not.toHaveProperty('content')
-          const inputPath = join(
-            executionRoot!,
-            completed.runId,
-            'execution',
-            'candidates',
-            record.executionId,
-            'workspace',
-            'inputs',
-            asset.path
+          const inputPath = await realpath(
+            join(
+              executionRoot!,
+              completed.runId,
+              'execution',
+              'candidates',
+              record.executionId,
+              'workspace',
+              'inputs',
+              asset.path
+            )
           )
           const bytes = await readFile(inputPath)
           expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
