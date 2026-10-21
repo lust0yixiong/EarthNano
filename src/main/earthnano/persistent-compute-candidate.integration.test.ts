@@ -47,8 +47,12 @@ import { toJobSummary } from '../compute/ipc'
 import { freezeComputeContext } from './compute-context'
 import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
-import { createClaudeCandidateDriver } from './claude-candidate-driver'
-import { emptyExecutionState, ExecutionCore } from './execution-core'
+import {
+  createClaudeCandidateDriver,
+  type ClaudeCandidateDriverOptions
+} from './claude-candidate-driver'
+import { ExecutionCore } from './execution-core'
+import { FileExecutionStore } from './execution-store'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 
 const png = Buffer.from(
@@ -453,11 +457,24 @@ it.each([
     })
     await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
     let core: ExecutionCore | undefined = undefined
+    let journal: FileExecutionStore | undefined
+    const journalPath = join(root, 'execution.json')
     onTestFinished(async () => {
       deliveryOwner.dispose()
       core?.dispose()
-      await owners.shutdown()
+      const retired = await owners.shutdown()
       await Promise.all(deliveryDrains)
+      if (
+        retired.reaped &&
+        journal &&
+        Object.values(journal.load().records).every(
+          (record) =>
+            ['completed', 'failed', 'cancelled'].includes(record.phase) &&
+            record.cleanup === 'confirmed'
+        )
+      )
+        journal.close()
+      // Unknown records retain their original lock until this isolated fixture is removed.
       await rpc.close()
       await notebook.dispose()
       await new Promise<void>((done) => server.close(() => done()))
@@ -501,33 +518,31 @@ it.each([
       harnessRevisionRef: refs.harnessRevisionRef,
       mission: 'Original asynchronous Compute ownership fixture'
     })
-    let state = emptyExecutionState()
-    core = new ExecutionCore(
-      {
-        load: () => structuredClone(state),
-        commit: (next) => {
-          state = structuredClone(next)
-        }
-      },
+    const openOwner = vi.fn<ClaudeCandidateDriverOptions['openOwner']>((input) =>
+      owners.openOwner(input)
+    )
+    const bindCandidate = vi.fn<ClaudeCandidateDriverOptions['binding']>(async (agent) => ({
+      executablePath: createRequire(import.meta.url).resolve(
+        `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
+      ),
+      runtimeVersion: agent.runtimeVersion,
+      providerRef: agent.providerRef,
+      provider: {
+        type: 'custom',
+        model: agent.model,
+        key: 'local-fixture-token',
+        baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        apiEndpoints: ['messages']
+      }
+    }))
+    const createDriver = (): ReturnType<typeof createClaudeCandidateDriver> =>
       createClaudeCandidateDriver({
         snapshots: store,
-        openOwner: (input) => owners.openOwner(input),
-        binding: async (agent) => ({
-          executablePath: createRequire(import.meta.url).resolve(
-            `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
-          ),
-          runtimeVersion: agent.runtimeVersion,
-          providerRef: agent.providerRef,
-          provider: {
-            type: 'custom',
-            model: agent.model,
-            key: 'local-fixture-token',
-            baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
-            apiEndpoints: ['messages']
-          }
-        })
+        openOwner,
+        binding: bindCandidate
       })
-    )
+    journal = new FileExecutionStore(journalPath)
+    core = new ExecutionCore(journal, createDriver())
     const request: ExecutionRequest = {
       contractVersion: 1,
       requestKey: 'owner-compute',
@@ -561,9 +576,9 @@ it.each([
         record.identity.sessionId!
       )
       expect(persisted.status).toBe('found')
-      const identities = state.events[handle.executionId].filter(
-        (event) => event.type === 'identity'
-      )
+      const identities = journal
+        .load()
+        .events[handle.executionId].filter((event) => event.type === 'identity')
       expect(identities).toHaveLength(1)
       expect(identities[0]).toMatchObject({ identity: record.identity })
       expect(submit).not.toHaveBeenCalled()
@@ -668,6 +683,36 @@ it.each([
         outcome: null
       })
       expect(await owners.shutdown()).toEqual({ reaped: false })
+      expect(await core.settle()).toBe(true)
+      const unknown = journal.load()
+      expect(unknown.records[handle.executionId]).toEqual(stopped)
+      const bytes = await readFile(journalPath, 'utf8'),
+        lock = await readFile(`${journalPath}.lock`, 'utf8')
+      const counts = {
+        submits: submit.mock.calls.length,
+        models: modelRequests,
+        bindings: bindCandidate.mock.calls.length,
+        owners: openOwner.mock.calls.length
+      }
+      // This is a live original writer, not a dead-owner recovery fixture. Never force its lock.
+      expect(() => new FileExecutionStore(journalPath)).toThrow(
+        expect.objectContaining({ code: 'EEXIST' })
+      )
+      expect((await core.submit(request)).executionId).toBe(handle.executionId)
+      // Original limit=1 is already spent. This proves no extra admission, not an independent
+      // cleanup-fence error (the Core checks the exhausted budget first).
+      await expect(core.submit({ ...request, requestKey: 'retry-unknown' })).rejects.toMatchObject({
+        code: 'budget-exhausted'
+      })
+      expect(journal.load()).toEqual(unknown)
+      expect(await readFile(journalPath, 'utf8')).toBe(bytes)
+      expect(await readFile(`${journalPath}.lock`, 'utf8')).toBe(lock)
+      expect({
+        submits: submit.mock.calls.length,
+        models: modelRequests,
+        bindings: bindCandidate.mock.calls.length,
+        owners: openOwner.mock.calls.length
+      }).toEqual(counts)
       expect(await owners.resolveCandidateDelivery!(privateId!)).toEqual({
         kind: 'private-unavailable'
       })
@@ -768,7 +813,7 @@ it.each([
       cleanup: 'confirmed',
       identity: initial.identity
     })
-    expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(Object.values(journal.load().budgets)).toEqual([{ limit: 1, admitted: 1 }])
     const runs = await new NotebookRunRepository(root).readSessionRuns(projectId, privateId!)
     expect(runs).toHaveLength(2)
     expect(new Set(runs.map((run) => run.promptMessageId)).size).toBe(2)
@@ -804,7 +849,43 @@ it.each([
     expect(checks.reviewIds).toHaveLength(2)
     expect(checks.reviewIds).toContain(checks.reviewId)
     expect(await owners.shutdown()).toEqual({ reaped: true })
+    expect(await core.settle()).toBe(true)
+    const committed = journal.load()
+    expect(
+      Object.values(committed.records).every(
+        (row) =>
+          ['completed', 'failed', 'cancelled'].includes(row.phase) && row.cleanup === 'confirmed'
+      )
+    ).toBe(true)
+    const counts = {
+      submits: submit.mock.calls.length,
+      models: modelRequests,
+      bindings: bindCandidate.mock.calls.length,
+      owners: openOwner.mock.calls.length
+    }
+    core.dispose()
+    journal.close()
+    journal = undefined
     owners = createOwners()
+    journal = new FileExecutionStore(journalPath)
+    const reopenedDriver = createDriver()
+    const dispatch = vi.spyOn(reopenedDriver, 'execute')
+    core = new ExecutionCore(journal, reopenedDriver)
+    expect((await core.submit(request)).executionId).toBe(handle.executionId)
+    expect(await core.get(handle.executionId)).toEqual(record)
+    expect(await core.waitForTerminal(handle.executionId)).toEqual(record)
+    expect(await core.settle()).toBe(true)
+    expect(journal.load()).toEqual(committed)
+    expect(dispatch).not.toHaveBeenCalled()
+    expect({
+      submits: submit.mock.calls.length,
+      models: modelRequests,
+      bindings: bindCandidate.mock.calls.length,
+      owners: openOwner.mock.calls.length
+    }).toEqual(counts)
+    expect(await new NotebookRunRepository(root).readSessionRuns(projectId, privateId!)).toEqual(
+      runs
+    )
     expect((await owners.exportResult(record)).trajectoryText).toBe(exported.trajectoryText)
     await jobs.update('owned-job', { stdoutTail: 'changed after commitment' })
     await expect(owners.exportResult(record)).rejects.toThrow('evidence changed')
