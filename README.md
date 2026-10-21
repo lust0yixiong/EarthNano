@@ -4,6 +4,8 @@ EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的�
 
 **`0.1.0-alpha.1` 正在集成验收，尚未发布。** `main` 已合并 PR #1–12；Alpha PR #13–17 仍待适用 CI 和审查。Python/R 的同任务执行、原 Harness² sweep 与显式停止/续跑已取得分项桌面和 DeepSeek 证据，不能据此宣布完整 Alpha、配置收益或跨平台安装包通过。
 
+**本版平台范围（2026-10-21）：macOS、Linux。** Windows 安装失败按用户决定延期至 0.2-Alpha；0.1 不提供 Windows 版本。已有失败与后续恢复条件见 [Windows 延期记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
+
 当前剩余工作是收敛回归与 PR、完成原 Compute/二进制等能力的候选融合，并交付验证过的应用。自动触发、配置审批发布/回滚与完整精确费用账本是另列的新增设计，不冒充上游原生功能。
 
 - [源码试用、模型配置与当前边界](docs/earthnano/BASELINE.md)
