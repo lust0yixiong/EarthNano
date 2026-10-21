@@ -24,7 +24,7 @@ beforeEach(() => {
 
   useUpdateStore.setState({
     appInfo: {
-      name: 'Open-Science',
+      name: 'EarthNano',
       version: '0.2.0',
       copyright: '© 2026 AIPOCH. All rights reserved.'
     },
@@ -46,7 +46,7 @@ describe('AppVersionSection', () => {
     act(() => root.render(<AppVersionSection />))
     const link = container.querySelector('a[aria-label="Open-source license"]')
     expect(link?.getAttribute('href')).toBe(
-      'https://github.com/aipoch/open-science/blob/main/LICENSE'
+      'https://github.com/lust0yixiong/EarthNano/blob/main/LICENSE'
     )
     expect(link?.textContent).toContain('Apache-2.0')
     expect(container.querySelector('details, pre')).toBeNull()
@@ -57,7 +57,7 @@ describe('AppVersionSection', () => {
       root.render(<AppVersionSection />)
     })
 
-    expect(container.textContent).toContain('Open-Science')
+    expect(container.textContent).toContain('EarthNano')
     expect(container.textContent).toContain('v0.2.0')
     expect(container.textContent).toContain('© 2026 AIPOCH')
   })
@@ -71,8 +71,8 @@ describe('AppVersionSection', () => {
     expect(links).toHaveLength(3)
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       'https://www.aipoch.com/docs/',
-      'https://github.com/aipoch/open-science/releases',
-      'https://github.com/aipoch/open-science/blob/main/LICENSE'
+      'https://github.com/lust0yixiong/EarthNano/releases',
+      'https://github.com/lust0yixiong/EarthNano/blob/main/LICENSE'
     ])
     expect(links.every((link) => link.target === '_blank' && link.rel === 'noreferrer')).toBe(true)
   })
