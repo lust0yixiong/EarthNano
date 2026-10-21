@@ -42,6 +42,10 @@ assertions, with no global errors, is available for the original failure classif
 artifacts without the required sidecar are unavailable evidence and must be rerun. No raw
 original report is rewritten to make it pass.
 
+Windows 另有已复现的报告语义问题：固定 Vitest 4.1.11 在嵌套 skip suite 下可输出无结果的 `mode=run` 叶，JSON assertion 为 `pending`，但 `numPendingTests` 未计入。没有测试失败的最小原 runner fixture 也能重现，不能把它归为候选业务回归或把 pending 改成 pass。当前同一 companion observer 为两侧额外保存实际 leaf 与 ancestor 的 mode/result；归一化逐身份、标题、祖先、状态及原 counter 谓词核对，只有完整观测证明是继承 skip 的特定叶才保留 `pending` 并标 `inheritedSkip`。缺少观测、无 skip 祖先、实际 running/queued、缺叶、篡改计数和全局错误仍拒绝；baseline pass 变为该 pending 仍由原比较器判为回归。旧报告没有这些观测时仍不可用，不能在事后重建或追认为通过。
+
+Source test stage 同时恢复原 `npm test` 生命周期环境，两侧使用相同命令和原 flags；pretest 已有单独阶段，因此该调用仅用 `--ignore-scripts` 避免重复 pre/post 脚本，不跳过独立安装/pretest/typecheck。Windows 的 `npm_execpath` 原断言继续保留。候选 FileExecutionStore 的目录 fsync 问题是另一项实际回归，按原 durable-files 的 Windows 有界错误码策略修复，不以报告环境问题掩盖。
+
 Five exact branding assertion names have reviewed one-to-one mappings: the product display name,
 the packaged default icon, and the 16/20/24px frame test for each of the three app ICO files.
 These names changed with the requested EarthNano artwork/product replacement. Raw inventories
@@ -271,3 +275,9 @@ Linux x64/Windows x64 runner pins) and execute the original pruning step on isol
 fixtures. They neither compile an ARM64 package nor substitute for its actual native build,
 installation, launch, resource, database or shutdown evidence. Historical four-target run results
 above keep their original scope and source SHA; they cannot be relabeled as a five-target pass.
+
+## 修复后的本机联合验证
+
+集成源码 `130b1e9dc` 的九文件联合回归为 223 通过、3 项原 Windows 平台条件跳过、0 失败；Node/sandbox/Web 完整 noEmit 类型检查通过。覆盖原 release helpers、原发布认证、native 五 target、Windows 目录持久化与实际 Vitest 子进程的继承 skip 观测。格式与差异检查通过。该验证不是修复后的 hosted Windows inventory 或 macOS 原生包通过；后续仅文档/证据提交不改变这份已测源码。
+
+原故障报告、最小真实 runner fixture、新/旧 observer 原始输出、严格拒绝证明、未改动的比较/进程判定函数摘要与联合报告见 [修复证据](validation/alpha/platform-fixes/manifest.json)。旧 sidecar 没有足够 skip 观测，仍被拒绝，不以新代码重新解释成通过。

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "integrationSource": "130b1e9dc",
+  "scope": "local fixes and actual Vitest observation fixtures; not repaired hosted/native acceptance",
+  "originalSourceRun": "https://github.com/lust0yixiong/EarthNano/actions/runs/39544186218",
+  "nativeRun": "https://github.com/lust0yixiong/EarthNano/actions/runs/39550528030",
+  "integratedResults": {
+    "files": 9,
+    "passed": 223,
+    "skipped": 3,
+    "failed": 0,
+    "nodeSandboxWebTypes": "passed"
+  },
+  "files": [
+    {
+      "originalName": "SUMMARY.txt",
+      "archive": "SUMMARY.txt.gz",
+      "bytes": 8094,
+      "sha256": "f135cfb0c2f466bd4f2d982211313ea85eb7bb5f307e96979ab01c66257b93c3",
+      "archiveSha256": "0ea6a8af8f41e1d13bb6029c6399e085c278a440755cddf0816dd5dd38ac4394"
+    },
+    {
+      "originalName": "final-validation.json",
+      "archive": "final-validation.json.gz",
+      "bytes": 3696,
+      "sha256": "d0a4c4f36cf72431a698b5458d22f596e477623f6bc7a140c1836f67ef34c9d7",
+      "archiveSha256": "64352e2fc43bde1711529d09d06794bfd5f9314dd0c27ffe5598048354796726"
+    },
+    {
+      "originalName": "pending-unchanged-comparison-rules.json",
+      "archive": "pending-unchanged-comparison-rules.json.gz",
+      "bytes": 310,
+      "sha256": "bc6f43543ffe649e361bbc44bded83863cec479e0f5e104e590fe479d06e2c2a",
+      "archiveSha256": "05ca7cfb553a0dc25e3599b2c948d8aef8b4a428685adc9d5295eee9aa6f2139"
+    },
+    {
+      "originalName": "windows-triage-official-helpers.json",
+      "archive": "windows-triage-official-helpers.json.gz",
+      "bytes": 991363,
+      "sha256": "9ce63bc437ce58755fb112d31af770b51af986ce97c7983577f960720890564c",
+      "archiveSha256": "1fb90f29b4082ccdd668477d80ff98fa2b8747caf25c67f9efe6ff8614f48b2e"
+    },
+    {
+      "originalName": "pending-report-fixture/case.test.mjs",
+      "archive": "pending-report-fixture__case.test.mjs.gz",
+      "bytes": 363,
+      "sha256": "e7d8d486f1ff44f63e8f335e476763d5053fec26e7813a7912abf282ca8b1dcc",
+      "archiveSha256": "004d81ff5a87b8fea382f4528c633daa668d32e1dbbe5d95ba2dc063ce18241c"
+    },
+    {
+      "originalName": "pending-report-fixture/nested-skips-with-runtime-vitest.json",
+      "archive": "pending-report-fixture__nested-skips-with-runtime-vitest.json.gz",
+      "bytes": 1358,
+      "sha256": "6e982e57892c00de2362c78197cd8419a4bcf1dc3fd8cf67a17c130a4b1f8f0c",
+      "archiveSha256": "a08cdc100c024ae6715676cccfcdcf8b01bc5db850882aa78b27bc1ad0d6d216"
+    },
+    {
+      "originalName": "pending-report-fixture/runtime.json",
+      "archive": "pending-report-fixture__runtime.json.gz",
+      "bytes": 72,
+      "sha256": "e5565d7dad956f057657dca5defc04390181b52d46bd6c8267e1067129080876",
+      "archiveSha256": "df9c2720f1382631a3d770bee4d44e3cb3a8362c370ed7fab93505605de8a416"
+    },
+    {
+      "originalName": "pending-report-fixture/new-runtime.json",
+      "archive": "pending-report-fixture__new-runtime.json.gz",
+      "bytes": 1933,
+      "sha256": "39e197cd48912f4d4ac92f3debafe50c2d1d74addacdef583e9cced9db8c2b99",
+      "archiveSha256": "9dd9e7b5906bff9e9aa743b92cde3737a0f7fc28c7f11c7f827daf9e6581e609"
+    },
+    {
+      "originalName": "pending-report-fixture/strict-observation-proof.json",
+      "archive": "pending-report-fixture__strict-observation-proof.json.gz",
+      "bytes": 740,
+      "sha256": "e850426942e1d4dd276cc68872871131e28503421eae3d8f94904acaff580c49",
+      "archiveSha256": "d435c95371eea44a2a98cbe9c9715b0562900e537524869a504ab3351d03468d"
+    },
+    {
+      "originalName": "pending-report-fixture/SUMMARY.json",
+      "archive": "pending-report-fixture__SUMMARY.json.gz",
+      "bytes": 1979,
+      "sha256": "5df6042ccde1eb0d6a1e6ab6d039054ef516fb458455202036ea4c62a0675a84",
+      "archiveSha256": "2e929df2dcc69ce9dedda09cc6a7858a69f223827773b7a69f0b963b01c63fa0"
+    },
+    {
+      "originalName": "integrated-focused-vitest.json",
+      "archive": "integrated-focused-vitest.json.gz",
+      "bytes": 76928,
+      "sha256": "8d3c52c4002863025875cae3dd76e49e876a1db5a03f228e99781ac85c78dfc3",
+      "archiveSha256": "431df2ee0b6d059746171e6871e678bd747c29301b5031ffb599a7de4917cfc9"
+    }
+  ]
+}
