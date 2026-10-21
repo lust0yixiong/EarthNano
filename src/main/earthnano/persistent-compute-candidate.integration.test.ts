@@ -365,6 +365,15 @@ it.each([
             )
         })
     })
+    // dispose stops scheduling but the original owner deliberately keeps in-flight drains alive.
+    // Join their actual promises before disconnecting/deleting this fixture's SQLite database.
+    const deliveryDrains: ReturnType<BackgroundResultDeliveryOwner['drainSession']>[] = []
+    const drainSession = deliveryOwner.drainSession.bind(deliveryOwner)
+    vi.spyOn(deliveryOwner, 'drainSession').mockImplementation((sessionId) => {
+      const drain = drainSession(sessionId)
+      deliveryDrains.push(drain)
+      return drain
+    })
     const adapter = new ComputeJobResultDeliveryAdapter({
       register: (source) => deliveryOwner.register(source),
       enqueue: (source) => deliveryOwner.enqueue(source),
@@ -445,9 +454,10 @@ it.each([
     await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
     let core: ExecutionCore | undefined = undefined
     onTestFinished(async () => {
+      deliveryOwner.dispose()
       core?.dispose()
       await owners.shutdown()
-      await deliveryOwner.dispose()
+      await Promise.all(deliveryDrains)
       await rpc.close()
       await notebook.dispose()
       await new Promise<void>((done) => server.close(() => done()))
