@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       prepared_run_id:
-        description: Actual successful approved a96 preparation run ID
+        description: Actual successful approved 2e8 preparation run ID
         required: true
         type: string
       prepared_run_attempt:
@@ -57,16 +57,16 @@ jobs:
           ref: ${{ github.sha }}
           path: alpha-draft-operation
           persist-credentials: false
-      - name: Checkout fixed4a original release helpers
+      - name: Checkout fixedbdc original release helpers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          ref: bdc0246383a25990030854f4c2fa100895f29ea6
           path: alpha-source
           persist-credentials: false
-      - name: Checkout only the approved a96 preparation validator
+      - name: Checkout only the approved 2e8 preparation validator
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: a96a94b4fbc4cc7f6803f6e6e1248c665c62bc51
+          ref: 2e8a03947add018cc9f0ee33def33f217e61ae11
           path: alpha-preparer
           persist-credentials: false
           sparse-checkout: scripts/ci/alpha-assets/prepare-assets.mjs
@@ -112,7 +112,7 @@ jobs:
       - name: Original release-transform dependencies without scripts or application build
         working-directory: alpha-source
         run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
-      - name: Recheck real bytes with original4a Unix aggregate, sums, feed and manifest
+      - name: Recheck real bytes with originalbdc Unix aggregate, sums, feed and manifest
         id: inventory
         run: |
           set -euo pipefail
@@ -123,7 +123,7 @@ jobs:
         with:
           repository: lust0yixiong/EarthNano
           tag_name: v0.1.0-alpha.1
-          target_commitish: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          target_commitish: bdc0246383a25990030854f4c2fa100895f29ea6
           name: EarthNano 0.1.0-alpha.1 - unsigned macOS/Linux preview
           body_path: ${{ steps.inventory.outputs.reviewed_body_path }}
           draft: true
@@ -140,7 +140,7 @@ jobs:
         with:
           repository: lust0yixiong/EarthNano
           tag_name: alpha
-          target_commitish: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          target_commitish: bdc0246383a25990030854f4c2fa100895f29ea6
           name: EarthNano Alpha preview channel - 0.1.0-alpha.1
           body_path: ${{ steps.inventory.outputs.reviewed_body_path }}
           draft: true

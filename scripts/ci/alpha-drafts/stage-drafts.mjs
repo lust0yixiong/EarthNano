@@ -17,8 +17,8 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const SOURCE = "4a31b9ae72654cf6ddf7749103abb48b5f85043f";
-export const PREPARER = "a96a94b4fbc4cc7f6803f6e6e1248c665c62bc51";
+export const SOURCE = "bdc0246383a25990030854f4c2fa100895f29ea6";
+export const PREPARER = "2e8a03947add018cc9f0ee33def33f217e61ae11";
 export const TAGS = ["v0.1.0-alpha.1", "alpha"];
 const VERSION = "0.1.0-alpha.1";
 const json = async (file) => JSON.parse(await readFile(file, "utf8"));
@@ -92,7 +92,7 @@ export function validatePreparation(
   assert.equal(artifact.expired, false);
   assert.equal(
     artifact.name,
-    `earthnano-alpha-prepared-4a31-${input.run}-${input.attempt}`,
+    `earthnano-alpha-prepared-bdc0-${input.run}-${input.attempt}`,
   );
   assert.equal(artifact.digest, input.digest);
   assert(artifact.size_in_bytes > 0);
@@ -122,7 +122,7 @@ export function validatePreparation(
       assert.equal(
         tagStates[tag].commit.sha,
         SOURCE,
-        `Existing ${tag} must resolve to fixed4a`,
+        `Existing ${tag} must resolve to fixedbdc`,
       );
     else assert.equal(tagStates[tag].commit, null);
   }
