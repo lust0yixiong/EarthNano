@@ -1,34 +1,26 @@
 # EarthNano
 
-EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。
-目标是保留现有科研能力，使科研执行与自动优化共享运行、配置和证据体系。
+EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。普通任务、优化基线和候选共用执行核心，保留原科研工具、不可变产物及审阅能力。项目不预设研究学科或任务类型。
 
-**第十轮历史验收：EarthNano 的普通执行与优化共用执行核心。基线和候选通过原 Notebook 执行同一固定输入科研任务，原 Harness² 提案、组合、匿名选择及产物审阅、重启读取通过当轮 DeepSeek 桌面验收。科研质量提升、默认自动优化及跨平台发布尚未验收。**
+**`0.1.0-alpha.1` 正在集成验收，尚未发布。** `main` 已合并 PR #1–12；Alpha PR #13–17 仍待适用 CI 和审查。Python/R 的同任务执行、原 Harness² sweep 与显式停止/续跑已取得分项桌面和 DeepSeek 证据，不能据此宣布完整 Alpha、配置收益或跨平台安装包通过。
 
-融合项目及应用名称统一为 **EarthNano**。OpenScience 与 Harness² 仅在说明上游来源、模块能力和兼容标识时使用。
-最新模块与验收边界见[第十轮](docs/earthnano/ROUND10.md)，源码试用方式见[当前基线](docs/earthnano/BASELINE.md)。
+当前剩余工作是收敛回归与 PR、完成原 Compute/二进制等能力的候选融合，并交付验证过的应用。自动触发、配置审批发布/回滚与完整精确费用账本是另列的新增设计，不冒充上游原生功能。
 
-`0.1.0-alpha.1` 正在集成验收，尚未发布。第十轮的通过记录不代表当前 Alpha 改动已经验收：本批离线及第四次真实 DeepSeek 的停止/续跑完整链已通过，前三次失败与修复证据保留；跨平台安装包验证正在进行。完整范围和原始证据见 [Alpha 集成记录](docs/earthnano/ALPHA_INTEGRATION.md) 与[完成契约](docs/earthnano/ALPHA_CONTRACT.md)。
+- [源码试用、模型配置与当前边界](docs/earthnano/BASELINE.md)
+- [功能来源：上游已有、必要融合与新增设计](docs/earthnano/FUNCTION_ORIGINS.md)
+- [Alpha 完成契约](docs/earthnano/ALPHA_CONTRACT.md)与[当前工作队列](docs/earthnano/NEXT_TASKS.md)
+- [R 实际验收及上游故障对照](docs/earthnano/ALPHA_R_CONTRACT.md)
+- [原 Harness² 完整任务流](docs/earthnano/ALPHA_SWEEP.md)与[多来源桌面入口](docs/earthnano/ALPHA_CATALOG.md)
+- [共享执行契约](docs/earthnano/CORE_CONTRACT.md)与[类型/schema](contracts/execution/README.md)
+- [上游固定提交、集成差异和许可证](UPSTREAMS.json)
+- [第十轮历史记录](docs/earthnano/ROUND10.md)与[后续 Alpha 集成记录](docs/earthnano/ALPHA_INTEGRATION.md)
 
-- [当前基线、启动方式与验证范围](docs/earthnano/BASELINE.md)
-- [实施计划与当前状态](docs/earthnano/PLAN.md)
-- [最小核心契约](docs/earthnano/CORE_CONTRACT.md)
-- [第一轮审查与验证结果](docs/earthnano/ROUND1.md)
-- [第二轮实现与验证结果](docs/earthnano/ROUND2.md)
-- [第三轮 Claude Code 配置与候选隔离](docs/earthnano/ROUND3.md)
-- [第四轮持久化与真实优化闭环](docs/earthnano/ROUND4.md)
-- [第五轮桌面入口与独立语义评估](docs/earthnano/ROUND5.md)
-- [第六轮原递归模式、多候选选择与并发控制](docs/earthnano/ROUND6.md)
-- [第七轮领域经验与任务流](docs/earthnano/ROUND7.md)
-- [第八轮统一执行核心](docs/earthnano/ROUND8.md)
-- [第九轮科研端到端验收与源码覆盖](docs/earthnano/ROUND9.md)
-- [第十轮 Notebook 同任务优化与原模块深度融合](docs/earthnano/ROUND10.md)
-- [共享类型、schema 与契约测试](contracts/execution/README.md)
-- [上游来源、固定提交和许可证](UPSTREAMS.json)
-- [Harness² 固定基线与集成源码](vendor/harness2/)
+应用显示名为 **EarthNano**；OpenScience 与 Harness² 用于上游来源说明。原数据目录、凭据身份、CLI/MCP/协议及包名保留兼容标识，避免仅因产品更名破坏既有数据和工具。
 
-以下保留 OpenScience 的上游说明。下载链接、发布信息、性能声明与产品截图指向上游项目，
-不代表 EarthNano 已发布相应版本或完成对应验证。
+<details>
+<summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 EarthNano 交付）</summary>
+
+以下保留上游说明与许可。下载链接和 Homebrew 命令安装的是 OpenScience；EarthNano 当前请按上方源码试用说明操作。上游各语言 README 同属原项目资料。
 
 ---
 
@@ -466,3 +458,5 @@ Apache License 2.0 — see [LICENSE](LICENSE).
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=aipoch/open-science&type=date&legend=top-left" />
  </picture>
 </a>
+
+</details>
