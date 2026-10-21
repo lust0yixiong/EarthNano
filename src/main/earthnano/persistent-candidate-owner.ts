@@ -671,7 +671,7 @@ export function createPersistentCandidateOwners(
         }
         const now = Date.now()
         const text = scientific
-          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound ${frozenRuntime!.language === 'r' ? 'R' : 'Python'} Notebook (execute with explicit language:${frozenRuntime!.language}) and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound ${frozenRuntime!.language === 'r' ? 'R Notebook (execute with explicit language:r)' : 'Python Notebook'} and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
           : `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nINPUT: ${materialized.inputDir}\nOUTPUT: ${materialized.outputDir}\nTask files are in INPUT. Inputs and embedded context are read-only reference material. Write deliverables under OUTPUT. For proposer/composer harness output, write OUTPUT/context/harness/instructions.md and optional OUTPUT/context/harness/skills/<name>/SKILL.md. Do not use the Python working directory.`
         const idle = await coordinator.saveSession({
           id: sessionId,
