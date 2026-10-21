@@ -15,6 +15,7 @@ interface Step {
   if?: string
   env?: Record<string, string>
   with?: Record<string, unknown>
+  'continue-on-error'?: boolean
 }
 interface Job {
   needs?: string | string[]
@@ -28,7 +29,7 @@ interface Job {
   strategy?: { 'fail-fast'?: boolean; matrix?: { include: unknown[] } | string }
 }
 interface Workflow {
-  on: Record<string, { branches?: string[] }>
+  on: Record<string, { branches?: string[]; inputs?: Record<string, unknown> }>
   permissions: Record<string, string>
   jobs: Record<string, Job>
 }
@@ -57,6 +58,49 @@ const recipe = (kind: string): Workflow =>
   ) as Workflow
 
 describe('EarthNano runtime dependency split', () => {
+  it('permits a Windows diagnostic rerun without reducing the default five-target acceptance matrix', () => {
+    expect(workflow.on.workflow_dispatch.inputs?.nativeTargets).toMatchObject({
+      type: 'choice',
+      default: 'all',
+      options: ['all', 'windows']
+    })
+    const targets = (event: string, native: boolean, nativeTargets?: string): unknown[] =>
+      ['native_unix', 'native_windows'].flatMap((name) => {
+        const job = workflow.jobs[name]
+        const enabled = new Function('github', 'inputs', `return (${job.if})`) as (
+          github: { event_name: string; ref: string },
+          inputs: { native: boolean; nativeTargets?: string }
+        ) => boolean
+        return enabled(
+          { event_name: event, ref: 'refs/heads/ci/earthnano-native' },
+          { native, nativeTargets }
+        )
+          ? (job.strategy!.matrix as { include: unknown[] }).include
+          : []
+      })
+    expect(targets('push', false)).toHaveLength(5)
+    expect(targets('workflow_dispatch', true)).toHaveLength(5)
+    expect(targets('workflow_dispatch', true, 'all')).toHaveLength(5)
+    expect(targets('workflow_dispatch', false, 'windows')).toEqual([])
+    expect(targets('workflow_dispatch', true, 'windows')).toEqual([
+      { os: 'windows-2022', platform: 'win', arch: 'x64', subdir: 'win-64' }
+    ])
+    const steps = readWorkflow('native').jobs.native.steps!
+    const probe = steps.findIndex((step) => step.name?.startsWith('Observe original NSIS'))
+    const smoke = steps.findIndex((step) => step.name?.startsWith('Original Windows installed'))
+    expect(probe).toBeGreaterThan(-1)
+    expect(smoke).toBeGreaterThan(probe)
+    expect(steps[probe]).toEqual({
+      name: 'Observe original NSIS argument parsing (diagnostic only)',
+      if: "runner.os == 'Windows'",
+      'continue-on-error': true,
+      run: 'node scripts/windows-nsis-arguments-probe.mjs --out test-results/native-evidence/nsis-arguments'
+    })
+    expect(steps.filter((step) => step['continue-on-error'])).toEqual([steps[probe]])
+    expect(steps[smoke]['continue-on-error']).toBeUndefined()
+    expect(steps[smoke].if).toBe("runner.os == 'Windows'")
+    expect(steps[smoke].run).toBe('node scripts/windows-installer-smoke.mjs --installer-dir dist')
+  })
   it('plans one Linux cohort plus eight macOS and sixteen Windows jobs covering all original shards', () => {
     const root = mkdtempSync(join(tmpdir(), 'earthnano-ci-plan-'))
     try {
@@ -312,12 +356,20 @@ describe('EarthNano runtime dependency split', () => {
       // Restore only these inputs, the original packaging heap ceiling and exact Linux ARM64
       // pruning case and Linux-only bounded cohort dispatch below to prove all other steps still match d4. No pin, condition, command
       // or artifact waiver.
-      expect(digest(shared.jobs[kind].steps)).toBe(
+      const originalSteps = structuredClone(shared.jobs[kind].steps!)
+      if (kind === 'native') {
+        // The separately verified optional observation must not change any original recipe step.
+        const probe = originalSteps.findIndex(
+          (step) => step.name === 'Observe original NSIS argument parsing (diagnostic only)'
+        )
+        expect(probe).toBeGreaterThan(-1)
+        originalSteps.splice(probe, 1)
+      }
+      expect(digest(originalSteps)).toBe(
         kind === 'source'
           ? 'd6168ae5600395d53c2b70c35625bbc0ef20fa20430e20c2346e40f625ec61a5'
           : 'eeaf802903b62b7084a9f48db22fb6d976e710c59fe30b5114aaf7f669c20c68'
       )
-      const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
       expect(python).toHaveLength(1)
       expect(python[0].uses).toBe('actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c')
@@ -541,10 +593,13 @@ describe('EarthNano runtime dependency split', () => {
     expect(workflow.on.push.branches).toEqual(['main', 'ci/earthnano-native'])
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.on.pull_request_target).toBeUndefined()
-    for (const name of ['native_unix', 'native_windows'])
-      expect(workflow.jobs[name].if).toBe(
-        "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
-          "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
-      )
+    const originalTrigger =
+      "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
+      "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
+    expect(workflow.jobs.native_windows.if).toBe(originalTrigger)
+    expect(workflow.jobs.native_unix.if).toBe(
+      `(${originalTrigger}) && ` +
+        "(github.event_name != 'workflow_dispatch' || inputs.nativeTargets != 'windows')"
+    )
   })
 })

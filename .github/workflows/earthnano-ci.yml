@@ -11,6 +11,11 @@ on:
         description: Build unsigned native packages and execute original launch/resource smoke (required before Alpha acceptance)
         type: boolean
         default: false
+      nativeTargets:
+        description: All targets for acceptance, or Windows only for focused installer diagnosis
+        type: choice
+        options: [all, windows]
+        default: all
 
 permissions:
   contents: read
@@ -149,8 +154,9 @@ jobs:
   native_unix:
     name: Unsigned native build and original launch ${{ matrix.os }}
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.native) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
+      ((github.event_name == 'workflow_dispatch' && inputs.native) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')) &&
+      (github.event_name != 'workflow_dispatch' || inputs.nativeTargets != 'windows')
     strategy:
       fail-fast: false
       matrix:
