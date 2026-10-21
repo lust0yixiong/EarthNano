@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 
@@ -177,13 +177,20 @@ describe('EarthNano runtime dependency split', () => {
               command
           ],
           {
-            env: { ...process.env, RUNNER_OS: runner, RUNNER_TEMP: directory, CAPTURE: capture },
+            env: {
+              ...process.env,
+              RUNNER_OS: runner,
+              RUNNER_TEMP: `${directory}/.`,
+              CAPTURE: capture
+            },
             encoding: 'utf8'
           }
         )
         expect(result.status, result.stderr).toBe(valid ? 0 : 1)
-        if (valid)
-          expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
+        if (valid) {
+          const args = readFileSync(capture, 'utf8').trim().split('\n')
+          // Bash retains mixed separators (and redundant /.); compare the exact Node path identity.
+          expect([...args.slice(0, -1), resolve(args.at(-1)!)]).toEqual([
             'scripts/ci/earthnano-source.mjs',
             ...(batch
               ? ['source-batch']
@@ -191,7 +198,7 @@ describe('EarthNano runtime dependency split', () => {
             '--out',
             join(directory, 'source-report')
           ])
-        else expect(readdirSync(directory)).not.toContain('args')
+        } else expect(readdirSync(directory)).not.toContain('args')
       } finally {
         rmSync(directory, { recursive: true, force: true })
       }
