@@ -1032,6 +1032,8 @@ const createAcpRuntime = ({
           }
         : {}),
       host: createSessionExecutionHost({
+        settings: { getSettings: () => settingsService.getStoredSettings() },
+        versions: managedFileVersions,
         dataRoot,
         configRoot,
         getClient: () => getProjectDbClient(configRoot),

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { createEmptySettings, type StoredSettings } from '../settings/types'
 import { requestDigest } from './execution-contract'
 import { emptyExecutionState } from './execution-core'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
@@ -33,18 +34,6 @@ vi.mock('../projects/repository', () => ({
     }
   }
 }))
-vi.mock('../settings/repository', () => ({
-  SettingsRepository: class {
-    async getSettings(): Promise<unknown> {
-      return {
-        agentFrameworkId: 'codex',
-        activeModel: 'model',
-        providers: [{ apiKey: 'SECRET_PROVIDER_KEY' }]
-      }
-    }
-  }
-}))
-vi.mock('../managed-file-versions/service', () => ({ ManagedFileVersionService: class {} }))
 import { createSessionExecutionHost } from './session-execution-host'
 import { originalEvidenceCanonical, originalEvidenceDigest } from './original-turn-evidence'
 
@@ -125,6 +114,25 @@ const host = (
     dataRoot: root,
     configRoot: root,
     getClient: async () => ({}) as PrismaClient,
+    settings: {
+      getSettings: vi.fn(
+        async () =>
+          ({
+            ...createEmptySettings(),
+            agentFrameworkId: 'codex',
+            activeModel: 'model',
+            providers: [
+              {
+                id: 'provider',
+                type: 'custom',
+                name: 'Fixture provider',
+                keyRef: 'SECRET_PROVIDER_KEY'
+              }
+            ]
+          }) as StoredSettings
+      )
+    },
+    versions: { openVersion: vi.fn() },
     flush
   })
 const prepare = async (h = host(), i = input()): Promise<Awaited<ReturnType<typeof h.prepare>>> => {
@@ -672,3 +680,38 @@ it.each(['missing', 'foreign', 'changed'] as const)(
     ).rejects.toThrow()
   }
 )
+
+it('freezes configuration from the injected canonical settings reader without constructing another owner', async () => {
+  const getSettings = vi.fn(
+    async () =>
+      ({
+        ...createEmptySettings(),
+        agentFrameworkId: 'codex',
+        activeProviderId: 'canonical-provider',
+        activeModel: 'canonical-model',
+        providers: [
+          {
+            id: 'canonical-provider',
+            type: 'custom',
+            name: 'Canonical provider',
+            keyRef: 'CANONICAL_SECRET'
+          }
+        ]
+      }) as StoredSettings
+  )
+  const h = createSessionExecutionHost({
+    dataRoot: root,
+    configRoot: root,
+    getClient: async () => ({}) as PrismaClient,
+    settings: { getSettings },
+    versions: { openVersion: vi.fn() }
+  })
+  expect(getSettings).not.toHaveBeenCalled()
+  const prepared = await prepare(h)
+  expect(getSettings).toHaveBeenCalledOnce()
+  getSettings.mockResolvedValueOnce({ ...createEmptySettings(), activeModel: 'later-model' })
+  const result = await prepared.readResult(settlement())
+  expect(result.configuration).toMatchObject({ backend: 'codex', model: 'canonical-model' })
+  expect(getSettings).toHaveBeenCalledOnce()
+  expect(JSON.stringify(prepared.request)).not.toContain('CANONICAL_SECRET')
+})

@@ -32,6 +32,8 @@ vi.mock('../storage-root', () => ({
 }))
 vi.mock('../acp/runtime-coordinator', () => ({
   AcpRuntimeCoordinator: class {
+    setExecutionBoundary = vi.fn()
+
     constructor(factory: (callbacks: object, grants: object) => unknown) {
       factory({}, {})
     }

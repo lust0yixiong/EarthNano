@@ -5,6 +5,10 @@ import { configureTestElectronHost } from '../../../test/runtime-host'
 // reset the renderer calls before replaying a compacted conversation, distinct from resume-session.
 
 import { join } from 'node:path'
+import executionFixtures from '../../../contracts/execution/fixtures.json'
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { SessionExecutionHost } from '../earthnano/session-execution-host-port'
+import { emptyExecutionState } from '../earthnano/execution-core'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -186,6 +190,40 @@ vi.mock('@aipoch/diagnostics/node', async (importOriginal) => {
   }
 })
 
+// This IPC wiring suite already substitutes the native runtime. Supply its host's durable-fact
+// port without opening a production database; the actual execution boundary and Core stay real.
+const executionStates: Array<ReturnType<typeof emptyExecutionState>> = []
+vi.mock('../earthnano/session-execution-host', () => ({
+  createSessionExecutionHost: (): SessionExecutionHost => ({
+    async prepare(input) {
+      const state = emptyExecutionState()
+      executionStates.push(state)
+      const request: ExecutionRequest = {
+        ...(structuredClone(executionFixtures.valid) as ExecutionRequest),
+        requestKey: input.attemptId,
+        projectId: 'ipc-fixture',
+        role: 'task',
+        origin: { kind: 'interactive', sessionId: input.request.sessionId },
+        interactionPolicy: 'interactive',
+        timeoutMs: 0
+      }
+      return {
+        request,
+        budgetLimit: 1,
+        store: {
+          load: () => structuredClone(state),
+          commit: (next) => {
+            Object.assign(state, structuredClone(next))
+          }
+        },
+        async readResult({ error }) {
+          return { phase: error === undefined ? 'completed' : 'failed', cleanup: 'confirmed' }
+        },
+        close() {}
+      }
+    }
+  })
+}))
 vi.mock('./runtime', () => ({ AcpRuntime: AcpRuntimeMock }))
 vi.mock('./shutdown-guard', () => ({ installAgentShutdownGuard: vi.fn() }))
 vi.mock('./mcp-http-host', () => ({ AgentMcpHttpHost: vi.fn() }))
@@ -293,6 +331,7 @@ const registerWithFakes = (overrides?: {
 
 afterEach(() => {
   clearMigrationPending()
+  executionStates.length = 0
   lstat.mockClear()
   mkdir.mockClear()
   rm.mockClear()
@@ -367,6 +406,20 @@ it('rejects direct ACP policy mutations before runtime work when Session admissi
 })
 
 describe('ACP module transport seam', () => {
+  it('admits the IPC runtime fixture through the real shared execution Core', async () => {
+    registerWithFakes()
+    await handlers.get('acp:send-prompt')?.({}, { sessionId: 'session-1', text: 'Original task' })
+    await vi.waitFor(() =>
+      expect(Object.values(executionStates[0].records)[0]).toMatchObject({
+        phase: 'completed',
+        cleanup: 'confirmed',
+        request: { role: 'task', origin: { kind: 'interactive', sessionId: 'session-1' } }
+      })
+    )
+    expect(Object.values(executionStates[0].budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    expect(sendPrompt).toHaveBeenCalledOnce()
+  })
+
   it('holds archive admission until Save as skill is accepted without awaiting turn completion', async () => {
     const session = materializeSessionConversationGraph({
       id: 'session-1',
