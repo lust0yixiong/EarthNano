@@ -116,6 +116,8 @@ export async function createEarthnanoMessagesProvider(
   testOptions: {
     /** Offline decision fixture only; live requests and tools remain untouched. */
     scientificLanguage?: NotebookLanguage
+    /** Original Node/Compute decision fixture; live native requests are still forwarded verbatim. */
+    scientificCompute?: boolean
     /** Native R binary fixture; production tools and immutable versions remain real. */
     scientificBinary?: boolean
     /** CSV + PNG desktop fixture; native input, Notebook and Artifact owners stay unchanged. */
@@ -146,13 +148,19 @@ export async function createEarthnanoMessagesProvider(
   close(): Promise<void>
 }> {
   const scientificLanguage = testOptions.scientificLanguage ?? 'python'
+  const scientificCompute = testOptions.scientificCompute === true
+  if (scientificCompute && (!scientificOptimization || testOptions.scientificBinary))
+    throw new Error('Compute acceptance requires its own original scientific profile')
   if (scientificLanguage !== 'python' && scientificLanguage !== 'r')
     throw new Error('Unsupported acceptance scientific language')
   const scientificBinary = testOptions.scientificBinary === true
   if (scientificBinary && (!scientificOptimization || scientificLanguage !== 'r'))
     throw new Error('Binary scientific acceptance requires the original R Notebook profile')
   const scientificFigure = testOptions.scientificFigure === true
-  if (scientificFigure && (!scientificOptimization || scientificLanguage !== 'r'))
+  if (
+    scientificFigure &&
+    (!scientificOptimization || (!scientificCompute && scientificLanguage !== 'r'))
+  )
     throw new Error('Scientific figure acceptance requires the original R Notebook profile')
   const publishFigure = scientificBinary || scientificFigure
   const imageToolResults: ImageToolResult[] = []
@@ -390,6 +398,61 @@ export async function createEarthnanoMessagesProvider(
           if (!tool) throw new Error('Production scientific MCP tool unavailable')
           emit(response, body.model, { name: tool.name, input })
         }
+        if (scientificCompute) {
+          const control = blocks.filter(
+            (block) => block.type === 'tool_use' && block.name?.endsWith('repl_execute')
+          )
+          if (!control.length)
+            return call('repl_execute', {
+              code: "var earthnanoReceipt=await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30});console.log(JSON.stringify(earthnanoReceipt));"
+            })
+          const delivery = /Compute Job ([a-f0-9-]{36}) ended with status/.exec(userText)
+          if (!delivery) {
+            emit(response, body.model, {
+              text: 'Submission settled; await the original background result delivery.'
+            })
+            return
+          }
+          if (
+            !control.some(
+              (block) =>
+                typeof block.input?.code === 'string' &&
+                block.input.code.includes('earthnanoAnalyzed')
+            )
+          )
+            return call('repl_execute', {
+              code: `var earthnanoAnalyzed=await host.compute.create('ssh:fixture').attachJob(${JSON.stringify(delivery[1])}).result();if(!earthnanoAnalyzed.result_final)throw new Error('Compute result is not final');var earthnanoFs=require('node:fs');var earthnanoValues=JSON.parse(earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('metrics.json')),'utf8')).values;var earthnanoSum=earthnanoValues.reduce((a,b)=>a+b,0);earthnanoFs.writeFileSync('research-results.json',JSON.stringify({count:earthnanoValues.length,sum:earthnanoSum,mean:earthnanoSum/earthnanoValues.length}),{flag:'wx'});${publishFigure ? "earthnanoFs.writeFileSync('measurements.png',earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('figure.png'))),{flag:'wx'});" : ''}console.log('Derived from original harvested bytes');`
+            })
+          const producer = [...blocks]
+            .reverse()
+            .filter((block) => block.type === 'tool_result')
+            .find((block) => nested(block, 'activityKind') === 'notebook-run')
+          const runId = producer && nested(producer, 'activityId')
+          if (typeof runId !== 'string')
+            throw new Error('Original control producer identity missing')
+          const filenames = [
+            'research-results.json',
+            ...(publishFigure ? ['measurements.png'] : [])
+          ]
+          for (const filename of filenames) {
+            if (
+              !blocks.some(
+                (block) =>
+                  block.type === 'tool_use' &&
+                  block.name?.endsWith('write_artifact_file') &&
+                  block.input?.filename === filename
+              )
+            )
+              return call('write_artifact_file', {
+                filename,
+                mimeType: filename.endsWith('.png') ? 'image/png' : 'application/json',
+                source: { kind: 'localPath', path: filename },
+                producerRunId: runId
+              })
+          }
+          emit(response, body.model, { text: 'Original Compute result analysis complete.' })
+          return
+        }
         if (!called('list_notebook_runtimes')) return call('list_notebook_runtimes', {})
         if (
           role === 'ordinary' &&
@@ -522,13 +585,17 @@ export async function createEarthnanoMessagesProvider(
           }
         }
         emit(response, body.model, {
-          text: '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
+          text: scientificCompute
+            ? '```choice\nB\n```\n<why>Deterministic protocol selection after reading the original fixture assets; independent verification remains required.</why>'
+            : '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
         })
         return
       }
       if (role === 'reflection') {
         emit(response, body.model, {
-          text: '<edits>Use the original fixed source and verify the arithmetic.</edits>\n<experience>\ncue: CSV aggregation\nlesson: Compute count, sum and mean from the fixed source using the original Notebook tools.\nevidence: Baseline and chosen candidate published version-bound reports for the same CSV.\n</experience>'
+          text: scientificCompute
+            ? '<edits>Await the original complete Job delivery before analyzing harvested fixture bytes.</edits>\n<experience>\ncue: Controlled Compute protocol fixture\nlesson: A submission receipt is not completion. Use the original final result and preserve its producer identity.\nevidence: Baseline and candidate published version-bound reports through the original Compute continuation. This is protocol evidence, not remote science.\n</experience>'
+            : '<edits>Use the original fixed source and verify the arithmetic.</edits>\n<experience>\ncue: CSV aggregation\nlesson: Compute count, sum and mean from the fixed source using the original Notebook tools.\nevidence: Baseline and chosen candidate published version-bound reports for the same CSV.\n</experience>'
         })
         return
       }
@@ -542,9 +609,11 @@ export async function createEarthnanoMessagesProvider(
         return write(
           join(output, 'context/harness/instructions.md'),
           scientificOptimization
-            ? scientificLanguage === 'r'
-              ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
-              : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+            ? scientificCompute
+              ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json values with node:fs, compute count/sum/mean and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish through write_artifact_file with the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
+              : scientificLanguage === 'r'
+                ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
+                : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
             : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
       if (role === 'reviewer') {
@@ -556,7 +625,7 @@ export async function createEarthnanoMessagesProvider(
         )
         const value = JSON.parse(file.content)
         let expected = { count: 3, sum: 12, mean: 4 }
-        if (scientificOptimization) {
+        if (scientificOptimization && !scientificCompute) {
           // Only the offline model's decision is substituted. Recompute from the actual
           // independently frozen source evidence, so a second task cannot pass using task one's CSV.
           const sources = JSON.parse(await readFile(join(input, 'evidence/sources.json'), 'utf8'))
@@ -580,7 +649,9 @@ export async function createEarthnanoMessagesProvider(
             schemaVersion: 1,
             score: pass ? 100 : 0,
             outcome: pass ? 'pass' : 'flagged',
-            rationale: 'Recomputed arithmetic and checked the fixed result bytes.',
+            rationale: scientificCompute
+              ? 'Checked the published JSON against the known controlled protocol expectations.'
+              : 'Recomputed arithmetic and checked the fixed result bytes.',
             checks: plan.criteria.map((criterion: { id: string }) => ({
               criterionId: criterion.id,
               status: pass ? 'pass' : 'fail',

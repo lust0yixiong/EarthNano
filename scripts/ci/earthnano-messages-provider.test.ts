@@ -9,7 +9,8 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 const setup = async (
-  upstreamFetch: typeof fetch
+  upstreamFetch: typeof fetch,
+  scientificCompute = false
 ): Promise<Awaited<ReturnType<typeof createEarthnanoMessagesProvider>>> => {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-proxy-counter-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
@@ -17,7 +18,8 @@ const setup = async (
   await writeFile(keyFile, ['sk', 'fixture-only'].join('-'), { mode: 0o600 })
   const provider = await createEarthnanoMessagesProvider(true, true, false, {
     keyFile,
-    upstreamFetch
+    upstreamFetch,
+    scientificCompute
   })
   cleanups.push(() => provider.close())
   return provider
@@ -243,4 +245,84 @@ it('offline R decisions bind the explicit R target and execute real R source ins
   expect(execute.code).toContain('jsonlite::write_json')
   expect(execute.code).not.toContain('import csv')
   expect(provider.stats.upstreamRequests).toBe(0)
+})
+
+it('offline Compute decisions wait for real delivery and publish using the returned control producer', async () => {
+  const provider = await createEarthnanoMessagesProvider(false, true, false, {
+    scientificCompute: true,
+    scientificFigure: true
+  })
+  cleanups.push(() => provider.close())
+  const tools = ['repl_execute', 'write_artifact_file'].map((suffix) => ({
+    name: `mcp__original__${suffix}`
+  }))
+  const messages: Array<{ role: string; content: unknown }> = [
+    { role: 'user', content: 'EarthNano execution role: candidate.' }
+  ]
+  const send = async (): Promise<Array<{ delta?: { partial_json?: string; text?: string } }>> => {
+    const response = await fetch(`${provider.url}/v1/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ...body, tools, messages })
+    })
+    expect(response.status).toBe(200)
+    return (await response.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)))
+  }
+  const input = (events: Awaited<ReturnType<typeof send>>): Record<string, unknown> =>
+    JSON.parse(events.find((event) => event.delta?.partial_json)!.delta!.partial_json!)
+  const submit = input(await send())
+  expect(submit.code).toContain('.submitJob(')
+  expect(submit.code).not.toContain('notebook_execute')
+  messages.push({
+    role: 'assistant',
+    content: [{ type: 'tool_use', name: tools[0].name, input: submit }]
+  })
+  expect((await send()).some((event) => event.delta?.partial_json)).toBe(false)
+  messages.push({
+    role: 'user',
+    content:
+      'Compute Job 11111111-2222-3333-4444-555555555555 ended with status success on fixture.'
+  })
+  const analyze = input(await send())
+  expect(analyze.code).toContain('attachJob("11111111-2222-3333-4444-555555555555").result()')
+  expect(analyze.code).toContain('result_final')
+  expect(analyze.code).toContain('earthnanoValues.reduce')
+  messages.push(
+    { role: 'assistant', content: [{ type: 'tool_use', name: tools[0].name, input: analyze }] },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          content: JSON.stringify({
+            fileEvidence: { activityKind: 'notebook-run', activityId: 'actual-control-producer' }
+          })
+        }
+      ]
+    }
+  )
+  expect(input(await send())).toMatchObject({
+    filename: 'research-results.json',
+    producerRunId: 'actual-control-producer'
+  })
+  expect(provider.stats.upstreamRequests).toBe(0)
+})
+
+it('forwards live Compute tools and messages without substituting model decisions', async () => {
+  const upstream = vi.fn<typeof fetch>(async () => new Response('data: [DONE]\n\n'))
+  const provider = await setup(upstream, true)
+  const tools = [{ name: 'mcp__original__repl_execute', input_schema: { type: 'object' } }]
+  const response = await fetch(`${provider.url}/v1/messages`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ...body, tools })
+  })
+  await response.text()
+  const forwarded = JSON.parse(String(upstream.mock.calls[0][1]!.body))
+  expect(forwarded.messages).toEqual(body.messages)
+  expect(forwarded.tools).toEqual(tools)
+  expect(provider.stats.upstreamRequests).toBe(1)
 })

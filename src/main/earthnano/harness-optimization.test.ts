@@ -650,6 +650,50 @@ describe('host-fixed scientific Harness capabilities', () => {
   })
 })
 
+it.each(['proposer', 'composer', 'selector', 'reflection'])(
+  'keeps empty-input Compute source identity through %s without granting Compute to method roles',
+  async (role) => {
+    const source: CandidateSnapshotInput = {
+      ...structuredClone(input),
+      task: { prompt: 'Original Compute task', files: [], managedInputs: [] },
+      harness: { ...input.harness, tools: 'notebook-compute' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        compute: {
+          sourceProjectId: 'project',
+          sourceSessionId: 'compute-source',
+          access: { enabledProviderIds: [], selectedProviderIds: [] },
+          hosts: []
+        }
+      }
+    }
+    const f = await setup(source)
+    const baseline = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const candidate = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('candidate')
+    )) as ExecutionRequest
+    expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
+    expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
+    expect((await f.snapshots.resolve(candidate)).task).toEqual(source.task)
+    for (const request of [baseline, candidate])
+      expect(request.origin.sessionId).toBe('compute-source')
+    const method = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(method)
+    expect(method.origin.sessionId).toBe('compute-source')
+    expect(resolved.task).toEqual({ prompt: source.task.prompt, files: [] })
+    expect(resolved.environment).toEqual(input.environment)
+    expect(resolved.harness.tools).toBe('workspace-only')
+  }
+)
+
 it('reuses only the exact completed original stage and refuses changed task or role context before replay', async () => {
   const f = await setup()
   const original = (await f.binding.dispatch(

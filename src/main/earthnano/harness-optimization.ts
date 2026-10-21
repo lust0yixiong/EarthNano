@@ -4,6 +4,10 @@ import {
   type CandidateBinaryArtifactFile
 } from '../../shared/earthnano/candidate-artifact'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import { spawn } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
 import { createInterface } from 'node:readline'
@@ -353,6 +357,10 @@ export class HarnessOptimizationBinding {
   private async freeze(args: Record<string, unknown>): Promise<ExecutionRequest> {
     const { snapshots, input, projectId, optimizationId, taskId, budgetRef, timeoutMs } =
       this.options
+    const computeSource = isComputeToolsProfile(input.harness.tools)
+      ? normalizeFrozenComputeContext(input.environment.compute)
+      : undefined
+    if (computeSource && computeSource.sourceProjectId !== projectId) return fail()
     if (input.task.managedInputs?.some((entry) => entry.sourceProjectId !== projectId))
       return fail()
     const invocation = plain(args.invocation)
@@ -402,6 +410,13 @@ export class HarnessOptimizationBinding {
     const scientific = role === 'baseline' || role === 'candidate'
     const refs = await snapshots.freeze({
       ...input,
+      // Method roles retain the task prompt and all input identities without Compute capability.
+      // An empty Compute-only manifest has no Versions to project into a textual role. The actual
+      // baseline/candidates keep the identical original task (including its empty manifest).
+      task:
+        computeSource && !scientific && input.task.managedInputs?.length === 0
+          ? { prompt: input.task.prompt, files: input.task.files }
+          : input.task,
       harness: { ...proposed, tools: scientific ? input.harness.tools : 'workspace-only' },
       environment: scientific
         ? input.environment
@@ -410,7 +425,7 @@ export class HarnessOptimizationBinding {
             network: 'provider-only'
           }
     })
-    // Role context belongs to the invocation, not a newly invented research TaskSnapshot.
+    // Role context belongs to the invocation rather than being appended to the research prompt.
     const roleMission = [
       `EarthNano execution role: ${role}.`,
       ...(this.options.bindingIdentity ? [this.scopeHeader(scope)] : []),
@@ -442,11 +457,13 @@ export class HarnessOptimizationBinding {
             : 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. The Session owner persists that committed reply as selector-reply.md; return the original reply directly without a separate file transcription. Do not emit a new task deliverable or alter any candidate.'
           : role === 'reflection'
             ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). The Session owner persists that committed reply as reflection-reply.md; return the original reply directly without a separate file transcription. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
-            : notebookLanguageForTools(input.harness.tools) !== undefined
-              ? notebookLanguageForTools(input.harness.tools) === 'r'
-                ? 'Execute the scientific task with the original Notebook R tools and the exact managed inputs supplied by the Session owner. Use explicit language r for every Notebook execution. Publish task deliverables using the original Artifact tools. The input versions and R runtime are fixed; do not change them. Do not emit a replacement report through native output files.'
-                : 'Execute the scientific task with the original Notebook Python tools and the exact managed inputs supplied by the Session owner. Publish task deliverables using the original Artifact tools. The input versions and Python runtime are fixed; do not change them. Do not emit a replacement report through native output files.'
-              : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
+            : computeSource
+              ? 'Execute the scientific task with the original Node control REPL and frozen Compute hosts. Await original complete Job results and publish task deliverables through the original Artifact tools using real producer identities. The Session owner supplies fixed inputs; a submission receipt is not completion.'
+              : notebookLanguageForTools(input.harness.tools) !== undefined
+                ? notebookLanguageForTools(input.harness.tools) === 'r'
+                  ? 'Execute the scientific task with the original Notebook R tools and the exact managed inputs supplied by the Session owner. Use explicit language r for every Notebook execution. Publish task deliverables using the original Artifact tools. The input versions and R runtime are fixed; do not change them. Do not emit a replacement report through native output files.'
+                  : 'Execute the scientific task with the original Notebook Python tools and the exact managed inputs supplied by the Session owner. Publish task deliverables using the original Artifact tools. The input versions and Python runtime are fixed; do not change them. Do not emit a replacement report through native output files.'
+                : 'Write task deliverables only beneath the absolute OUTPUT directory supplied by the Session owner.'
     ]
       .filter(Boolean)
       .join('\n\n')
@@ -466,6 +483,7 @@ export class HarnessOptimizationBinding {
       role,
       origin: {
         kind: 'optimization',
+        ...(computeSource ? { sessionId: computeSource.sourceSessionId } : {}),
         optimizationId,
         stageId: stageLabel,
         ...(retryOf ? { retryOfExecutionId: retryOf } : {})

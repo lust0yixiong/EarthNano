@@ -227,6 +227,65 @@ it('emits a private sweep configuration accepted by the real Python entry before
   ).rejects.toThrow('CONFIG_VALIDATED_NO_ADMISSIONS')
   expect(f.evaluate).not.toHaveBeenCalled()
 })
+it('projects zero-input Compute into the original method without relaxing its Notebook input guard', async () => {
+  const o = await options()
+  o.sourceSessionId = 'source'
+  o.sourcePromptMessageId = 'source-prompt'
+  o.input = {
+    ...o.input,
+    task: { ...o.input.task, managedInputs: [] },
+    harness: { ...o.input.harness, tools: 'notebook-compute' },
+    environment: {
+      isolation: 'directory-process',
+      network: 'provider-and-notebook-policy',
+      compute: {
+        sourceProjectId: o.projectId,
+        sourceSessionId: 'source',
+        access: { enabledProviderIds: [], selectedProviderIds: [] },
+        hosts: []
+      }
+    }
+  }
+  o.ownerOptions = {
+    notebook: {},
+    compute: {}
+  } as PersistentOptimizationOptions['ownerOptions']
+  f.executionIds = []
+  f.shutdown.mockResolvedValue({ reaped: true })
+  f.method.mockImplementationOnce(async ({ args }: { args: string[] }) => {
+    const encoded = await readFile(args.at(-1)!, 'utf8')
+    expect(JSON.parse(encoded).task).toEqual({ prompt: 'Task', files: [] })
+    execFileSync(
+      process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3',
+      [
+        '-B',
+        '-c',
+        [
+          'import json,sys',
+          'from harness2.earthnano import validate_config,validate_managed_inputs',
+          'validate_config(json.load(sys.stdin))',
+          'try: validate_managed_inputs([])',
+          'except ValueError: pass',
+          'else: raise AssertionError("Original Notebook input guard was relaxed")'
+        ].join('\n')
+      ],
+      {
+        cwd: o.harnessRoot,
+        env: { PATH: process.env.PATH, PYTHONPATH: o.harnessRoot, PYTHONDONTWRITEBYTECODE: '1' },
+        input: encoded,
+        stdio: ['pipe', 'pipe', 'pipe']
+      }
+    )
+    throw new Error('COMPUTE_CONFIG_VALIDATED_NO_ADMISSIONS')
+  })
+  await expect(runPersistentOptimization(o)).rejects.toThrow(
+    'COMPUTE_CONFIG_VALIDATED_NO_ADMISSIONS'
+  )
+  expect(o.input.task.managedInputs).toEqual([])
+  const resume = JSON.parse(await readFile(join(o.workRoot, 'resume.json'), 'utf8'))
+  expect(resume.identity.input.task.managedInputs).toEqual([])
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
 it('applies one overall deadline across method and assessment, then awaits cleanup before rejecting', async () => {
   const o = await options()
   o.timeoutMs = 80

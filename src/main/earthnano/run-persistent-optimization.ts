@@ -572,6 +572,16 @@ export async function runPersistentOptimization(
       domain || sweep
         ? new HarnessDomainBinding(tasks.map(taskBindingOptions))
         : new HarnessOptimizationBinding(taskBindingOptions(tasks[0]))
+    // The original method's optional managed-input manifest requires at least one Version. A
+    // Compute task may start without files; omit only that empty projection while its authoritative
+    // Core snapshot keeps the exact frozen task. Python/R's required-source validation is unchanged.
+    const methodTask = (taskInput: typeof input): typeof input.task => ({
+      ...taskInput.task,
+      ...(isComputeToolsProfile(taskInput.harness.tools) &&
+      taskInput.task.managedInputs?.length === 0
+        ? { managedInputs: undefined }
+        : {})
+    })
     const config = {
       configVersion: sweep ? 2 : 1,
       ...(options.resume ? { resume: true } : {}),
@@ -580,7 +590,10 @@ export async function runPersistentOptimization(
             bindingIdentity: sweep.plan.bindingIdentity,
             coreConcurrency: sweep.plan.options.concurrency,
             catalog: sweep.plan.catalog,
-            tasks: selectedTasks!.map((task) => ({ taskId: task.taskId, task: task.input.task })),
+            tasks: selectedTasks!.map((task) => ({
+              taskId: task.taskId,
+              task: methodTask(task.input)
+            })),
             stream: sweep.plan.options.stream,
             expectedDomains: sweep.plan.domains,
             catalogDigest: sweep.plan.catalogDigest,
@@ -591,9 +604,12 @@ export async function runPersistentOptimization(
             ...(domain
               ? {
                   domain: domain.name,
-                  tasks: tasks.map((task) => ({ taskId: task.taskId, task: task.input.task }))
+                  tasks: tasks.map((task) => ({
+                    taskId: task.taskId,
+                    task: methodTask(task.input)
+                  }))
                 }
-              : { taskId: options.taskId, task: input.task })
+              : { taskId: options.taskId, task: methodTask(input) })
           }),
       baseHarnessFiles: [
         { path: 'instructions.md', content: input.harness.instructions },

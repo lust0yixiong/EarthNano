@@ -64,7 +64,11 @@
     "src/main/earthnano/persistent-candidate-owner.binary.test.ts",
     "src/main/earthnano/desktop-candidate-owner-routing.ts",
     "src/main/earthnano/desktop-candidate-owner-routing.test.ts",
-    "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
+    "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+    "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+    "test/earthnano/compute-transport.ts",
+    "test/earthnano/compute-workflow.ts",
+    "src/main/earthnano/persistent-compute-sweep.integration.test.ts"
   ],
   "interfacePaths": [
     "src/main/earthnano/candidate-settlement-witness.ts",
@@ -132,7 +136,9 @@
       "src/main/earthnano/compute-context.test.ts",
       "src/main/earthnano/persistent-candidate-owner.binary.test.ts",
       "src/main/earthnano/desktop-candidate-owner-routing.test.ts",
-      "src/main/earthnano/persistent-compute-candidate.integration.test.ts"
+      "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+      "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+      "src/main/earthnano/persistent-compute-sweep.integration.test.ts"
     ],
     "contract": [],
     "consumer": []
