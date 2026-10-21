@@ -1,4 +1,17 @@
-import { fstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  createSynchronousFileDurability,
+  defaultSynchronousFileDurability
+} from '@aipoch/durable-files'
+import {
+  closeSync,
+  fsyncSync,
+  openSync,
+  fstatSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -25,6 +38,18 @@ vi.mock('node:fs', async (original) => {
     }
   }
 })
+beforeEach(() => {
+  vi.spyOn(defaultSynchronousFileDurability, 'syncDirectory').mockImplementation((path) => {
+    createSynchronousFileDurability({
+      platform: process.platform,
+      openHandle: (directory, flags) => {
+        const fd = openSync(directory, flags)
+        return { sync: () => fsyncSync(fd), close: () => closeSync(fd) }
+      }
+    }).syncDirectory(path)
+  })
+})
+
 let root: string
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'execution-store-recovery-'))

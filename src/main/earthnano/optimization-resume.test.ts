@@ -1,7 +1,21 @@
-import { fstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  createSynchronousFileDurability,
+  defaultSynchronousFileDurability
+} from '@aipoch/durable-files'
+import {
+  closeSync,
+  fsyncSync,
+  openSync,
+  fstatSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import fixtures from '../../../contracts/execution/fixtures.json'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { emptyExecutionState, ExecutionCore, type ExecutionContext } from './execution-core'
@@ -36,9 +50,22 @@ vi.mock('node:fs', async (original) => {
   }
 })
 
+beforeEach(() => {
+  vi.spyOn(defaultSynchronousFileDurability, 'syncDirectory').mockImplementation((path) => {
+    createSynchronousFileDurability({
+      platform: process.platform,
+      openHandle: (directory, flags) => {
+        const fd = openSync(directory, flags)
+        return { sync: () => fsyncSync(fd), close: () => closeSync(fd) }
+      }
+    }).syncDirectory(path)
+  })
+})
+
 const roots: string[] = []
 const cores: ExecutionCore[] = []
 afterEach(() => {
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
   fsyncControl.failure = undefined
   fsyncControl.attempts.length = 0

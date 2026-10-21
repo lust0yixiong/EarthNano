@@ -1,4 +1,11 @@
 import {
+  createSynchronousFileDurability,
+  defaultSynchronousFileDurability
+} from '@aipoch/durable-files'
+import {
+  closeSync,
+  fsyncSync,
+  openSync,
   fstatSync,
   mkdirSync,
   mkdtempSync,
@@ -9,7 +16,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DesktopOptimizationManager,
   type DesktopOptimizationManagerOptions
@@ -43,8 +50,21 @@ vi.mock('node:fs', async (original) => {
   }
 })
 
+beforeEach(() => {
+  vi.spyOn(defaultSynchronousFileDurability, 'syncDirectory').mockImplementation((path) => {
+    createSynchronousFileDurability({
+      platform: process.platform,
+      openHandle: (directory, flags) => {
+        const fd = openSync(directory, flags)
+        return { sync: () => fsyncSync(fd), close: () => closeSync(fd) }
+      }
+    }).syncDirectory(path)
+  })
+})
+
 const roots: string[] = []
 afterEach(() => {
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
   fsyncControl.failure = undefined
   fsyncControl.attempts.length = 0
