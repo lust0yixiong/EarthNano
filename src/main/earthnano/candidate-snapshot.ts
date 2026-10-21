@@ -8,6 +8,10 @@ import type {
   ComputeToolsProfile,
   FrozenComputeContext
 } from '../../shared/earthnano/compute-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import { defaultFileDurability } from '@aipoch/durable-files'
 import {
   normalizeCandidateArtifactFile,
@@ -22,6 +26,7 @@ import { LOCAL_RESOURCE_BUDGETS, assertWithinResourceBudget } from '../resource-
 import { availableBytes } from '../storage/usage'
 import {
   normalizeFrozenNotebookInputs,
+  normalizeFrozenManagedInputs,
   notebookLanguageForTools,
   type NotebookToolsProfile,
   normalizeFrozenNotebookRuntime,
@@ -245,7 +250,7 @@ const normalize = (kind: Kind, value: unknown): unknown => {
     const entry = object(value, ['prompt', 'files'], ['managedInputs'])
     const taskFiles = files(entry.files)
     const managedInputs = Object.hasOwn(entry, 'managedInputs')
-      ? normalizeFrozenNotebookInputs(entry.managedInputs)
+      ? normalizeFrozenManagedInputs(entry.managedInputs)
       : undefined
     if (managedInputs && taskFiles.length)
       throw new Error('Notebook tasks cannot mix immutable managed inputs and inline files')
@@ -257,7 +262,11 @@ const normalize = (kind: Kind, value: unknown): unknown => {
   }
   if (kind === 'harness') {
     const entry = object(value, ['instructions', 'skills', 'tools'])
-    if (entry.tools !== 'workspace-only' && notebookLanguageForTools(entry.tools) === undefined)
+    if (
+      entry.tools !== 'workspace-only' &&
+      notebookLanguageForTools(entry.tools) === undefined &&
+      !isComputeToolsProfile(entry.tools)
+    )
       throw new Error('Unsupported candidate tools profile')
     return {
       instructions: text(entry.instructions),
@@ -279,19 +288,24 @@ const normalize = (kind: Kind, value: unknown): unknown => {
     } satisfies CandidateAgent
   }
   if (kind === 'environment') {
-    const entry = object(value, ['isolation', 'network'], ['notebook'])
+    const entry = object(value, ['isolation', 'network'], ['notebook', 'compute'])
     const notebook = Object.hasOwn(entry, 'notebook')
       ? { runtime: normalizeFrozenNotebookRuntime(object(entry.notebook, ['runtime']).runtime) }
       : undefined
+    const compute = Object.hasOwn(entry, 'compute')
+      ? normalizeFrozenComputeContext(entry.compute)
+      : undefined
     if (
       entry.isolation !== 'directory-process' ||
-      entry.network !== (notebook ? 'provider-and-notebook-policy' : 'provider-only')
+      (notebook && compute) ||
+      entry.network !== (notebook || compute ? 'provider-and-notebook-policy' : 'provider-only')
     )
       throw new Error('Unsupported candidate environment profile')
     return {
       isolation: 'directory-process',
       network: entry.network as CandidateEnvironment['network'],
-      ...(notebook ? { notebook } : {})
+      ...(notebook ? { notebook } : {}),
+      ...(compute ? { compute } : {})
     } satisfies CandidateEnvironment
   }
   const entry = object(value, ['taskSnapshotRef', 'harnessRevisionRef', 'mission'], ['assets'])
@@ -310,6 +324,19 @@ const validateProfile = (
 ): void => {
   const language = notebookLanguageForTools(harness.tools)
   const scientific = language !== undefined
+  const compute = isComputeToolsProfile(harness.tools)
+  if (compute !== Boolean(environment.compute))
+    throw new Error('Compute tools require the frozen original Compute context')
+  if (compute && (environment.notebook || task.files.length))
+    throw new Error('Compute uses original managed inputs and control, not an inline data runtime')
+  if (compute) {
+    const frozen = normalizeFrozenComputeContext(environment.compute)
+    if (task.managedInputs?.some((input) => input.sourceProjectId !== frozen.sourceProjectId))
+      throw new Error('Compute managed input belongs to another Project')
+  } else if (task.managedInputs !== undefined) {
+    // Only Compute accepts empty managed inputs. Preserve every existing profile's old bounds.
+    normalizeFrozenNotebookInputs(task.managedInputs)
+  }
   if (scientific !== Boolean(environment.notebook) || (scientific && !task.managedInputs?.length))
     throw new Error('Notebook tools require fixed managed inputs and a frozen runtime')
   if (scientific && environment.notebook?.runtime.language !== language)

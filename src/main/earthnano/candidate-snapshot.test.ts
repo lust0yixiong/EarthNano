@@ -621,6 +621,139 @@ const scientificInput = (): CandidateSnapshotInput => ({
   }
 })
 
+const computeInput = (count = 0): CandidateSnapshotInput => {
+  const original = scientificInput()
+  return {
+    ...original,
+    task: {
+      prompt: 'Run the original task on the selected Compute host.',
+      files: [],
+      managedInputs: Array.from({ length: count }, (_, i) => ({
+        ...original.task.managedInputs![0],
+        sourceFileId: `file-${i}`,
+        inputFileVersionId: `version-${i}`
+      }))
+    },
+    harness: { ...original.harness, tools: 'notebook-compute' },
+    environment: {
+      isolation: 'directory-process',
+      network: 'provider-and-notebook-policy',
+      compute: {
+        sourceProjectId: 'project',
+        sourceSessionId: 'source-session',
+        access: { enabledProviderIds: ['ssh:lab'], selectedProviderIds: [] },
+        hosts: [
+          {
+            id: 'host-original',
+            providerId: 'ssh:lab',
+            shape: 'direct_ssh',
+            executionMode: 'direct_ssh'
+          }
+        ]
+      }
+    }
+  }
+}
+
+describe('frozen original Compute control profile', () => {
+  it.each([0, 2])(
+    'freezes and materializes %i exact managed inputs without a data-language runtime',
+    async (count) => {
+      const { root, store } = await fixture()
+      const original = computeInput(count)
+      const first = await freeze(store, original)
+      const next = await freeze(store, {
+        ...original,
+        harness: { ...original.harness, instructions: 'Revised original Compute workflow.' }
+      })
+      expect(next.taskSnapshotRef).toEqual(first.taskSnapshotRef)
+      expect(next.environmentSpecRef).toEqual(first.environmentSpecRef)
+      expect(next.harnessRevisionRef).not.toEqual(first.harnessRevisionRef)
+      Object.assign(original.environment.compute!.hosts[0], { id: 'host-replacement' })
+      const reopened = await createCandidateSnapshotStore({
+        root: join(root, 'store'),
+        candidatesRoot: join(root, 'candidates')
+      })
+      const resolved = await reopened.resolve(first)
+      expect(resolved.environment.compute?.hosts[0].id).toBe('host-original')
+      expect(resolved.environment.compute?.access.selectedProviderIds).toEqual([])
+      expect(resolved.environment.notebook).toBeUndefined()
+      expect(resolved.task.managedInputs).toHaveLength(count)
+      expect(Object.isFrozen(resolved.environment.compute?.hosts)).toBe(true)
+      const materialized = await reopened.materialize({
+        executionId: `compute-${count}`,
+        refs: first
+      })
+      expect(await fs.readdir(materialized.inputDir)).toEqual([])
+      expect(materialized.snapshots).toEqual(resolved)
+    }
+  )
+
+  it('rejects mixed control, data-runtime, input and host authority before writing any object', async () => {
+    const { root, store } = await fixture()
+    const original = computeInput(1)
+    const foreign = structuredClone(original)
+    Object.assign(foreign.task.managedInputs![0], { sourceProjectId: 'foreign-project' })
+    for (const bad of [
+      { ...original, harness: { ...original.harness, tools: 'workspace-only' } },
+      { ...original, environment: scientificInput().environment },
+      {
+        ...original,
+        environment: { ...original.environment, notebook: scientificInput().environment.notebook }
+      },
+      { ...original, environment: { ...original.environment, network: 'provider-only' } },
+      {
+        ...original,
+        task: { ...original.task, files: [{ path: 'inline.txt', content: 'unmanaged' }] }
+      },
+      {
+        ...original,
+        environment: {
+          ...original.environment,
+          compute: { ...original.environment.compute, password: 'not-a-snapshot-field' }
+        }
+      },
+      foreign
+    ])
+      await expect(store.freeze(bad as CandidateSnapshotInput)).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'store/objects'))).toEqual([])
+  })
+
+  it('rejects crossed Compute Project and profile references on reopening', async () => {
+    const { store } = await fixture()
+    const original = await freeze(store, computeInput(1))
+    const foreign = computeInput(1)
+    Object.assign(foreign.environment, {
+      compute: { ...foreign.environment.compute!, sourceProjectId: 'foreign-project' }
+    })
+    Object.assign(foreign.task.managedInputs![0], { sourceProjectId: 'foreign-project' })
+    const other = await freeze(store, foreign)
+    await expect(
+      store.resolve({ ...other, environmentSpecRef: original.environmentSpecRef })
+    ).rejects.toThrow('another Project')
+    const text = await freeze(store)
+    await expect(
+      store.resolve({ ...original, environmentSpecRef: text.environmentSpecRef })
+    ).rejects.toThrow('Compute context')
+  })
+
+  it.each([0, 11])(
+    'retains the original non-Compute attachment bound for %i inputs',
+    async (count) => {
+      const { store } = await fixture()
+      const original = scientificInput()
+      Object.assign(original.task, {
+        managedInputs: Array.from({ length: count }, (_, i) => ({
+          ...original.task.managedInputs![0],
+          sourceFileId: `file-${i}`,
+          inputFileVersionId: `version-${i}`
+        }))
+      })
+      await expect(store.freeze(original)).rejects.toThrow()
+    }
+  )
+})
+
 describe('frozen original Notebook profile', () => {
   it('preserves exact old input tuples and runtime across revised harnesses and reopening', async () => {
     const { root, store } = await fixture()
