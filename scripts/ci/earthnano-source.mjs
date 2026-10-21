@@ -516,6 +516,17 @@ const exists = async (path) => {
   }
 }
 
+export function registeredWorktreeMatches(output, selected, platform = process.platform) {
+  const absolute = platform === 'win32' ? win32.isAbsolute : isAbsolute
+  const key = platform === 'win32' ? win32.normalize : (path) => path
+  if (!absolute(selected)) return false
+  return output.split('\0').some((field) => {
+    if (!field.startsWith('worktree ')) return false
+    const registered = field.slice('worktree '.length)
+    return absolute(registered) && key(registered) === key(selected)
+  })
+}
+
 export async function sourceBatch({ root, out }, execute = sourceShard) {
   if (await exists(out)) throw new Error('Source cohort output already exists')
   await mkdir(out, { recursive: true })
@@ -548,7 +559,7 @@ export async function sourceBatch({ root, out }, execute = sourceShard) {
             report.testRoot !== selected ||
             report.source !== OPEN_SCIENCE_PIN ||
             registered.status !== 0 ||
-            !registered.stdout.split('\0').includes(`worktree ${await realpath(selected)}`) ||
+            !registeredWorktreeMatches(registered.stdout, await realpath(selected)) ||
             head.status !== 0 ||
             head.stdout.trim() !== OPEN_SCIENCE_PIN
           )

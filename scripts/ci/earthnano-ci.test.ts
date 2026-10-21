@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { load } from 'js-yaml'
 import { spawnSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { compareHarnessReports } from './earthnano-harness-compare.mjs'
 import {
@@ -12,6 +13,7 @@ import {
   normalizeVitest,
   sourceTestInvocation,
   sourceBatch,
+  registeredWorktreeMatches,
   validateSourceExecution,
   HARNESS_PIN,
   HARNESS_TREE,
@@ -28,7 +30,7 @@ const isolatedReporter = async (): Promise<string> => {
   // Native ESM must load the actual copied observer without Vite's resolver or repository deps.
   const loaded = spawnSync(
     process.execPath,
-    ['--input-type=module', '-e', `await import(${JSON.stringify(reporter)})`],
+    ['--input-type=module', '-e', `await import(${JSON.stringify(pathToFileURL(reporter).href)})`],
     {
       cwd: directory,
       encoding: 'utf8',
@@ -686,6 +688,30 @@ it('runs the original test script with npm_execpath without repeating the record
   })
   expect(observed.npmExecpath).toMatch(/[\\/]npm-cli\.js$/)
 })
+
+it.each([
+  ['C:/repo/earthnano-upstream-1', 'C:\\repo\\earthnano-upstream-1', 'win32', true],
+  ['//server/share/earthnano-upstream-1', '\\\\server\\share\\earthnano-upstream-1', 'win32', true],
+  ['D:/repo/earthnano-upstream-1', 'C:\\repo\\earthnano-upstream-1', 'win32', false],
+  ['C:/other/earthnano-upstream-1', 'C:\\repo\\earthnano-upstream-1', 'win32', false],
+  ['C:/repo/earthnano-upstream-10', 'C:\\repo\\earthnano-upstream-1', 'win32', false],
+  ['C:/repo/earthnano-upstream-1/child', 'C:\\repo\\earthnano-upstream-1', 'win32', false],
+  ['//other/share/earthnano-upstream-1', '\\\\server\\share\\earthnano-upstream-1', 'win32', false],
+  ['C:repo/earthnano-upstream-1', 'C:\\repo\\earthnano-upstream-1', 'win32', false],
+  ['/repo/earthnano-upstream-1', '/repo/earthnano-upstream-1', 'linux', true],
+  ['/other/earthnano-upstream-1', '/repo/earthnano-upstream-1', 'linux', false],
+  ['/repo/../earthnano-upstream-1', '/earthnano-upstream-1', 'linux', false],
+  ['/repo/earthnano-upstream-1', '/repo/earthnano-upstream-1', 'darwin', true]
+] as const)(
+  'matches only the complete registered worktree path (%s, %s, %s)',
+  (registered, selected, platform, expected) => {
+    const output = `worktree ${registered}\0HEAD ${OPEN_SCIENCE_PIN}\0detached\0\0`
+    expect(registeredWorktreeMatches(output, selected, platform)).toBe(expected)
+    expect(
+      registeredWorktreeMatches(output.replace('worktree ', 'locked '), selected, platform)
+    ).toBe(false)
+  }
+)
 
 it.each([
   'complete',
