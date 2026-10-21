@@ -89,6 +89,10 @@ jobs:
       - name: Original macOS DMG/ZIP resource, catalog/fallback and launch smoke
         if: runner.os == 'macOS'
         run: node scripts/macos-package-smoke.mjs --artifact-dir dist
+      - name: Observe original NSIS argument parsing (diagnostic only)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: node scripts/windows-nsis-arguments-probe.mjs --out test-results/native-evidence/nsis-arguments
       - name: Original Windows installed resource, RPC and launch smoke
         if: runner.os == 'Windows'
         run: node scripts/windows-installer-smoke.mjs --installer-dir dist
