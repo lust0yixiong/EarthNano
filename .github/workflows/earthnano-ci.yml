@@ -1,133 +1,184 @@
 name: EarthNano CI
 
+# External design: temporary operational branch only; never the default-branch publisher.
 on:
-  pull_request:
-    branches: [main, feat/alpha-*, fix/alpha-*]
-  push:
-    branches: [main, ci/earthnano-native]
   workflow_dispatch:
     inputs:
-      native:
-        description: Build unsigned native packages and execute original launch/resource smoke (required before Alpha acceptance)
-        type: boolean
-        default: false
-
+      prepared_run_id:
+        description: Actual successful approved a96 preparation run ID
+        required: true
+        type: string
+      prepared_run_attempt:
+        description: Exact successful current run attempt
+        required: true
+        type: string
+      prepared_artifact_id:
+        description: Immutable prepared artifact ID from that run/attempt
+        required: true
+        type: string
+      prepared_artifact_digest:
+        description: Root-approved actual sha256 artifact digest, including sha256 prefix
+        required: true
+        type: string
 permissions:
+  actions: read
   contents: read
-
 concurrency:
-  group: earthnano-ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+  group: earthnano-alpha-first-drafts
+  cancel-in-progress: false
 jobs:
-  plan:
-    name: Resolve original platform sharding
+  stage-alpha-drafts:
+    if: github.ref == 'refs/heads/ci/earthnano-alpha-drafts'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    if: github.ref != 'refs/heads/ci/earthnano-native'
-    outputs:
-      unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: write
+    env:
+      ALPHA_SOURCE_ROOT: ${{ github.workspace }}/alpha-source
+      ALPHA_PREPARER_ROOT: ${{ github.workspace }}/alpha-preparer
+      PREPARED_RUN_ID: ${{ inputs.prepared_run_id }}
+      PREPARED_RUN_ATTEMPT: ${{ inputs.prepared_run_attempt }}
+      PREPARED_ARTIFACT_ID: ${{ inputs.prepared_artifact_id }}
+      PREPARED_ARTIFACT_DIGEST: ${{ inputs.prepared_artifact_digest }}
     steps:
-      - id: matrix
-        shell: node {0}
+      - name: Allocate a fresh publication evidence root
         run: |
-          const fs = require('node:fs')
-          const include = [{os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true}]
-          for (const [os, total] of [['macos-15', 4]])
-            for (const kind of ['baseline', 'candidate'])
-              for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total, batch: false})
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unix_matrix=${JSON.stringify({include})}\n`)
-
-  source_unix:
-    name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
-    needs: plan
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.unix_matrix) }}
-    uses: ./.github/workflows/earthnano-source.yml
-    with:
-      os: ${{ matrix.os }}
-      kind: ${{ matrix.kind }}
-      shard: ${{ matrix.shard }}
-      total: ${{ matrix.total }}
-      batch: ${{ matrix.batch }}
-
-  comparison:
-    name: Enforce pinned original source comparison
-    needs: source_unix
-    if: always() && github.ref != 'refs/heads/ci/earthnano-native'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
+          set -euo pipefail
+          [[ "$RUNNER_TEMP" = /* && "$RUNNER_TEMP" != *$'\n'* && "$RUNNER_TEMP" != *$'\r'* ]]
+          [[ "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ && "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          root="$RUNNER_TEMP/earthnano-alpha-drafts-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test ! -e "$root"
+          mkdir -p "$root/evidence"
+          printf 'ALPHA_DRAFT_ROOT=%s\n' "$root" >> "$GITHUB_ENV"
+      - name: Checkout exact reviewed operational instructions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          path: alpha-draft-operation
+          persist-credentials: false
+      - name: Checkout fixed4a original release helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          path: alpha-source
+          persist-credentials: false
+      - name: Checkout only the approved a96 preparation validator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: a96a94b4fbc4cc7f6803f6e6e1248c665c62bc51
+          path: alpha-preparer
+          persist-credentials: false
+          sparse-checkout: scripts/ci/alpha-assets/prepare-assets.mjs
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: .github/earthnano-node-version }
-      - name: Require complete Unix source matrix
-        shell: node {0}
+        with:
+          node-version-file: alpha-source/.github/earthnano-node-version
+      - name: Read exact source run, artifact, disabled publishers and all prior releases
         env:
-          SOURCE_UNIX_RESULT: ${{ needs.source_unix.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          for (const key of ['SOURCE_UNIX_RESULT'])
-            if (process.env[key] !== 'success') throw new Error(`Required source matrix did not succeed: ${key}`)
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with: { pattern: earthnano-source-*, path: source-reports }
-      - run: node scripts/ci/earthnano-source.mjs compare --platforms darwin,linux --reports source-reports --out test-results/earthnano-ci
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
+          set -euo pipefail
+          [[ "$PREPARED_RUN_ID" =~ ^[1-9][0-9]*$ && "$PREPARED_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ && "$PREPARED_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$PREPARED_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          e="$ALPHA_DRAFT_ROOT/evidence"
+          gh api "repos/lust0yixiong/EarthNano/actions/runs/$PREPARED_RUN_ID" > "$e/prepared-run.json"
+          gh api "repos/lust0yixiong/EarthNano/actions/runs/$PREPARED_RUN_ID/attempts/$PREPARED_RUN_ATTEMPT" > "$e/prepared-attempt.json"
+          gh api --paginate --slurp "repos/lust0yixiong/EarthNano/actions/runs/$PREPARED_RUN_ID/attempts/$PREPARED_RUN_ATTEMPT/jobs?per_page=100" > "$e/prepared-jobs.pages.json"
+          gh api "repos/lust0yixiong/EarthNano/actions/artifacts/$PREPARED_ARTIFACT_ID" > "$e/prepared-artifact.json"
+          gh api --paginate --slurp 'repos/lust0yixiong/EarthNano/releases?per_page=100' > "$e/releases-before.pages.json"
+          gh api 'repos/lust0yixiong/EarthNano/actions/workflows/release.yml' > "$e/release-workflow.json"
+          gh api 'repos/lust0yixiong/EarthNano/actions/workflows/nightly-publish.yml' > "$e/nightly-workflow.json"
+          for tag in v0.1.0-alpha.1 alpha; do
+            gh api "repos/lust0yixiong/EarthNano/git/matching-refs/tags/$tag" > "$e/tag-$tag-refs-before.json"
+            if jq -e --arg ref "refs/tags/$tag" 'any(.[]; .ref == $ref)' "$e/tag-$tag-refs-before.json" > /dev/null; then
+              gh api "repos/lust0yixiong/EarthNano/commits/refs%2Ftags%2F$tag" > "$e/tag-$tag-commit-before.json"
+            else
+              printf 'null\n' > "$e/tag-$tag-commit-before.json"
+            fi
+          done
+      - name: Fail closed unless this is first creation from the approved successful preparation
+        id: preflight
+        run: node alpha-draft-operation/scripts/ci/alpha-drafts/stage-drafts.mjs preflight
+      - name: Download the one approved immutable artifact directly to GHA
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: earthnano-source-comparison
-          path: test-results/earthnano-ci/
+          github-token: ${{ github.token }}
+          repository: lust0yixiong/EarthNano
+          run-id: ${{ inputs.prepared_run_id }}
+          artifact-ids: ${{ steps.preflight.outputs.prepared_artifact_id }}
+          path: ${{ env.ALPHA_DRAFT_ROOT }}/prepared
+          digest-mismatch: error
+      - name: Original release-transform dependencies without scripts or application build
+        working-directory: alpha-source
+        run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
+      - name: Recheck real bytes with original4a Unix aggregate, sums, feed and manifest
+        id: inventory
+        run: |
+          set -euo pipefail
+          node alpha-draft-operation/scripts/ci/alpha-drafts/stage-drafts.mjs verify 2>&1 | tee "$ALPHA_DRAFT_ROOT/evidence/recheck.log"
+      - name: Create immutable version prerelease draft only
+        id: version_draft
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        with:
+          repository: lust0yixiong/EarthNano
+          tag_name: v0.1.0-alpha.1
+          target_commitish: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          name: EarthNano 0.1.0-alpha.1 - unsigned macOS/Linux preview
+          body_path: ${{ steps.inventory.outputs.reviewed_body_path }}
+          draft: true
+          prerelease: true
+          make_latest: "false"
+          overwrite_files: false
+          fail_on_unmatched_files: true
+          preserve_order: true
+          generate_release_notes: false
+          files: ${{ steps.inventory.outputs.exact_asset_paths }}
+      - name: Create matching rolling Alpha prerelease draft only
+        id: alpha_draft
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        with:
+          repository: lust0yixiong/EarthNano
+          tag_name: alpha
+          target_commitish: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          name: EarthNano Alpha preview channel - 0.1.0-alpha.1
+          body_path: ${{ steps.inventory.outputs.reviewed_body_path }}
+          draft: true
+          prerelease: true
+          make_latest: "false"
+          overwrite_files: false
+          fail_on_unmatched_files: true
+          preserve_order: true
+          generate_release_notes: false
+          files: ${{ steps.inventory.outputs.exact_asset_paths }}
+      - name: Retain actual draft metadata even after partial action failure; never repair or publish
+        if: always() && steps.preflight.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          e="$ALPHA_DRAFT_ROOT/evidence"
+          gh api --paginate --slurp 'repos/lust0yixiong/EarthNano/releases?per_page=100' > "$e/releases-after.pages.json"
+          jq -r 'flatten[] | select(.tag_name == "v0.1.0-alpha.1" or .tag_name == "alpha") | .id' "$e/releases-after.pages.json" > "$e/draft-ids.txt"
+          while IFS= read -r id; do
+            [[ "$id" =~ ^[1-9][0-9]*$ ]]
+            gh api "repos/lust0yixiong/EarthNano/releases/$id" > "$e/release-$id.json"
+            gh api --paginate --slurp "repos/lust0yixiong/EarthNano/releases/$id/assets?per_page=100" > "$e/release-$id-assets.pages.json"
+          done < "$e/draft-ids.txt"
+          for tag in v0.1.0-alpha.1 alpha; do
+            gh api "repos/lust0yixiong/EarthNano/git/matching-refs/tags/$tag" > "$e/tag-$tag-refs-after.json"
+            if jq -e --arg ref "refs/tags/$tag" 'any(.[]; .ref == $ref)' "$e/tag-$tag-refs-after.json" > /dev/null; then
+              gh api "repos/lust0yixiong/EarthNano/commits/refs%2Ftags%2F$tag" > "$e/tag-$tag-commit-after.json"
+            else
+              printf 'null\n' > "$e/tag-$tag-commit-after.json"
+            fi
+          done
+          node alpha-draft-operation/scripts/ci/alpha-drafts/stage-drafts.mjs receipt
+      - name: Keep small immutable metadata receipt, not another copy of large packages
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-alpha-draft-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.ALPHA_DRAFT_ROOT }}/evidence/
           retention-days: 14
           if-no-files-found: error
-
-  harness:
-    name: Pinned Harness source and original unittest comparison (Python 3.12)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    if: github.ref != 'refs/heads/ci/earthnano-native'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: .github/earthnano-node-version }
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
-        with: { python-version-file: .github/earthnano-python-version }
-      - name: Fetch exact original Harness source (no model packages)
-        run: |
-          git clone --filter=blob:none --no-checkout https://github.com/google-research/harness2.git "$RUNNER_TEMP/harness-original"
-          git -C "$RUNNER_TEMP/harness-original" checkout --detach 1cfe254e8d25b15f37048c3730134686abe60335
-          test "$(git -C "$RUNNER_TEMP/harness-original" rev-parse 'HEAD^{tree}')" = edc756a4d03a2826a248115482084a176e60e751
-          cmp "$RUNNER_TEMP/harness-original/LICENSE" vendor/harness2/LICENSE
-      - name: Execute original and integrated tests with identical Python
-        run: |
-          python scripts/ci/earthnano-harness.py "$RUNNER_TEMP/harness-original" test-results/harness-baseline.json --kind baseline
-          python scripts/ci/earthnano-harness.py vendor/harness2 test-results/harness-candidate.json --kind candidate
-          node scripts/ci/earthnano-harness-compare.mjs
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: earthnano-harness-comparison
-          path: test-results/harness-*.json
-          retention-days: 14
-          if-no-files-found: error
-
-  native_unix:
-    name: Unsigned native build and original launch ${{ matrix.os }}
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.native) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: macos-26, platform: mac, arch: arm64, subdir: osx-arm64 }
-          - { os: macos-26-intel, platform: mac, arch: x64, subdir: osx-64 }
-          - { os: ubuntu-24.04, platform: linux, arch: x64, subdir: linux-64 }
-          - { os: ubuntu-24.04-arm, platform: linux, arch: arm64, subdir: linux-aarch64 }
-    uses: ./.github/workflows/earthnano-native.yml
-    with:
-      os: ${{ matrix.os }}
-      platform: ${{ matrix.platform }}
-      arch: ${{ matrix.arch }}
-      subdir: ${{ matrix.subdir }}
