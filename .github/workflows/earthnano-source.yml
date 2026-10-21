@@ -15,6 +15,9 @@ on:
       total:
         required: true
         type: number
+      batch:
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -23,7 +26,7 @@ jobs:
   source:
     name: Source ${{ inputs.os }} ${{ inputs.kind }} ${{ inputs.shard }}/${{ inputs.total }}
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 90
+    timeout-minutes: ${{ inputs.batch && 360 || 90 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { fetch-depth: 0, persist-credentials: false }
@@ -47,7 +50,12 @@ jobs:
           EARTHNANO_RESEARCH_PYTHON: ${{ steps.python.outputs.python-path }}
         shell: bash
         run: |
-          args=(node scripts/ci/earthnano-source.mjs source --kind '${{ inputs.kind }}' --shard '${{ inputs.shard }}' --total '${{ inputs.total }}' --out "$RUNNER_TEMP/source-report")
+          if [[ '${{ inputs.batch }}' == true ]]; then
+            [[ "$RUNNER_OS" == Linux && '${{ inputs.os }}' == ubuntu-24.04 && '${{ inputs.kind }}' == cohort && '${{ inputs.shard }}' == 1 && '${{ inputs.total }}' == 4 ]] || exit 1
+            args=(node scripts/ci/earthnano-source.mjs source-batch --out "$RUNNER_TEMP/source-report")
+          else
+            args=(node scripts/ci/earthnano-source.mjs source --kind '${{ inputs.kind }}' --shard '${{ inputs.shard }}' --total '${{ inputs.total }}' --out "$RUNNER_TEMP/source-report")
+          fi
           if [[ "$RUNNER_OS" == Linux ]]; then xvfb-run -a "${args[@]}"; else "${args[@]}"; fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()

@@ -10,7 +10,7 @@ before enabling this workflow. This change does not perform Actions API writes.
 The source matrix independently installs the exact OpenScience commit
 `9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5` and the candidate source in fresh runner directories.
 It uses the original `scripts/ci/npm-ci.mjs`, `npm run pretest`, package builds, compiled type checks,
-and original Vitest configuration. macOS and Linux run four full-source shards each. Windows uses
+and original Vitest configuration. macOS and Linux run four full-source shards per source kind. Windows uses
 its original full-test sequencer's eight shards. Both sides receive the same runner OS/image,
 architecture, Node major selection, exact Python 3.12.10 from `.github/earthnano-python-version`,
 worker limits, timeouts and flags. The
@@ -81,17 +81,37 @@ successful runtime build.
 
 Only the Alpha `windows_runtime` cold-build job now has a 150-minute budget. Its original
 action, source recipe, cache key, pins, verification and runtime artifact remain unchanged.
-Source and native test jobs retain their 90-minute deadlines. A longer deadline alone is not
+macOS/Windows source jobs and native test jobs retain their 90-minute job deadlines. The Linux
+cohort below shares one 360-minute total job deadline across eight original logical shards, with
+no separate 90-minute deadline for each logical shard. Exhausting that total budget can leave
+missing reports, which still block comparison. A longer deadline alone is not
 build-success evidence; Windows still must complete its original verification before consumers.
 
-The root workflow partitions the original source inventory into `source_unix` (16 Linux/macOS
-shards) and `source_windows` (16 Windows shards). Both invoke the single reusable
+The root workflow partitions the original source inventory into `source_unix` (one Linux cohort
+job and eight macOS jobs) and `source_windows` (16 Windows jobs). Both invoke the single reusable
 `.github/workflows/earthnano-source.yml` recipe. Unix source shards depend only on the plan;
 Windows source shards also require the runtime. The five original release targets are now
 partitioned into four Unix targets and one Windows target, invoking the same
 `.github/workflows/earthnano-native.yml` recipe. Unix native targets can start independently;
 the Windows target still requires the verified runtime. There are no duplicated test recipes
 or alternate source/native commands.
+
+Linux cohort 入口在同一个真实 runner 上连续调用原 `sourceShard` 四次 baseline、四次 candidate，
+保留原 npm-ci/pretest/typecheck/npm-test、原 sequencer、worker/case timeout 与每份原始报告。
+旧 PR17 Linux 同轮混用 `ubuntu24:20261012.334.1` 与 `ubuntu24:20261018.339.1`，
+已被原环境守卫拒绝；batch 不覆盖 ImageVersion，也不改变任何环境匹配规则。
+旧 PR16 Linux 两侧合计约 166.03 分钟，为本 batch 的 360 分钟总预算提供依据；
+Windows 两侧合计约 441 分钟，保留原并行分片，macOS 也保留原分片。
+Linux batch 导出八个独立子目录 `baseline-1`…`baseline-4`、`candidate-1`…`candidate-4`，
+各自包含原 metadata/raw/runtime，统一归档后仍由原比较器核对 32 份逻辑报告。
+每个 baseline checkout 在报告导出后核验本批创建、Git 登记、精确路径和固定 HEAD，再通过
+`git worktree remove --force` 清理其依赖；已有未知目录、归属不符、缺报告和清理失败均阻断。
+候选四个分片各自仍安装依赖并运行原检查，复用当前 runner checkout。
+
+Companion observer 使用与固定 Vitest `getTests` 相同的只读 task 递归，不再导入候选根目录
+旁的第三方包。Baseline 仅在 sibling 原 checkout 安装依赖时也能加载同一个 observer；
+真实 Vitest 回归将 observer 复制到独立无 node_modules 目录，覆盖嵌套 skip、普通状态和全局错误。
+这些本地验证不代表新的 hosted cohort 已完成。
 
 The stable comparison job depends on both source matrices and runs after failure/skip as well
 as success for ordinary source CI. It explicitly requires both matrix statuses to be `success`

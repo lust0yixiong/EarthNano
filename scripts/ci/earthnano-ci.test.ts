@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { load } from 'js-yaml'
@@ -11,6 +11,7 @@ import {
   exactElectronVersion,
   normalizeVitest,
   sourceTestInvocation,
+  sourceBatch,
   validateSourceExecution,
   HARNESS_PIN,
   HARNESS_TREE,
@@ -18,6 +19,25 @@ import {
   verifyPins
 } from './earthnano-source.mjs'
 const roots: string[] = []
+const isolatedReporter = async (): Promise<string> => {
+  const directory = await mkdtemp(join(tmpdir(), 'earthnano-isolated-observer-'))
+  roots.push(directory)
+  const reporter = join(directory, 'observer.mjs')
+  await writeFile(reporter, await readFile('scripts/ci/earthnano-runtime-reporter.mjs'))
+  await expect(lstat(join(directory, 'node_modules'))).rejects.toMatchObject({ code: 'ENOENT' })
+  // Native ESM must load the actual copied observer without Vite's resolver or repository deps.
+  const loaded = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', `await import(${JSON.stringify(reporter)})`],
+    {
+      cwd: directory,
+      encoding: 'utf8',
+      env: { ...process.env, NODE_PATH: '' }
+    }
+  )
+  expect(loaded.status, loaded.stderr).toBe(0)
+  return reporter
+}
 afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
@@ -344,7 +364,7 @@ describe('EarthNano original-baseline gates', () => {
     const root = await mkdtemp(join(tmpdir(), 'earthnano-runtime-report-'))
     roots.push(root)
     const vitest = join(process.cwd(), 'node_modules/vitest/vitest.mjs')
-    const reporter = join(process.cwd(), 'scripts/ci/earthnano-runtime-reporter.mjs')
+    const reporter = await isolatedReporter()
     const config = join(root, 'vitest.config.mjs'),
       runtime = join(root, 'runtime.json')
     await writeFile(config, `export default {test:{include:['case.test.mjs'],maxWorkers:1}}`)
@@ -667,12 +687,130 @@ it('runs the original test script with npm_execpath without repeating the record
   expect(observed.npmExecpath).toMatch(/[\\/]npm-cli\.js$/)
 })
 
+it.each([
+  'complete',
+  'unavailable',
+  'locked-cleanup',
+  'wrong-report',
+  'wrong-head',
+  'missing-report',
+  'existing-checkout'
+])(
+  'retains eight original logical shards and strictly owns baseline cleanup (%s)',
+  async (mode) => {
+    const directory = await mkdtemp(join(tmpdir(), 'earthnano-cohort-'))
+    roots.push(directory)
+    const root = join(directory, 'candidate'),
+      out = join(directory, 'reports')
+    const git = (args: string[], cwd = root): string => {
+      const result = spawnSync('git', args, { cwd, encoding: 'utf8' })
+      expect(result.status, result.stderr).toBe(0)
+      return result.stdout
+    }
+    git(['clone', '--quiet', '--shared', '--no-checkout', process.cwd(), root], directory)
+    const selected = join(directory, 'earthnano-upstream-1')
+    if (mode === 'existing-checkout') {
+      await mkdir(selected)
+      await writeFile(join(selected, 'unknown'), 'must survive')
+    }
+    const calls: string[] = []
+    const result = sourceBatch({ root, out }, async (args) => {
+      calls.push(`${args.kind}-${args.shard}/${args.total}`)
+      if (args.kind === 'baseline') {
+        const checkout = join(directory, `earthnano-upstream-${args.shard}`)
+        git([
+          'worktree',
+          'add',
+          '--quiet',
+          '--no-checkout',
+          '--detach',
+          checkout,
+          mode === 'wrong-head' ? 'HEAD' : OPEN_SCIENCE_PIN
+        ])
+        await writeFile(
+          join(checkout, 'untracked-node-modules-marker'),
+          'owned dependency placeholder'
+        )
+        if (mode === 'locked-cleanup')
+          git(['worktree', 'lock', checkout, '--reason', 'fault fixture'])
+        await mkdir(args.out)
+        if (mode === 'missing-report') return
+        await writeFile(
+          join(args.out, 'source-report.json'),
+          JSON.stringify({
+            kind: args.kind,
+            shard: args.shard,
+            total: args.total,
+            testRoot: checkout,
+            source: mode === 'wrong-report' ? '0'.repeat(40) : OPEN_SCIENCE_PIN
+          })
+        )
+      } else {
+        // Each original baseline and its dependencies must already be removed before candidates.
+        for (let shard = 1; shard <= 4; shard++)
+          await expect(lstat(join(directory, `earthnano-upstream-${shard}`))).rejects.toMatchObject(
+            { code: 'ENOENT' }
+          )
+        if (mode === 'unavailable' && args.shard === 1)
+          throw new Error('original unavailable shard')
+      }
+    })
+    if (mode === 'complete') await expect(result).resolves.toBeUndefined()
+    else
+      await expect(result).rejects.toThrow(
+        mode === 'existing-checkout'
+          ? 'Refusing existing'
+          : mode === 'unavailable'
+            ? 'unavailable shards'
+            : 'cleanup failed'
+      )
+    if (['complete', 'unavailable'].includes(mode)) {
+      expect(calls).toEqual([
+        'baseline-1/4',
+        'baseline-2/4',
+        'baseline-3/4',
+        'baseline-4/4',
+        'candidate-1/4',
+        'candidate-2/4',
+        'candidate-3/4',
+        'candidate-4/4'
+      ])
+      const receipts = JSON.parse(await readFile(join(out, 'batch-receipt.json'), 'utf8'))
+      expect(receipts).toHaveLength(8)
+      expect(
+        receipts
+          .slice(0, 4)
+          .every((r: { cleanup: string }) => r.cleanup === 'removed-owned-baseline')
+      ).toBe(true)
+      expect(git(['worktree', 'list', '--porcelain'])).not.toContain('earthnano-upstream-')
+      for (let shard = 1; shard <= 4; shard++)
+        expect(
+          JSON.parse(await readFile(join(out, `baseline-${shard}`, 'source-report.json'), 'utf8'))
+            .source
+        ).toBe(OPEN_SCIENCE_PIN)
+      if (mode === 'unavailable') expect(receipts[4].error).toBe('original unavailable shard')
+    } else if (mode === 'existing-checkout') {
+      expect(calls).toEqual([])
+      expect(await readFile(join(selected, 'unknown'), 'utf8')).toBe('must survive')
+    } else {
+      expect(calls).toEqual(['baseline-1/4'])
+      expect(await readFile(join(selected, 'untracked-node-modules-marker'), 'utf8')).toBe(
+        'owned dependency placeholder'
+      )
+      expect(
+        JSON.parse(await readFile(join(out, 'batch-receipt.json'), 'utf8'))[0].cleanupError
+      ).toBeTruthy()
+    }
+  }
+)
+
 it('explains only actual inherited skips with complete runner observations and preserves raw pending identities', async () => {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-inherited-skip-'))
   roots.push(root)
   const config = join(root, 'vitest.config.mjs')
   const rawFile = join(root, 'vitest.json')
   const runtimeFile = join(root, 'runtime.json')
+  const reporter = await isolatedReporter()
   await writeFile(config, `export default {test:{include:['case.test.mjs'],maxWorkers:1}}`)
   await writeFile(
     join(root, 'case.test.mjs'),
@@ -689,7 +827,7 @@ it('explains only actual inherited skips with complete runner observations and p
       '--root',
       root,
       '--reporter=json',
-      `--reporter=${join(process.cwd(), 'scripts/ci/earthnano-runtime-reporter.mjs')}`,
+      `--reporter=${reporter}`,
       `--outputFile=${rawFile}`
     ],
     {

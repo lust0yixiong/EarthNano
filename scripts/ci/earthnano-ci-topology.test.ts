@@ -20,7 +20,7 @@ interface Job {
   needs?: string | string[]
   uses?: string
   if?: string
-  'timeout-minutes'?: number
+  'timeout-minutes'?: number | string
   steps?: Step[]
   outputs?: Record<string, string>
   env?: Record<string, string>
@@ -57,7 +57,7 @@ const recipe = (kind: string): Workflow =>
   ) as Workflow
 
 describe('EarthNano runtime dependency split', () => {
-  it('plans every original shard exactly once and partitions only by Windows runtime need', () => {
+  it('plans one Linux cohort plus eight macOS and sixteen Windows jobs covering all original shards', () => {
     const root = mkdtempSync(join(tmpdir(), 'earthnano-ci-plan-'))
     try {
       const output = join(root, 'output')
@@ -78,13 +78,22 @@ describe('EarthNano runtime dependency split', () => {
           })
       ) as Record<
         string,
-        { include: Array<{ os: string; kind: string; shard: number; total: number }> }
+        {
+          include: Array<{ os: string; kind: string; shard: number; total: number; batch: boolean }>
+        }
       >
       expect(Object.keys(plans).sort()).toEqual(['unix_matrix', 'windows_matrix'])
-      expect(plans.unix_matrix.include).toHaveLength(16)
+      expect(plans.unix_matrix.include).toHaveLength(9)
       expect(plans.windows_matrix.include).toHaveLength(16)
       expect(plans.unix_matrix.include.every((row) => !row.os.startsWith('windows-'))).toBe(true)
       expect(plans.windows_matrix.include.every((row) => row.os === 'windows-2022')).toBe(true)
+      expect(plans.unix_matrix.include.filter((row) => row.os === 'ubuntu-24.04')).toEqual([
+        { os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true }
+      ])
+      expect(plans.unix_matrix.include.filter((row) => row.os === 'macos-15')).toHaveLength(8)
+      expect(
+        [...plans.unix_matrix.include, ...plans.windows_matrix.include].filter((row) => !row.batch)
+      ).toHaveLength(24)
       const expected = []
       for (const [os, total] of [
         ['ubuntu-24.04', 4],
@@ -93,7 +102,18 @@ describe('EarthNano runtime dependency split', () => {
       ] as const)
         for (const kind of ['baseline', 'candidate'])
           for (let shard = 1; shard <= total; shard++) expected.push({ os, kind, shard, total })
-      const rows = [...plans.unix_matrix.include, ...plans.windows_matrix.include]
+      const rows = [...plans.unix_matrix.include, ...plans.windows_matrix.include].flatMap((row) =>
+        row.batch
+          ? ['baseline', 'candidate'].flatMap((kind) =>
+              Array.from({ length: 4 }, (_, index) => ({
+                os: row.os,
+                kind,
+                shard: index + 1,
+                total: 4
+              }))
+            )
+          : [{ os: row.os, kind: row.kind, shard: row.shard, total: row.total }]
+      )
       expect(rows).toEqual(expected)
       expect(new Set(rows.map((row) => `${row.os}/${row.kind}/${row.shard}`)).size).toBe(32)
       expect(workflow.jobs.plan.outputs).toEqual({
@@ -130,6 +150,53 @@ describe('EarthNano runtime dependency split', () => {
       { os: 'windows-2022', platform: 'win', arch: 'x64', subdir: 'win-64' }
     ])
   })
+  it.each([
+    ['ubuntu-24.04', 'Linux', 'cohort', 1, 4, true, true],
+    ['macos-15', 'macOS', 'baseline', 3, 4, false, true],
+    ['windows-2022', 'Windows', 'candidate', 7, 8, false, true],
+    ['macos-15', 'macOS', 'cohort', 1, 4, true, false],
+    ['ubuntu-24.04', 'Linux', 'cohort', 2, 4, true, false],
+    ['ubuntu-24.04', 'Linux', 'cohort', 1, 8, true, false]
+  ] as const)(
+    'executes bounded reusable dispatch for %s %s %s %s/%s batch=%s',
+    (os, runner, kind, shard, total, batch, valid) => {
+      const directory = mkdtempSync(join(tmpdir(), 'earthnano-cohort-dispatch-'))
+      try {
+        const capture = join(directory, 'args')
+        let command = readWorkflow('source').jobs.source.steps!.find(
+          (step) => step.name === 'Full selected original source shard on exact pinned source'
+        )!.run!
+        for (const [key, value] of Object.entries({ os, kind, shard, total, batch }))
+          command = command.replaceAll('${{ inputs.' + key + ' }}', String(value))
+        const result = spawnSync(
+          'bash',
+          [
+            '-eu',
+            '-c',
+            'node() { printf "%s\\n" "$@" > "$CAPTURE"; }\nxvfb-run() { [[ "$1" == -a ]]; shift; "$@"; }\n' +
+              command
+          ],
+          {
+            env: { ...process.env, RUNNER_OS: runner, RUNNER_TEMP: directory, CAPTURE: capture },
+            encoding: 'utf8'
+          }
+        )
+        expect(result.status, result.stderr).toBe(valid ? 0 : 1)
+        if (valid)
+          expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
+            'scripts/ci/earthnano-source.mjs',
+            ...(batch
+              ? ['source-batch']
+              : ['source', '--kind', kind, '--shard', String(shard), '--total', String(total)]),
+            '--out',
+            join(directory, 'source-report')
+          ])
+        else expect(readdirSync(directory)).not.toContain('args')
+      } finally {
+        rmSync(directory, { recursive: true, force: true })
+      }
+    }
+  )
   it('retains all five upstream native tuples, including its exact Linux ARM64 runner and resources', () => {
     const pinnedBuild = spawnSync(
       'git',
@@ -229,7 +296,7 @@ describe('EarthNano runtime dependency split', () => {
         expect(job.with).toEqual(
           Object.fromEntries(
             (kind === 'source'
-              ? ['os', 'kind', 'shard', 'total']
+              ? ['os', 'kind', 'shard', 'total', 'batch']
               : ['os', 'platform', 'arch', 'subdir']
             ).map((key) => [key, '${{ matrix.' + key + ' }}'])
           )
@@ -243,11 +310,11 @@ describe('EarthNano runtime dependency split', () => {
       // Python 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset);
       // floating Node 24 → one exact version file (runner caches resolved different patches).
       // Restore only these inputs, the original packaging heap ceiling and exact Linux ARM64
-      // pruning case below to prove all other steps still match d4. No pin, condition, command
+      // pruning case and Linux-only bounded cohort dispatch below to prove all other steps still match d4. No pin, condition, command
       // or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
-          ? '46e765f74fe2bcaa5741a0b8dec64043f674978ca324f164558ddeaebc644b82'
+          ? 'd6168ae5600395d53c2b70c35625bbc0ef20fa20430e20c2346e40f625ec61a5'
           : 'eeaf802903b62b7084a9f48db22fb6d976e710c59fe30b5114aaf7f669c20c68'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
@@ -264,6 +331,25 @@ describe('EarthNano runtime dependency split', () => {
         cache: 'npm'
       })
       node[0].with = { 'node-version': 24, cache: 'npm' }
+      if (kind === 'source') {
+        expect(shared.jobs.source['timeout-minutes']).toBe('${{ matrix.batch && 360 || 90 }}')
+        const dispatch = originalSteps.filter(
+          (step) => step.name === 'Full selected original source shard on exact pinned source'
+        )
+        expect(dispatch).toHaveLength(1)
+        const lines = dispatch[0].run!.split('\n')
+        expect(lines).toHaveLength(8)
+        expect(lines[0]).toBe("if [[ '${{ matrix.batch }}' == true ]]; then")
+        expect(lines[1]).toBe(
+          "  [[ \"$RUNNER_OS\" == Linux && '${{ matrix.os }}' == ubuntu-24.04 && '${{ matrix.kind }}' == cohort && '${{ matrix.shard }}' == 1 && '${{ matrix.total }}' == 4 ]] || exit 1"
+        )
+        expect(lines[2]).toBe(
+          '  args=(node scripts/ci/earthnano-source.mjs source-batch --out "$RUNNER_TEMP/source-report")'
+        )
+        expect(lines[3]).toBe('else')
+        expect(lines[5]).toBe('fi')
+        dispatch[0].run = lines[4].slice(2) + '\n' + lines[6] + '\n'
+      }
       if (kind === 'native') {
         const pinnedBuild = spawnSync(
           'git',
@@ -384,9 +470,11 @@ describe('EarthNano runtime dependency split', () => {
     expect(original.status, original.stderr).toBe(0)
     expect(readFileSync('.github/workflows/native-components.yml', 'utf8')).toBe(original.stdout)
   })
-  it('extends only the cold-build budget and keeps source/native test deadlines', () => {
+  it('bounds Linux cohort at 360 minutes and retains other source/native and cold-build deadlines', () => {
     expect(workflow.jobs.windows_runtime['timeout-minutes']).toBe(150)
-    expect(readWorkflow('source').jobs.source['timeout-minutes']).toBe(90)
+    expect(readWorkflow('source').jobs.source['timeout-minutes']).toBe(
+      '${{ inputs.batch && 360 || 90 }}'
+    )
     expect(readWorkflow('native').jobs.native['timeout-minutes']).toBe(90)
     expect(workflow.jobs.comparison['timeout-minutes']).toBe(10)
     expect(workflow.jobs.harness['timeout-minutes']).toBe(15)

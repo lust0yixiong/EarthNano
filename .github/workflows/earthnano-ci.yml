@@ -33,10 +33,10 @@ jobs:
         shell: node {0}
         run: |
           const fs = require('node:fs')
-          const include = []
-          for (const [os, total] of [['ubuntu-24.04', 4], ['macos-15', 4], ['windows-2022', 8]])
+          const include = [{os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true}]
+          for (const [os, total] of [['macos-15', 4], ['windows-2022', 8]])
             for (const kind of ['baseline', 'candidate'])
-              for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total})
+              for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total, batch: false})
           for (const [name, windows] of [['unix_matrix', false], ['windows_matrix', true]])
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${JSON.stringify({include: include.filter(row => row.os.startsWith('windows-') === windows)})}\n`)
 
@@ -69,6 +69,7 @@ jobs:
       kind: ${{ matrix.kind }}
       shard: ${{ matrix.shard }}
       total: ${{ matrix.total }}
+      batch: ${{ matrix.batch }}
 
   source_windows:
     name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
@@ -82,6 +83,7 @@ jobs:
       kind: ${{ matrix.kind }}
       shard: ${{ matrix.shard }}
       total: ${{ matrix.total }}
+      batch: ${{ matrix.batch }}
 
   comparison:
     name: Enforce pinned original source comparison

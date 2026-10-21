@@ -2,7 +2,7 @@
 import { closeSync, createReadStream, openSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { cp, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
+import { cp, lstat, mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -506,6 +506,70 @@ export async function sourceShard({ root, kind, shard, total, out }) {
   await writeFile(join(out, 'source-report.json'), JSON.stringify(metadata, null, 2) + '\n')
   if (metadata.unavailable) throw new Error(metadata.unavailable)
 }
+const exists = async (path) => {
+  try {
+    await lstat(path)
+    return true
+  } catch (error) {
+    if (error.code === 'ENOENT') return false
+    throw error
+  }
+}
+
+export async function sourceBatch({ root, out }, execute = sourceShard) {
+  if (await exists(out)) throw new Error('Source cohort output already exists')
+  await mkdir(out, { recursive: true })
+  const receipts = []
+  for (const kind of ['baseline', 'candidate']) {
+    for (let shard = 1; shard <= 4; shard++) {
+      const directory = join(out, `${kind}-${shard}`)
+      const selected = join(dirname(root), `earthnano-upstream-${shard}`)
+      const receipt = { kind, shard, total: 4 }
+      if (kind === 'baseline' && (await exists(selected)))
+        throw new Error(`Refusing existing baseline checkout: ${selected}`)
+      try {
+        // Retain the original installer, pretest, types, sequencer, flags and report semantics.
+        await execute({ root, kind, shard, total: 4, out: directory })
+      } catch (error) {
+        receipt.error = error.message
+      }
+      receipts.push(receipt)
+      if (kind === 'baseline' && (await exists(selected))) {
+        try {
+          // Only remove this batch's previously absent, registered checkout after its own report
+          // has been exported. Never recursively delete a guessed path or suppress cleanup errors.
+          const report = await json(join(directory, 'source-report.json'))
+          const registered = run('git', ['worktree', 'list', '--porcelain', '-z'], root)
+          const head = run('git', ['rev-parse', 'HEAD'], selected)
+          if (
+            report.kind !== kind ||
+            report.shard !== shard ||
+            report.total !== 4 ||
+            report.testRoot !== selected ||
+            report.source !== OPEN_SCIENCE_PIN ||
+            registered.status !== 0 ||
+            !registered.stdout.split('\0').includes(`worktree ${await realpath(selected)}`) ||
+            head.status !== 0 ||
+            head.stdout.trim() !== OPEN_SCIENCE_PIN
+          )
+            throw new Error('Baseline checkout ownership/report mismatch')
+          const removed = run('git', ['worktree', 'remove', '--force', selected], root)
+          if (removed.status !== 0 || (await exists(selected)))
+            throw new Error(removed.stderr || 'Baseline checkout removal incomplete')
+          receipt.cleanup = 'removed-owned-baseline'
+        } catch (error) {
+          receipt.cleanupError = error.message
+          await writeFile(join(out, 'batch-receipt.json'), JSON.stringify(receipts, null, 2) + '\n')
+          throw new Error(`Source cohort cleanup failed: ${error.message}`)
+        }
+      }
+      await writeFile(join(out, 'batch-receipt.json'), JSON.stringify(receipts, null, 2) + '\n')
+    }
+  }
+  if (receipts.some((receipt) => receipt.error))
+    throw new Error('Source cohort contains unavailable shards; inspect original reports')
+}
+
 export async function compareReports(root, out) {
   const reports = []
   const walk = async (directory) => {
@@ -769,7 +833,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         total: Number(value('--total') ?? 4),
         out
       })
-    else if (args[0] === 'compare') await compareReports(resolve(value('--reports')), out)
+    else if (args[0] === 'source-batch') {
+      if (process.platform !== 'linux') throw new Error('Source cohort requires one Linux runner')
+      await sourceBatch({ root, out })
+    } else if (args[0] === 'compare') await compareReports(resolve(value('--reports')), out)
     else if (args[0] === 'manifest') await artifactManifest(root, out)
     else if (args[0] === 'pins') await verifyPins(root)
     else if (args[0] === 'electron') {
@@ -785,7 +852,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         probe.stdout ?? '',
         probe.status
       )
-    } else throw new Error('Expected source, compare, manifest or pins')
+    } else throw new Error('Expected source, source-batch, compare, manifest or pins')
   } catch (error) {
     await mkdir(out, { recursive: true })
     await writeFile(

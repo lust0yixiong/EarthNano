@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { writeFileSync } from 'node:fs'
-import { getTests } from '@vitest/runner/utils'
+
+// Match Vitest 4.1.11 getTests' read-only traversal without resolving packages beside this file.
+// Baseline dependencies live in a sibling checkout; the observer itself has no node_modules.
+const getTests = (tasks) =>
+  tasks.flatMap((task) => (task.type === 'test' ? [task] : getTests(task.tasks)))
 
 /** Keep actual runner outcomes and leaf/ancestor state beside the untouched Vitest JSON report.
  * The same observer runs against both the pinned original and the candidate source trees. */
