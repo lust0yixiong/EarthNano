@@ -60,13 +60,20 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
         sourceSha: string
         fixtureRoot: string
         live: boolean
+        controlledModelRequestBudget?: { previouslyUsed: number }
         progress: OptimizationProgress
         journal: ExecutionState
         transport: ComputeWorkflowFixture['transport']['calls']
         provider: Awaited<ReturnType<typeof createEarthnanoMessagesProvider>>['stats']
+        resumedFrom?: {
+          originalTransport: ComputeWorkflowFixture['transport']['calls']
+          originalProvider: Awaited<ReturnType<typeof createEarthnanoMessagesProvider>>['stats']
+        }
       })
     : undefined
   if (retained) expect(retained.live).toBe(live)
+  const originalTransport = retained?.resumedFrom?.originalTransport ?? retained?.transport
+  const originalProvider = retained?.resumedFrom?.originalProvider ?? retained?.provider
   const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
   const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()
   if (live && dirty) throw new Error('Live Compute acceptance requires a clean source commit')
@@ -81,7 +88,10 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     ['-c', 'import sys;print(sys.executable)'],
     { encoding: 'utf8' }
   ).trim()
-  const modelRequestsRemaining = 240 - (retained?.provider.requests ?? 0)
+  const previousModelRequests =
+    (retained?.controlledModelRequestBudget?.previouslyUsed ?? 0) +
+    (retained?.provider.requests ?? 0)
+  const modelRequestsRemaining = 240 - previousModelRequests
   if (!Number.isSafeInteger(modelRequestsRemaining) || modelRequestsRemaining <= 0)
     throw new Error('Original controlled model-request budget is exhausted')
   let loopbackPort: number | undefined
@@ -114,7 +124,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     scientificCompute: true,
     scientificFigure: true,
     // Independent transport ceiling for this full k=2 experiment, including original retries and
-    // both reviewers. It never raises the Core admission budget or resumes a failed experiment.
+    // both reviewers and all retained attempts. It never raises the Core admission budget.
     maxModelRequests: modelRequestsRemaining,
     ...(loopbackPort ? { loopbackPort } : {}),
     ...(process.env.EARTHNANO_DEEPSEEK_KEY_FILE
@@ -128,7 +138,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     controlledProviderEndpoint: provider.url,
     controlledModelRequestBudget: {
       limit: 240,
-      previouslyUsed: retained?.provider.requests ?? 0,
+      previouslyUsed: previousModelRequests,
       remainingBeforeRun: modelRequestsRemaining
     },
     native: {
@@ -171,8 +181,8 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       reportPath: retainedReportPath,
       runId: retained.progress.runId,
       budget: retained.progress.budget,
-      originalTransport: retained.transport,
-      originalProvider: retained.provider
+      originalTransport,
+      originalProvider
     }
   report.fixtureRoot = f.root
   vi.stubEnv('OPEN_SCIENCE_E2E_STORAGE_ROOT', f.configRoot)
@@ -499,7 +509,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       throw new Error('Original metrics source Version missing')
     expect(jobs[0].remote_workdir).toEqual(expect.any(String))
     const transportMetricsPath = join(jobs[0].remote_workdir!, 'metrics.json')
-    expect(retained?.transport ?? f.transport.calls).toContainEqual({
+    expect(originalTransport ?? f.transport.calls).toContainEqual({
       kind: 'download',
       path: transportMetricsPath
     })
@@ -523,9 +533,37 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   expect(summary?.assessments?.baseline.outcome).toBe('pass')
   expect(summary?.assessments?.candidate.outcome).toBe('pass')
   expect(summary?.outcome?.artifact.status).toBe('passed')
-  expect(summary?.experience?.reflectionExecutionId).toEqual(expect.any(String))
+  const reflection = records.filter((record) => record.request.role === 'reflection')
+  expect(reflection).toHaveLength(1)
+  const reflected = await reader.exportResult(reflection[0]!)
+  const reply = reflected.files.find((file) => file.path === 'reflection-reply.md')
+  if (!reply || !('content' in reply)) throw new Error('Original reflection Version missing')
+  expect(reply.content).toBe(reflected.replyText)
+  expect(reply.digest).toBe('sha256:' + createHash('sha256').update(reply.content).digest('hex'))
+  const library = completed.sweep!.domains[0]!.summary.library
+  if (library.entries.includes(summary!.taskId)) {
+    expect(summary?.experience?.reflectionExecutionId).toBe(reflection[0]!.executionId)
+  } else {
+    // Original Harness _distil returns {} for NO_ENTRY or an incomplete experience block.
+    // Preserve that outcome rather than inventing a lesson or requiring another paid run.
+    const block = /<experience>([\s\S]*?)<\/experience>/.exec(reflected.replyText)?.[1]
+    const fields = new Map<string, string>()
+    for (const line of block?.split(/\r?\n/) ?? []) {
+      const colon = line.indexOf(':')
+      if (colon >= 0)
+        fields.set(line.slice(0, colon).trim().toLowerCase(), line.slice(colon + 1).trim())
+    }
+    expect(['cue', 'lesson', 'evidence'].every((field) => fields.get(field))).toBe(false)
+    expect(library.entries).toEqual([])
+    expect(summary?.experience).toBeUndefined()
+  }
+  report.reflection = {
+    executionId: reflection[0]!.executionId,
+    exported: reflected,
+    retainedLibraryEntry: library.entries.includes(summary!.taskId)
+  }
   expect(
-    (retained?.provider ?? provider.stats).imageToolResults?.some(
+    (originalProvider ?? provider.stats).imageToolResults?.some(
       (result) => result.role === 'selector'
     )
   ).toBe(true)
@@ -537,7 +575,11 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   )
   expect(await f.client.computeJob.count()).toBe(taskRecords.length)
   report = { ...report, preview, outputs, sameFrozenTask: true, originalHarnessK2: true }
-  if (live) expect(provider.stats.upstreamRequests).toBeGreaterThan(0)
+  if (retained?.progress.state === 'completed') expect(provider.stats.requests).toBe(0)
+  if (live)
+    expect(
+      provider.stats.upstreamRequests + (originalProvider?.upstreamRequests ?? 0)
+    ).toBeGreaterThan(0)
   else expect(provider.stats.upstreamRequests).toBe(0)
   expect(await manager.shutdown()).toEqual({ reaped: true })
   const beforeReopen = structuredClone(provider.stats)
