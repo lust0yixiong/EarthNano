@@ -1,50 +1,15 @@
 import { createRequire } from 'node:module'
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { createServer, type ServerResponse } from 'node:http'
-import {
-  chmod,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-  writeFile
-} from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { expect, it, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: false } }))
 import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
-import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate-owner-ports'
-import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
-import { initDataRoot } from '../storage-root'
-import { SessionRepository, loadSessionMutationAuthority } from '../session-persistence/repository'
-import { ManagedFileVersionService } from '../managed-file-versions/service'
-import { ArtifactRepository } from '../artifacts/repository'
-import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository'
-import { ImmutableInputAuthority } from '../immutable-input-authority'
-import { NotebookInputRegistry } from '../notebook/input-registry'
-import { NotebookLocalRpcServer } from '../notebook/local-rpc-server'
-import { NotebookRuntimeService } from '../notebook/runtime-service'
+import { createComputeWorkflowFixture } from '../../../test/earthnano/compute-workflow'
+import { loadSessionMutationAuthority } from '../session-persistence/repository'
 import { NotebookRunRepository } from '../notebook/repository'
-import { ComputeHostRepository } from '../compute/repository'
-import { ComputeJobRepository } from '../compute/job-repository'
-import { ComputeJobOperationRepository } from '../compute/compute-job-operation-repository'
-import { ComputeService } from '../compute/compute-service'
-import { AgentComputeService } from '../compute/agent-compute-service'
-import { EnabledComputeHostsRegistry } from '../compute/enabled-hosts-registry'
-import { SessionEnabledComputeHostsOwner } from '../compute/session-enabled-hosts-owner'
-import { ApplicationEventHub, type ApplicationEventSource } from '../application-events'
-import { BackgroundResultDeliveryRepository } from '../background-result-delivery/repository'
-import { BackgroundResultDeliveryOwner } from '../background-result-delivery/owner'
-import { ComputeJobResultDeliveryAdapter } from '../background-result-delivery/compute-adapter'
-import { resolveBackgroundResultSources } from '../background-result-delivery/source-resolver'
-import { routeCandidateContinuations } from '../composition/background-results'
-import { toJobSummary } from '../compute/ipc'
-import { freezeComputeContext } from './compute-context'
 import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { createClaudeCandidateDriver } from './claude-candidate-driver'
@@ -141,16 +106,6 @@ const nestedRunIds = (value: unknown): string[] => {
   ]
 }
 
-import { createComputeExecution } from '@aipoch/compute/node'
-import type { ComputeJob } from '../../shared/compute'
-import { createComputeProtocolTransport } from '../../../test/earthnano/compute-transport'
-import { ComputeApprovalBroker } from '../compute/compute-approval-broker'
-import { createComputePermissionGrantAdapter } from '../compute/permission-grant-adapter'
-import { createPermissionGrantRegistry } from '../permission-grants/registry'
-import { OptionalSecureStorageStringProtection } from '../compute/credential-vault'
-import { dispatchComputeJob } from '../compute/dispatch-evidence'
-import { createComputeJobRuntime } from '../compute/job-runtime'
-
 configureTestRuntimeMetadata()
 
 // Every state owner below is original. Native messages use a fixed local provider; remote wire
@@ -158,308 +113,55 @@ configureTestRuntimeMetadata()
 it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
   'runs original candidate Compute workflow with %s',
   async (mode) => {
-    const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-compute-workflow-')))
-    initDataRoot(root)
-    const configRoot = join(root, 'config')
-    await mkdir(configRoot)
-    const client = createProjectDbClient(configRoot)
-    await migrateApplicationDatabase(client)
-    const projectId = 'compute-project',
-      sourceSessionId = 'compute-source'
-    await client.project.create({
-      data: { id: projectId, name: 'Original local Compute owner fixture' }
+    const sourcePrompt =
+      mode === 'authorized' ? 'Compute workflow source from the original fixture.' : undefined
+    const fixture = await createComputeWorkflowFixture({
+      mode,
+      ...(sourcePrompt ? { sourcePrompt } : {})
     })
-    const sessions = new SessionRepository(configRoot)
-    const ports = createCandidateOwnerTestPorts({
-      dataRoot: root,
+    const {
+      root,
       configRoot,
-      getClient: async () => client,
-      repository: sessions
-    })
-    const source = await ports.sessionPersistence.coordinator.saveSession({
-      id: sourceSessionId,
       projectId,
-      title: 'Source',
-      cwd: root,
-      status: 'idle',
-      messages: [],
-      enabledComputeHosts: ['ssh:fixture'],
-      selectedComputeHosts: [],
-      createdAt: 1,
-      updatedAt: 1
-    })
-    const hosts = new ComputeHostRepository(async () => client)
-    await hosts.create({
-      sshAlias: 'fixture',
-      displayName: 'Owned fixture',
-      executionMode: 'direct_ssh'
-    })
-    const remoteRoot = join(root, 'remote')
-    await hosts.updateScratchPinned('ssh:fixture', remoteRoot)
-    const frozenCompute = await freezeComputeContext({ source, hosts })
-    const registry = new EnabledComputeHostsRegistry()
-    const hostAccess = new SessionEnabledComputeHostsOwner({
-      registry,
-      hostExists: async (id) => Boolean(await hosts.get(id)),
-      listHostIds: async () => ['ssh:fixture'],
-      sessionAuthority: {
-        sessionProjectId: async (id) =>
-          (await sessions.loadSessionSummaries()).find((session) => session.id === id)?.projectId,
-        setSessionEnabledComputeHosts: async () => {
-          throw new Error('Unexpected preference mutation')
-        },
-        pruneSessionEnabledComputeHosts: async () => ({ sessions: [], previousSelections: [] })
-      },
-      withDataRootWrite: async (work) => work()
-    })
-    const transport = await createComputeProtocolTransport(remoteRoot, {
-      'metrics.json': Buffer.from(JSON.stringify({ values: [2, 4, 6] })),
-      'figure.png': png
-    })
-    const cipherKey = Buffer.alloc(32, 7) // Test-only key; never an OS keychain claim.
-    const protection = new OptionalSecureStorageStringProtection({
-      isEncryptionAvailable: () => mode !== 'protection-unavailable',
-      getSelectedStorageBackend: () => 'gnome_libsecret',
-      encryptString: (value) => {
-        const iv = randomBytes(12),
-          cipher = createCipheriv('aes-256-gcm', cipherKey, iv)
-        const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
-        return Buffer.concat([iv, cipher.getAuthTag(), encrypted])
-      },
-      decryptString: (bytes) => {
-        const decipher = createDecipheriv('aes-256-gcm', cipherKey, bytes.subarray(0, 12))
-        decipher.setAuthTag(bytes.subarray(12, 28))
-        return Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString(
-          'utf8'
-        )
-      }
-    })
-    const jobs = new ComputeJobRepository(async () => client, protection)
-    const operations = new ComputeJobOperationRepository(async () => client, protection)
-    expect(jobs.isFieldProtectionAvailable()).toBe(mode !== 'protection-unavailable')
-    const grants = await createPermissionGrantRegistry({ getClient: async () => client })
-    const permissions = createComputePermissionGrantAdapter(grants)
-    if (mode !== 'no-grant')
-      await permissions.remember(
-        {
-          projectId,
-          sessionId: sourceSessionId,
-          providerId: 'ssh:fixture',
-          operation: 'submit_job'
-        },
-        'project'
-      )
-    const approvalBroadcast = vi.fn()
-    const approvalId = vi.fn((): string => {
-      throw new Error('Noninteractive candidate must never allocate an approval card')
-    })
-    const approval = new ComputeApprovalBroker({
-      generateId: approvalId,
-      broadcast: approvalBroadcast,
-      permissionGrants: permissions,
-      isProviderCurrent: async ({ providerId, ownerId }) =>
-        (await hosts.get(providerId))?.id === ownerId
-    })
-    const execution = createComputeExecution()
-    const events = new ApplicationEventHub()
-    const deliveries = new BackgroundResultDeliveryRepository(async () => client)
-    const effects: Promise<unknown>[] = []
-    const changes: { status: string; jobId: string; harvested: boolean; notified: boolean }[] = []
-    const publish = (job: ComputeJob): void => {
-      changes.push({
-        status: job.status,
-        jobId: job.job_id,
-        harvested: job.harvested_at !== undefined,
-        notified: job.notified_at !== undefined
-      })
-      const effect = (async () => {
-        const summary = await toJobSummary(job, 'Protocol fixture', root)
-        await adapter.observeJob(summary)
-        events.publish('compute:job-updated', summary)
-      })()
-      effects.push(effect)
-      void effect.catch(() => undefined) // Joined below; no failed side effect is discarded.
-    }
-    const queue = execution.createQueue({
+      sourceSessionId,
+      client,
+      ports,
       jobs,
-      hosts,
-      publish,
-      dispatch: (jobId, onJobUpdated) =>
-        dispatchComputeJob(jobId, {
-          execution,
-          connectionBroker: transport.broker,
-          hostRepository: hosts,
-          jobRepository: jobs,
-          storageRoot: root,
-          onJobUpdated
-        }),
-      sessionPolicy: {
-        resolve: (id, project) => sessions.loadComputePolicy(project, id),
-        save: async () => {
-          throw new Error('Unexpected fixture concurrency mutation')
-        }
-      }
-    })
-    const service = new ComputeService({
-      execution,
-      repository: hosts,
-      jobRepository: jobs,
-      operationRepository: operations,
-      storageRoot: root,
-      concurrencyManager: queue,
-      approvalBroker: approval,
-      onJobUpdated: publish,
-      connectionBroker: transport.broker,
-      runner: {
-        run: async () => {
-          throw new Error('No SSH runner may escape the protocol fixture')
-        }
-      }
-    })
-    const runtime = createComputeJobRuntime(
-      {
-        computeService: service,
-        hostRepository: hosts,
-        jobRepository: jobs,
-        operationRepository: operations,
-        connectionBroker: transport.broker,
-        storageRoot: root
-      },
-      {
-        broadcast: (summary) => {
-          const effect = adapter.observeNotification(summary).then(() => {
-            events.publish('compute:job-updated', summary)
-          })
-          effects.push(effect)
-          void effect.catch(() => undefined)
-        }
-      }
-    )
-    const agentCompute = new AgentComputeService(service, registry, {
-      onFinalJobObserved: async (_context, _providerId, snapshot) => {
-        const job = await jobs.get(snapshot.job_id)
-        if (!job) throw new Error('Missing original Job')
-        return adapter.observeResult(await toJobSummary(job, 'Protocol fixture', root))
-      }
-    })
-    const versions = new ManagedFileVersionService({
-      storageRoot: root,
-      getClient: async () => client
-    })
-    const provenance = new ArtifactProvenanceRepository({
-      storageRoot: root,
-      getClient: async () => client,
-      compatibilityRepository: new ArtifactRepository(root),
-      loadSession: async (project, id) => {
-        const loaded = await loadSessionMutationAuthority(sessions, project, id)
-        if (loaded.status !== 'found') throw new Error('Missing original fixture Session')
-        return loaded.session
-      }
-    })
-    const notebook = new NotebookRuntimeService({
-      configRoot,
+      deliveries,
+      transport,
+      grants,
+      approvalId,
+      approvalBroadcast,
+      service,
+      changes,
+      frozenCompute,
+      sessions
+    } = fixture
+    expect(jobs.isFieldProtectionAvailable()).toBe(mode !== 'protection-unavailable')
+    if (sourcePrompt) {
+      expect(fixture.sourcePromptMessageId).toBeTruthy()
+      const source = await loadSessionMutationAuthority(sessions, projectId, sourceSessionId)
+      expect(source.status).toBe('found')
+      if (source.status !== 'found') throw new Error('Missing original source Session')
+      expect(
+        source.session.conversationGraph?.messages.find(
+          (message) => message.id === fixture.sourcePromptMessageId
+        )
+      ).toMatchObject({ role: 'user', content: sourcePrompt, status: 'complete' })
+    } else expect(fixture.sourcePromptMessageId).toBeUndefined()
+    const ownerOptions = {
+      ...ports,
       dataRoot: root,
-      projectId,
-      backgroundExecutionEnabled: false
-    })
-    notebook.setExecutionApproval(async () => false)
-    const rpc = new NotebookLocalRpcServer(notebook, {
-      transport: 'tcp',
-      artifactProvenance: provenance,
-      computeService: agentCompute,
-      inputRegistry: new NotebookInputRegistry({
-        storageRoot: root,
-        inputAuthority: new ImmutableInputAuthority({
-          storageRoot: root,
-          managedFileVersions: versions
-        })
-      })
-    })
-    const mcpEntryPath = join(root, 'original-mcp.cjs')
-    await writeFile(
-      mcpEntryPath,
-      `const jiti=require(${JSON.stringify(createRequire(import.meta.url).resolve('jiti'))}).createJiti(__filename);(async()=>{const notebook=process.argv.includes('--open-science-notebook-mcp');const api=await jiti.import(notebook?${JSON.stringify(resolve('src/main/notebook/mcp-server.ts'))}:${JSON.stringify(resolve('src/main/artifacts/mcp-server.ts'))});await (notebook?api.runNotebookMcpServer():api.runArtifactMcpServer())})().catch(()=>process.exitCode=1);`
-    )
-    const createOwners = (): ReturnType<typeof createPersistentCandidateOwners> =>
-      createPersistentCandidateOwners({
-        ...ports,
-        dataRoot: root,
-        configRoot,
-        getClient: async () => client,
-        artifactProjectionRoot: join(root, 'projections'),
-        notebook: { service: notebook, rpc, mcpEntryPath },
-        compute: {
-          hosts,
-          hostAccess,
-          jobs,
-          operations,
-          service,
-          deliveries,
-          events: events as ApplicationEventSource,
-          cancelApprovals: (id) => approval.cancelSession(id)
-        }
-      })
-    const owners = createOwners()
-    notebook.setMcpRpcConnectionResolver(async (binding) =>
-      rpc.issueControlConnection(
-        binding.sessionId,
-        binding.projectId,
-        binding.agentFrameId,
-        { role: 'main' },
-        binding.executionCwd,
-        await owners.resolveControlPolicy!(binding)
-      )
-    )
-    const route = routeCandidateContinuations(
-      {
-        sendContinuation: () => {
-          throw new Error('Private owner must never use ordinary Send')
-        },
-        isContinuationSaved: async () => {
-          throw new Error('Private owner must never read ordinary Session')
-        },
-        canStartSessionTurn: () => {
-          throw new Error('Private owner must never use ordinary admission')
-        }
-      },
-      (id) => owners.resolveCandidateDelivery!(id)
-    )
-    const deliveryOwner = new BackgroundResultDeliveryOwner({
-      repository: deliveries,
-      ...route,
-      waitForAuthoritiesReady: async () => {},
-      onChanged: (event) => events.publish('background-result-delivery:changed', event),
-      resolveSources: (rows) =>
-        resolveBackgroundResultSources(rows, {
-          loadNotebookRuns: async () => [],
-          loadComputeJobs: async (sources) =>
-            new Map(
-              await Promise.all(
-                sources.map(async ({ sourceId }) => {
-                  const job = await jobs.get(sourceId)
-                  if (!job) throw new Error('Missing original Job')
-                  return [sourceId, await toJobSummary(job, 'Owned fixture', root)] as const
-                })
-              )
-            )
-        })
-    })
-    // dispose stops scheduling but the original owner deliberately keeps in-flight drains alive.
-    // Join their actual promises before disconnecting/deleting this fixture's SQLite database.
-    const deliveryDrains: ReturnType<BackgroundResultDeliveryOwner['drainSession']>[] = []
-    const drainSession = deliveryOwner.drainSession.bind(deliveryOwner)
-    vi.spyOn(deliveryOwner, 'drainSession').mockImplementation((sessionId) => {
-      const drain = drainSession(sessionId)
-      deliveryDrains.push(drain)
-      return drain
-    })
-    const adapter = new ComputeJobResultDeliveryAdapter({
-      register: (source) => deliveryOwner.register(source),
-      enqueue: (source) => deliveryOwner.enqueue(source),
-      acknowledgeObserved: (source) => deliveryOwner.acknowledgeObserved(source),
-      listWaiting: () => deliveries.listWaiting('compute-job'),
-      hasDeliveryPath: (kind, id) => deliveries.hasDeliveryPath(kind, id)
-    })
+      configRoot,
+      getClient: fixture.getClient,
+      artifactProjectionRoot: join(root, 'projections'),
+      notebook: fixture.notebook,
+      compute: fixture.compute
+    }
+    const owners = createPersistentCandidateOwners(ownerOptions)
+    const release = fixture.onOwnersReady(owners)
+    const idleOwners = createPersistentCandidateOwners(ownerOptions)
+    const releaseIdle = fixture.onOwnersReady(idleOwners)
     let stage = 0,
       modelRequests = 0
     const providerErrors: string[] = []
@@ -524,28 +226,16 @@ it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
     const handleOwner: { core?: ExecutionCore } = {}
     const journal = new FileExecutionStore(join(root, 'execution.json'))
     onTestFinished(async () => {
-      deliveryOwner.dispose()
       handleOwner.core?.dispose()
-      await owners.shutdown()
-      await runtime.stop()
-      await execution.waitForDispatch([...new Set(changes.map((change) => change.jobId))])
-      await Promise.all([...effects, ...deliveryDrains])
+      const retired = await owners.shutdown()
+      if (retired.reaped) release?.()
+      const idleRetired = await idleOwners.shutdown()
+      expect(idleRetired).toEqual({ reaped: true })
+      if (idleRetired.reaped) releaseIdle?.()
       journal.close()
-      await rpc.close()
-      await notebook.dispose()
       server.closeAllConnections()
       await new Promise<void>((done) => server.close(() => done()))
-      await client.$disconnect()
-      const unlock = async (path: string): Promise<void> => {
-        const info = await lstat(path)
-        if (info.isSymbolicLink()) throw new Error('Fixture acquired an unexpected link')
-        if (info.isDirectory()) {
-          await chmod(path, 0o700)
-          for (const name of await readdir(path)) await unlock(join(path, name))
-        }
-      }
-      await unlock(root)
-      await rm(root, { recursive: true, force: true })
+      await fixture.close()
     })
     const store = await createCandidateSnapshotStore({
       root: join(root, 'snapshots'),
@@ -683,7 +373,7 @@ it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
       result_final: false,
       queue_blocked_reason: 'runtime_stopped'
     })
-    await runtime.start()
+    await fixture.start()
     const record = await core.waitForTerminal(handle.executionId)
     expect(
       record,
@@ -759,8 +449,10 @@ it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
     expect(approvalId).not.toHaveBeenCalled()
     expect(providerErrors).toEqual([])
     expect(modelRequests).toBeGreaterThan(0)
-    await Promise.all(effects)
-    expect(await owners.shutdown()).toEqual({ reaped: true })
+
+    const retired = await owners.shutdown()
+    expect(retired).toEqual({ reaped: true })
+    if (retired.reaped) release?.()
   },
   90_000
 )
