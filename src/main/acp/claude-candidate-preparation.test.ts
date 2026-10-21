@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   mkdtemp,
   mkdir,
@@ -12,7 +13,7 @@ import {
   readdir
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCandidateSnapshotStore,
@@ -25,6 +26,7 @@ import {
   assertClaudeCandidateText,
   type ClaudeCandidateBinding
 } from './claude-candidate-preparation'
+import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candidate-artifact'
 
 const roots: string[] = []
 afterEach(async () => {
@@ -43,7 +45,8 @@ afterEach(async () => {
 })
 const fixture = async (
   skills: readonly CandidateTextFile[] = [],
-  scientific: boolean | 'r' = false
+  scientific: boolean | 'r' = false,
+  binary?: Buffer
 ): Promise<{
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
@@ -51,9 +54,26 @@ const fixture = async (
 }> => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'claude-candidate-prep-')))
   roots.push(root)
+  const binarySource = join(root, 'original.png')
+  const binaryArtifact: CandidateBinaryArtifactFile | undefined = binary && {
+    path: 'figure.png',
+    representation: 'binary',
+    sizeBytes: binary.byteLength,
+    contentType: 'image/png',
+    digest: `sha256:${createHash('sha256').update(binary).digest('hex')}`,
+    artifactRef: {
+      artifactId: 'artifact',
+      versionId: 'immutable-png',
+      checksum: createHash('sha256').update(binary).digest('hex')
+    }
+  }
+  if (binary) await writeFile(binarySource, binary)
   const store = await createCandidateSnapshotStore({
     root: join(root, 'snapshots'),
-    candidatesRoot: join(root, 'candidates')
+    candidatesRoot: join(root, 'candidates'),
+    ...(binaryArtifact
+      ? { materializeAsset: async () => ({ file: binaryArtifact, assetPath: binarySource }) }
+      : {})
   })
   const refs = await store.freeze({
     task: scientific
@@ -104,7 +124,12 @@ const fixture = async (
   const invocationRef = await store.freezeInvocation({
     taskSnapshotRef: refs.taskSnapshotRef,
     harnessRevisionRef: refs.harnessRevisionRef,
-    mission: 'Run the task'
+    mission: 'Run the task',
+    ...(binaryArtifact
+      ? {
+          assets: [{ path: 'anonymous.png', sourceExecutionId: 'source', artifact: binaryArtifact }]
+        }
+      : {})
   })
   const allRefs = { ...refs, invocationRef }
   const resolved = await store.resolve(allRefs)
@@ -136,6 +161,59 @@ const runGate = (root: string, tool: string, args: object): string => {
 }
 
 describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate preparation', () => {
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0xff])
+
+  it('verifies frozen binary assets and allows native Read of their private copies', async () => {
+    const f = await fixture([], false, png)
+    await prepareClaudeCandidate(f)
+    const path = join(f.materialized.inputDir, 'anonymous.png')
+    expect(await readFile(path)).toEqual(png)
+    expect(runGate(f.materialized.root, 'Read', { file_path: path })).toBe('allow')
+    expect(runGate(f.materialized.root, 'Write', { file_path: path, content: 'changed' })).toBe(
+      'deny'
+    )
+  })
+
+  it.each(['bytes', 'manifest', 'missing', 'extra', 'link'] as const)(
+    'rejects binary %s substitution before native runtime resources are created',
+    async (mutation) => {
+      const f = await fixture([], false, png)
+      const path = join(f.materialized.inputDir, 'anonymous.png')
+      if (mutation === 'bytes') {
+        await chmod(path, 0o600)
+        await writeFile(path, Buffer.alloc(png.byteLength, 1))
+      } else if (mutation === 'manifest') {
+        const forged = f.materialized.manifest.map((entry) =>
+          entry.path.endsWith('anonymous.png')
+            ? { ...entry, digest: `sha256:${'0'.repeat(64)}` }
+            : entry
+        )
+        f.materialized = { ...f.materialized, manifest: forged }
+      } else if (mutation === 'missing') {
+        f.materialized = {
+          ...f.materialized,
+          manifest: f.materialized.manifest.filter((entry) => !entry.path.endsWith('anonymous.png'))
+        }
+      } else if (mutation === 'extra') {
+        f.materialized = {
+          ...f.materialized,
+          manifest: [
+            ...f.materialized.manifest,
+            { path: 'INPUT/unlisted.png', bytes: 0, digest: '' }
+          ]
+        }
+      } else {
+        await chmod(f.materialized.inputDir, 0o700)
+        await rm(path)
+        await symlink(join(dirname(f.materialized.root), '..', 'original.png'), path)
+      }
+      await expect(prepareClaudeCandidate(f)).rejects.toThrow(
+        /manifest|bytes changed|private regular/
+      )
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
+
   it('uses native framework configuration and replaces inherited process and hook environment', async () => {
     const f = await fixture()
     const prepared = await prepareClaudeCandidate({

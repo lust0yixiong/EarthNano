@@ -15,6 +15,8 @@ import type { ResolvedProvider } from '../settings/provider-env'
 import type { AcpRuntimeOptions } from './runtime-contract'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import type { NotebookLanguage } from '../../shared/notebook-language-contract'
+import { readOpenFileChunks } from '../bounded-file-io'
+import { assertWithinResourceBudget } from '../resource-budget'
 
 export interface ClaudeCandidateBinding {
   executablePath: string
@@ -62,12 +64,26 @@ export const assertClaudeCandidateText = (text: string): void => {
 }
 
 const verifyMaterialization = async (materialized: MaterializedCandidate): Promise<void> => {
-  const { task, harness } = materialized.snapshots
-  const expected = new Map([
-    ...task.files.map((file) => [join(materialized.inputDir, file.path), file.content] as const),
-    [materialized.instructionsPath, harness.instructions] as const,
+  const { task, harness, invocation } = materialized.snapshots
+  const text = (content: string): { content: string; bytes: number; digest: string } => ({
+    content,
+    bytes: Buffer.byteLength(content, 'utf8'),
+    digest: `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`
+  })
+  const expected = new Map<string, { content?: string; bytes: number; digest: string }>([
+    ...task.files.map(
+      (file) => [join(materialized.inputDir, file.path), text(file.content)] as const
+    ),
+    [materialized.instructionsPath, text(harness.instructions)] as const,
     ...harness.skills.map(
-      (file) => [join(materialized.skillsDir, file.path), file.content] as const
+      (file) => [join(materialized.skillsDir, file.path), text(file.content)] as const
+    ),
+    ...(invocation.assets ?? []).map(
+      ({ path, artifact }) =>
+        [
+          join(materialized.inputDir, path),
+          { bytes: artifact.sizeBytes, digest: artifact.digest }
+        ] as const
     )
   ])
   if (expected.size !== materialized.manifest.length)
@@ -78,6 +94,9 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
     if (!inside(materialized.root, path) || !expected.has(path) || seen.has(path))
       throw new Error('Candidate manifest contains an unexpected path')
     seen.add(path)
+    const frozen = expected.get(path)!
+    if (entry.bytes !== frozen.bytes || entry.digest !== frozen.digest)
+      throw new Error('Candidate manifest differs from its frozen files')
     let ancestor = dirname(path)
     while (inside(materialized.root, ancestor)) {
       const stat = await lstat(ancestor)
@@ -92,15 +111,49 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
     const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
     try {
       const stat = await handle.stat()
-      const bytes = await handle.readFile()
+      let size: number
+      let digest: string
+      if (frozen.content !== undefined) {
+        const bytes = await handle.readFile()
+        if (!bytes.equals(Buffer.from(frozen.content, 'utf8')))
+          throw new Error('Candidate materialization bytes changed')
+        size = bytes.byteLength
+        digest = `sha256:${createHash('sha256').update(bytes).digest('hex')}`
+      } else {
+        const hash = createHash('sha256')
+        size = 0
+        // Reuse the original paced, bounded-memory reader on the already verified file handle.
+        for await (const chunk of readOpenFileChunks(handle)) {
+          size += chunk.byteLength
+          assertWithinResourceBudget('file', size, frozen.bytes)
+          hash.update(chunk)
+        }
+        digest = `sha256:${hash.digest('hex')}`
+      }
+      const after = await handle.stat()
+      const current = await lstat(path)
       if (
         !stat.isFile() ||
         stat.nlink !== 1 ||
         stat.dev !== before.dev ||
         stat.ino !== before.ino ||
-        bytes.length !== entry.bytes ||
-        !bytes.equals(Buffer.from(expected.get(path)!, 'utf8')) ||
-        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !== entry.digest
+        stat.size !== frozen.bytes ||
+        size !== frozen.bytes ||
+        digest !== frozen.digest ||
+        after.dev !== stat.dev ||
+        after.ino !== stat.ino ||
+        after.nlink !== 1 ||
+        after.size !== stat.size ||
+        after.mtimeMs !== stat.mtimeMs ||
+        after.ctimeMs !== stat.ctimeMs ||
+        !current.isFile() ||
+        current.isSymbolicLink() ||
+        current.nlink !== 1 ||
+        current.dev !== stat.dev ||
+        current.ino !== stat.ino ||
+        current.size !== after.size ||
+        current.mtimeMs !== after.mtimeMs ||
+        current.ctimeMs !== after.ctimeMs
       )
         throw new Error('Candidate materialization bytes changed')
     } finally {
