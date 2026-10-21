@@ -1,0 +1,192 @@
+{
+  "base": "a554cde128bad308e0be3c6b4e3239fa53665049",
+  "initialHelperSource": "026053fbae30f3d4af1ba0f9f0909e8424bebd7d",
+  "boundaryFixSource": "6ee1b0a01998bf1c4c48370e1acb8f8978fc6c44",
+  "platformDecision": "0.1-Alpha macOS/Linux only; Windows unresolved and deferred to 0.2-Alpha",
+  "tests": {
+    "suites": 4,
+    "passed": 130,
+    "failed": 0,
+    "skipped": 0,
+    "redControlFailures": 4,
+    "initialHelperPassed": 126
+  },
+  "checks": {
+    "compiledNodeSandboxWebTypes": 0,
+    "eslint": 0,
+    "prettier": 0,
+    "diff": 0
+  },
+  "realMacPackageSmoke": {
+    "source": "c1e663279038c4bdba9d26ba9f3d0c5484ecf2c7",
+    "run": 39555053834,
+    "target": "macos-arm64",
+    "artifactId": 12325628519,
+    "exitCode": 0,
+    "originalScriptAndImportedHelpersByteIdentical": true,
+    "finalReleaseProof": false,
+    "signedNotarizedGatekeeperProof": false
+  },
+  "limits": [
+    "Helper tests use local synthetic bytes and original CLIs, not native installation or publication.",
+    "Real Mac smoke checks the older CI DMG/ZIP only; does not certify binary/Compute changes or the eventual final Alpha package.",
+    "Original stable/release workflows remain disabled and unchanged. A future Alpha entry must explicitly pass mac,linux to both generator and certification aggregator.",
+    "No Windows execution or paid model call occurred in this change."
+  ],
+  "files": [
+    {
+      "path": "REPORT.md.gz",
+      "rawBytes": 4698,
+      "rawSha256": "3bfc9cad8530502f20ec81278c2dc2a2f5a66fda6ef9e7e6796cf99b8f7c90cf",
+      "gzipBytes": 2208,
+      "gzipSha256": "55c34fa856aa6e9ba77bbdf7a45aa35136a4697ee63f35fe2b34631b53f0f626"
+    },
+    {
+      "path": "receipt.json.gz",
+      "rawBytes": 1621,
+      "rawSha256": "c2754ba874483226d9c35e0a06794212c247728d95b5a60dc8721ca1a1eefa4b",
+      "gzipBytes": 794,
+      "gzipSha256": "115460f4b4424d44be550be4c9435a0a73fc539482d9c874fb1d30695c03c381"
+    },
+    {
+      "path": "scope-byteproof.json.gz",
+      "rawBytes": 4938,
+      "rawSha256": "dada7a4ace0092d97ac4e37764b1a9d47b3119ce6ad0c156411bbf0f1400891e",
+      "gzipBytes": 1620,
+      "gzipSha256": "a5edeb3a5fc36af7f4a453359ead834b981cbcec25b27e672c55155e173825a8"
+    },
+    {
+      "path": "independent-review.md.gz",
+      "rawBytes": 5154,
+      "rawSha256": "782564859409472916252fadb3ebc841e285e138f774fe0b651861067cd2e2fa",
+      "gzipBytes": 2916,
+      "gzipSha256": "40ab53af7ef1f25919bf1b7eee4fcb6906cf05d44c7c200c8e943b4c75574bcb"
+    },
+    {
+      "path": "final-focused.json.gz",
+      "rawBytes": 37750,
+      "rawSha256": "60059e1ff0f54b141a91a4160fca6e7885d06ccf682530f837cb1b228eade455",
+      "gzipBytes": 5115,
+      "gzipSha256": "23cb8627d05cc65afbd706808670a0016eec56b08feac07f3f40ba84071631ca"
+    },
+    {
+      "path": "final-focused.log.gz",
+      "rawBytes": 1440,
+      "rawSha256": "5969b718dbd4dbb4e631f2c3d1d54ede92d2edaf1b171fc3cb1f25769ff5838c",
+      "gzipBytes": 746,
+      "gzipSha256": "bc7b36a5a68021105e728ec0b04f274c02d57214f7e648bd70c1b7c95a0344a0"
+    },
+    {
+      "path": "full-compiled-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "diffcheck.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "boundary-red.json.gz",
+      "rawBytes": 23551,
+      "rawSha256": "d9140bc948f2490dfb9ef80b37b6b852bbd4f2de0b247a6244bce21b1534ce46",
+      "gzipBytes": 2267,
+      "gzipSha256": "01bc282112a8b3bc6c3a2686871a5fd02001a40bb5a6045759393baf46d8d7b0"
+    },
+    {
+      "path": "boundary-red.log.gz",
+      "rawBytes": 113,
+      "rawSha256": "23d27b38032b41ef092ddc77586ba9aa45cec7c4ef861fd79dc379c5c6813ea8",
+      "gzipBytes": 121,
+      "gzipSha256": "064d9f6dc932b2973fe80125c4296c9f9219682f3df19ff95997e2537a381177"
+    },
+    {
+      "path": "boundary-green.json.gz",
+      "rawBytes": 38945,
+      "rawSha256": "4ea12c3328c21f8cc15a78a57c373882ceee9f895a2a7f04466d3cc3f408aca5",
+      "gzipBytes": 5243,
+      "gzipSha256": "43222aa49dd93298a690f4620926d3728a76dd8456128a4080d081829aa7f72b"
+    },
+    {
+      "path": "boundary-green.log.gz",
+      "rawBytes": 115,
+      "rawSha256": "d9376c14244f74c28d21540186593a02df25fcea70f407debcbe6daa362fba9d",
+      "gzipBytes": 122,
+      "gzipSha256": "5760380367ba857cb4e89b8fb13b792263e86f1cfc38e5f6b0a929b88a402140"
+    },
+    {
+      "path": "root-boundary-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "root-boundary-lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "root-boundary-format.log.gz",
+      "rawBytes": 97,
+      "rawSha256": "cad89c4a03f23958b36a134e9eb5a8467b2dd3e3edcc5c289f5d7006cf36f7d9",
+      "gzipBytes": 100,
+      "gzipSha256": "4620a5f85f016aebbf1f85e6187df0ab8bc6ad36d06235eed70d2391c1ff086d"
+    },
+    {
+      "path": "root-private-original-package-build.log.gz",
+      "rawBytes": 37,
+      "rawSha256": "013ba0e5e2d8cda39a476678bce822f2858da6f0e27966830b5a1ad821bbab3f",
+      "gzipBytes": 57,
+      "gzipSha256": "8eb82dcc59cedf1c4c252b9635e39438f8f1086467d43075737e1cf0d712c5b6"
+    },
+    {
+      "path": "mac-arm64-download-receipt.json.gz",
+      "rawBytes": 265,
+      "rawSha256": "a3db2255ddfa86b7013d949337f0a6baec331756fcbe03d7e5a06c6a430ec7a4",
+      "gzipBytes": 223,
+      "gzipSha256": "af263f0114224353dbb1d2fca43e0602063d03933c4a72c55b841580965deaf3"
+    },
+    {
+      "path": "mac-arm64-local-smoke-preflight.json.gz",
+      "rawBytes": 875,
+      "rawSha256": "d4065d57bb988098d63fe3852b1b6a4d3426ee44c18ac97b6efdb421e560fd1c",
+      "gzipBytes": 488,
+      "gzipSha256": "35dd06899c0a62b9bf0efc73697a8c304333d9fb205bfc36d2894092891247f5"
+    },
+    {
+      "path": "mac-arm64-local-smoke.log.gz",
+      "rawBytes": 3047,
+      "rawSha256": "a75f92c4a0558b9ed8aabb3b364951fbcc94ce20fc95299b227421bc69823199",
+      "gzipBytes": 566,
+      "gzipSha256": "606c191470c0366fba60dcd571a2184455abf9cd9d280dc17d93ca3bbf744317"
+    },
+    {
+      "path": "mac-arm64-local-database-migration-certification.json.gz",
+      "rawBytes": 363,
+      "rawSha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "gzipBytes": 244,
+      "gzipSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    }
+  ]
+}

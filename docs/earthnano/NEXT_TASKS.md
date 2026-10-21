@@ -10,6 +10,8 @@
 
 Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由。原完整服务链离线 k=2 通过；实际 DeepSeek 第五次实验沿原 manager 恢复后完成 22/24、8 Job、累计 156/240 模型请求，独立评估 88/92 pass、产物 passed。原方法18次执行/既有Job未重提；干净提交8ec对完成实例复核1/1，零模型/运输调用。原反思缺闭合标签，原 parser 正确不保留 Library entry；离线正向 Library、失败工具后修正、24个真实 producer/Version 仍验证。全部先前模型、身份和验收断言失败保留；外部连接/加密器仍为协议 fixture，不能据此声称外部 SSH、科学提升或完整GUI/发布包通过。普通 Python/R 原路由与 unknown 锁边界保持。当前 head Unix 对照、堆叠 PR 审查与最终四目标包待完成；原 hosted 失败和模块登记修复已核对。当前范围见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)，原始红绿见 [服务链验证](validation/alpha/compute-original-workflow/manifest.json)。
 
+发布准备工具现已支持在原 manifest generator 和认证聚合器中显式传入 `--platforms mac,linux`：仍检查六项安装器、两份 Mac 更新 ZIP、三份 feed 和四个平台的同源认证；范围外文件及引用直接拒绝。独立审查发现的 URL 后缀分类缺口已有四例真实字节 fixture 复现并修复，四套检查最终 130/130、完整 compiled types/lint 通过，见 [原始证据与限制](validation/alpha/unix-0.1-release/manifest.json)。这仅完成发布工具准备，未启用发布工作流或上传安装包。归档中另有旧 CI 源 `c1e663279` 的 Mac ARM64 DMG/ZIP 原脚本本机启动检查，不能替代最终融合提交的四目标原生验收。
+
 2026-10-21 更新：R 已通过同一构建的真实桌面离线和首次 DeepSeek 双模式/停止续跑/独立审阅，详见 [R 实际验收](ALPHA_R_CONTRACT.md#后续实际验收2026-10-21)。原 108 个新增失败 ID 的本地定向修复已逐项通过，仍需以修复 head 完成 hosted 比较及 PR 审查。仓库已公开且 runner 已实际执行，旧账户限额不再作为当前阻断。继续收尾这些已有 PR/回归和原生包；二进制原 owner/方法资产、真实 RDS/PNG 及 4746 同构建桌面/DeepSeek 已接通，最终平台包仍待，见 [二进制集成](ALPHA_BINARY.md)。Compute 候选融合仍须复用原模块，不另造工具运行时。自动触发、平台配置发布/回滚及完整精确账本与上游功能补全分别标注，见 [来源说明](ALPHA_CONTRACT.md#功能来源说明)。
 
 PR #12 已审查合并。本轮固定提交 `5812df666` 的完整 Notebook 普通执行/优化/停止/重开/续跑/独立评估已通过 DeepSeek；前三次失败、原上游对照和修复均保留。白底图标已整合，跨平台原生包仍待 CI。完整状态以 [Alpha契约](ALPHA_CONTRACT.md) 和 [本轮证据](ALPHA_INTEGRATION.md) 为准，不把独立 helper 算作已接通。

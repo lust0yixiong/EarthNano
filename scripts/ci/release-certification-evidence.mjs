@@ -4,6 +4,10 @@ import { createHash } from 'node:crypto'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import {
+  assertReleaseArtifactScope,
+  validateReleasePlatforms
+} from '../release-artifact-validation.mjs'
 
 const PLATFORMS = ['linux-x64', 'linux-arm64', 'macos-arm64', 'macos-x64', 'windows-x64']
 const DISTRIBUTABLE = /\.(?:AppImage|deb|dmg|exe|zip)$/
@@ -215,16 +219,33 @@ const aggregateEvidence = async ({ argv }) => {
   const expectedSha = argumentValue(argv, '--expected-sha')
   const requireWindowsUpdate = argv.includes('--require-windows-update')
   const requireSignedWindows = argv.includes('--require-signed-windows')
+  if (
+    argv.filter((value) => value === '--platforms').length > 1 ||
+    (argv.includes('--platforms') && !argumentValue(argv, '--platforms'))
+  )
+    throw new Error('Expected one explicit --platforms value')
+  const platformGroups = validateReleasePlatforms(argumentValue(argv, '--platforms'))
+  if (!platformGroups.includes('win') && (requireWindowsUpdate || requireSignedWindows))
+    throw new Error(
+      'Windows certification requirements conflict with the selected release platforms'
+    )
+  const selectedPlatforms = PLATFORMS.filter((platform) =>
+    platformGroups.includes(
+      platform.startsWith('macos-') ? 'mac' : platform.startsWith('windows-') ? 'win' : 'linux'
+    )
+  )
   if (!directoryArgument || !outputArgument || !expectedSha) {
     throw new Error(
       'Usage: --directory <path> --output <path> --expected-sha <sha> ' +
-        '[--require-windows-update] [--require-signed-windows]'
+        '[--platforms mac,linux,win] [--require-windows-update] [--require-signed-windows]'
     )
   }
   const directory = resolve(directoryArgument)
   const output = resolve(outputArgument)
 
-  const names = (await readdir(directory))
+  const allNames = await readdir(directory)
+  for (const name of allNames) assertReleaseArtifactScope(name, platformGroups)
+  const names = allNames
     .filter((name) =>
       /^certification-(?:linux-x64|linux-arm64|macos-arm64|macos-x64|windows-x64)\.json$/.test(name)
     )
@@ -233,14 +254,19 @@ const aggregateEvidence = async ({ argv }) => {
     names.map(async (name) => JSON.parse(await readFile(join(directory, name), 'utf8')))
   )
   const byPlatform = new Map(records.map((record) => [record.platform, record]))
-  const missing = PLATFORMS.filter((platform) => !byPlatform.has(platform))
-  if (missing.length > 0 || records.length !== PLATFORMS.length) {
+  if (
+    records.some((record) => !selectedPlatforms.includes(record.platform)) ||
+    (!platformGroups.includes('win') && allNames.includes('certification-windows-update.json'))
+  )
+    throw new Error('Release certification outside selected platforms')
+  const missing = selectedPlatforms.filter((platform) => !byPlatform.has(platform))
+  if (missing.length > 0 || records.length !== selectedPlatforms.length) {
     throw new Error(
       `Incomplete release certification evidence; missing: ${missing.join(', ') || 'none'}.`
     )
   }
 
-  for (const platform of PLATFORMS) {
+  for (const platform of selectedPlatforms) {
     const record = byPlatform.get(platform)
     try {
       assertDatabaseMigrationCertification(record?.databaseMigration)
@@ -258,6 +284,7 @@ const aggregateEvidence = async ({ argv }) => {
       throw new Error(`Invalid release certification evidence for ${platform}.`)
     }
     for (const artifact of record.artifacts) {
+      assertReleaseArtifactScope(artifact.name, platformGroups)
       const artifactPath = join(directory, artifact.name)
       if ((await sha256(artifactPath).catch(() => undefined)) !== artifact.sha256) {
         throw new Error(`Release artifact digest does not match evidence: ${artifact.name}.`)
@@ -325,7 +352,7 @@ const aggregateEvidence = async ({ argv }) => {
     }
   }
 
-  const platformRecords = PLATFORMS.map((platform) => byPlatform.get(platform))
+  const platformRecords = selectedPlatforms.map((platform) => byPlatform.get(platform))
   const databaseCompatibilityFloor = {
     migrationId: DATABASE_BASELINE_ID,
     migrationChecksum: DATABASE_BASELINE_CHECKSUM,
