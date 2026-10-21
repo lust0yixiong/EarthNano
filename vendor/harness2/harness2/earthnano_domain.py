@@ -147,7 +147,7 @@ def run(config, client):
     root.mkdir(mode=0o700, exist_ok=config.get("resume", False))
     reader = PlatformResultReader(client, root / "results", resume=config.get("resume", False))
     adapter = DomainAdapter(config, root, reader)
-    factory = DomainRequestFactory(client, timeout_ms=config["executionTimeoutMs"])
+    factory = DomainRequestFactory(client, timeout_ms=config["executionTimeoutMs"], reader=reader)
     execution = PortMethodExecution(StdioExecutionPort(client), factory, reader, poll_interval=0.02)
     execution.resume = config.get("resume", False)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)

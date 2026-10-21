@@ -69,7 +69,82 @@ def text_files(value: object, *, with_digest: bool = False) -> list[dict]:
     return result
 
 
-def read_snapshot(root: Path | None) -> list[dict]:
+def binary_file(entry: object) -> dict:
+    if not isinstance(entry, dict):
+        raise ValueError("Expected a binary descriptor")
+    required = {"path", "representation", "sizeBytes", "digest", "artifactRef"}
+    if (required - set(entry) or set(entry) - required - {"contentType"}
+            or entry.get("representation") != "binary"
+            or type(entry.get("sizeBytes")) is not int or not 0 <= entry["sizeBytes"] <= 2**53 - 1):
+        raise ValueError("Invalid binary descriptor fields")
+    safe_path(entry["path"])
+    ref = entry["artifactRef"]
+    if (not isinstance(ref, dict) or set(ref) != {"artifactId", "versionId", "checksum"}
+            or any(not isinstance(ref[key], str) or not ref[key] for key in ref)
+            or not re.fullmatch(r"[a-f0-9]{64}", ref["checksum"])
+            or entry["digest"] != "sha256:" + ref["checksum"]
+            or ("contentType" in entry and (not isinstance(entry["contentType"], str)
+                                           or not entry["contentType"].strip()))):
+        raise ValueError("Invalid binary descriptor identity")
+    return dict(entry)
+
+
+def candidate_files(value: object) -> list[dict]:
+    if not isinstance(value, list) or len(value) > MAX_FILES:
+        raise ValueError("Expected bounded versioned files")
+    # Reuse the original portable path, collision and text-byte budget checks.
+    text_files([{"path": entry.get("path"), "content": entry.get("content", "")}
+                for entry in value if isinstance(entry, dict)])
+    result = []
+    for entry in value:
+        if isinstance(entry, dict) and entry.get("representation") == "binary":
+            result.append(binary_file(entry))
+        else:
+            if not isinstance(entry, dict) or set(entry) != {"path", "content", "digest", "artifactRef"}:
+                raise ValueError("Unknown versioned file fields")
+            result.extend(text_files([entry], with_digest=True))
+    return result
+
+
+def binary_alias(entry: dict) -> str:
+    # No method label, execution id or logical directory leaks into anonymous file names.
+    identity = json.dumps(entry, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return "asset-" + hashlib.sha256(identity.encode("utf-8")).hexdigest() + PurePosixPath(entry["path"]).suffix
+
+
+def checked_binary(source: Path, entry: dict, target: Path | None = None):
+    """Read every byte through one unlinked, stable descriptor; optionally copy exclusively."""
+    before = source.lstat()
+    if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size != entry["sizeBytes"]:
+        raise ValueError("Invalid binary projection file")
+    fd = os.open(source, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(fd, "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+            raise ValueError("Binary file changed while opening")
+        output = target.open("xb") if target is not None else None
+        try:
+            checksum, size = hashlib.sha256(), 0
+            while chunk := stream.read(65536):
+                size += len(chunk)
+                if size > entry["sizeBytes"]:
+                    raise ValueError("Binary file size changed")
+                checksum.update(chunk)
+                if output is not None:
+                    output.write(chunk)
+        finally:
+            if output is not None:
+                output.close()
+        after = source.lstat()
+        if ((after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) !=
+                (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+                or size != entry["sizeBytes"] or "sha256:" + checksum.hexdigest() != entry["digest"]):
+            raise ValueError("Binary projection checksum or identity changed")
+    if target is not None:
+        target.chmod(0o400)
+
+
+def read_snapshot(root: Path | None, *, _verified_binary_paths: frozenset[str] = frozenset()) -> list[dict]:
     """Snapshot only ordinary, unlinked text files; paths never become immutable refs."""
     if root is None:
         return []
@@ -87,6 +162,10 @@ def read_snapshot(root: Path | None) -> list[dict]:
             before = path.lstat()
             if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
                 raise ValueError("Linked or non-regular snapshot file")
+            # Only context_snapshot supplies this internal set, after checking registered bytes.
+            # It is never accepted from JSONL invocation/model arguments.
+            if path.relative_to(root).as_posix() in _verified_binary_paths:
+                continue
             fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
             with os.fdopen(fd, "rb") as stream:
                 opened = os.fstat(stream.fileno())
@@ -190,10 +269,12 @@ class StdioExecutionPort:
 
 
 class PlatformRequestFactory:
-    def __init__(self, client: JsonLineClient, *, timeout_ms: int = 100_000):
-        self.client, self.timeout_ms = client, timeout_ms
+    def __init__(self, client: JsonLineClient, *, timeout_ms: int = 100_000, reader=None):
+        self.client, self.timeout_ms, self.reader = client, timeout_ms, reader
 
     def __call__(self, invocation: Invocation):
+        context, assets = (self.reader.context_snapshot(invocation.context_dir) if self.reader
+                           else (read_snapshot(invocation.context_dir), []))
         return validate_request(self.client.exchange(
             "freezeInvocation",
             invocation={
@@ -206,7 +287,8 @@ class PlatformRequestFactory:
                 "harvest": invocation.harvest,
             },
             harnessFiles=read_snapshot(invocation.harness_dir),
-            contextFiles=read_snapshot(invocation.context_dir),
+            contextFiles=context,
+            **({"assets": assets} if assets else {}),
         ))
 
 
@@ -222,6 +304,7 @@ class PlatformResultReader:
         self.metadata.mkdir(mode=0o700, exist_ok=resume)
         self.views: dict[Path, dict] = {}
         self.lock = threading.Lock()
+        self.assets: dict[str, dict] = {}
 
     def _read(self, record):
         try:
@@ -236,10 +319,8 @@ class PlatformResultReader:
                 raise ValueError("Result artifact identity mismatch")
             if not all(isinstance(result[key], str) for key in ("replyText", "trajectoryText")):
                 raise ValueError("Expected readable versioned text")
-            files = text_files(result["files"], with_digest=True)
+            files = candidate_files(result["files"])
             for entry in files:
-                if set(entry) != {"path", "content", "digest", "artifactRef"}:
-                    raise ValueError("Unknown versioned file fields")
                 if entry["artifactRef"] not in result["artifacts"]:
                     raise ValueError("File refers to an uncommitted artifact")
             result["files"] = files
@@ -274,9 +355,23 @@ class PlatformResultReader:
         for entry in files:
             target = folder / safe_path(entry["path"])
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            with target.open("x", encoding="utf-8", newline="") as stream:
-                stream.write(entry["content"])
-            target.chmod(0o400)
+            if entry.get("representation") == "binary":
+                if harvest:
+                    raise ExecutionStopped("Binary artifacts cannot be harvested as text harnesses")
+                materialized = self.client.exchange("materializeArtifact",
+                    executionId=result["executionId"], artifactRef=entry["artifactRef"])
+                if (not isinstance(materialized, dict) or set(materialized) != {"file", "assetPath"}
+                        or materialized["file"] != entry or not isinstance(materialized["assetPath"], str)
+                        or not Path(materialized["assetPath"]).is_absolute()):
+                    raise ExecutionStopped("Invalid binary materialization identity")
+                try:
+                    checked_binary(Path(materialized["assetPath"]), entry, target)
+                except (OSError, ValueError):
+                    raise ExecutionStopped("Invalid immutable binary bytes") from None
+            else:
+                with target.open("x", encoding="utf-8", newline="") as stream:
+                    stream.write(entry["content"])
+                target.chmod(0o400)
         projection = dict(result, files=files)
         metadata = self.metadata / folder.name
         metadata.mkdir(mode=0o700)
@@ -335,6 +430,59 @@ class PlatformResultReader:
             raise ExecutionStopped("Original completed rollout bytes changed")
         return result
 
+    def asset_paths(self, path):
+        result = self.view(path)
+        assets = []
+        for entry in result["files"]:
+            if entry.get("representation") != "binary":
+                continue
+            with self.lock:
+                folder = self.metadata / Path(path).name / "assets"
+                folder.mkdir(mode=0o700, exist_ok=True)
+                alias = binary_alias(entry)
+                target = folder / alias
+                source = Path(path) / entry["path"]
+                try:
+                    checked_binary(source, entry)
+                    if target.exists():
+                        checked_binary(target, entry)
+                    else:
+                        checked_binary(source, entry, target)
+                except (OSError, ValueError):
+                    raise ExecutionStopped("Anonymous binary asset changed") from None
+                registered = {"sourceExecutionId": result["executionId"], "artifact": entry}
+                if alias in self.assets and self.assets[alias] != registered:
+                    raise ExecutionStopped("Ambiguous binary asset ownership")
+                self.assets[alias] = registered
+            assets.append(target)
+        return assets
+
+    def context_snapshot(self, root):
+        if root is None:
+            return [], []
+        root = Path(root)
+        if not root.is_dir() or root.is_symlink():
+            raise ValueError("Expected ordinary context directory")
+        text, assets = [], []
+        for parent, directories, files in os.walk(root, followlinks=False):
+            if any((Path(parent) / name).is_symlink() for name in directories):
+                raise ValueError("Linked context directory")
+            for name in sorted(files):
+                source = Path(parent) / name
+                with self.lock:
+                    registered = self.assets.get(name)
+                if registered is None:
+                    # Preserve the original strict text snapshot behavior, including unknown binary rejection.
+                    continue
+                checked_binary(source, registered["artifact"])
+                assets.append(dict(registered, path=source.relative_to(root).as_posix()))
+        if not assets:
+            return read_snapshot(root), []
+        binary_paths = frozenset(asset["path"] for asset in assets)
+        text = read_snapshot(root, _verified_binary_paths=binary_paths)
+        text_files([{"path": asset["path"], "content": ""} for asset in assets] + text)
+        return text, sorted(assets, key=lambda item: item["path"])
+
     def intact(self, path):
         try:
             for entry in self.view(path)["files"]:
@@ -342,8 +490,10 @@ class PlatformResultReader:
                 info = target.lstat()
                 if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
                     return False
-                if digest(target.read_text(encoding="utf-8")) != entry["digest"]:
+                if entry.get("representation") == "binary":
+                    checked_binary(target, entry)
+                elif digest(target.read_text(encoding="utf-8")) != entry["digest"]:
                     return False
             return True
-        except (OSError, KeyError, UnicodeError):
+        except (OSError, KeyError, UnicodeError, ValueError):
             return False

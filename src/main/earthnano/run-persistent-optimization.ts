@@ -440,7 +440,10 @@ export async function runPersistentOptimization(
         })
       )
     failureStage = 'owner-validation'
-    owners = createPersistentCandidateOwners(options.ownerOptions)
+    owners = createPersistentCandidateOwners({
+      ...options.ownerOptions,
+      artifactProjectionRoot: join(options.workRoot, 'artifact-projections')
+    })
     if (options.resume) {
       for (const record of previousRecords) {
         signal.throwIfAborted()
@@ -457,7 +460,20 @@ export async function runPersistentOptimization(
     failureStage = 'snapshot-validation'
     const snapshots = await createCandidateSnapshotStore({
       root: join(options.workRoot, 'snapshots'),
-      candidatesRoot: join(options.workRoot, 'candidates')
+      candidatesRoot: join(options.workRoot, 'candidates'),
+      materializeAsset: async (asset, assetSignal) => {
+        const record = await core!.get(asset.sourceExecutionId)
+        if (!owners!.materializeArtifact)
+          throw new Error('Original binary artifact materialization is unavailable')
+        const result = await owners!.materializeArtifact(
+          record,
+          asset.artifact.artifactRef,
+          assetSignal
+        )
+        if (outputDigest(result.file) !== outputDigest(asset.artifact))
+          throw new Error('Binary context asset identity changed')
+        return result
+      }
     })
     // Freeze every selected payload before the first paid admission. One invalid late task
     // must not be discovered after sibling domains have already consumed model calls.
@@ -498,7 +514,8 @@ export async function runPersistentOptimization(
       optimizationId,
       budgetRef: optimizationId,
       timeoutMs: executionTimeoutMs,
-      exportResult: owners.exportResult
+      exportResult: owners.exportResult,
+      materializeArtifact: owners.materializeArtifact
     }
     const taskBindingOptions = (
       task: (typeof tasks)[number]

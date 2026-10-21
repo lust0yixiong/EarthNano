@@ -1,3 +1,8 @@
+import {
+  normalizeCandidateArtifactFile,
+  type CandidateArtifactFile,
+  type CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { spawn } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
@@ -12,7 +17,8 @@ import type {
 import type {
   CandidateSnapshotInput,
   CandidateSnapshotStore,
-  CandidateTextFile
+  CandidateTextFile,
+  CandidateContextAsset
 } from './candidate-snapshot'
 import { requestDigest, validateRequest } from './execution-contract'
 import { assertClaudeCandidateText } from '../acp/claude-candidate-preparation'
@@ -43,7 +49,7 @@ export interface PersistentExecutionExport {
   replyText: string
   trajectoryText: string
   reused?: boolean
-  files: Array<CandidateTextFile & { digest: string; artifactRef: ArtifactReference }>
+  files: CandidateArtifactFile[]
 }
 export interface HarnessOptimizationBindingOptions {
   core: ExecutionPort
@@ -55,6 +61,11 @@ export interface HarnessOptimizationBindingOptions {
   budgetRef: string
   timeoutMs: number
   exportResult(record: ExecutionRecord): Promise<PersistentExecutionExport>
+  materializeArtifact?(
+    record: ExecutionRecord,
+    artifactRef: ArtifactReference,
+    signal?: AbortSignal
+  ): Promise<{ file: CandidateBinaryArtifactFile; assetPath: string }>
   resumeRecords?: ExecutionRecord[]
   resumeSlot?(requestKey: string): string | undefined
   bindingIdentity?: HarnessBindingV2Identity
@@ -123,6 +134,7 @@ export class HarnessOptimizationBinding {
   private readonly frozen = new Map<string, string>()
   private readonly admitted = new Set<string>()
   private stopped = false
+  private readonly artifactIO = new AbortController()
   private readonly reused = new Set<string>()
   private readonly fresh = new Set<string>()
   private readonly slots = new Map<string, string>()
@@ -171,6 +183,7 @@ export class HarnessOptimizationBinding {
   }
   async stop(): Promise<void> {
     this.stopped = true
+    this.artifactIO.abort()
     await Promise.allSettled([...this.admitted].map((id) => this.options.core.cancel(id)))
   }
   async dispatch(operation: string, args: Record<string, unknown>): Promise<unknown> {
@@ -224,28 +237,96 @@ export class HarnessOptimizationBinding {
       }
       case 'readResult': {
         const record = await core.get(id)
-        if (record.phase !== 'completed' || record.cleanup !== 'confirmed') return fail()
-        const result = await this.options.exportResult(record)
-        if (
-          result.executionId !== id ||
-          JSON.stringify(result.artifacts) !== JSON.stringify(record.evidence.artifacts)
-        )
-          return fail()
-        for (const file of result.files) {
-          safePath(file.path)
-          if (
-            !result.artifacts.some(
-              (ref) => JSON.stringify(ref) === JSON.stringify(file.artifactRef)
-            ) ||
-            file.digest !== `sha256:${createHash('sha256').update(file.content).digest('hex')}`
-          )
-            return fail()
-        }
+        const result = await this.readResult(record)
         return { ...result, ...(this.reused.has(id) ? { reused: true } : {}) }
+      }
+      case 'materializeArtifact': {
+        if (Object.keys(args).sort().join(',') !== 'artifactRef,executionId') return fail()
+        const record = await core.get(id)
+        const artifact = await this.binaryArtifact(record, args.artifactRef)
+        if (!this.options.materializeArtifact) return fail()
+        const result = await this.options.materializeArtifact(
+          record,
+          artifact.artifactRef,
+          this.artifactIO.signal
+        )
+        if (this.stopped) throw new Error('Optimization binding stopped during materialization')
+        if (outputDigest(result.file) !== outputDigest(artifact)) return fail()
+        return result
       }
       default:
         return fail()
     }
+  }
+  private async readResult(record: ExecutionRecord): Promise<PersistentExecutionExport> {
+    if (record.phase !== 'completed' || record.cleanup !== 'confirmed') return fail()
+    const result = await this.options.exportResult(record)
+    if (
+      result.executionId !== record.executionId ||
+      JSON.stringify(result.artifacts) !== JSON.stringify(record.evidence.artifacts)
+    )
+      return fail()
+    if (result.files.length > MAX_HARNESS_EVIDENCE_FILES) return fail()
+    const names: string[] = []
+    for (const file of result.files) {
+      const path = safePath(file.path).normalize('NFC').toLowerCase()
+      if (
+        names.some(
+          (old) => path === old || path.startsWith(old + '/') || old.startsWith(path + '/')
+        )
+      )
+        return fail()
+      names.push(path)
+      if (!result.artifacts.some((ref) => JSON.stringify(ref) === JSON.stringify(file.artifactRef)))
+        return fail()
+      if ('representation' in file) normalizeCandidateArtifactFile(file)
+      else if (
+        Object.keys(file).sort().join(',') !== 'artifactRef,content,digest,path' ||
+        file.digest !== `sha256:${createHash('sha256').update(file.content).digest('hex')}`
+      )
+        return fail()
+    }
+    return result
+  }
+  private async binaryArtifact(
+    record: ExecutionRecord,
+    ref: unknown
+  ): Promise<CandidateBinaryArtifactFile> {
+    if (!['baseline', 'candidate'].includes(record.request.role)) return fail()
+    const result = await this.readResult(record)
+    const matches = result.files.filter(
+      (file) => 'representation' in file && outputDigest(file.artifactRef) === outputDigest(ref)
+    )
+    if (matches.length !== 1) return fail()
+    return matches[0] as CandidateBinaryArtifactFile
+  }
+  private async contextAssets(
+    value: unknown,
+    context: CandidateTextFile[]
+  ): Promise<CandidateContextAsset[]> {
+    if (value === undefined) return []
+    if (!Array.isArray(value) || value.length + context.length > MAX_HARNESS_EVIDENCE_FILES)
+      return fail()
+    const paths = context.map((entry) => entry.path.normalize('NFC').toLowerCase())
+    const assets: CandidateContextAsset[] = []
+    for (const item of value) {
+      const entry = plain(item)
+      if (Object.keys(entry).sort().join(',') !== 'artifact,path,sourceExecutionId') return fail()
+      const path = safePath(entry.path)
+      const key = path.normalize('NFC').toLowerCase()
+      if (
+        paths.some((old) => key === old || key.startsWith(old + '/') || old.startsWith(key + '/'))
+      )
+        return fail()
+      paths.push(key)
+      const sourceExecutionId = string(entry.sourceExecutionId, 256)
+      if (!this.admitted.has(sourceExecutionId)) return fail()
+      const record = await this.options.core.get(sourceExecutionId)
+      const artifact = await this.binaryArtifact(record, plain(entry.artifact).artifactRef)
+      if (outputDigest(entry.artifact) !== outputDigest(artifact)) return fail()
+      assets.push({ path, sourceExecutionId, artifact })
+    }
+    return assets
   }
   private scopeHeader(scope: string): string {
     return `EarthNano logical task: ${this.options.taskId}. Original method scope: ${scope}. Binding identity digest: ${this.options.bindingIdentity!.digest}.`
@@ -296,6 +377,7 @@ export class HarnessOptimizationBinding {
       system = string(invocation.system ?? '')
     const context = textFiles(args.contextFiles),
       harness = textFiles(args.harnessFiles)
+    const assets = await this.contextAssets(args.assets, context)
     const retryOf = string(invocation.retryOfExecutionId ?? '', 256)
     if (retryOf && !this.admitted.has(retryOf)) return fail()
     if (
@@ -338,10 +420,26 @@ export class HarnessOptimizationBinding {
       // Preserve evidence bytes losslessly while keeping native file/shell expansion syntax
       // out of the actual prompt. This is JSON encoding, not a change to the evidence text.
       JSON.stringify(context).replaceAll('@', '\\u0040').replaceAll('`', '\\u0060'),
+      ...(assets.length
+        ? [
+            'Additional binary assets are available at the listed relative paths under INPUT. The candidate text contains metadata only; inspect the actual assets as supported by your Read tool. Asset availability does not establish scientific correctness.',
+            JSON.stringify(
+              assets.map(({ path, artifact }) => ({
+                path,
+                sizeBytes: artifact.sizeBytes,
+                ...(artifact.contentType ? { contentType: artifact.contentType } : {})
+              }))
+            )
+              .replaceAll('@', '\\u0040')
+              .replaceAll('`', '\\u0060')
+          ]
+        : []),
       ['proposer', 'composer'].includes(role)
         ? 'Emit the complete revised harness as files beneath OUTPUT/context/harness/: instructions.md and optional skills/name/SKILL.md. OUTPUT is the absolute output directory supplied by the Session owner. Read the current harness from the frozen JSON context; do not modify INPUT or any original context directory. Preserve unchanged harness files in the emitted tree. Finish with a short explanation of your changes.'
         : role === 'selector'
-          ? 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. The Session owner persists that committed reply as selector-reply.md; return the original reply directly without a separate file transcription. Do not emit a new task deliverable or alter any candidate.'
+          ? assets.length
+            ? 'Choose among the supplied anonymous candidate outputs. The frozen JSON context contains text and explicitly marked binary metadata; actual binary bytes are available under INPUT at the listed relative asset paths. Metadata does not establish binary content or scientific correctness. Use supported Read tools for the actual assets. Preserve the exact choice block and why format requested by the method in your final assistant reply. Return the original reply directly; do not emit a new research deliverable or alter a candidate.'
+            : 'Your task is to choose among the supplied anonymous candidate outputs, not to produce another solution to the research task. The frozen JSON context above contains the complete candidate files referenced by the method. Use those files as evidence. Preserve the exact choice block and why format requested by the method in your final assistant reply. The Session owner persists that committed reply as selector-reply.md; return the original reply directly without a separate file transcription. Do not emit a new task deliverable or alter any candidate.'
           : role === 'reflection'
             ? 'Reflect on the supplied experiment evidence using the original method format. Preserve the requested <edits> and <experience> blocks in your final assistant reply (or the original NO_ENTRY outcome). The Session owner persists that committed reply as reflection-reply.md; return the original reply directly without a separate file transcription. Do not create another research deliverable, grade your own work, or invent unavailable verification evidence.'
             : notebookLanguageForTools(input.harness.tools) !== undefined
@@ -356,7 +454,8 @@ export class HarnessOptimizationBinding {
     const invocationRef = await snapshots.freezeInvocation({
       taskSnapshotRef: refs.taskSnapshotRef,
       harnessRevisionRef: refs.harnessRevisionRef,
-      mission: roleMission
+      mission: roleMission,
+      ...(assets.length ? { assets } : {})
     })
     const request: ExecutionRequest = {
       contractVersion: 1,

@@ -1,4 +1,5 @@
 import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
+import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candidate-artifact'
 import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import { execFileSync } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
@@ -21,7 +22,8 @@ import { emptyExecutionState, ExecutionCore } from './execution-core'
 import {
   HarnessOptimizationBinding,
   runHarnessProcess,
-  type PersistentExecutionExport
+  type PersistentExecutionExport,
+  type HarnessOptimizationBindingOptions
 } from './harness-optimization'
 import type { ExecutionRequest, ExecutionHandle } from '../../shared/earthnano/execution-port'
 
@@ -61,7 +63,8 @@ const invocation = (role = 'proposer'): Record<string, unknown> => ({
   contextFiles: [{ path: 'context/harness/instructions.md', content: 'Original method' }]
 })
 const setup = async (
-  sourceInput: CandidateSnapshotInput = input
+  sourceInput: CandidateSnapshotInput = input,
+  materializeArtifact?: HarnessOptimizationBindingOptions['materializeArtifact']
 ): Promise<{
   root: string
   binding: HarnessOptimizationBinding
@@ -122,7 +125,8 @@ const setup = async (
     taskId: 't1',
     budgetRef: 'budget',
     timeoutMs: 2000,
-    exportResult: async (record) => ({ ...exportValue, executionId: record.executionId })
+    exportResult: async (record) => ({ ...exportValue, executionId: record.executionId }),
+    materializeArtifact
   })
   return { root, binding, snapshots, core, exportValue, readState: () => structuredClone(state) }
 }
@@ -700,4 +704,207 @@ it('reuses only the exact completed original stage and refuses changed task or r
   await expect(
     binding.dispatch('submit', { request: { ...reused, role: 'candidate' } })
   ).rejects.toThrow()
+})
+
+describe('version-backed binary binding', () => {
+  const binary = (f: Awaited<ReturnType<typeof setup>>): CandidateBinaryArtifactFile => {
+    const checksum = createHash('sha256')
+      .update(Buffer.from([137, 80, 78, 71, 0, 255]))
+      .digest('hex')
+    f.exportValue.artifacts[0]!.checksum = checksum
+    const file = {
+      path: 'plots/figure.png',
+      representation: 'binary' as const,
+      sizeBytes: 6,
+      contentType: 'image/png',
+      digest: `sha256:${checksum}`,
+      artifactRef: f.exportValue.artifacts[0]!
+    }
+    f.exportValue.files = [file]
+    return file
+  }
+  const admitted = async (
+    f: Awaited<ReturnType<typeof setup>>,
+    role = 'baseline'
+  ): Promise<string> => {
+    const request = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    return handle.executionId
+  }
+  it('preserves descriptors and materializes only the admitted completed original reference', async () => {
+    const materialize =
+      vi.fn<NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>>()
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    materialize.mockResolvedValue({ file, assetPath: '/isolated/opaque.png' })
+    const executionId = await admitted(f)
+    expect(
+      ((await f.binding.dispatch('readResult', { executionId })) as PersistentExecutionExport).files
+    ).toEqual([file])
+    expect(
+      await f.binding.dispatch('materializeArtifact', {
+        executionId,
+        artifactRef: file.artifactRef
+      })
+    ).toEqual({ file, assetPath: '/isolated/opaque.png' })
+    expect(materialize.mock.calls[0]![0].executionId).toBe(executionId)
+    expect(materialize.mock.calls[0]![2]?.aborted).toBe(false)
+    for (const args of [
+      { executionId: 'foreign', artifactRef: file.artifactRef },
+      { executionId, artifactRef: { ...file.artifactRef, versionId: 'different' } },
+      { executionId, artifactRef: file.artifactRef, targetPath: '/chosen/by/caller' }
+    ])
+      await expect(f.binding.dispatch('materializeArtifact', args)).rejects.toThrow()
+    expect(materialize).toHaveBeenCalledTimes(1)
+    materialize.mockResolvedValue({
+      file: { ...file, sizeBytes: 7 },
+      assetPath: '/isolated/wrong.png'
+    })
+    await expect(
+      f.binding.dispatch('materializeArtifact', { executionId, artifactRef: file.artifactRef })
+    ).rejects.toThrow()
+  })
+  it('refuses a role reply artifact as a scientific asset and rejects unknown context sources', async () => {
+    const materialize = vi.fn()
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    const executionId = await admitted(f, 'proposer')
+    await expect(
+      f.binding.dispatch('materializeArtifact', { executionId, artifactRef: file.artifactRef })
+    ).rejects.toThrow()
+    await expect(
+      f.binding.dispatch('freezeInvocation', {
+        ...invocation('selector'),
+        assets: [
+          { path: 'candidates/A/opaque.png', sourceExecutionId: executionId, artifact: file }
+        ]
+      })
+    ).rejects.toThrow()
+    await expect(
+      f.binding.dispatch('freezeInvocation', {
+        ...invocation('selector'),
+        assets: [
+          { path: 'candidates/A/opaque.png', sourceExecutionId: 'another-task', artifact: file }
+        ]
+      })
+    ).rejects.toThrow()
+    expect(materialize).not.toHaveBeenCalled()
+  })
+  it('binds assets to invocation identity while keeping private source identities out of the mission', async () => {
+    const f = await setup()
+    const file = binary(f)
+    const executionId = await admitted(f)
+    const asset = {
+      path: 'candidates/A/opaque.png',
+      sourceExecutionId: executionId,
+      artifact: file
+    }
+    const request = (await f.binding.dispatch('freezeInvocation', {
+      ...invocation('selector'),
+      assets: [asset]
+    })) as ExecutionRequest
+    const frozen = await f.snapshots.resolve(request)
+    expect(frozen.invocation.assets).toEqual([asset])
+    expect(frozen.invocation.mission).toContain('actual binary bytes')
+    expect(frozen.invocation.mission).not.toContain(executionId)
+    expect(frozen.invocation.mission).not.toContain(file.artifactRef.artifactId)
+    expect(frozen.invocation.mission).not.toContain(file.artifactRef.checksum)
+    for (const changed of [
+      { ...asset, artifact: { ...file, sizeBytes: 7 } },
+      { ...asset, path: 'context/harness/instructions.md' },
+      { ...asset, artifact: { ...file, content: 'fake PNG text' } }
+    ])
+      await expect(
+        f.binding.dispatch('freezeInvocation', { ...invocation('selector'), assets: [changed] })
+      ).rejects.toThrow()
+  })
+  it('aborts host materialization on stop and never returns a stopped asset', async () => {
+    let entered!: () => void
+    const pending = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    const materialize = vi.fn<
+      NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>
+    >(async (_record, _ref, signal) => {
+      entered()
+      await new Promise<void>((resolve) =>
+        signal!.addEventListener('abort', () => resolve(), { once: true })
+      )
+      return { file, assetPath: '/isolated/opaque.png' }
+    })
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    const executionId = await admitted(f)
+    const operation = f.binding.dispatch('materializeArtifact', {
+      executionId,
+      artifactRef: file.artifactRef
+    })
+    const rejected = expect(operation).rejects.toThrow('stopped')
+    await pending
+    await f.binding.stop()
+    await rejected
+    expect(materialize.mock.calls[0]![2]!.aborted).toBe(true)
+  })
+  it('reuses the exact binary selector invocation and rejects another admitted source without replay', async () => {
+    const f = await setup()
+    const file = binary(f)
+    const firstId = await admitted(f)
+    const otherArgs = invocation('baseline')
+    Object.assign(otherArgs.invocation as Record<string, unknown>, {
+      label: 'other-baseline',
+      stageLabel: 'other-baseline'
+    })
+    const otherRequest = (await f.binding.dispatch(
+      'freezeInvocation',
+      otherArgs
+    )) as ExecutionRequest
+    const other = (await f.binding.dispatch('submit', { request: otherRequest })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(other.executionId)).phase).toBe('completed')
+    const asset = { path: 'candidates/A/opaque.png', sourceExecutionId: firstId, artifact: file }
+    const offered = { ...invocation('selector'), assets: [asset] }
+    const selected = (await f.binding.dispatch('freezeInvocation', offered)) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: selected })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const records = await Promise.all(
+      [firstId, other.executionId, handle.executionId].map((id) => f.core.get(id))
+    )
+    const { outputDigest } = await import('./output-checks')
+    const slots = new Map(
+      records.map((record) => [
+        record.requestKey,
+        outputDigest([
+          record.request.role,
+          record.request.origin.stageId,
+          record.executionId === other.executionId ? 'other-baseline' : 'inv1.a1',
+          1
+        ])
+      ])
+    )
+    const resumed = new HarnessOptimizationBinding({
+      core: f.core,
+      snapshots: f.snapshots,
+      input,
+      projectId: selected.projectId,
+      optimizationId: selected.origin.optimizationId!,
+      taskId: 't1',
+      budgetRef: selected.budgetRef,
+      timeoutMs: selected.timeoutMs,
+      resumeRecords: records,
+      resumeSlot: (key) => slots.get(key),
+      exportResult: async (record) => ({ ...f.exportValue, executionId: record.executionId })
+    })
+    expect(await resumed.dispatch('freezeInvocation', offered)).toEqual(selected)
+    const before = f.readState()
+    await expect(
+      resumed.dispatch('freezeInvocation', {
+        ...offered,
+        assets: [{ ...asset, sourceExecutionId: other.executionId }]
+      })
+    ).rejects.toThrow('identity changed')
+    expect(f.readState()).toEqual(before)
+  })
 })

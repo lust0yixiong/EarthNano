@@ -229,7 +229,7 @@ def execution_run(config, client):
 
     adapter = CatalogAdapter()
     execution = PortMethodExecution(StdioExecutionPort(client),
-                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"]),
+                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"], reader=reader),
                                     reader, poll_interval=0.02)
     execution.resume = config.get("resume", False)
     binding, stream = config["bindingIdentity"], config["stream"]

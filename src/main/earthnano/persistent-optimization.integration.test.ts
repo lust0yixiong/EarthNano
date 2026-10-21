@@ -911,9 +911,10 @@ async function exercise(
               (task) => task.executionIds.includes(record.executionId)
             )
           : 0
-        expect(
-          JSON.parse(exported.files.find((file) => file.path === 'result.json')!.content)
-        ).toEqual({ count: 3, sum: taskIndex > 0 ? 15 : 6 })
+        const json = exported.files.find((file) => file.path === 'result.json')!
+        expect(json).toBeDefined()
+        if ('representation' in json) throw new Error('Declared JSON output must be actual text')
+        expect(JSON.parse(json.content)).toEqual({ count: 3, sum: taskIndex > 0 ? 15 : 6 })
       }
     }
     if (desktop) {

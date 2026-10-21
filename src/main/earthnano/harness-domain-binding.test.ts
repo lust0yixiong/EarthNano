@@ -516,3 +516,38 @@ it('uses one Core and independent frozen Python/R task profiles across original 
   expect(f.execute).toHaveBeenCalledTimes(8)
   expect(Object.values(f.readState().budgets)[0]!.admitted).toBe(8)
 })
+
+it('rejects cross-task context asset references even when task snapshots and artifact bytes match', async () => {
+  const f = await setup()
+  const args = invocation('task-0001')
+  ;(args.invocation as Record<string, unknown>).role = 'baseline'
+  ;(args.invocation as Record<string, unknown>).harvest = null
+  const request = (await f.binding.dispatch('freezeInvocation', args)) as ExecutionRequest
+  const admitted = await submit(f, request)
+  await complete(f, admitted.executionId)
+  const foreign = {
+    path: 'candidates/A/asset.png',
+    sourceExecutionId: admitted.executionId,
+    artifact: {
+      path: 'figure.png',
+      representation: 'binary',
+      sizeBytes: 1,
+      digest: 'sha256:' + 'a'.repeat(64),
+      artifactRef: {
+        artifactId: 'same-artifact-bytes',
+        versionId: 'same-version',
+        checksum: 'a'.repeat(64)
+      }
+    }
+  }
+  await expect(
+    f.binding.dispatch('freezeInvocation', { ...invocation('task-0002'), assets: [foreign] })
+  ).rejects.toThrow('out-of-scope')
+  expect(f.exporters.every((exporter) => exporter.mock.calls.length === 0)).toBe(true)
+  await expect(
+    f.binding.dispatch('materializeArtifact', {
+      executionId: 'outside-domain',
+      artifactRef: foreign.artifact.artifactRef
+    })
+  ).rejects.toThrow('Unowned')
+})

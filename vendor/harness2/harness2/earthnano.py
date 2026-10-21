@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .core import schedule, tree
 from .core.earthnano_binding import (
-    JsonLineClient, PlatformRequestFactory, PlatformResultReader, StdioExecutionPort,
+    binary_alias, JsonLineClient, PlatformRequestFactory, PlatformResultReader, StdioExecutionPort,
     safe_path, text_files,
 )
 from .core.execution_contract import ExecutionStopped
@@ -134,12 +134,44 @@ class EarthNanoAdapter:
     def delivered(self, run_dir):
         return bool(self.reader.view(run_dir)["files"])
 
+    def _binary_metadata(self, run_dir):
+        return [{"logicalPath": entry["path"], "asset": binary_alias(entry),
+                 "sizeBytes": entry["sizeBytes"], **({"contentType": entry["contentType"]}
+                 if "contentType" in entry else {})}
+                for entry in self.reader.view(run_dir)["files"]
+                if entry.get("representation") == "binary"]
+
     def deliverable_files(self, run_dir):
-        return {entry["path"]: entry["content"] for entry in self.reader.view(run_dir)["files"]}
+        files = {entry["path"]: entry["content"] for entry in self.reader.view(run_dir)["files"]
+                 if entry.get("representation") != "binary"}
+        binary = self._binary_metadata(run_dir)
+        if binary:
+            name = "binary-artifacts.metadata.json"
+            while name in files:
+                name = "_" + name
+            files[name] = json.dumps({"representation": "metadata-only",
+                "notice": "This is metadata, not a text conversion, rendering, verification or Review of the binary bytes. The actual original bytes are in raw/<asset>. Any generic context index claim that this metadata is a canonical rendering does not apply to these binary assets.",
+                "assets": binary}, ensure_ascii=False, sort_keys=True)
+        return files
 
     def deliverable_text(self, run_dir):
         return "\n\n".join(f"# {path}\n\n{content}" for path, content
                            in self.deliverable_files(run_dir).items())
+
+    deliverable_assets_reference_only = True
+
+    @staticmethod
+    def deliverable_assets_note(names):
+        return "Original binary assets for this candidate are in `{anon}/`: " + ", ".join(names) + ". Metadata is not their content or an assessment. Open the actual files using supported tools.\n"
+
+    @staticmethod
+    def deliverable_assets_line(shown):
+        return "    context/candidates/<id>/     original binary assets (" + shown + "), not rendered or verified evidence.\n"
+
+    def deliverable_assets(self, run_dir):
+        if not self._binary_metadata(run_dir):
+            return []
+        return self.reader.asset_paths(run_dir)
 
     def trajectory(self, run_dir, *, obs_trunc):
         # The platform projection is the complete readable turn; never inject Review verdicts.
@@ -234,7 +266,7 @@ def run(config, client):
     reader = PlatformResultReader(client, root / "results", resume=config.get("resume", False))
     adapter = EarthNanoAdapter(config, root, reader)
     execution = PortMethodExecution(StdioExecutionPort(client),
-                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"]),
+                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"], reader=reader),
                                     reader, poll_interval=0.02)
     execution.resume = config.get("resume", False)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)
