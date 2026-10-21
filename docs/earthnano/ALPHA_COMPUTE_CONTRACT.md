@@ -12,7 +12,7 @@
 - `main/earthnano/compute-candidate-ports.ts`：host-only `TrustedControlPolicy`；continuation target 精确引用原 `BackgroundResultDeliveryOwnerOptions` 的三个 callback，保留 admission 与 result 两个 promise；route 明确 ordinary/private/private-unavailable，后者不能回退普通 Send。
 - `TrustedExecutionTurnOwner` 只抽取原可信 owner 的共同身份接口；delegated owner 保留原 frame/Attempt 字段，application owner 独立校验原 delivery dispatch，不伪造委派。
 
-本阶段没有开放 Compute 候选工具或改动原 Job/审批生命周期。
+共享类型阶段没有开放 Compute 候选工具或改动原 Job/审批生命周期。下述基础设施整合继续保留候选准入关闭，尚未构成实际 Compute 优化闭环。
 
 ## 后续实现共用的字段与权限
 
@@ -44,7 +44,7 @@
 
 ## 停止、恢复与验证
 
-沿原 driver 的唯一 cancellation registration 组合 exact prompt 和拟新增 optional `cancelOwnedBackground`，监听持续到 readResult 结束。先关闭新准入、取消待审批及 owned Jobs；来源撤权后仍可调用原内部取消。`shutdown.reaped` 必须包含原远端 Job settlement；本地 socket/进程退出或 cancel 请求返回不能升级 cleanup confirmed。未知远端结果保留 unknown 和原 owner 重试事实，不停其他 Session。
+沿原 driver 的唯一 cancellation registration 组合 exact prompt 和现已新增的 optional `cancelOwnedBackground`，监听持续到 readResult 结束。先关闭新准入、取消待审批及 owned Jobs；来源撤权后仍可调用原内部取消。`shutdown.reaped` 必须包含原远端 Job settlement；本地 socket/进程退出或 cancel 请求返回不能升级 cleanup confirmed。未知远端结果保留 unknown 和原 owner 重试事实，不停其他 Session。
 
 重开不调用模型或 submitJob；显式续跑前按原 owner 对已存 Job/continuation 调和。不能仅见 Core interrupted 就创建 retry 并重复提交未知资源。普通 TaskRun 的初始 Turn 边界保持，候选由自己的现有结果 owner 等待后台完成，不改原 Job 或 delivery 状态机。
 
@@ -53,3 +53,11 @@
 共享阶段 6 个测试文件 136/136、无跳过，完整 Node/sandbox/Web compiled types 通过；原始证据随本轮提交保存。执行/审批/Job 候选路径与真实模型验收仍待实施，不因上述 DTO 检查通过就标记功能完成。
 
 来源 helper 已实现为 `main/earthnano/compute-context.ts` 的 `freezeComputeContext` / `assertFrozenComputeContext`，只读原 Session/host repository。可选 providerId 检查原冻结 enabled 集合；原 row id/shape/mode 变化或来源撤权拒绝，新选择/新增 host 不扩张旧任务。3 文件 58/58、完整 compiled types 及 lint 通过，见 [来源身份验证](validation/alpha/compute-source-context/manifest.json)。这些 helper 尚未接入候选启动，不是执行授权或实际 Compute 验收。
+
+## 控制与生命周期基础设施整合
+
+固定 `56c083b1b` 已合入可信 control token 的最小方法交集、源身份复查、原 Compute 审批 policy 传递、原 application attribution 与同 Core continuation admission。原 ACP driver 的唯一取消注册现可在初始 prompt 结束、`readResult` 等待期间取消 owned background；实际 owner 仍须负责当时的 continuation 与原远端 Job 收尾。native preparation 明确接收原 `request.role`，Compute 仅允许 baseline/candidate，方法角色在创建资源前拒绝。
+
+整合的 18 套检查 1024/1024、零跳过，完整 Node/sandbox/Web compiled types、lint、format 通过。原模块 ownership/完整 host DAG 检查也已通过：修复此前九个新增文件的精确登记，未修改原断言、拓扑规则或豁免。原 Job repository、delivery repository、Notebook repository、TaskRunner、Core/scope 等保护文件逐字节保持；两智能体的初始架构失败、原 pin 三例审批红对照和最终结果一并保留，见 [原始验证记录](validation/alpha/compute-control-lifecycle/manifest.json)。
+
+这些检查尚未执行真实 Compute 候选。候选 Session reservation、原 Job 结果等待、跨 Turn producer 证明和桌面接线仍待实现；serializer 继续拒绝 Compute profile。独立审查另复现“availability 检查后私有 owner 退役，零 admission 仍消耗原 delivery 重试次数”的竞态，正在修复，不以本次 1024 项通过掩盖该缺口。取消 hook 也不得反等 `readResult` 或同一 context signal，避免原 Core 等物理取消时形成循环等待。未开展 Windows、外部 SSH/Slurm、付费模型、原生包或发布操作。
