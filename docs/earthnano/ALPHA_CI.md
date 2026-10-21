@@ -1,5 +1,21 @@
 # EarthNano Alpha CI and pinned upstream evidence
 
+2026-10-21 实测更新：原生 [run39555053834](https://github.com/lust0yixiong/EarthNano/actions/runs/39555053834)
+固定源码 `c1e663279` 的 macOS ARM64、macOS Intel、Linux x64、Linux ARM64 四个目标，
+均已通过原完整构建、打包、资源、安装与启动检查；两个 Mac 均通过实际 Icon Composer 编译及
+DMG/ZIP catalog/fallback 检查。Windows 原运行时仍在构建，不能称为五目标验收完成。
+本轮是 unsigned CI 包，没有发布、Developer ID 签名、公证或 Gatekeeper 验收。
+原始 job/log、产物摘要及数据库迁移凭据保存在
+[`validation/alpha/native-39555053834/manifest.json`](validation/alpha/native-39555053834/manifest.json)。
+
+源码验证的 observer 独立目录加载缺陷已用真实 Vitest 复现修复前失败、修复后通过，
+因此取消已知不可用的旧 source run `39555261888`，等待修复后的完整比较。
+Linux 同 runner cohort 与无依赖 observer 的集成源码 `0eba46d76` 经本地 49/49 测试、
+完整 Node/sandbox/Web compiled types 和格式检查通过；这些不替代 hosted 32 份原始报告。
+核对证明原 `sourceShard`、归一化、进程检查及比较函数逐字未改，原生工作流也未改。
+红/绿、原 Linux 镜像漂移拒绝结果及本地记录见
+[`validation/alpha/source-cohort/manifest.json`](validation/alpha/source-cohort/manifest.json)。
+
 `.github/workflows/earthnano-ci.yml` is a dedicated, read-only workflow. It has no schedule,
 signing credentials, publishing step, model credentials, or privileged PR-target trigger. Existing
 upstream workflows are retained as source history; the repository administrator must disable them
