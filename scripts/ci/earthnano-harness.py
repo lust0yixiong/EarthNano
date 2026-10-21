@@ -15,7 +15,7 @@ HARNESS_TREE = "edc756a4d03a2826a248115482084a176e60e751"
 
 def source_identity(root, kind):
     def git(*args):
-        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True, encoding="utf-8").strip()
 
     repo = Path(git("rev-parse", "--show-toplevel")).resolve()
     commit, tree = git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}")
@@ -24,7 +24,7 @@ def source_identity(root, kind):
         if root != repo or commit != HARNESS_PIN or tree != HARNESS_TREE:
             raise RuntimeError("Wrong original Harness source pin/tree")
     elif kind == "candidate":
-        pins = json.loads((repo / "UPSTREAMS.json").read_text())["upstreams"]
+        pins = json.loads((repo / "UPSTREAMS.json").read_text(encoding="utf-8"))["upstreams"]
         pin = next(entry for entry in pins if entry["name"] == "Harness²")
         if pin["commit"] != HARNESS_PIN or pin["tree"] != HARNESS_TREE or scope != "vendor/harness2":
             raise RuntimeError("Wrong candidate Harness provenance")
@@ -81,7 +81,7 @@ def run_inventory(root, output, source):
 
     result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(unittest.defaultTestLoader.discover("tests"))
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps({"schemaVersion": 1, "pins": {"harness": HARNESS_PIN, "tree": HARNESS_TREE}, "source": source, "python": sys.version, "executable": sys.executable, "arch": platform.machine(), "platform": sys.platform, "collectionErrors": collection_errors, "testsRun": result.testsRun, "tests": tests}, indent=2) + "\n")
+    output.write_text(json.dumps({"schemaVersion": 1, "pins": {"harness": HARNESS_PIN, "tree": HARNESS_TREE}, "source": source, "python": sys.version, "executable": sys.executable, "arch": platform.machine(), "platform": sys.platform, "collectionErrors": collection_errors, "testsRun": result.testsRun, "tests": tests}, indent=2) + "\n", encoding="utf-8")
     # Failed tests are compared rather than hidden by shell continuation; malformed discovery
     # and missing outcomes remain fatal to the comparison gate.
     if collection_errors or result.testsRun != len(tests) or not tests:
@@ -101,9 +101,9 @@ def main():
         if source_identity(root, args.kind) != source:
             raise RuntimeError("Harness source changed during discovery")
     except Exception:
-        report = json.loads(output.read_text())
+        report = json.loads(output.read_text(encoding="utf-8"))
         report["unavailable"] = "source-changed"
-        output.write_text(json.dumps(report, indent=2) + "\n")
+        output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         raise
 
 

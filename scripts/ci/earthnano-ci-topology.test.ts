@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 
@@ -56,8 +56,8 @@ const recipe = (kind: string): Workflow =>
     readFileSync(`.github/workflows/earthnano-${kind}.yml`, 'utf8').replaceAll('inputs.', 'matrix.')
   ) as Workflow
 
-describe('EarthNano runtime dependency split', () => {
-  it('plans one Linux cohort plus eight macOS and sixteen Windows jobs covering all original shards', () => {
+describe('EarthNano 0.1 Unix CI scope', () => {
+  it('plans one Linux cohort plus eight macOS jobs covering all selected original shards', () => {
     const root = mkdtempSync(join(tmpdir(), 'earthnano-ci-plan-'))
     try {
       const output = join(root, 'output')
@@ -82,27 +82,22 @@ describe('EarthNano runtime dependency split', () => {
           include: Array<{ os: string; kind: string; shard: number; total: number; batch: boolean }>
         }
       >
-      expect(Object.keys(plans).sort()).toEqual(['unix_matrix', 'windows_matrix'])
+      expect(Object.keys(plans)).toEqual(['unix_matrix'])
       expect(plans.unix_matrix.include).toHaveLength(9)
-      expect(plans.windows_matrix.include).toHaveLength(16)
       expect(plans.unix_matrix.include.every((row) => !row.os.startsWith('windows-'))).toBe(true)
-      expect(plans.windows_matrix.include.every((row) => row.os === 'windows-2022')).toBe(true)
       expect(plans.unix_matrix.include.filter((row) => row.os === 'ubuntu-24.04')).toEqual([
         { os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true }
       ])
       expect(plans.unix_matrix.include.filter((row) => row.os === 'macos-15')).toHaveLength(8)
-      expect(
-        [...plans.unix_matrix.include, ...plans.windows_matrix.include].filter((row) => !row.batch)
-      ).toHaveLength(24)
+      expect(plans.unix_matrix.include.filter((row) => !row.batch)).toHaveLength(8)
       const expected = []
       for (const [os, total] of [
         ['ubuntu-24.04', 4],
-        ['macos-15', 4],
-        ['windows-2022', 8]
+        ['macos-15', 4]
       ] as const)
         for (const kind of ['baseline', 'candidate'])
           for (let shard = 1; shard <= total; shard++) expected.push({ os, kind, shard, total })
-      const rows = [...plans.unix_matrix.include, ...plans.windows_matrix.include].flatMap((row) =>
+      const rows = plans.unix_matrix.include.flatMap((row) =>
         row.batch
           ? ['baseline', 'candidate'].flatMap((kind) =>
               Array.from({ length: 4 }, (_, index) => ({
@@ -115,30 +110,32 @@ describe('EarthNano runtime dependency split', () => {
           : [{ os: row.os, kind: row.kind, shard: row.shard, total: row.total }]
       )
       expect(rows).toEqual(expected)
-      expect(new Set(rows.map((row) => `${row.os}/${row.kind}/${row.shard}`)).size).toBe(32)
+      expect(new Set(rows.map((row) => `${row.os}/${row.kind}/${row.shard}`)).size).toBe(16)
       expect(workflow.jobs.plan.outputs).toEqual({
-        unix_matrix: '${{ steps.matrix.outputs.unix_matrix }}',
-        windows_matrix: '${{ steps.matrix.outputs.windows_matrix }}'
+        unix_matrix: '${{ steps.matrix.outputs.unix_matrix }}'
       })
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  it('allows Unix source/native jobs to start without a completed Windows cold build', () => {
+  it('requires only Unix source/native jobs and no Windows dependency', () => {
     expect(needs(workflow.jobs.source_unix)).toEqual(['plan'])
     expect(needs(workflow.jobs.native_unix)).toEqual([])
     expect(needs(workflow.jobs.plan)).toEqual([])
-    expect(needs(workflow.jobs.source_windows)).toEqual(['plan', 'windows_runtime'])
-    expect(needs(workflow.jobs.native_windows)).toEqual(['windows_runtime'])
-    for (const [name, output] of [
-      ['source_unix', 'unix_matrix'],
-      ['source_windows', 'windows_matrix']
+    expect(Object.keys(workflow.jobs)).toEqual([
+      'plan',
+      'source_unix',
+      'comparison',
+      'harness',
+      'native_unix'
     ])
+    expect(Object.values(workflow.jobs).flatMap(needs)).not.toContain('windows_runtime')
+    for (const [name, output] of [['source_unix', 'unix_matrix']])
       expect(workflow.jobs[name].strategy).toEqual({
         'fail-fast': false,
         matrix: '${{ fromJSON(needs.plan.outputs.' + output + ') }}'
       })
-    const targets = ['native_unix', 'native_windows'].flatMap((name) => {
+    const targets = ['native_unix'].flatMap((name) => {
       expect(workflow.jobs[name].strategy!['fail-fast']).toBe(false)
       return (workflow.jobs[name].strategy!.matrix as { include: unknown[] }).include
     })
@@ -146,8 +143,7 @@ describe('EarthNano runtime dependency split', () => {
       { os: 'macos-26', platform: 'mac', arch: 'arm64', subdir: 'osx-arm64' },
       { os: 'macos-26-intel', platform: 'mac', arch: 'x64', subdir: 'osx-64' },
       { os: 'ubuntu-24.04', platform: 'linux', arch: 'x64', subdir: 'linux-64' },
-      { os: 'ubuntu-24.04-arm', platform: 'linux', arch: 'arm64', subdir: 'linux-aarch64' },
-      { os: 'windows-2022', platform: 'win', arch: 'x64', subdir: 'win-64' }
+      { os: 'ubuntu-24.04-arm', platform: 'linux', arch: 'arm64', subdir: 'linux-aarch64' }
     ])
   })
   it.each([
@@ -177,13 +173,20 @@ describe('EarthNano runtime dependency split', () => {
               command
           ],
           {
-            env: { ...process.env, RUNNER_OS: runner, RUNNER_TEMP: directory, CAPTURE: capture },
+            env: {
+              ...process.env,
+              RUNNER_OS: runner,
+              RUNNER_TEMP: `${directory}/.`,
+              CAPTURE: capture
+            },
             encoding: 'utf8'
           }
         )
         expect(result.status, result.stderr).toBe(valid ? 0 : 1)
-        if (valid)
-          expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
+        if (valid) {
+          const args = readFileSync(capture, 'utf8').trim().split('\n')
+          // Bash retains mixed separators (and redundant /.); compare the exact Node path identity.
+          expect([...args.slice(0, -1), resolve(args.at(-1)!)]).toEqual([
             'scripts/ci/earthnano-source.mjs',
             ...(batch
               ? ['source-batch']
@@ -191,13 +194,13 @@ describe('EarthNano runtime dependency split', () => {
             '--out',
             join(directory, 'source-report')
           ])
-        else expect(readdirSync(directory)).not.toContain('args')
+        } else expect(readdirSync(directory)).not.toContain('args')
       } finally {
         rmSync(directory, { recursive: true, force: true })
       }
     }
   )
-  it('retains all five upstream native tuples, including its exact Linux ARM64 runner and resources', () => {
+  it('retains the four selected upstream Unix native tuples, including exact Linux ARM64 resources', () => {
     const pinnedBuild = spawnSync(
       'git',
       ['show', '9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5:.github/workflows/build.yml'],
@@ -219,21 +222,22 @@ describe('EarthNano runtime dependency split', () => {
       engine_keep: string
     }>
     expect(upstream).toHaveLength(5)
-    const targets = ['native_unix', 'native_windows'].flatMap(
+    const targets = ['native_unix'].flatMap(
       (name) => (workflow.jobs[name].strategy!.matrix as { include: unknown[] }).include
     )
-    // Preserve the existing x64 Linux/Windows image pins; the added ARM64 tuple is byte-for-byte upstream.
+    // Preserve the existing x64 Linux image pin and exact original Unix target architectures/resources.
     const existingRunnerPins: Record<string, string> = {
-      'linux-x64': 'ubuntu-24.04',
-      'win-x64': 'windows-2022'
+      'linux-x64': 'ubuntu-24.04'
     }
     expect(targets).toEqual(
-      upstream.map((target) => ({
-        os: existingRunnerPins[`${target.platform}-${target.bin_arch}`] ?? target.os,
-        platform: target.platform,
-        arch: target.bin_arch,
-        subdir: target.subdir
-      }))
+      upstream
+        .filter((target) => ['mac', 'linux'].includes(target.platform))
+        .map((target) => ({
+          os: existingRunnerPins[`${target.platform}-${target.bin_arch}`] ?? target.os,
+          platform: target.platform,
+          arch: target.bin_arch,
+          subdir: target.subdir
+        }))
     )
     const arm = upstream.find(
       (target) => target.platform === 'linux' && target.bin_arch === 'arm64'
@@ -288,7 +292,7 @@ describe('EarthNano runtime dependency split', () => {
   )
   it('shares exact original recipes instead of copying commands into split callers', () => {
     for (const kind of ['source', 'native']) {
-      for (const platform of ['unix', 'windows']) {
+      for (const platform of ['unix']) {
         const job = workflow.jobs[`${kind}_${platform}`]
         expect(job.uses).toBe(`./.github/workflows/earthnano-${kind}.yml`)
         expect(job.steps).toBeUndefined()
@@ -427,12 +431,11 @@ describe('EarthNano runtime dependency split', () => {
     expect(observed.candidate).not.toHaveProperty('passed')
     expect(observed.candidate).not.toHaveProperty('failed')
   })
-  it('pins the same exact host Node across original source/native, Windows runtime and report helpers', () => {
+  it('pins the same exact host Node across selected source/native and report helpers', () => {
     expect(readFileSync('.github/earthnano-node-version', 'utf8')).toBe('24.22.0\n')
     const selected = [
       readWorkflow('source').jobs.source,
       readWorkflow('native').jobs.native,
-      workflow.jobs.windows_runtime,
       workflow.jobs.comparison,
       workflow.jobs.harness
     ]
@@ -448,10 +451,6 @@ describe('EarthNano runtime dependency split', () => {
         job.steps!.findIndex((step) => step.uses?.startsWith('actions/checkout@'))
       ).toBeLessThan(job.steps!.indexOf(node[0]))
     }
-    const steps = workflow.jobs.windows_runtime.steps!
-    expect(steps.findIndex((step) => step.uses?.startsWith('actions/setup-node@'))).toBeLessThan(
-      steps.findIndex((step) => step.uses === './.github/actions/windows-notebook-runtime')
-    )
     // The patched AppContainer binary has its own original source pin; changing the host tool
     // must not change the compiled Notebook runtime or its integrity/catalog inputs.
     const bundled = JSON.parse(
@@ -470,25 +469,21 @@ describe('EarthNano runtime dependency split', () => {
     expect(original.status, original.stderr).toBe(0)
     expect(readFileSync('.github/workflows/native-components.yml', 'utf8')).toBe(original.stdout)
   })
-  it('bounds Linux cohort at 360 minutes and retains other source/native and cold-build deadlines', () => {
-    expect(workflow.jobs.windows_runtime['timeout-minutes']).toBe(150)
+  it('bounds Linux cohort at 360 minutes and retains other selected source/native deadlines', () => {
     expect(readWorkflow('source').jobs.source['timeout-minutes']).toBe(
       '${{ inputs.batch && 360 || 90 }}'
     )
     expect(readWorkflow('native').jobs.native['timeout-minutes']).toBe(90)
     expect(workflow.jobs.comparison['timeout-minutes']).toBe(10)
     expect(workflow.jobs.harness['timeout-minutes']).toBe(15)
-    expect(
-      workflow.jobs.windows_runtime.steps!.find((step) => step.uses?.startsWith('./'))!.uses
-    ).toBe('./.github/actions/windows-notebook-runtime')
   })
   it('runs comparison even when source dependencies fail or skip, except the explicit native-only branch', () => {
     const job = workflow.jobs.comparison
     expect(job).not.toHaveProperty('continue-on-error')
-    expect(needs(job)).toEqual(['source_unix', 'source_windows'])
+    expect(needs(job)).toEqual(['source_unix'])
     expect(job.if).toBe("always() && github.ref != 'refs/heads/ci/earthnano-native'")
     const check = job.steps!.findIndex(
-      (step) => step.name === 'Require both complete source matrices'
+      (step) => step.name === 'Require complete Unix source matrix'
     )
     const download = job.steps!.findIndex((step) =>
       step.uses?.startsWith('actions/download-artifact@')
@@ -500,23 +495,21 @@ describe('EarthNano runtime dependency split', () => {
     expect(download).toBeGreaterThan(check)
     expect(compare).toBeGreaterThan(download)
     expect(job.steps![check].env).toEqual({
-      SOURCE_UNIX_RESULT: '${{ needs.source_unix.result }}',
-      SOURCE_WINDOWS_RESULT: '${{ needs.source_windows.result }}'
+      SOURCE_UNIX_RESULT: '${{ needs.source_unix.result }}'
     })
     expect(job.steps![compare].run).toBe(
-      'node scripts/ci/earthnano-source.mjs compare --reports source-reports --out test-results/earthnano-ci'
+      'node scripts/ci/earthnano-source.mjs compare --platforms darwin,linux --reports source-reports --out test-results/earthnano-ci'
     )
   })
   it.each([undefined, '', 'skipped', 'failure', 'cancelled', 'neutral'])(
     'rejects missing or non-success matrix status %s before report comparison',
     (status) => {
       const check = workflow.jobs.comparison.steps!.find(
-        (step) => step.name === 'Require both complete source matrices'
+        (step) => step.name === 'Require complete Unix source matrix'
       )!
-      for (const failed of ['SOURCE_UNIX_RESULT', 'SOURCE_WINDOWS_RESULT']) {
+      for (const failed of ['SOURCE_UNIX_RESULT']) {
         const env: Record<string, string> = {
-          SOURCE_UNIX_RESULT: 'success',
-          SOURCE_WINDOWS_RESULT: 'success'
+          SOURCE_UNIX_RESULT: 'success'
         }
         if (status === undefined) delete env[failed]
         else env[failed] = status
@@ -526,13 +519,13 @@ describe('EarthNano runtime dependency split', () => {
       }
     }
   )
-  it('accepts both successful matrices while leaving report inventory validation mandatory', () => {
+  it('accepts the successful Unix matrix while leaving report inventory validation mandatory', () => {
     const check = workflow.jobs.comparison.steps!.find(
-      (step) => step.name === 'Require both complete source matrices'
+      (step) => step.name === 'Require complete Unix source matrix'
     )!
     expect(
       spawnSync(process.execPath, ['-e', check.run!], {
-        env: { SOURCE_UNIX_RESULT: 'success', SOURCE_WINDOWS_RESULT: 'success' }
+        env: { SOURCE_UNIX_RESULT: 'success' }
       }).status
     ).toBe(0)
   })
@@ -541,7 +534,7 @@ describe('EarthNano runtime dependency split', () => {
     expect(workflow.on.push.branches).toEqual(['main', 'ci/earthnano-native'])
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.on.pull_request_target).toBeUndefined()
-    for (const name of ['native_unix', 'native_windows'])
+    for (const name of ['native_unix'])
       expect(workflow.jobs[name].if).toBe(
         "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
           "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
