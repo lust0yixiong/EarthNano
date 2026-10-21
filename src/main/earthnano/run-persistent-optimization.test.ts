@@ -1,4 +1,13 @@
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -14,6 +23,7 @@ const f = vi.hoisted(() => ({
   get: vi.fn(),
   exportResult: vi.fn(),
   readReviews: vi.fn(),
+  ownerOptions: vi.fn(),
   executionIds: ['baseline'],
   settle: vi.fn(async () => true),
   outcome: vi.fn(async () => ({
@@ -45,11 +55,14 @@ vi.mock('./harness-optimization', () => ({
   runHarnessProcess: f.method
 }))
 vi.mock('./persistent-candidate-owner', () => ({
-  createPersistentCandidateOwners: () => ({
-    exportResult: f.exportResult,
-    readReviews: f.readReviews,
-    shutdown: f.shutdown
-  })
+  createPersistentCandidateOwners: (options: unknown) => {
+    f.ownerOptions(options)
+    return {
+      exportResult: f.exportResult,
+      readReviews: f.readReviews,
+      shutdown: f.shutdown
+    }
+  }
 }))
 vi.mock('./semantic-evaluation', async (original) => ({
   ...(await original<typeof import('./semantic-evaluation')>()),
@@ -105,6 +118,24 @@ const options = async (): Promise<PersistentSingleOptimizationOptions> => {
     timeoutMs: 1000
   }
 }
+it('resolves a trusted host work-root alias before allocating binary projections', async () => {
+  const o = await options()
+  const root = roots.at(-1)!
+  const host = join(root, 'canonical-host')
+  const alias = join(root, 'host-alias')
+  await mkdir(host, { mode: 0o700 })
+  await symlink(host, alias, 'junction')
+  o.workRoot = join(alias, 'run')
+  f.executionIds = []
+  f.method.mockRejectedValue(new Error('HOST_PATH_OBSERVED_NO_ADMISSIONS'))
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toThrow('HOST_PATH_OBSERVED_NO_ADMISSIONS')
+  expect(f.ownerOptions).toHaveBeenCalledExactlyOnceWith({
+    ...o.ownerOptions,
+    artifactProjectionRoot: join(await realpath(o.workRoot), 'artifact-projections')
+  })
+  expect(f.evaluate).not.toHaveBeenCalled()
+})
 it('emits a private sweep configuration accepted by the real Python entry before any method admission', async () => {
   const o = await options()
   const python = execFileSync(

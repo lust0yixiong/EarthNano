@@ -1,5 +1,5 @@
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
@@ -442,7 +442,9 @@ export async function runPersistentOptimization(
     failureStage = 'owner-validation'
     owners = createPersistentCandidateOwners({
       ...options.ownerOptions,
-      artifactProjectionRoot: join(options.workRoot, 'artifact-projections')
+      // Match the original snapshot owner: canonicalize the existing host root, not the new
+      // projection leaf. System aliases such as macOS /var must not weaken child-link checks.
+      artifactProjectionRoot: join(await realpath(options.workRoot), 'artifact-projections')
     })
     if (options.resume) {
       for (const record of previousRecords) {
