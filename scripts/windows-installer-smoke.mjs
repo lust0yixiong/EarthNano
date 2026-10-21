@@ -308,6 +308,8 @@ const runProcess = (executable, args, options = {}, terminate = terminateProcess
     const child = spawn(executable, args, {
       cwd: options.cwd,
       env: options.env,
+      argv0: options.argv0,
+      windowsVerbatimArguments: options.windowsVerbatimArguments,
       windowsHide: true
     })
     let stdout = ''
@@ -1193,7 +1195,11 @@ const installApplication = async (installer, installDirectory, env, run = runPro
   try {
     await run(installer, ['/S', `/D=${installDirectory}`], {
       env,
-      timeoutMs: INSTALLER_TIMEOUT_MS
+      timeoutMs: INSTALLER_TIMEOUT_MS,
+      // NSIS requires an unquoted final /D suffix, including spaces. With verbatim Windows
+      // arguments, quote only argv[0]; CreateProcess still receives the executable separately.
+      windowsVerbatimArguments: true,
+      argv0: `"${installer}"`
     })
   } catch (error) {
     console.error(
@@ -1201,7 +1207,8 @@ const installApplication = async (installer, installDirectory, env, run = runPro
         phase: 'installApplication',
         installer,
         args: ['/S', `/D=${installDirectory}`],
-        windowsVerbatimArguments: false,
+        windowsVerbatimArguments: true,
+        argv0: `"${installer}"`,
         installDirectory,
         profile: Object.fromEntries(
           ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'].map((key) => [

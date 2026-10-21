@@ -4,14 +4,14 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { copyFile, mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const NSIS_RELEASE = 'nsis-3.0.4.1'
 const NSIS_ARCHIVE_SHA256 = '9877df902530f96357d13a7a31ae2b9df67f48b11ffc9a1700a7c961574ec5fa'
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
-const readArchivedCompiler = async (archive, cacheRoot) => {
+const readArchivedMember = async (archive, cacheRoot, member) => {
   // This original toolset already unpacked NSIS. Never call its downloading resolver.
   const release = join(cacheRoot, '7zip@1.0.0')
   const prefix = `7zip-win-${process.arch}-`
@@ -26,18 +26,21 @@ const readArchivedCompiler = async (archive, cacheRoot) => {
     throw new Error('NSIS diagnostic unavailable: expected one original cached 7zip toolset.')
   }
   // Read one original member to stdout without extracting/installing files.
-  const result = spawnSync(candidates[0], ['e', '-so', archive, 'Bin/makensis.exe'], {
+  const result = spawnSync(candidates[0], ['e', '-so', archive, member], {
     windowsHide: true,
     timeout: 15_000,
     maxBuffer: 8 * 1024 * 1024
   })
   if (result.error || result.status !== 0 || result.signal || !result.stdout?.length) {
-    throw new Error('NSIS diagnostic unavailable: cannot read original archived compiler bytes.')
+    throw new Error(`NSIS diagnostic unavailable: cannot read original archived ${member} bytes.`)
   }
   return result.stdout
 }
 
 // Resolve only the already extracted original bundle. No downloader, PATH fallback, or override.
+const readArchivedCompiler = (archive, cacheRoot) =>
+  readArchivedMember(archive, cacheRoot, 'Bin/makensis.exe')
+
 const cachedCompiler = async (
   cacheRoot,
   expectedArchiveHash = NSIS_ARCHIVE_SHA256,
@@ -75,33 +78,107 @@ const cachedCompiler = async (
   return { ...compiler, archiveCompilerSha256 }
 }
 
+const cachedResources = async (
+  cacheRoot,
+  archiveSha256 = '593a9a92ef958321293ac6a2ee61e64bf1bd543142a5bd6b3d310709cc924103',
+  readPlugin = readArchivedMember
+) => {
+  const releaseName = 'nsis-resources-3.4.1'
+  const release = join(cacheRoot, releaseName)
+  const archive = join(release, `${releaseName}.7z`)
+  if (sha256(await readFile(archive)) !== archiveSha256)
+    throw new Error('Cached original NSIS resources checksum mismatch.')
+  const candidates = []
+  for (const entry of await readdir(release, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^nsis-resources-3\.4\.1-[a-z0-9]{5}$/.test(entry.name)) continue
+    const directory = join(release, entry.name, 'plugins', 'x86-unicode')
+    const plugin = join(directory, 'StdUtils.dll')
+    if ((await stat(plugin).catch(() => undefined))?.isFile())
+      candidates.push({ directory, plugin })
+  }
+  if (candidates.length !== 1)
+    throw new Error(
+      `Expected exactly one original cached StdUtils plugin, found ${candidates.length}.`
+    )
+  const resources = candidates[0]
+  const pluginSha256 = sha256(
+    await readPlugin(archive, cacheRoot, 'plugins/x86-unicode/StdUtils.dll')
+  )
+  if (sha256(await readFile(resources.plugin)) !== pluginSha256)
+    throw new Error('Cached StdUtils plugin differs from original archive.')
+  return { ...resources, archive, archiveSha256, pluginSha256 }
+}
+
+const lockedTemplates = async () => {
+  const require = createRequire(import.meta.url)
+  const packageFile = require.resolve('app-builder-lib/package.json')
+  const installed = JSON.parse(await readFile(packageFile, 'utf8'))
+  const lock = JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url), 'utf8'))
+  const expectedVersion = lock.packages['node_modules/app-builder-lib'].version
+  if (installed.version !== expectedVersion)
+    throw new Error('NSIS probe requires the lockfile-selected app-builder-lib.')
+  const directory = join(dirname(packageFile), 'templates', 'nsis')
+  const multiUser = await readFile(join(directory, 'multiUser.nsh'), 'utf8')
+  const macroSource = multiUser.match(/!macro GetDParameter outVar[\s\S]*?!macroend/)?.[0]
+  if (!macroSource) throw new Error('Locked NSIS GetDParameter macro unavailable.')
+  return {
+    directory,
+    version: installed.version,
+    macroSource,
+    multiUserSha256: sha256(Buffer.from(multiUser)),
+    stdUtilsSha256: sha256(await readFile(join(directory, 'include', 'StdUtils.nsh')))
+  }
+}
+
 const probeSource = `Unicode true
+!addincludedir "\${APP_BUILDER_NSIS_DIR}"
+!addincludedir "\${APP_BUILDER_NSIS_DIR}\\include"
+!addplugindir /x86-unicode "\${APP_BUILDER_NSIS_PLUGIN_DIR}"
+!include "LogicLib.nsh"
+!include "StdUtils.nsh"
+!define APP_GUID "earthnano-argument-observation"
+!define UNINSTALL_APP_KEY "earthnano-argument-observation"
+!define INSTALL_MODE_PER_ALL_USERS
+!include "multiUser.nsh"
 Name "EarthNano NSIS argument observation"
 OutFile "probe.exe"
 InstallDir "$EXEDIR\\default-target"
 RequestExecutionLevel user
 SilentInstall silent
 Section
+  System::Call 'kernel32::GetCommandLineW() w .r1'
+  StrCpy $2 $INSTDIR
+  !insertmacro GetDParameter $R0
+  \${If} $R0 != ""
+    StrCpy $INSTDIR $R0
+  \${EndIf}
   ClearErrors
   FileOpen $0 "$EXEDIR\\observation.txt" w
   IfErrors failed
-  System::Call 'kernel32::GetCommandLineW() w .r1'
-  FileWriteUTF16LE /BOM $0 "$1$\\r$\\n$CMDLINE$\\r$\\n$INSTDIR"
+  FileWriteUTF16LE /BOM $0 "$1$\\r$\\n$CMDLINE$\\r$\\n$INSTDIR$\\r$\\n$R0$\\r$\\n$2"
   FileClose $0
   IfErrors failed
-  Quit
+  SetErrorLevel 0
+  Goto done
 failed:
   SetErrorLevel 3
+done:
 SectionEnd
 `
 
 const parseObservation = (bytes) => {
   if (bytes[0] !== 0xff || bytes[1] !== 0xfe) throw new Error('Missing UTF-16LE probe receipt BOM.')
   const lines = bytes.subarray(2).toString('utf16le').split('\r\n')
-  if (lines.length !== 3 || lines.some((line) => !line))
+  if (lines.length !== 5 || lines.some((line) => !line))
     throw new Error('Invalid NSIS probe receipt.')
   // NSIS removes a recognized /D suffix from $CMDLINE; retain GetCommandLineW separately.
-  return { rawCommandLine: lines[0], nsisCommandLine: lines[1], installDirectory: lines[2] }
+  return {
+    rawCommandLine: lines[0],
+    nsisCommandLine: lines[1],
+    installDirectory: lines[2],
+    dParameter: lines[3],
+    builtinInstallDirectory: lines[4]
+  }
 }
 
 const execute = (executable, args, options) => {
@@ -120,11 +197,12 @@ const execute = (executable, args, options) => {
   }
 }
 
-const runArgumentProbe = async ({ compiler, out, env = process.env, run = execute }) => {
+const runArgumentProbe = async ({ compiler, resources, out, env = process.env, run = execute }) => {
   await mkdir(out, { recursive: true })
   // This fresh owned directory contains all probe writes. No installation/registry/cleanup actions.
   const work = await mkdtemp(join(resolve(out), 'nsis-arguments-'))
   const report = {
+    schemaVersion: 2,
     purpose: 'NSIS argument mechanism observation; does not diagnose or fix application exit 2',
     node: process.version,
     uv: process.versions.uv,
@@ -146,6 +224,9 @@ const runArgumentProbe = async ({ compiler, out, env = process.env, run = execut
     }
   }
   try {
+    report.parser = await lockedTemplates()
+    if (!resources?.directory) throw new Error('Original cached StdUtils resources unavailable.')
+    report.resources = resources
     const compilerEnv = { ...env, NSISDIR: compiler.directory }
     report.version = await run(compiler.executable, ['/VERSION'], {
       env: compilerEnv,
@@ -158,11 +239,21 @@ const runArgumentProbe = async ({ compiler, out, env = process.env, run = execut
     })
     requireSuccess(report.headerInfo, 'NSIS build configuration observation')
     await writeFile(join(work, 'probe.nsi'), `\ufeff${probeSource}`, 'utf8')
-    report.compile = await run(compiler.executable, ['/NOCONFIG', '/V4', 'probe.nsi'], {
-      cwd: work,
-      env: compilerEnv,
-      timeout: 60_000
-    })
+    report.compile = await run(
+      compiler.executable,
+      [
+        '/NOCONFIG',
+        '/V4',
+        `/DAPP_BUILDER_NSIS_DIR=${report.parser.directory}`,
+        `/DAPP_BUILDER_NSIS_PLUGIN_DIR=${resources.directory}`,
+        'probe.nsi'
+      ],
+      {
+        cwd: work,
+        env: compilerEnv,
+        timeout: 60_000
+      }
+    )
     requireSuccess(report.compile, 'NSIS probe compilation')
     const probe = join(work, 'probe.exe')
     report.probeSha256 = sha256(await readFile(probe))
@@ -182,10 +273,8 @@ const runArgumentProbe = async ({ compiler, out, env = process.env, run = execut
     const probeEnv = { ...env, ...profile }
     report.probeProfile = profile
     for (const mode of ['default', 'verbatim-observation']) {
-      const directory = join(work, mode)
-      await mkdir(directory)
+      const directory = join(work, `${mode} executable 程序`)
       const executable = join(directory, basename(probe))
-      await copyFile(probe, executable)
       const target = join(work, 'installed app 程序')
       const args = ['/S', `/D=${target}`]
       const options = { env: probeEnv, timeout: 15_000 }
@@ -194,21 +283,47 @@ const runArgumentProbe = async ({ compiler, out, env = process.env, run = execut
         // With verbatim argv, explicitly quote only argv[0], never the /D argument.
         options.argv0 = `"${executable}"`
       }
-      const result = await run(executable, args, options)
-      const observation = { mode, executable, args, target, argv0: options.argv0, ...result }
+      const observation = {
+        mode,
+        executable,
+        args,
+        target,
+        argv0: options.argv0,
+        windowsVerbatimArguments: options.windowsVerbatimArguments ?? false
+      }
       report.cases.push(observation)
-      requireSuccess(result, `${mode} probe execution`)
-      Object.assign(
-        observation,
-        parseObservation(await readFile(join(directory, 'observation.txt')))
-      )
-      observation.targetSelected = observation.installDirectory === target
+      // A failed control must never prevent the corrected invocation from running. A receipt
+      // remains evidence even when its process fails; neither fact implies the other succeeded.
+      try {
+        await mkdir(directory)
+        await copyFile(probe, executable)
+        Object.assign(observation, await run(executable, args, options))
+      } catch (error) {
+        observation.error = String(error?.message ?? error)
+      }
+      observation.executionSucceeded =
+        !observation.error && observation.exitCode === 0 && !observation.signal
+      try {
+        Object.assign(
+          observation,
+          parseObservation(await readFile(join(directory, 'observation.txt')))
+        )
+        observation.targetSelected = observation.installDirectory === target
+      } catch (error) {
+        observation.receiptError = String(error?.message ?? error)
+      }
       observation.targetCreated = !!(await stat(target).catch(() => undefined))
-      if (observation.targetCreated)
-        throw new Error('Argument probe unexpectedly created the target.')
+      await save()
     }
+    const corrected = report.cases[1]
+    report.passed =
+      report.cases.every((item) => !item.receiptError && !item.targetCreated) &&
+      corrected.executionSucceeded &&
+      corrected.targetSelected === true
+    if (!report.passed) throw new Error(`NSIS argument comparison failed; see ${reportPath}`)
   } catch (error) {
     report.error = String(error?.message ?? error)
+    error.reportPath = reportPath
     throw error
   } finally {
     await save()
@@ -226,14 +341,17 @@ const main = async () => {
   }
   const out = resolve(process.argv[3])
   try {
-    if (process.env.ELECTRON_BUILDER_NSIS_DIR) {
+    if (process.env.ELECTRON_BUILDER_NSIS_DIR || process.env.ELECTRON_BUILDER_NSIS_RESOURCES_DIR) {
       throw new Error('NSIS override is set; original cached compiler provenance is unavailable.')
     }
     const require = createRequire(import.meta.url)
     const { getCacheDirectory } = require('app-builder-lib/out/util/electronGet.js')
-    const compiler = await cachedCompiler(getCacheDirectory({ allowEnvVarOverride: true }))
-    console.log(await runArgumentProbe({ compiler, out }))
+    const cache = getCacheDirectory({ allowEnvVarOverride: true })
+    const compiler = await cachedCompiler(cache)
+    const resources = await cachedResources(cache)
+    console.log(await runArgumentProbe({ compiler, resources, out }))
   } catch (error) {
+    if (error.reportPath) throw error
     await mkdir(out, { recursive: true })
     const directory = await mkdtemp(join(out, 'unavailable-'))
     await writeFile(
@@ -251,4 +369,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   })
 }
 
-export { cachedCompiler, parseObservation, probeSource, runArgumentProbe }
+export { cachedCompiler, cachedResources, parseObservation, probeSource, runArgumentProbe }
