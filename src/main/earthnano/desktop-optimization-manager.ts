@@ -1,3 +1,4 @@
+import { defaultSynchronousFileDurability } from '@aipoch/durable-files'
 import { normalizeDesktopSweep } from './desktop-sweep-validation'
 import {
   normalizeDesktopSweepPreview,
@@ -777,12 +778,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
     }
     renameSync(temp, path)
     for (const directory of [join(this.options.root, saved.progress.runId), this.options.root]) {
-      const handle = openSync(directory, 'r')
-      try {
-        fsyncSync(handle)
-      } finally {
-        closeSync(handle)
-      }
+      defaultSynchronousFileDurability.syncDirectory(directory)
     }
   }
 }

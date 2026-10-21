@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { fstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -17,9 +17,31 @@ import {
 import { outputDigest } from './output-checks'
 import { createHarnessBindingV2Identity } from './harness-binding-v2'
 
+const fsyncControl = vi.hoisted(() => ({
+  failure: undefined as Error | undefined,
+  target: 'directory' as 'file' | 'directory',
+  attempts: [] as Array<{ fd: number; directory: boolean }>
+}))
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof import('node:fs')>()
+  return {
+    ...actual,
+    fsyncSync: (fd: number): void => {
+      const directory = actual.fstatSync(fd).isDirectory()
+      fsyncControl.attempts.push({ fd, directory })
+      if (fsyncControl.failure && directory === (fsyncControl.target === 'directory'))
+        throw fsyncControl.failure
+      actual.fsyncSync(fd)
+    }
+  }
+})
+
 const roots: string[] = []
 const cores: ExecutionCore[] = []
 afterEach(() => {
+  vi.unstubAllGlobals()
+  fsyncControl.failure = undefined
+  fsyncControl.attempts.length = 0
   cores.splice(0).forEach((core) => core.dispose())
   roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true }))
 })
@@ -216,4 +238,48 @@ it('pins v2 mode routing before cache lookup and keeps shared bases in both exac
   value.bindingIdentity.digest = `sha256:${'b'.repeat(64)}`
   writeResumeJson(filename, value)
   expect(() => new OptimizationResumeIndex(filename, true, descriptor)).toThrow()
+})
+
+it.each(['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'])(
+  'publishes only flushed resume bytes when Windows directory sync returns %s',
+  (code) => {
+    const path = join(root(), 'resume.json')
+    const value = { schemaVersion: 1, task: 'unchanged résumé 字节' }
+    fsyncControl.failure = Object.assign(new Error(code), { code })
+    fsyncControl.target = 'directory'
+    vi.stubGlobal('process', { ...process, platform: 'win32' })
+    expect(() => writeResumeJson(path, value)).not.toThrow()
+    expect(readFileSync(path, 'utf8')).toBe(JSON.stringify(value))
+    expect(fsyncControl.attempts.map(({ directory }) => directory)).toEqual([false, true])
+    expect(() => fstatSync(fsyncControl.attempts[1].fd)).toThrow()
+  }
+)
+
+it.each(['linux', 'darwin'] as const)('retains the resume directory barrier on %s', (platform) => {
+  const failure = Object.assign(new Error('directory barrier'), { code: 'EPERM' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'directory'
+  vi.stubGlobal('process', { ...process, platform })
+  expect(() => writeResumeJson(join(root(), 'resume.json'), {})).toThrow(failure)
+})
+
+it('retains unknown Windows resume directory errors', () => {
+  const failure = Object.assign(new Error('directory barrier'), { code: 'EIO' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'directory'
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  expect(() => writeResumeJson(join(root(), 'resume.json'), {})).toThrow(failure)
+})
+
+it('never publishes resume JSON after a failed Windows payload flush', () => {
+  const path = join(root(), 'resume.json')
+  writeResumeJson(path, { previous: 'durable' })
+  const failure = Object.assign(new Error('file barrier'), { code: 'EPERM' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'file'
+  fsyncControl.attempts.length = 0
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  expect(() => writeResumeJson(path, { replacement: 'unflushed' })).toThrow(failure)
+  expect(readFileSync(path, 'utf8')).toBe('{"previous":"durable"}')
+  expect(fsyncControl.attempts.map(({ directory }) => directory)).toEqual([false])
 })

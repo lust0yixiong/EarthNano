@@ -1,3 +1,4 @@
+import { defaultSynchronousFileDurability } from '@aipoch/durable-files'
 import { randomUUID } from 'node:crypto'
 import {
   closeSync,
@@ -82,12 +83,7 @@ export function writeResumeJson(path: string, value: unknown): void {
   }
   try {
     renameSync(temp, path)
-    const parent = openSync(dirname(path), 'r')
-    try {
-      fsyncSync(parent)
-    } finally {
-      closeSync(parent)
-    }
+    defaultSynchronousFileDurability.syncDirectory(dirname(path))
   } catch (error) {
     try {
       unlinkSync(temp)
