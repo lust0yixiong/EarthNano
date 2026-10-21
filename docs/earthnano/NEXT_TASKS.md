@@ -1,5 +1,29 @@
 # Harness² 补全与深度融合的后续任务
 
+## 0.1-Alpha 当前收尾队列
+
+产品快照为 `bdc0246383a25990030854f4c2fa100895f29ea6`（`0.1.0-alpha.1`）。普通 Send/Task/Review、Python/R、Compute/Job/continuation、二进制 Version 与原 Harness² sweep/选择/反思/Library/显式恢复已完成本轮源码接线，并有对应分层证据。不要继续把“Compute/二进制/原 CLI 尚未接入”列为当前开发项。
+
+已取得本快照的四目标 native `39658781703` 实际通过，以及 MacARM 真包原 science `39662102991` 通过：离线模型、同一固定任务、2 baseline+6 candidate、原 producer/不可变产物/独立 Review、停止/显式续跑和重开。原业务 spec 不变，Keychain 三次同 vault 元数据确认；不扩大为 live DeepSeek、外部 SSH/Slurm或其他平台 GUI 的结论。
+
+当前只收束以下已有交付项，不新增产品功能：
+
+| 项目 | 当前事实与下一步 |
+|---|---|
+| 新源码对照 | `39658771118` 完整结果仍待核定；沿原固定上游比较、失败与跳过清单。旧 4a 零新增回归且 Linux 29 / Mac 2 共有失败不转移为 bdc 通过。 |
+| 同源发布资产 | 四 native 已实际成功；仍待原 preparer 对真正四目标包/4认证/DB认证/feed/blockmap/checksum/完整 manifest 汇总与校验。不能把本地小元数据审核当大包字节验收。 |
+| 审查、合并与公开交付 | 保留精确产品/操作提交及所有历史失败；审查、合并和公开 release 状态只按实际结果更新。预备 draft 工具、生成 feed 或上传 CI artifact 均不等于公开发布。 |
+| 用户文档与证据 | 采用简洁指南和来源/限制说明；最终证据目录拟为 `validation/alpha/final-bdc/manifest.json`，待归档落地与最终 source/asset/merge/release 事实补齐。 |
+
+0.1 范围是 macOS/Linux；Windows 已延期 0.2，保留源码、配置和失败证据，见 [延期清单](WINDOWS_0_2_ALPHA.md)。自动触发、配置批准/发布/回滚、完整费用账本是另列后续设计。新增 headless/Web 优化入口、真实 SSH/Slurm、Dock/tint 观测和 Windows 不重新加入 0.1 门槛。原普通 CLI/Web 能力、原 Harness CLI 与 Library 经验语义继续保留。
+
+## 早期阶段队列与协同记录（历史）
+
+以下原文保留记录时的实现、状态和约定；其中“待接入”“最终包待验”、Windows/签名或自动策略计划不代表当前 0.1 队列，不新增或删除完成契约的要求。真正当前状态以上方精确构建和证据为准。
+
+<details>
+<summary>原阶段队列全文（历史）</summary>
+
 ## Alpha 当前工作队列
 
 本版先完成两侧原能力与统一核心的剩余融合、已有回归和可运行应用交付。下表“独立后续设计”保留讨论目标，但不与原功能补全混作一项 Alpha 硬门。逐模块来源与用户明确要求的交付见 [FUNCTION_ORIGINS.md](FUNCTION_ORIGINS.md)。
@@ -98,3 +122,5 @@ PR #12 已审查合并。本轮固定提交 `5812df666` 的完整 Notebook 普�
 5. 完成固定发布运行时、Linux / Windows、签名包和 EarthNano CI，再考虑全局经验、可回滚配置发布和默认自动触发。
 
 以上尚未完成的产品接通与验收范围不会因保留了上游源码而标成完成。普通科研用户能力保留原入口，优化角色的工具 / 数据表面仍需逐项扩大和验证。
+
+</details>

@@ -2,22 +2,19 @@
 
 EarthNano 以 OpenScience 为桌面科研工作台基础，融合 Harness² 的配置优化机制。普通任务、优化基线和候选共用执行核心，保留原科研工具、不可变产物及审阅能力。项目不预设研究学科或任务类型。
 
-**`0.1.0-alpha.1` 正在集成验收，尚未发布。** `main` 已合并 PR #1–12；Alpha PR #13–17 仍待适用 CI 和审查。Python/R 的同任务执行、原 Harness² sweep 与显式停止/续跑已取得分项桌面和 DeepSeek 证据，不能据此宣布完整 Alpha、配置收益或跨平台安装包通过。
+**`0.1.0-alpha.1` 正在最终交付验收，尚未公开发布。** 当前产品源码为 `bdc0246383a25990030854f4c2fa100895f29ea6`。Python/R、Compute、二进制产物及原 Harness² 任务流已接到同一执行与证据链。四目标 native `39658781703` 已实际通过；同源 MacARM 包的原 Python 科研、独立 Review、停止/续跑/重开流程在离线模型下通过（`39662102991`），不据此声称所有模型、科研任务或所有平台 GUI 均已验收。
 
-**本版平台范围（2026-10-21）：macOS、Linux。** Windows 安装失败按用户决定延期至 0.2-Alpha；0.1 不提供 Windows 版本。已有失败与后续恢复条件见 [Windows 延期记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
+**本版平台范围：macOS、Linux。** Windows 安装问题及 Windows 版本按用户决定延期至 0.2-Alpha；保留原源码及失败记录，见 [Windows 延期记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。包为 unsigned Alpha，不宣称 Developer ID 签名、公证或稳定版。
 
-当前剩余工作是收敛回归与 PR、完成原 Compute/二进制等能力的候选融合，并交付验证过的应用。自动触发、配置审批发布/回滚与完整精确费用账本是另列的新增设计，不冒充上游原生功能。
+新 source `39658771118` 完整对照、同源资产/证书/checksum/feed/manifest 汇总及 PR/公开发布仍待核定。历史 4a 的完整 Unix 对照无新增回归，双方共有失败和跳过继续保留，不替代 bdc 的新 source gate。公开后再补实际下载与校验入口；下方上游下载目前仍只代表 OpenScience。自动触发、平台级配置治理和完整费用账本单列为后续设计。
 
-- [源码试用、模型配置与当前边界](docs/earthnano/BASELINE.md)
-- [功能来源：上游已有、必要融合与新增设计](docs/earthnano/FUNCTION_ORIGINS.md)
-- [Alpha 完成契约](docs/earthnano/ALPHA_CONTRACT.md)与[当前工作队列](docs/earthnano/NEXT_TASKS.md)
-- [R 实际验收及上游故障对照](docs/earthnano/ALPHA_R_CONTRACT.md)
-- [原 Harness² 完整任务流](docs/earthnano/ALPHA_SWEEP.md)与[多来源桌面入口](docs/earthnano/ALPHA_CATALOG.md)
+- [使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)与[源码试用](docs/earthnano/BASELINE.md)
+- [功能来源](docs/earthnano/FUNCTION_ORIGINS.md)、[完成契约](docs/earthnano/ALPHA_CONTRACT.md)与[当前队列](docs/earthnano/NEXT_TASKS.md)
+- [原完整 sweep](docs/earthnano/ALPHA_SWEEP.md)、[多来源桌面入口](docs/earthnano/ALPHA_CATALOG.md)、[R](docs/earthnano/ALPHA_R_CONTRACT.md)、[二进制](docs/earthnano/ALPHA_BINARY.md)与[Compute](docs/earthnano/ALPHA_COMPUTE_CONTRACT.md)
 - [共享执行契约](docs/earthnano/CORE_CONTRACT.md)与[类型/schema](contracts/execution/README.md)
-- [上游固定提交、集成差异和许可证](UPSTREAMS.json)
-- [第十轮历史记录](docs/earthnano/ROUND10.md)与[后续 Alpha 集成记录](docs/earthnano/ALPHA_INTEGRATION.md)
+- [固定上游与许可证](UPSTREAMS.json)
 
-应用显示名为 **EarthNano**；OpenScience 与 Harness² 用于上游来源说明。原数据目录、凭据身份、CLI/MCP/协议及包名保留兼容标识，避免仅因产品更名破坏既有数据和工具。
+应用显示名为 **EarthNano**；原数据目录、凭据身份、CLI/MCP/协议及包名保留 OpenScience 兼容标识，避免仅因更名破坏既有数据和工具。
 
 <details>
 <summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 EarthNano 交付）</summary>

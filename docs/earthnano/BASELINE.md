@@ -1,5 +1,33 @@
 # EarthNano 开发基线与源码试用
 
+当前产品源码试用基线为 `bdc0246383a25990030854f4c2fa100895f29ea6`，tree `25d834714406b65aff26b291a790e5c1749f94b1`，版本 `0.1.0-alpha.1`，尚未公开发布。0.1 交付范围为 macOS/Linux；Windows 延期 0.2。文档提交与产品构建来源分别记录，不能把更新文档后的 SHA 当作已重建的安装包。
+
+Python/R、Compute、二进制与原 Harness² 完整任务流已接入共同执行和证据链。当前四目标 native `39658781703` 实际通过；同源 MacARM 包的原 Python/CSV→JSON、独立 Review、停止/续跑/重开在离线 provider 下通过（`39662102991`），零上游模型请求。它不代替历史 live DeepSeek，也不证明本包的 R/PNG、Compute 或全部平台 GUI。
+
+新 source `39658771118` 完整结果、同源资产汇总与公开发布仍待核定。旧 4a 的完整 Unix 比较是零新增回归，仍保留双方共有 Linux 29 / Mac 2 个失败及全部跳过；不能替代新 bdc 的 gate。源码/模型/包的验证层级分开，历史失败不追认通过。
+
+## 从固定源码试用
+
+使用 `.github/earthnano-node-version` 指定的 Node（24.22.0）、Git 和[原开发依赖](../development-quick-reference.md)；优化另需 Python 3.11+，本次测试使用 Python 3.12。首次安装按原脚本下载并校验 Electron、原生组件与运行时。
+
+```bash
+git clone https://github.com/lust0yixiong/EarthNano.git
+cd EarthNano
+git fetch origin bdc0246383a25990030854f4c2fa100895f29ea6
+git switch --detach bdc0246383a25990030854f4c2fa100895f29ea6
+npm ci
+npm run dev
+```
+
+实际步骤、模型配置、任务来源、预算与停止/续跑见[使用指南](ALPHA_USER_GUIDE.md)。当前优化使用 Claude Code 与明确 custom Messages provider；原普通模型能力不因此缩减。新 sweep 预算上限 512，旧兼容入口 128；最低容量来自当前预览，不是成功保证或费用额度。原 CLI/MCP/数据与凭据身份继续兼容 OpenScience。
+
+最终证据索引拟落于 `validation/alpha/final-bdc/manifest.json`；仅在原记录完成归档并验证路径后启用该链接，最终 source/asset/merge/release 事实仍待补。
+
+<details>
+<summary>PR17 阶段快照（历史）</summary>
+
+以下保留当时的启动与状态记录；当前操作按上方固定源码与指南，不将旧状态作为本版新门槛。
+
 `main` 已合并 PR #1–12；Alpha PR #13–17 尚待适用 CI 和审查。当前版本为 `0.1.0-alpha.1`，尚未发布 EarthNano 安装包或上线 Alpha 更新 feed；平台分项通过不等于最终版本验收。README 中上游下载安装的是 OpenScience。
 
 ## 复核当前源码
@@ -36,6 +64,8 @@ npm run dev
 - R 的真实原 kernel、Session/版本/Review、停止/续跑和 DeepSeek 验收见 [ALPHA_R_CONTRACT.md](ALPHA_R_CONTRACT.md)；用量与收益限制一并保留。
 - 原 108 个新增失败 ID 本地定向修复通过，不等于完整 hosted comparison 通过。跨平台包、安装与白底图标仍须取得实际结果，见 [CI 范围](ALPHA_CI.md)。
 - Compute/二进制等剩余候选融合继续实施；自动触发、配置治理与完整精确账本单列，见 [功能来源](FUNCTION_ORIGINS.md)和[版本契约](ALPHA_CONTRACT.md)。
+
+</details>
 
 <details>
 <summary>第一至第五轮历史基线（当时的启动、限制和验收记录）</summary>
