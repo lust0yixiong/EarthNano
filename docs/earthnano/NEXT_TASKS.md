@@ -1,21 +1,19 @@
 # Harness² 补全与深度融合的后续任务
 
-## 0.1-Alpha 当前收尾队列
+## 0.1-Alpha 交付与下一步
 
-产品快照为 `bdc0246383a25990030854f4c2fa100895f29ea6`（`0.1.0-alpha.1`）。普通 Send/Task/Review、Python/R、Compute/Job/continuation、二进制 Version 与原 Harness² sweep/选择/反思/Library/显式恢复已完成本轮源码接线，并有对应分层证据。不要继续把“Compute/二进制/原 CLI 尚未接入”列为当前开发项。
+产品快照 `bdc0246383a25990030854f4c2fa100895f29ea6`（`0.1.0-alpha.1`）。普通 Send/Task/Review、Python/R、Compute/Job/continuation、二进制 Version 与原 Harness² sweep/选择/反思/Library/显式恢复已接入共同执行和证据链。不要继续把 Compute、二进制或原 CLI 尚未接入列为当前开发项。
 
-已取得本快照的四目标 native `39658781703` 实际通过，以及 MacARM 真包原 science `39662102991` 通过：离线模型、同一固定任务、2 baseline+6 candidate、原 producer/不可变产物/独立 Review、停止/显式续跑和重开。原业务 spec 不变，Keychain 三次同 vault 元数据确认；不扩大为 live DeepSeek、外部 SSH/Slurm或其他平台 GUI 的结论。
+完整 macOS/Linux 固定上游对照 `39658771118` 均为零新增测试/阶段回归、零全局错误；每个平台 115,595→116,940 项。Mac 失败 2→2，Linux 30→29，既有失败和全部跳过保留，不称所有测试全绿。原 Harness² 独立对照 5→77 项通过。 四原生目标 `39658781703`、MacARM 真包原 science `39662102991` 和八个原包发布准备 `39683248168` 均通过；实际模型/原包/受控服务链的验证范围分别记录，不扩大为外部 SSH/Slurm 或所有平台 GUI。
 
-当前只收束以下已有交付项，不新增产品功能：
-
-| 项目 | 当前事实与下一步 |
+| 项目 | 交付记录与边界 |
 |---|---|
-| 新源码对照 | `39658771118` 完整结果仍待核定；沿原固定上游比较、失败与跳过清单。旧 4a 零新增回归且 Linux 29 / Mac 2 共有失败不转移为 bdc 通过。 |
-| 同源发布资产 | 四 native 已实际成功；仍待原 preparer 对真正四目标包/4认证/DB认证/feed/blockmap/checksum/完整 manifest 汇总与校验。不能把本地小元数据审核当大包字节验收。 |
-| 审查、合并与公开交付 | 保留精确产品/操作提交及所有历史失败；审查、合并和公开 release 状态只按实际结果更新。预备 draft 工具、生成 feed 或上传 CI artifact 均不等于公开发布。 |
-| 用户文档与证据 | 采用简洁指南和来源/限制说明；最终证据目录拟为 `validation/alpha/final-bdc/manifest.json`，待归档落地与最终 source/asset/merge/release 事实补齐。 |
+| 融合、源码与原方法 | 产品 PR #24、#23 已保留历史合并；[完整源码记录](validation/alpha/source-39658771118/manifest.json)保留每项失败和 skip。 |
+| 安装文件与证据 | [原生/科研记录](validation/alpha/final-bdc/manifest.json)及[原发布准备记录](validation/alpha/assets-39683248168/manifest.json)；大包实际字节由原工具在 GHA 校验。 |
+| 使用与公开交付 | [使用指南](ALPHA_USER_GUIDE.md)；[固定版本](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)和[Alpha 频道](https://github.com/lust0yixiong/EarthNano/releases/tag/alpha)的实际公开状态与资产记录为准。Actions artifact 或 draft 本身不代表公开发布。 |
+| 下一版本 | Windows 安装失败及分发延期至 0.2，先按[保留清单](WINDOWS_0_2_ALPHA.md)复现、定位和验收；0.1 不继续 Windows 排查或发布。 |
 
-0.1 范围是 macOS/Linux；Windows 已延期 0.2，保留源码、配置和失败证据，见 [延期清单](WINDOWS_0_2_ALPHA.md)。自动触发、配置批准/发布/回滚、完整费用账本是另列后续设计。新增 headless/Web 优化入口、真实 SSH/Slurm、Dock/tint 观测和 Windows 不重新加入 0.1 门槛。原普通 CLI/Web 能力、原 Harness CLI 与 Library 经验语义继续保留。
+自动触发、平台配置批准/发布/回滚和完整费用账本为另列后续设计；没有因本版交付而实现或承诺。新增 headless/Web 优化入口、真实 SSH/Slurm、Dock/tint 观测不增加为 0.1 门槛。原普通 CLI/Web、原 Harness CLI 与 Library 经验语义保留。
 
 ## 早期阶段队列与协同记录（历史）
 

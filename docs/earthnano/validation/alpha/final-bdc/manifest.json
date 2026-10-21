@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "documentary staging; final source, aggregate assets, review/merge and release still pending",
+  "status": "source/native/packaged-science and original assets verified; public availability is established separately by actual tagged GitHub Releases",
   "applicationSource": "bdc0246383a25990030854f4c2fa100895f29ea6",
   "applicationTree": "25d834714406b65aff26b291a790e5c1749f94b1",
   "version": "0.1.0-alpha.1",
@@ -19,7 +19,7 @@
   "scienceOperator": "9fae695a78c7f704645fd27894d4f1f887886255",
   "scienceConclusion": "success; unchanged original Python k2 parallel MacARM64 sameTask offline test; independentreview noP1P2",
   "fullSourceRun": 39658771118,
-  "fullSourceConclusion": "pending; do not substitute historical4a",
+  "fullSourceConclusion": "completed success; original full darwin/linux no-new-regressions; baseline failures and all skips retained",
   "newPaidModelRequests": 0,
   "notCopied": [
     "large package bytes (final GHA preparer verifies all8)",
@@ -28,10 +28,7 @@
     "runtime/compiled icons (identified by actual icons.json; earlier actual pixel evidence retained)"
   ],
   "remaining": [
-    "actual full bdc Unix baseline comparison",
-    "complete original8package/3feed/checksum/certificate/version aggregate",
-    "final docs and PR24 then23 merge preserving certified source",
-    "actual complete dualdraft verification then immutable/rollingAlpha publication"
+    "Public availability is authoritative at https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1 and /tag/alpha; prepared CI artifacts or drafts alone are not public releases."
   ],
   "files": [
     {
@@ -682,5 +679,21 @@
       "gzipBytes": 608,
       "gzipSha256": "b7ab26f19cd0597a33dfaa7bbeeb0dee7fdc600ede29a7913f65b9c65e34e768"
     }
-  ]
+  ],
+  "fullSourceEvidence": "../source-39658771118/manifest.json",
+  "assetPreparation": {
+    "run": 39683248168,
+    "attempt": 1,
+    "operator": "2e8a03947add018cc9f0ee33def33f217e61ae11",
+    "conclusion": "success",
+    "artifact": 12385377098,
+    "digest": "sha256:73d26b24720dceaf72237d05ffd7745dc7994c9b7ff3a14db4335a884e5c52a4",
+    "evidence": "../assets-39683248168/manifest.json",
+    "localLargePackageDownload": false
+  },
+  "productMerges": {
+    "pr24": "57441a04b4988c435c823042d61fc13e89e0e93e",
+    "pr23Main": "9a69a0e5a3ccdae68d0d874999b12ab4d9cf74e8",
+    "productTreeUnchanged": true
+  }
 }

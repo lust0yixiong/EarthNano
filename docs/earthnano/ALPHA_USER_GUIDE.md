@@ -1,10 +1,10 @@
 # EarthNano 0.1-Alpha 使用指南
 
-本稿对应产品源码 `bdc0246383a25990030854f4c2fa100895f29ea6`（`0.1.0-alpha.1`）。0.1 面向 macOS 与 Linux，Windows 延期至 0.2。四目标原生构建及原包 smoke 已通过；同源 MacARM 包的原 Python 科研、停止/续跑/重开流程已用离线模型通过。**新源码完整对照仍待核定，资产汇总及公开发布尚未进行。** 取得最终发布链接和校验清单后再据其下载，不把 README 中 OpenScience 上游下载当作 EarthNano。
+本指南对应产品源码 `bdc0246383a25990030854f4c2fa100895f29ea6`（`0.1.0-alpha.1`）。0.1 面向 macOS 与 Linux，Windows 延期至 0.2。四目标原生与完整上游对照通过；MacARM 原包 Python 科研、停止/续跑/重开使用离线模型通过。八个同源原包经原发布工具汇总校验。安装文件、校验清单和实际公开状态见[EarthNano 固定版本](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)及[Alpha 频道](https://github.com/lust0yixiong/EarthNano/releases/tag/alpha)；README 中 OpenScience 上游下载不含 EarthNano 融合。
 
 ## 取得应用
 
-尚未发布时，可在自己的独立目录试用固定源码：
+也可在自己的独立目录试用固定源码：
 
 ```bash
 git clone https://github.com/lust0yixiong/EarthNano.git
@@ -17,7 +17,7 @@ npm run dev
 
 开发使用仓库 `.github/earthnano-node-version` 指定的 Node（本快照为 24.22.0），并满足[原开发依赖](../development-quick-reference.md)。首次安装按原脚本下载、校验 Electron 与原生资源，需要网络；不要把跳过安装脚本的依赖树当成可运行应用。优化方法另需可用的 Python 3.11+，优先使用本次测试采用的 Python 3.12。
 
-取得经最终核验的候选包后，按处理器架构选包：
+在 EarthNano Release 公开后，按处理器架构选包：
 
 | 系统 | 包及安装入口 |
 |---|---|
@@ -87,6 +87,6 @@ OpenScience `9e18c7d3…` 提供普通 Send/Task、Python/R、Compute/Job/审批
 
 本次四目标 native `39658781703` 已通过；MacARM 包的原 science `39662102991` 通过，覆盖同 Task 的 2 baseline+6 candidate、8 个原 Notebook producer/固定 ArtifactVersion、独立 Review、停止/续跑/两次重开和 3 次原 Keychain 元数据确认，零上游模型请求。这是离线模型下的真实包工作流证据，不是新 live DeepSeek、R/PNG、Compute、Intel/Linux GUI 或所有科研任务的证明。历史真实 DeepSeek、R/二进制与 Compute 分层证据继续保留，不转移为本包已测范围。
 
-**待最终核定：** 新 source `39658771118` 完整结果、同源四目标资产/认证/checksum/feed/manifest 汇总、PR/公开 Alpha 发布及实际下载入口。旧 4a 完整 Unix 对照为零新增回归，但 Linux 29 / Mac 2 个双方共有失败及全部跳过仍保留；不能用其替代新 bdc source gate。
+本次完整源码对照 `39658771118` 已通过原固定上游比较：两平台均零新增测试/阶段回归、零全局错误，每个平台 115,595→116,940 项。Mac 失败 2→2、Linux 30→29，全部既有失败及跳过保留；Linux 多出的基线项只记录 fetch failed，根因未明，不称已修复。原 Harness² 对照为 5→77 项通过。八个同源原生包及认证/checksum/feed/完整 manifest 经 `39683248168` 校验，产品 PR #24/#23 已保留历史合并。见[完整原始源码记录](validation/alpha/source-39658771118/manifest.json)、[原生/科研证据](validation/alpha/final-bdc/manifest.json)与[发布准备记录](validation/alpha/assets-39683248168/manifest.json)。公开状态与安装文件以本页所链 EarthNano Release 为准，draft/Actions artifact 不代表公开发布。
 
 自动触发优化、平台级配置批准/发布/回滚、完整精确费用账本属于另列后续设计；新增 headless/Web 优化产品、真实 SSH/Slurm、Dock/tint 和 Windows 不增加为本版门槛。

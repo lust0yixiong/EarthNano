@@ -6,7 +6,7 @@
 
 2026-10-21 用户调整平台范围：**0.1-Alpha 交付 macOS 与 Linux，Windows 版本及安装失败修复延期至 0.2-Alpha。** 本版不运行 Windows 构建/安装验收、不发布 Windows 安装包；原有代码、失败结果和尝试保留，详见 [Windows 延期记录](WINDOWS_0_2_ALPHA.md)。macOS/Linux 的原上游对照与最终包验证要求不降低，其他原能力融合范围不变。
 
-> **当前交付快照：`bdc0246383a25990030854f4c2fa100895f29ea6` / `0.1.0-alpha.1`，尚未公开发布。** 四目标 native `39658781703` 实际成功；同源 MacARM 原科学业务流程 `39662102991` 在离线模型下成功，覆盖原 Task/producer/Version/Review、停止/显式续跑/重开和原 Keychain。新 source `39658771118` 完整结果、同源资产汇总、合并及公开发布仍待核定，不能提前标记 Alpha 完成。旧 4a 的完整 Unix 比较零新增回归，同时保留 Linux29/Mac2共有失败和全部跳过。拟归档证据为 `validation/alpha/final-bdc/manifest.json`，链接须待实际落地后启用。
+> **产品交付快照：`bdc0246383a25990030854f4c2fa100895f29ea6` / `0.1.0-alpha.1`。** 四目标原生、MacARM 原科学业务流程及完整 macOS/Linux 固定上游对照均实际通过；八个原生安装文件经原发布工具汇总校验。产品 PR #24、#23 已按历史合并，产品树不变。完整 macOS/Linux 固定上游对照 `39658771118` 均为零新增测试/阶段回归、零全局错误；每个平台 115,595→116,940 项。Mac 失败 2→2，Linux 30→29，既有失败和全部跳过保留，不称所有测试全绿。原 Harness² 独立对照 5→77 项通过。 [原生/科研证据](validation/alpha/final-bdc/manifest.json)、[完整源码](validation/alpha/source-39658771118/manifest.json)和[发布准备](validation/alpha/assets-39683248168/manifest.json)分别保存；公开发布及实际资产以[固定版本](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)和[Alpha 频道](https://github.com/lust0yixiong/EarthNano/releases/tag/alpha)为准，draft 或 CI artifact 不视为公开交付。
 
 对应 CI 已调整为 9 个物理 source jobs、16 份 macOS/Linux 原基线及候选报告和 4 个原生目标；所选平台的完整分片、原始 Vitest/sidecar、环境与差异检查仍必需。221/221 本地 CI 检查及完整 compiled types 通过，见 [范围调整证据](validation/alpha/unix-0.1-ci/manifest.json)；这不替代当前提交的 hosted 对照或最终安装验收。
 
@@ -30,7 +30,7 @@ OpenScience 的 Python/R、Compute、文件/二进制产物、版本及 Reviewer
 
 | 要求                     | 所需权威证据                                                                                                                                   | 当前状态                                                                                                                                                                                          |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 已有融合及 PR 审查       | 精确 head、审阅发现处置、适用回归、合并记录                                                                                                    | 本次产品固定 bdc0246383；已有分层审查、回归及 PR 记录保留，最终审查/合并以实际状态核定，不预填已完成。 |
+| 已有融合及 PR 审查       | 精确 head、审阅发现处置、适用回归、合并记录                                                                                                    | 产品源码 bdc；PR24 merge57441a04、PR23 main merge9a69a0e5保留原历史及同一产品树。独立融合/完整源码审查无P1/P2；文档后续提交不冒充构建来源。 |
 | 同一任务、执行与事实模型 | 原 Send/Task/Reviewer/委派及优化的共同接纳、停止、预算；原 Session/版本/Review；真实模型 E2E                                                   | 普通/方法角色共用原 Core/Session/Version/Review；历史 DeepSeek 及新 bdc MacARM 离线真包同任务链均有证据，后者2baseline+6candidate、停止/续跑/重开通过；不扩大测试范围。 |
 | 原 Harness² 完整方法可用 | 原 seq/par/k、提案/组合/匿名选择、domain/Library/reflection、runmark/resume、seed/filter/sweep 与后端/CLI 的来源对照及用户可达性；方法等价测试 | 新建任务统一原 sweep；seq/par/k、stream/filter/workers、匿名选择、reflection/Library、cache/resume保留；原六CLI源码/help及确定性demo对照已有记录。桌面入口与原CLI分开，不新增EarthNano headless/Web优化API。 |
 | 科研工具及数据融合       | Python/R、原数据/文献/Skills/Compute 和二进制产物的配置授权、固定输入、原 producer、独立评估；普通能力回归                                     | Python/R、二进制原Version与Compute原服务链已接入；历史真实R/PNG/DeepSeek和Compute受控服务链证据保留。新包已验证MacARM Python/CSV→JSON；图像语义、外部SSH/Slurm及其他包科研范围不据此冒称通过。 |
@@ -39,9 +39,9 @@ OpenScience 的 Python/R、Compute、文件/二进制产物、版本及 Reviewer
 | 原用量和进度可检查       | 方法执行次数、model turns、token、实际 API 和费用分别解释；已知与未知明确；原预算覆盖重试/选择/反思/评估                                       | 保留原接纳次数、根modelturn/token/缓存与覆盖；known/partial/unknown分别展示，不把代理请求数或缺失API/美元补成完整账本。 |
 | 产品交互完整             | 原用户入口保留；任务/来源与结果可导航，配置和运行身份可检查，恢复/停止可用；八语言、可访问性与真实桌面验收                                     | 原入口、来源/结果导航和八语言保留；bdc MacARM真包同任务原GUI流程及停止/续跑/两次重开通过。其他平台GUI不借用此结果，也不为此另造产品界面门槛。 |
 | 白底 EarthNano 图标      | Apple HIG 来源、1024px master/必要分层、ICNS/ICO、尺寸/亮暗桌面和实际包观察                                                                    | 白底源与原IconComposer/PNG/ICNS路径保留；已有多尺寸与实际包导出像素记录，bdc真包证据保留对应图标。Dock/tint未观测作为范围说明，不新增本版门槛。 |
-| 0.1-Alpha 独立构建发布   | 语义版本、命名/渠道、许可、依赖/运行时完整性；干净构建、启动/安装/升级数据安全、产物摘要和发布记录                                             | bdc四Unix目标实际构建/原smoke通过；原认证/DBcert/manifest一致。真实资产汇总/checksum/feed/完整manifest、最终审查/合并及公开Alpha尚待核定；unsigned，不宣称DeveloperID/公证或已发布。 |
-| 上游基线与跨平台回归     | 同环境固定上游对照，差异归因；macOS/Linux 的适用检查和真实运行证据；Alpha 专用 CI；Windows 延期至 0.2                                           | 旧4a Unix比较0新增回归，Linux29/Mac2共有失败与全部skip保留；新bdc source39658771118仍待完整结果。四目标native39658781703已成功，二者不能互代；Windows延期0.2。 |
-| 版本说明与可复现证据     | 清楚的安装、模型配置、完整能力表、已知限制、验证原始记录和下一轮事项                                                                           | 简洁用户指南与来源/限制草案已备；最终证据索引及source/asset/merge/release真实事实待核定后落地，不把文档准备当公开交付完成。 |
+| 0.1-Alpha 独立构建发布   | 语义版本、命名/渠道、许可、依赖/运行时完整性；干净构建、启动/安装/升级数据安全、产物摘要和发布记录                                             | bdc四Unix目标原构建/安装/启动/DB检查通过；原preparer39683248168已对8真实包、认证、feed、checksum和完整manifest校验。公开发布以实际Release资产为准；unsigned，不宣称DeveloperID/公证。 |
+| 上游基线与跨平台回归     | 同环境固定上游对照，差异归因；macOS/Linux 的适用检查和真实运行证据；Alpha 专用 CI；Windows 延期至 0.2                                           | 新bdc source39658771118两平台0新增测试/阶段回归及0global；Mac2/2、Linux30/29失败和全部skip保留，新9个opt-in跳过不记通过。四目标native39658781703成功；Windows延期0.2。 |
+| 版本说明与可复现证据     | 清楚的安装、模型配置、完整能力表、已知限制、验证原始记录和下一轮事项                                                                           | 使用指南、功能来源与范围、完整原始源码/原生/科研/发布准备证据均归档；Release公开状态与真实资产记录为最终交付凭据，不将draft当公开。 |
 
 ## 新增设计的独立后续清单
 
