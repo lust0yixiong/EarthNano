@@ -1,6 +1,15 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  globSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { load } from 'js-yaml'
@@ -55,6 +64,23 @@ const recipe = (kind: string): Workflow =>
   load(
     readFileSync(`.github/workflows/earthnano-${kind}.yml`, 'utf8').replaceAll('inputs.', 'matrix.')
   ) as Workflow
+// Run the original CLI at its real filename: its import.meta/argv entry guard intentionally
+// does not execute through a symlink. Only the output fixture directory is substituted.
+const originalWriter = `'${resolve('scripts/ci/release-certification-evidence.mjs').replaceAll("'", "'\\''")}'`
+const databaseCertification = {
+  schemaVersion: 1,
+  compatibilityFloor: {
+    migrationId: '0001_runtime_schema_baseline',
+    migrationChecksum: 'e29d0483786c3ed2e1c9cd358369b254a54ccf54213931c5ef71a8fd4e161525',
+    sqliteVersion: '3.46.0'
+  },
+  checks: {
+    freshInstall: 'passed',
+    legacyAdoption: 'passed',
+    reopen: 'passed',
+    specialPath: 'passed'
+  }
+}
 
 describe('EarthNano 0.1 Unix CI scope', () => {
   it('plans one Linux cohort plus eight macOS jobs covering all selected original shards', () => {
@@ -314,12 +340,13 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       // Python 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset);
       // floating Node 24 → one exact version file (runner caches resolved different patches).
       // Restore only these inputs, the original packaging heap ceiling and exact Linux ARM64
-      // pruning case and Linux-only bounded cohort dispatch below to prove all other steps still match d4. No pin, condition, command
+      // pruning case, Unix certification/feed retention and Linux-only bounded cohort dispatch
+      // below to prove all other steps still match d4. No pin, condition, command
       // or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
           ? 'd6168ae5600395d53c2b70c35625bbc0ef20fa20430e20c2346e40f625ec61a5'
-          : 'eeaf802903b62b7084a9f48db22fb6d976e710c59fe30b5114aaf7f669c20c68'
+          : '08ac1443440367a085a27392c3c707cd3f05fc14ff47c0491746cd17a768483f'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
@@ -382,6 +409,22 @@ describe('EarthNano 0.1 Unix CI scope', () => {
         const addedCase = "  linux-arm64) keep='linux-arm64-openssl-3.0.x.so.node' ;;\n"
         expect(pruning[0].run!.split(addedCase)).toHaveLength(2)
         pruning[0].run = pruning[0].run!.replace(addedCase, '')
+        // The actual commands and fail-closed feed/DB behavior are exercised below against the
+        // original writer. Remove only these reviewed retention additions for the d4 comparison.
+        const certification = originalSteps.filter(
+          (step) => step.name === 'Original Unix package certification evidence'
+        )
+        expect(certification).toHaveLength(1)
+        originalSteps.splice(originalSteps.indexOf(certification[0]), 1)
+        const packages = originalSteps.find(
+          (step) =>
+            step.name ===
+            'Retain validated unsigned packages (CI artifacts, no release publication)'
+        )!
+        const retained =
+          'dist/alpha-mac.yml\ndist/alpha-linux.yml\ndist/alpha-linux-arm64.yml\ndist/*.blockmap\n'
+        expect(String(packages.with!.path).split(retained)).toHaveLength(2)
+        packages.with!.path = String(packages.with!.path).replace(retained, '')
       }
 
       expect(digest(originalSteps)).toBe(
@@ -406,6 +449,213 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       MACOSX_DEPLOYMENT_TARGET: '12.0'
     })
   })
+
+  it('records Unix certification only after original smoke and retains isolated target artifacts', () => {
+    const steps = readWorkflow('native').jobs.native.steps!
+    const certification = steps.find(
+      (step) => step.name === 'Original Unix package certification evidence'
+    )
+    expect(certification).toBeDefined()
+    // GitHub implicitly applies success() when the condition contains no status-check function.
+    expect(certification!.if).toBe("runner.os == 'macOS' || runner.os == 'Linux'")
+    expect(certification).not.toHaveProperty('continue-on-error')
+    expect(certification!.env).toBeUndefined()
+    for (const smoke of ['scripts/macos-package-smoke.mjs', 'scripts/linux-package-smoke.mjs']) {
+      const index = steps.findIndex((step) => step.run?.includes(smoke))
+      expect(index).toBeGreaterThan(-1)
+      expect(index).toBeLessThan(steps.indexOf(certification!))
+    }
+    const upload = steps.find(
+      (step) =>
+        step.name === 'Retain validated unsigned packages (CI artifacts, no release publication)'
+    )!
+    expect(steps.indexOf(certification!)).toBeLessThan(steps.indexOf(upload))
+    expect(upload.with!.name).toBe('earthnano-unsigned-${{ inputs.os }}')
+    const evidence = steps.find(
+      (step) => step.with?.name === 'earthnano-native-evidence-${{ inputs.os }}'
+    )!
+    expect(evidence.if).toBe('always()')
+    expect(String(evidence.with!.path).split('\n')).toContain('dist/*certification*.json')
+  })
+
+  it.each([
+    [
+      'mac',
+      'arm64',
+      'macos-arm64',
+      'alpha-mac.yml',
+      ['EarthNano-0.1.0-alpha.1-mac-arm64.dmg', 'EarthNano-0.1.0-alpha.1-mac-arm64.zip']
+    ],
+    [
+      'mac',
+      'x64',
+      'macos-x64',
+      'alpha-mac.yml',
+      ['EarthNano-0.1.0-alpha.1-mac-x64.dmg', 'EarthNano-0.1.0-alpha.1-mac-x64.zip']
+    ],
+    [
+      'linux',
+      'x64',
+      'linux-x64',
+      'alpha-linux.yml',
+      ['EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage', 'EarthNano_0.1.0-alpha.1_amd64.deb']
+    ],
+    [
+      'linux',
+      'arm64',
+      'linux-arm64',
+      'alpha-linux-arm64.yml',
+      ['EarthNano-0.1.0-alpha.1-linux-arm64.AppImage', 'EarthNano_0.1.0-alpha.1_arm64.deb']
+    ]
+  ] as const)(
+    'retains generated feed/sidecars and writes original evidence for %s-%s',
+    (platform, arch, target, feed, packages) => {
+      const root = mkdtempSync(join(tmpdir(), 'earthnano-native-release-'))
+      try {
+        mkdirSync(join(root, 'dist'))
+        // These are bounded file fixtures, not package-smoke or database-migration pass claims.
+        // The original Mac builder emits external DMG and ZIP blockmaps; the Linux inventory
+        // has no external blockmap, so retaining sidecars must not make one mandatory there.
+        const sidecars = platform === 'mac' ? packages.map((name) => `${name}.blockmap`) : []
+        const produced = [...packages, feed, ...sidecars]
+        for (const name of produced)
+          writeFileSync(join(root, 'dist', name), `fixture bytes for ${name}`)
+        writeFileSync(
+          join(root, 'dist/database-migration-certification.json'),
+          JSON.stringify(databaseCertification)
+        )
+        const steps = readWorkflow('native').jobs.native.steps!
+        const upload = steps.find(
+          (step) =>
+            step.name ===
+            'Retain validated unsigned packages (CI artifacts, no release publication)'
+        )!
+        const retained = globSync(String(upload.with!.path).trim().split('\n'), { cwd: root })
+        expect(retained.sort()).toEqual(produced.map((name) => `dist/${name}`).sort())
+        const record = steps.find(
+          (step) => step.name === 'Original Unix package certification evidence'
+        )!
+        expect(record).toBeDefined()
+        const environment = {
+          GITHUB_REPOSITORY: 'lust0yixiong/EarthNano',
+          GITHUB_REF: 'refs/heads/ci/earthnano-native',
+          GITHUB_SHA: 'fixture-source-sha',
+          GITHUB_RUN_ID: 'fixture-run',
+          GITHUB_RUN_ATTEMPT: '2'
+        }
+        const result = spawnSync(
+          'bash',
+          [
+            '-e',
+            '-o',
+            'pipefail',
+            '-c',
+            record
+              .run!.replaceAll('${{ inputs.platform }}', platform)
+              .replaceAll('${{ inputs.arch }}', arch)
+              .replace('scripts/ci/release-certification-evidence.mjs', originalWriter)
+          ],
+          { cwd: root, env: { ...process.env, ...environment }, encoding: 'utf8' }
+        )
+        expect(result.status, result.stderr).toBe(0)
+        expect(existsSync(join(root, 'dist/database-migration-certification.json'))).toBe(false)
+        expect(
+          JSON.parse(
+            readFileSync(join(root, `dist/database-migration-certification-${target}.json`), 'utf8')
+          )
+        ).toEqual(databaseCertification)
+        const evidence = JSON.parse(
+          readFileSync(join(root, `dist/certification-${target}.json`), 'utf8')
+        )
+        expect(evidence).toMatchObject({
+          platform: target,
+          source: {
+            repository: environment.GITHUB_REPOSITORY,
+            ref: environment.GITHUB_REF,
+            sha: environment.GITHUB_SHA,
+            runId: environment.GITHUB_RUN_ID,
+            runAttempt: environment.GITHUB_RUN_ATTEMPT
+          },
+          checks: {
+            electronP0: 'not-applicable',
+            visualRegression: 'not-applicable',
+            packageSmoke: 'passed',
+            authenticode: 'not-applicable'
+          },
+          databaseMigration: databaseCertification
+        })
+        expect(evidence.artifacts).toEqual(
+          [...packages].sort().map((name) => ({
+            name,
+            sha256: createHash('sha256')
+              .update(readFileSync(join(root, 'dist', name)))
+              .digest('hex')
+          }))
+        )
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
+    }
+  )
+
+  it.each(['missing-feed', 'empty-feed', 'missing-database', 'failed-database'] as const)(
+    'does not certify native packages with %s even when distributables exist',
+    (failure) => {
+      const root = mkdtempSync(join(tmpdir(), 'earthnano-native-release-reject-'))
+      try {
+        mkdirSync(join(root, 'dist'))
+        writeFileSync(join(root, 'dist/EarthNano.AppImage'), 'fixture artifact bytes')
+        if (failure !== 'missing-feed')
+          writeFileSync(
+            join(root, 'dist/alpha-linux.yml'),
+            failure === 'empty-feed' ? '' : 'fixture feed bytes'
+          )
+        if (failure !== 'missing-database') {
+          const database = structuredClone(databaseCertification)
+          if (failure === 'failed-database') database.checks.reopen = 'failed'
+          writeFileSync(
+            join(root, 'dist/database-migration-certification.json'),
+            JSON.stringify(database)
+          )
+        }
+        const record = readWorkflow('native').jobs.native.steps!.find(
+          (step) => step.name === 'Original Unix package certification evidence'
+        )
+        expect(record).toBeDefined()
+        const result = spawnSync(
+          'bash',
+          [
+            '-e',
+            '-o',
+            'pipefail',
+            '-c',
+            record!
+              .run!.replaceAll('${{ inputs.platform }}', 'linux')
+              .replaceAll('${{ inputs.arch }}', 'x64')
+              .replace('scripts/ci/release-certification-evidence.mjs', originalWriter)
+          ],
+          {
+            cwd: root,
+            env: {
+              ...process.env,
+              GITHUB_SHA: 'fixture-source-sha',
+              GITHUB_RUN_ID: 'fixture-run',
+              GITHUB_RUN_ATTEMPT: '1'
+            },
+            encoding: 'utf8'
+          }
+        )
+        expect(result.status).not.toBe(0)
+        expect(existsSync(join(root, 'dist/certification-linux-x64.json'))).toBe(false)
+        if (failure === 'missing-feed' || failure === 'empty-feed')
+          expect(existsSync(join(root, 'dist/database-migration-certification.json'))).toBe(true)
+        if (failure === 'failed-database')
+          expect(result.stderr).toContain('Invalid packaged database migration certification')
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
+    }
+  )
 
   it('retains the actual floating-Node failure evidence without treating an unavailable install as a test result', () => {
     const observed = JSON.parse(
