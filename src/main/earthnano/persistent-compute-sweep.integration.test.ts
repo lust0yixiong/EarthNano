@@ -37,7 +37,7 @@ configureTestRuntimeMetadata()
 // the original Desktop/Harness/Core/Compute/persistence composition, not SSH or scientific accuracy.
 const sourcePrompt = [
   'This is an explicitly controlled Compute protocol fixture, not remote science.',
-  "Use repl_execute with host.compute.create('ssh:fixture').submitJob, command 'printf protocol-workload', outputs ['metrics.json','figure.png'], timeoutSeconds 30.",
+  "Use repl_execute with this exact positional API call: await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30}). Do not replace those three positional arguments with one object.",
   'Submit exactly once. End the initial Turn after its receipt. Await the original background result delivery.',
   "In that continuation call attachJob(the delivered job_id).result(), require result_final, then use require('node:fs') to read the harvested metrics.json at '../'+its featured_files path.",
   'Compute count, sum and arithmetic mean from its actual values array and write research-results.json in the current directory.',
