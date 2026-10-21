@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "status": "source/native/packaged-science and original assets verified; public availability is established separately by actual tagged GitHub Releases",
+  "applicationSource": "bdc0246383a25990030854f4c2fa100895f29ea6",
+  "applicationTree": "25d834714406b65aff26b291a790e5c1749f94b1",
+  "version": "0.1.0-alpha.1",
+  "platformScope": [
+    "macOS arm64",
+    "macOS x64",
+    "Linux arm64",
+    "Linux x64"
+  ],
+  "windows": "deferred to0.2; existing failure evidence and code/config preserved",
+  "nativeRun": 39658781703,
+  "nativeAttempt": 1,
+  "nativeConclusion": "success; all4originaltargets",
+  "scienceRun": 39662102991,
+  "scienceAttempt": 1,
+  "scienceOperator": "9fae695a78c7f704645fd27894d4f1f887886255",
+  "scienceConclusion": "success; unchanged original Python k2 parallel MacARM64 sameTask offline test; independentreview noP1P2",
+  "fullSourceRun": 39658771118,
+  "fullSourceConclusion": "completed success; original full darwin/linux no-new-regressions; baseline failures and all skips retained",
+  "newPaidModelRequests": 0,
+  "notCopied": [
+    "large package bytes (final GHA preparer verifies all8)",
+    "trace.zip (diagnostic only)",
+    "duplicate science copy of ARM native manifest (retained once under native)",
+    "runtime/compiled icons (identified by actual icons.json; earlier actual pixel evidence retained)"
+  ],
+  "remaining": [
+    "Public availability is authoritative at https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1 and /tag/alpha; prepared CI artifacts or drafts alone are not public releases."
+  ],
+  "files": [
+    {
+      "path": "native/run.json.gz",
+      "source": "native-39658781703/run.json",
+      "rawBytes": 13118,
+      "rawSha256": "3937534c7aab277700d0fae18d3028d3c20b8373a3448a38f70f43daf7494eeb",
+      "gzipBytes": 1599,
+      "gzipSha256": "3f723d1b6cf72733e644a0255832fd33dc0334335f140cb2fe85e14b26631920"
+    },
+    {
+      "path": "native/jobs.json.gz",
+      "source": "native-39658781703/jobs.json",
+      "rawBytes": 26211,
+      "rawSha256": "0acc5ee1ae43ad73d1460f2dde7f843aa2b648ddc523cf5341c9395aca61b000",
+      "gzipBytes": 2341,
+      "gzipSha256": "0f1d952607e3b45220b01ae4949afbbaf2e38c788e40bc351c3bafe913d2ecc6"
+    },
+    {
+      "path": "native/artifacts.json.gz",
+      "source": "native-39658781703/artifacts.json",
+      "rawBytes": 5827,
+      "rawSha256": "930e95639e6448a41c7e1e4ef0b11a5fb54d5aedb0639def50c270b0fd87d160",
+      "gzipBytes": 1132,
+      "gzipSha256": "6412cb384ad217c0878346534f0984d300a7c50e0be86d52a62c9caeb37f6444"
+    },
+    {
+      "path": "native/macos-26/dist/builder-debug.yml.gz",
+      "source": "native-39658781703/macos-26/artifact/dist/builder-debug.yml",
+      "rawBytes": 3588,
+      "rawSha256": "52dbd77e0b6a878bdd135572983b630de57a1a925a8932971e7d88d7b18f3465",
+      "gzipBytes": 1006,
+      "gzipSha256": "0eaa3ebef518557d88de1b98f577f7250d98ca433142709226410306e5499bfd"
+    },
+    {
+      "path": "native/macos-26/dist/certification-macos-arm64.json.gz",
+      "source": "native-39658781703/macos-26/artifact/dist/certification-macos-arm64.json",
+      "rawBytes": 1167,
+      "rawSha256": "e6e1c7f67f0a87050d319bfdc201ada8335d521c28faa8318f8aa9a85c56a6e9",
+      "gzipBytes": 604,
+      "gzipSha256": "a9c4655b8e9769659da376fb1743acf92737151b86f39b1d0779a52d0c3a52ae"
+    },
+    {
+      "path": "native/macos-26/dist/database-migration-certification-macos-arm64.json.gz",
+      "source": "native-39658781703/macos-26/artifact/dist/database-migration-certification-macos-arm64.json",
+      "rawBytes": 363,
+      "rawSha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "gzipBytes": 244,
+      "gzipSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "path": "native/macos-26/test-results/native-evidence/artifact-manifest.json.gz",
+      "source": "native-39658781703/macos-26/artifact/test-results/native-evidence/artifact-manifest.json",
+      "rawBytes": 2722033,
+      "rawSha256": "84d21f726e745655a5bdbd1a65711ca34c69ae12bacd89873f96533a227ab359",
+      "gzipBytes": 545472,
+      "gzipSha256": "b593e3131f3c9e70feae86343d05e5935e3e1e33f5c20837cf5d0e5bbe341fe7"
+    },
+    {
+      "path": "native/macos-26/download-receipt.json.gz",
+      "source": "native-39658781703/macos-26/receipt.json",
+      "rawBytes": 446,
+      "rawSha256": "b5bd3a56b8e6c44675116909e60620f0fdb59fc5dc600542c11dd5ed68cef6f6",
+      "gzipBytes": 291,
+      "gzipSha256": "df0590e7a988251d2ff90f1f3eb3f46ef60a893a4441d703fad9c3f7c28ede47"
+    },
+    {
+      "path": "native/macos-26-intel/dist/builder-debug.yml.gz",
+      "source": "native-39658781703/macos-26-intel/artifact/dist/builder-debug.yml",
+      "rawBytes": 3586,
+      "rawSha256": "7df2c91b614d4c444e8eb83c81f43b6668a2618518f8adf56da9958d11b7eb85",
+      "gzipBytes": 1005,
+      "gzipSha256": "b1de3ba4103b28fbf1a50b8fecdd591ee0d5cb874288383f352026cd948b012f"
+    },
+    {
+      "path": "native/macos-26-intel/dist/certification-macos-x64.json.gz",
+      "source": "native-39658781703/macos-26-intel/artifact/dist/certification-macos-x64.json",
+      "rawBytes": 1161,
+      "rawSha256": "309aa514f4d59c820f02fcc8e6413a330a68ed7c1a82a875a8031346f51a3dd5",
+      "gzipBytes": 602,
+      "gzipSha256": "55fa138cafe5a083cb543518034ea28c69a13b868ba599dab4d89bcacc27be37"
+    },
+    {
+      "path": "native/macos-26-intel/dist/database-migration-certification-macos-x64.json.gz",
+      "source": "native-39658781703/macos-26-intel/artifact/dist/database-migration-certification-macos-x64.json",
+      "rawBytes": 363,
+      "rawSha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "gzipBytes": 244,
+      "gzipSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "path": "native/macos-26-intel/test-results/native-evidence/artifact-manifest.json.gz",
+      "source": "native-39658781703/macos-26-intel/artifact/test-results/native-evidence/artifact-manifest.json",
+      "rawBytes": 2654786,
+      "rawSha256": "315806232e5399cdd8f0b3946a2a8ff0b0baab3bdf566e91ffe36901c2fd86ab",
+      "gzipBytes": 545225,
+      "gzipSha256": "4979daafbfa104911852f32242246076ee0dfedd7c328515d82eb4dc2e2be06e"
+    },
+    {
+      "path": "native/macos-26-intel/download-receipt.json.gz",
+      "source": "native-39658781703/macos-26-intel/receipt.json",
+      "rawBytes": 448,
+      "rawSha256": "60674dba244db59083282f9be1a83b6ec14cae6e80d8bf41074b067aff3ea092",
+      "gzipBytes": 294,
+      "gzipSha256": "27d0c51f5ae94cf9106cf3541f21dfe87433cbb4172d8a22f4d743fed3b6cfba"
+    },
+    {
+      "path": "native/ubuntu-24.04/dist/builder-debug.yml.gz",
+      "source": "native-39658781703/ubuntu-24.04/artifact/dist/builder-debug.yml",
+      "rawBytes": 3586,
+      "rawSha256": "7df2c91b614d4c444e8eb83c81f43b6668a2618518f8adf56da9958d11b7eb85",
+      "gzipBytes": 1005,
+      "gzipSha256": "b1de3ba4103b28fbf1a50b8fecdd591ee0d5cb874288383f352026cd948b012f"
+    },
+    {
+      "path": "native/ubuntu-24.04/dist/certification-linux-x64.json.gz",
+      "source": "native-39658781703/ubuntu-24.04/artifact/dist/certification-linux-x64.json",
+      "rawBytes": 1169,
+      "rawSha256": "00773cca1f76b46262ff73991986a8c456d42ba19db29e74acd6cc9912870472",
+      "gzipBytes": 614,
+      "gzipSha256": "5391b7332fb61262d95b701137d76bd5d8d18fd9ff651d4c37ddc14974a244df"
+    },
+    {
+      "path": "native/ubuntu-24.04/dist/database-migration-certification-linux-x64.json.gz",
+      "source": "native-39658781703/ubuntu-24.04/artifact/dist/database-migration-certification-linux-x64.json",
+      "rawBytes": 363,
+      "rawSha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "gzipBytes": 244,
+      "gzipSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "path": "native/ubuntu-24.04/test-results/native-evidence/artifact-manifest.json.gz",
+      "source": "native-39658781703/ubuntu-24.04/artifact/test-results/native-evidence/artifact-manifest.json",
+      "rawBytes": 2472536,
+      "rawSha256": "1da8fc02d7aeba424f9053736305dc3ab166942b0dd5baf25ceba6b646871e7b",
+      "gzipBytes": 541669,
+      "gzipSha256": "3b508d64cb0a26f0c7ae26f5db211539b623dfa958adcb56cb484afe9e0c2dec"
+    },
+    {
+      "path": "native/ubuntu-24.04/download-receipt.json.gz",
+      "source": "native-39658781703/ubuntu-24.04/receipt.json",
+      "rawBytes": 446,
+      "rawSha256": "86fe7f7895527fd47264c8a9c9e836d447396c639dac8939723ac18f88df9f64",
+      "gzipBytes": 296,
+      "gzipSha256": "c98c3c0b7f401958f3f03b37e54d9cc8e97f1169c863bf43200460b06134361c"
+    },
+    {
+      "path": "native/ubuntu-24.04-arm/dist/builder-debug.yml.gz",
+      "source": "native-39658781703/ubuntu-24.04-arm/artifact/dist/builder-debug.yml",
+      "rawBytes": 3588,
+      "rawSha256": "52dbd77e0b6a878bdd135572983b630de57a1a925a8932971e7d88d7b18f3465",
+      "gzipBytes": 1006,
+      "gzipSha256": "0eaa3ebef518557d88de1b98f577f7250d98ca433142709226410306e5499bfd"
+    },
+    {
+      "path": "native/ubuntu-24.04-arm/dist/certification-linux-arm64.json.gz",
+      "source": "native-39658781703/ubuntu-24.04-arm/artifact/dist/certification-linux-arm64.json",
+      "rawBytes": 1170,
+      "rawSha256": "4189631cc4ac472bad11ec96cb2c1b309b32b25cc69cf1e9b644c7dfb5faa007",
+      "gzipBytes": 611,
+      "gzipSha256": "3fed050adaf0afdc9e24f6705cd544caa12e952ae3ef2ab3291a7c487ea32f84"
+    },
+    {
+      "path": "native/ubuntu-24.04-arm/dist/database-migration-certification-linux-arm64.json.gz",
+      "source": "native-39658781703/ubuntu-24.04-arm/artifact/dist/database-migration-certification-linux-arm64.json",
+      "rawBytes": 363,
+      "rawSha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "gzipBytes": 244,
+      "gzipSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "path": "native/ubuntu-24.04-arm/test-results/native-evidence/artifact-manifest.json.gz",
+      "source": "native-39658781703/ubuntu-24.04-arm/artifact/test-results/native-evidence/artifact-manifest.json",
+      "rawBytes": 2537614,
+      "rawSha256": "f12c7639d05ca5a5fb5d2a54a253da7ed257ac4885e27a04a2ef9230912e708f",
+      "gzipBytes": 542398,
+      "gzipSha256": "3b0543d2d6df8280c59df7bdac2315dd869b1ca74f578f1c13d12d2d49924a51"
+    },
+    {
+      "path": "native/ubuntu-24.04-arm/download-receipt.json.gz",
+      "source": "native-39658781703/ubuntu-24.04-arm/receipt.json",
+      "rawBytes": 454,
+      "rawSha256": "00f79e0ce4608bb81ba9b8e18ca2baba74962dbc62a8febe2cf5ff6f6fac2714",
+      "gzipBytes": 299,
+      "gzipSha256": "9285828d5bb4e8ccce8c88c70857beffd3758dc6d7c56eac25ab5de0a21e025b"
+    },
+    {
+      "path": "native/independent-metadata-receipt.json.gz",
+      "source": "native-39658781703/independent-metadata-receipt.json",
+      "rawBytes": 9053,
+      "rawSha256": "bc5939c235fd89d9646470eb6e4c199fefd3d80a127ca409c3a9289d12bdf41b",
+      "gzipBytes": 2440,
+      "gzipSha256": "814f31176a4d52a90d58d5d95ed0f6621d80bffeb84b8cba5f9682f3d6e01791"
+    },
+    {
+      "path": "native/independent-metadata-review/REPORT.md.gz",
+      "source": "native-39658781703/independent-metadata-review/REPORT.md",
+      "rawBytes": 5899,
+      "rawSha256": "dbba71ba6f2e91cee24b60ab088605111e36effd2f1623626bbe5ed84d38dd69",
+      "gzipBytes": 2865,
+      "gzipSha256": "7422cf277882208ac7b05dca878442403fe861917cc5d0cabbd0b103a545a632"
+    },
+    {
+      "path": "native/independent-metadata-review/receipt.json.gz",
+      "source": "native-39658781703/independent-metadata-review/receipt.json",
+      "rawBytes": 835,
+      "rawSha256": "60d873695f74b0e3c2acb938d6149a46cabf9ce1427fea2e889f3a3a5d3c7e52",
+      "gzipBytes": 520,
+      "gzipSha256": "b567e5ac6629e8f6a8989bed61569514cc02544fd0aa93209f876810a1f64f72"
+    },
+    {
+      "path": "science/run.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/run.json",
+      "rawBytes": 12755,
+      "rawSha256": "f5eaa2cfc9051d4d8c386f5bbfa86d35f2fc91d588e1dee6c513f7e252599ec6",
+      "gzipBytes": 1584,
+      "gzipSha256": "5c64078b29ff74406f896d8e7613aa3f8d0d79c887dbf84eedbc43ee3fb55d17"
+    },
+    {
+      "path": "science/jobs.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/jobs.json",
+      "rawBytes": 4919,
+      "rawSha256": "b9f2067593298e02e900ca8e1f2aa3268684868d90525dc1d4962c74c9ae9c7a",
+      "gzipBytes": 1180,
+      "gzipSha256": "5f7f35f90eb20e13c5da98f1d9c7aa69c8e15ee1c1b74498d92eaac7ad87e2b3"
+    },
+    {
+      "path": "science/artifacts.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifacts.json",
+      "rawBytes": 765,
+      "rawSha256": "363d88f7d07e084d790e29976081c4abab4217fb617dbe4cef6ffda26c752721",
+      "gzipBytes": 449,
+      "gzipSha256": "ad3513c36bc887215d363ff3ecbd4fb1f06105b32016c0d111f1147c8597404b"
+    },
+    {
+      "path": "science/download-receipt.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/download-receipt.json",
+      "rawBytes": 331,
+      "rawSha256": "e6f9f8f94c70457e789de223fd4e291d84f599a6677a132c557a7666629209cc",
+      "gzipBytes": 243,
+      "gzipSha256": "29a61ec532c11b1c5f6bdbe298df2e36e0931cb2368a2d1c993b7f3ddfc5b238"
+    },
+    {
+      "path": "science/ROOT-FACTS.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/ROOT-FACTS.json",
+      "rawBytes": 2875,
+      "rawSha256": "d2ca18853adf9e7ad601f6065f743649e836980e5d36001bfd307288ffd97791",
+      "gzipBytes": 1414,
+      "gzipSha256": "a7a81a7a2be5651f07816eb40a6e39ea5f5873a6232a759a41eb29557619dde5"
+    },
+    {
+      "path": "science/extracted-files.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/extracted-files.json",
+      "rawBytes": 8061,
+      "rawSha256": "0a533858be753dc883f2a75981ad449684ca665d568b420b10b2b0723078bc4a",
+      "gzipBytes": 2699,
+      "gzipSha256": "49d82c9c70c7c22e8f0ef1f58f1400f1b9f028dc5791b5044dd6c782d23d56e1"
+    },
+    {
+      "path": "science/full-job.log.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/full-job.log",
+      "rawBytes": 73152,
+      "rawSha256": "5a0688f27550751b35f005f5d3c58eac023e08747d528f4ec8472851d30fd441",
+      "gzipBytes": 13661,
+      "gzipSha256": "8690a78c2446ce2e478139e64e24f6fc86e0d7bb72d922bbea4facb72c14c870"
+    },
+    {
+      "path": "science/independent-science-review/REPORT.md.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/independent-science-review/REPORT.md",
+      "rawBytes": 7144,
+      "rawSha256": "4918eb24f0060a3959f300984df8129332e3f64ff831e49745d0617530ffe109",
+      "gzipBytes": 3423,
+      "gzipSha256": "c0154661876702f6ec002b72ad2e381938c6e3b8788f8a3978eed6120956dab5"
+    },
+    {
+      "path": "science/independent-science-review/facts.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/independent-science-review/facts.json",
+      "rawBytes": 12764,
+      "rawSha256": "a7e71ac7e2d4ceb122d5eafb5bee5d72175edeee33f24bc168661c73d854af66",
+      "gzipBytes": 4391,
+      "gzipSha256": "dd8656f5bcd181c771f4de6bba1115a3e43272004c7eff8bc8b5685388832410"
+    },
+    {
+      "path": "science/independent-science-review/receipt.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/independent-science-review/receipt.json",
+      "rawBytes": 434,
+      "rawSha256": "52266ec7309597b9b58039c989f6d944d03c74047022da11617b7d3ea08141f0",
+      "gzipBytes": 312,
+      "gzipSha256": "ac537f0c4d156deaeadec2b2c8cce10ed4bf844a7f5f68fc779b4bcd4ac46be7"
+    },
+    {
+      "path": "science/evidence/acceptance.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/acceptance.json",
+      "rawBytes": 288,
+      "rawSha256": "94e2e4a85807247cd1a6902d98282f0b6da0024fd495051e7cacf0fcd0c8fb11",
+      "gzipBytes": 215,
+      "gzipSha256": "4bb7d49c3344e7afaad7f17cbc6d017a05efaa7324e4500d0785a2e9e15ef798"
+    },
+    {
+      "path": "science/evidence/bundle-after.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/bundle-after.json",
+      "rawBytes": 2269260,
+      "rawSha256": "a7b50a5d73372f7941ff25971e325bb4f4591b71353dae665b14494a91928e90",
+      "gzipBytes": 538115,
+      "gzipSha256": "c003612608b650e15b924594a9e315c07a29c36f931d7f3b41cdc08efa2d0e8e"
+    },
+    {
+      "path": "science/evidence/bundle-before.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/bundle-before.json",
+      "rawBytes": 2269260,
+      "rawSha256": "a7b50a5d73372f7941ff25971e325bb4f4591b71353dae665b14494a91928e90",
+      "gzipBytes": 538115,
+      "gzipSha256": "c003612608b650e15b924594a9e315c07a29c36f931d7f3b41cdc08efa2d0e8e"
+    },
+    {
+      "path": "science/evidence/claude-runtime-package-lock.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/claude-runtime-package-lock.json",
+      "rawBytes": 5261,
+      "rawSha256": "ab7341f185eab7212138eff0f50f30311af4b4353d85be759c74c2978db9920d",
+      "gzipBytes": 1240,
+      "gzipSha256": "33d280c32df1ec8398d65ab7bfe6644dd86d4737755428cb51b52fc88a9f53e7"
+    },
+    {
+      "path": "science/evidence/claude-version.txt.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/claude-version.txt",
+      "rawBytes": 22,
+      "rawSha256": "239b5875622027830dc92f43003fead4af197bfb49af664148f4d16f94ccbc90",
+      "gzipBytes": 42,
+      "gzipSha256": "06ee85dc64cd851fbacbbf2c64fc1b18ab006a792dbb9ff5abde3716193956e6"
+    },
+    {
+      "path": "science/evidence/final-verification-exit.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/final-verification-exit.json",
+      "rawBytes": 33,
+      "rawSha256": "53819a6c5373209cea37e01170966d4783a374c9fb9d90153f68f8260940c4eb",
+      "gzipBytes": 53,
+      "gzipSha256": "1483054d97884ab0cca5012465ede9d90df3c80ef11440b211f34237c597d16c"
+    },
+    {
+      "path": "science/evidence/final-verification.log.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/final-verification.log",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "science/evidence/icons/icons.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/icons/icons.json",
+      "rawBytes": 887,
+      "rawSha256": "3049bd98699d8426cdf4afa3e760e7d3cc91ca18528d96bfe5cf17b0007e1a57",
+      "gzipBytes": 448,
+      "gzipSha256": "1b972f987ff1918e7f795817c4d2b82039d8b9666fbc7dd60b014cc178beeb9d"
+    },
+    {
+      "path": "science/evidence/keychain-context-binding.jsonl.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/keychain-context-binding.jsonl",
+      "rawBytes": 2464,
+      "rawSha256": "e248b85a858dbaa0cf06a472d6c29d25dce03bafadac4a407205a0f4622de2f2",
+      "gzipBytes": 525,
+      "gzipSha256": "300e98ec0491f6616d008fd6725c9daa26550313837eb46a6d2b18218d31e294"
+    },
+    {
+      "path": "science/evidence/launch.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/launch.json",
+      "rawBytes": 400,
+      "rawSha256": "b40a0fda05cddaa6a1d646b1f3717bf93ea7104cc35ec259b0c1b6813bb1e9fc",
+      "gzipBytes": 244,
+      "gzipSha256": "8c63aaee2ba6b6e451c86ccb9343b5e28a7acb053bbb6c22c81decbaa49c3429"
+    },
+    {
+      "path": "science/evidence/native-run.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/native-run.json",
+      "rawBytes": 21136,
+      "rawSha256": "0dfa478f0087a01efaf6f421b06a999ecb555c1944012d774d0f9286384ff7d9",
+      "gzipBytes": 1975,
+      "gzipSha256": "d3e1c8d5174a21edfc71a4b5fbc2ef8166d6ab53a954dcffd462db9d07d70943"
+    },
+    {
+      "path": "science/evidence/original-acceptance.log.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/original-acceptance.log",
+      "rawBytes": 1863,
+      "rawSha256": "14a4e85c51ece100899e2d3c7b4e2555c0508d49ba63e5e9b63afcda05411095",
+      "gzipBytes": 485,
+      "gzipSha256": "1dcc98b053910a4296148b6ce59e6a11b48b1350eb7d3a242250d6fce3ecc559"
+    },
+    {
+      "path": "science/evidence/original-notebook-optimization.spec.ts.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/original-notebook-optimization.spec.ts",
+      "rawBytes": 50634,
+      "rawSha256": "645a3d0d63fe7643757e8bd8b5d98253d844bc96208873c755260429b125f357",
+      "gzipBytes": 12181,
+      "gzipSha256": "21c60d16b399ac35694f82f2ad0dad683b99d7c73d0089b045489705137be5cf"
+    },
+    {
+      "path": "science/evidence/origins.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/origins.json",
+      "rawBytes": 999,
+      "rawSha256": "1bdbd507c60ebcac0d7353766c0fd663e80d111af82a1a370c46968cfcbc2d0e",
+      "gzipBytes": 600,
+      "gzipSha256": "0becd09f62ef2242a1cd07fa03a2d39e3af7571575381e0648ab08d11d9ef863"
+    },
+    {
+      "path": "science/evidence/packaged-entrypoints.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/packaged-entrypoints.json",
+      "rawBytes": 786,
+      "rawSha256": "a09d51fe78b41fc568c35ce2a00a97e83ab597ba512f653ce487a5b3da8f09c9",
+      "gzipBytes": 438,
+      "gzipSha256": "c395e4fba15908fb2fad012fbbcce3b083275eedf18566d9d6464731342b1eb4"
+    },
+    {
+      "path": "science/evidence/playwright.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/playwright.json",
+      "rawBytes": 6363,
+      "rawSha256": "13efd450a961b263e21932d945c60994c0222c823ed87b76d1b05019e32c4d97",
+      "gzipBytes": 1494,
+      "gzipSha256": "b95e605b223119bcabf7d926c3596f6d72f469799cecd89135aebcfaba5b2f61"
+    },
+    {
+      "path": "science/evidence/process-exit.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/process-exit.json",
+      "rawBytes": 54,
+      "rawSha256": "95841417c5032f85d10904afb9a1c2c03679729749fd8c82f810c630dd9e74de",
+      "gzipBytes": 65,
+      "gzipSha256": "c7b2a384957b9f4b54030b771c45fdb80088f6d8a9a9b443e1f38ca14d91d6f9"
+    },
+    {
+      "path": "science/evidence/release-gates.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/release-gates.json",
+      "rawBytes": 741,
+      "rawSha256": "2ae139ef76f2bc8f9682f622c18d6928998026c8da0d3e66297cf56cf879315e",
+      "gzipBytes": 250,
+      "gzipSha256": "6ea4649521e682c805cd31eaf932b75b0bb4fd1978c25bbd5315d0eb8773f683"
+    },
+    {
+      "path": "science/evidence/source-run.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/source-run.json",
+      "rawBytes": 19458,
+      "rawSha256": "6e127f50a0d4aba2fdf999fcff57138959763c084097852370198b8a592e685c",
+      "gzipBytes": 1634,
+      "gzipSha256": "a781dc23327ff046dda66b3ae36caca1aca3f1ea33db7742ca338ce3716222f8"
+    },
+    {
+      "path": "science/evidence/spec-byteproof.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/spec-byteproof.json",
+      "rawBytes": 557,
+      "rawSha256": "21be4c1ede330623da6b510089f704df56a7701771048679b498ff790d950d8e",
+      "gzipBytes": 334,
+      "gzipSha256": "9d2021863957727ff578455b7cece7501350d4ef0cf504fed9f1ee6b2a0427c8"
+    },
+    {
+      "path": "science/evidence/spec-projection.diff.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/evidence/spec-projection.diff",
+      "rawBytes": 5124,
+      "rawSha256": "04da6855805cdca0d35e2c061e9a93d6616bd29c5382f6f71dd1d30a42e274df",
+      "gzipBytes": 1530,
+      "gzipSha256": "c3faf44688b6b33e34f4cb1ac55b754876fcfd407ea12431d645f2824221b95e"
+    },
+    {
+      "path": "science/generated/packaged-notebook-optimization.spec.ts.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/generated/packaged-notebook-optimization.spec.ts",
+      "rawBytes": 51217,
+      "rawSha256": "a4c9a5db09e45bb4a9fb57619a503a51126707e5a6b2b08935c8c6282f3c2810",
+      "gzipBytes": 12211,
+      "gzipSha256": "ba1c505e7012a3773ae7e0b3514f7f76c7015b83d2a5bd95faddfb57b8793bb3"
+    },
+    {
+      "path": "science/packaged.playwright.config.ts.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/packaged.playwright.config.ts",
+      "rawBytes": 553,
+      "rawSha256": "e61df95dfd259b24aa15c501f9cb3f4b637f04a5ccefc416f6ce9f161fa9b25f",
+      "gzipBytes": 303,
+      "gzipSha256": "e038d73ab1be671b29586eb05894adc16b3139eeb0b0a2a894b9cc0caf94ee62"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/execution-journal.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/execution-journal.json",
+      "rawBytes": 210218,
+      "rawSha256": "93ca6e638f40957632662a54706aac1b4f43cd255ce633c58f309251ea123375",
+      "gzipBytes": 23227,
+      "gzipSha256": "8534c79704d4684c2abae48d1dbed14762369f859f4cc8e592e33511663362e7"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-journal-b8eb786e-1d64-4ef4-9231-961432fecc7c.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-journal-b8eb786e-1d64-4ef4-9231-961432fecc7c.json",
+      "rawBytes": 160109,
+      "rawSha256": "8aebe906a5bdff7a30ed6e80827b38af31fcccf2ca87062ea1400541ca2901a3",
+      "gzipBytes": 22457,
+      "gzipSha256": "9f436f84786f589fd25d046f3007c07d7fbd22d3bcdd9d4a85cceaea996ef421"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-ordinary-journal-a968837c-ef26-4129-a658-96c0a080fdf1-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-ordinary-journal-a968837c-ef26-4129-a658-96c0a080fdf1-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json",
+      "rawBytes": 5797,
+      "rawSha256": "2f2aa38e9c931e5af915d31d34aa4e96299d6b20149634f05e327b287a3306ec",
+      "gzipBytes": 1592,
+      "gzipSha256": "5d5c912a6b07dbd4be5658e1b77f0ae4d52630a51db052f6b55e91e6663876be"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-failure-diagnostics.jsonl.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-failure-diagnostics.jsonl",
+      "rawBytes": 76,
+      "rawSha256": "65f51c4597896e1724498ceff59a50131b018a2d944f09f1d5becd9d66f6ee0f",
+      "gzipBytes": 90,
+      "gzipSha256": "928d6421c5376517713d0dbdcd7cb0bc9878f62436d4bf57a490665ea8401054"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-request-tasks.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-request-tasks.json",
+      "rawBytes": 4836,
+      "rawSha256": "e03bce2e6a16254ea103f2122d17d67e54ce47cb6e8df57763f16c2414e6dec3",
+      "gzipBytes": 1406,
+      "gzipSha256": "4bff57163ced73b0f0b84feb3a41f176fb428826b4a88f099ae75d3f84e764f0"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-resume.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-private-b8eb786e-1d64-4ef4-9231-961432fecc7c-resume.json",
+      "rawBytes": 4269,
+      "rawSha256": "2dd831ab8c4ffe90cf9088ef4c97195fa3adfc55a8e79b88582fed9546d3a8e9",
+      "gzipBytes": 1789,
+      "gzipSha256": "61df6a5fe4ec8866c807f31d5ae51809c8a1ec6f7c9b284e0e75bfd66fe125d3"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-scientific-sessions.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-scientific-sessions.json",
+      "rawBytes": 717932,
+      "rawSha256": "aff5a66884b256440a3e27f121597c0c06e1f0feabe2333eb4177a2984120ac6",
+      "gzipBytes": 73036,
+      "gzipSha256": "492159d0eb2346872b3ba29c686f90460b36f7e2624b5a8e71e79dbb18db891e"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/notebook-optimization.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/notebook-optimization.json",
+      "rawBytes": 38844,
+      "rawSha256": "b8afe68d36d16c21d84b4d12389e5abbbef8cd9f938fed02c7954ed68d0a0ce3",
+      "gzipBytes": 6124,
+      "gzipSha256": "784cdb68c303d09a4aec5caac914bcfaebe2ef6facc140070a6d27155eb41390"
+    },
+    {
+      "path": "science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/stopped-journal.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-bdc-success/artifact/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/stopped-journal.json",
+      "rawBytes": 40275,
+      "rawSha256": "8a6efa2df10e1295dd46b257c60bc720930bb8e06f54d8e23488b6e4b588b5eb",
+      "gzipBytes": 4541,
+      "gzipSha256": "9c4e6f3d8c89f3cf4bfe58ae029b2297c4ed99664b6c2a81df10053f8de250d9"
+    },
+    {
+      "path": "historical-failure-and-fix/ROOT-FACTS.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/ROOT-FACTS.json",
+      "rawBytes": 1957,
+      "rawSha256": "4093168c435652b94a2e7c0b0c02d92ac33ab24df95ce7058e8225c0d854379b",
+      "gzipBytes": 1069,
+      "gzipSha256": "51b7836fff283f7a52d9d1993131d5cfdde5023d342357bca05d748556716167"
+    },
+    {
+      "path": "historical-failure-and-fix/job-log-receipt.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/job-log-receipt.json",
+      "rawBytes": 94,
+      "rawSha256": "2b68be54c287bef46e3468a57a8d404eab17a64b4822782a063decf0c623e212",
+      "gzipBytes": 100,
+      "gzipSha256": "31983f2bc86674cc75cfcb21dd20839bee900d57f9b0d4fa291c154c45a6d32b"
+    },
+    {
+      "path": "historical-failure-and-fix/job.log.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/job.log",
+      "rawBytes": 84529,
+      "rawSha256": "ba3d4ddafa8e9b328947a8658c03c6df3ee6ed98a307f00a8f94d70cc110cb41",
+      "gzipBytes": 16194,
+      "gzipSha256": "f578b04d90e5c8c3e85c8342e3b225a9956a48cb8f2ee48d6633f6c992af0123"
+    },
+    {
+      "path": "historical-failure-and-fix/independent-preview-diagnosis/REPORT.md.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/independent-preview-diagnosis/REPORT.md",
+      "rawBytes": 5723,
+      "rawSha256": "c8e63acab8b565c6e388e5f6ba985c7ff922c2f0873f30e20409ba9bd97b8c17",
+      "gzipBytes": 2620,
+      "gzipSha256": "d61fa8c2423c4477ee4f747b734eeed6e805380b6fd6761af795791d00d7a6f5"
+    },
+    {
+      "path": "historical-failure-and-fix/independent-preview-diagnosis/independent-review-receipt.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/independent-preview-diagnosis/independent-review-receipt.json",
+      "rawBytes": 2194,
+      "rawSha256": "db8e66851ccefc7a886b3a60875ef1819d2fc3e1d80a1011c91d49505f4b27bb",
+      "gzipBytes": 944,
+      "gzipSha256": "635af015fd76d5f29d408d278653e851f4dd4a3239d8a03d86509647fa076e5c"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/root-validation.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/root-validation.json",
+      "rawBytes": 1498,
+      "rawSha256": "9109c7408f82293c6506cd259ef77bb9179543decde686c0ef27508aa0b8b2d8",
+      "gzipBytes": 737,
+      "gzipSha256": "d7331724e76ea696e5f051ba4aa49a41bbe0c6ab0c49ef71c5fac7f9c7f720b8"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/root-focused-green.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/root-focused-green.json",
+      "rawBytes": 769,
+      "rawSha256": "1e3a973dd6eb0488425ed72c05f183e0287cc3d3d078ac836049dadd2427a90d",
+      "gzipBytes": 449,
+      "gzipSha256": "ce73c1c6c9253077b631d981afb6a57f29ac07b3b558266c66e31668bd31906f"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/root-original-builder-red.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/root-original-builder-red.json",
+      "rawBytes": 1051,
+      "rawSha256": "14a249450ec2284c9aa34d6d3ca7f72f7e36437301bfd85bcdcde58ace0ad4f7",
+      "gzipBytes": 509,
+      "gzipSha256": "c72966f39f05dce7c7c230483b2799fbb9ddf9b46b0f8de9ab9f45f5583ece6f"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/root-original-builder-red.log.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/root-original-builder-red.log",
+      "rawBytes": 1448,
+      "rawSha256": "fc7dca48966a0977a42e6dc55d61e7ca99e1208855d6a05ab0ec14bd71365d98",
+      "gzipBytes": 724,
+      "gzipSha256": "8b4d9ce8a8cccebf5999ed8fcda2c4a57c0ef1a52469657e98dd74f0878afe79"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/INDEPENDENT-FINAL-REVIEW.md.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/INDEPENDENT-FINAL-REVIEW.md",
+      "rawBytes": 2572,
+      "rawSha256": "c142d984cd26d8a623f7417029e073d1beb8e3b5faa495b9e1777c9d97236aa6",
+      "gzipBytes": 1328,
+      "gzipSha256": "c392bcb84b8fbb964d64428d34a15bf798cc6ce35dca36b57ff416e34d7fd2a7"
+    },
+    {
+      "path": "historical-failure-and-fix/packaged-harness-fix-draft/independent-final-review-receipt.json.gz",
+      "source": "compute-fusion-20261021/final-packaged-workflow-plan/actual-9a-failure/packaged-harness-fix-draft/independent-final-review-receipt.json",
+      "rawBytes": 551,
+      "rawSha256": "137665ebf6adbccfb0223ce7961ec105a5d920f3324af09739ce9b059a927cda",
+      "gzipBytes": 379,
+      "gzipSha256": "9ab6ceed311a30c88c825f5a3507b603cd82b2880163e53aa8f02269629cf29e"
+    },
+    {
+      "path": "source-equivalence/source-equivalence.json.gz",
+      "source": "compute-fusion-20261021/final-production-source-control/source-equivalence.json",
+      "rawBytes": 892,
+      "rawSha256": "2abd6a4401cc8a7f1f8f186c58ead9a2c6a477f00968b6fcf2190341f31554d3",
+      "gzipBytes": 536,
+      "gzipSha256": "773e96959ee41d09794efc26f0d5a254712e704ef943c3d65069148535db038c"
+    },
+    {
+      "path": "source-equivalence/bdc-packaging-only-delta.json.gz",
+      "source": "compute-fusion-20261021/final-production-source-control/bdc-packaging-only-delta.json",
+      "rawBytes": 1022,
+      "rawSha256": "d00fecbd543ee86c8908e0bd0a917457c260dc650e545508be61985fbe11a56f",
+      "gzipBytes": 608,
+      "gzipSha256": "b7ab26f19cd0597a33dfaa7bbeeb0dee7fdc600ede29a7913f65b9c65e34e768"
+    }
+  ],
+  "fullSourceEvidence": "../source-39658771118/manifest.json",
+  "assetPreparation": {
+    "run": 39683248168,
+    "attempt": 1,
+    "operator": "2e8a03947add018cc9f0ee33def33f217e61ae11",
+    "conclusion": "success",
+    "artifact": 12385377098,
+    "digest": "sha256:73d26b24720dceaf72237d05ffd7745dc7994c9b7ff3a14db4335a884e5c52a4",
+    "evidence": "../assets-39683248168/manifest.json",
+    "localLargePackageDownload": false
+  },
+  "productMerges": {
+    "pr24": "57441a04b4988c435c823042d61fc13e89e0e93e",
+    "pr23Main": "9a69a0e5a3ccdae68d0d874999b12ab4d9cf74e8",
+    "productTreeUnchanged": true
+  }
+}

@@ -1,0 +1,1159 @@
+{
+  "schemaVersion": 1,
+  "applicationSource": "bdc0246383a25990030854f4c2fa100895f29ea6",
+  "applicationTree": "25d834714406b65aff26b291a790e5c1749f94b1",
+  "actualCandidateCheckout": "328cb5938913531325e6d0ae52244fca842dfb12",
+  "sourceRun": 39658771118,
+  "attempt": 1,
+  "conclusion": "success; original full darwin/linux comparisons no-new-regressions, not all-tests-pass",
+  "originalRawPreserved": true,
+  "newPaidRequests": 0,
+  "windows": "deferred0.2; no Windows execution in this source run",
+  "files": [
+    {
+      "path": "metadata/run-final.json.gz",
+      "source": "final-source-bdc-complete/run-final.json",
+      "rawBytes": 13625,
+      "rawSha256": "5d046358ee7abf26d5df15559f7e0fb1a7f9182372bca7d0cfa8e10976d6f108",
+      "gzipBytes": 1748,
+      "gzipSha256": "5adfc0d59a524decee83e2357e41bb51eb630f0616c98479e54a8cef23462714"
+    },
+    {
+      "path": "metadata/jobs-final.json.gz",
+      "source": "final-source-bdc-complete/jobs-final.json",
+      "rawBytes": 38419,
+      "rawSha256": "ba28b12571cf32f5eb6ea7ee0fc24546ac201300443b3c5a67078ff09bc92f74",
+      "gzipBytes": 2803,
+      "gzipSha256": "a64ed2503c4449640263bf123db4a780ba7693d798337f3dbb03aeae7b4c22df"
+    },
+    {
+      "path": "metadata/artifacts-final.json.gz",
+      "source": "final-source-bdc-complete/artifacts-final.json",
+      "rawBytes": 8180,
+      "rawSha256": "cb6200f741510f94de336ef1faed62a5fd118d4a998d8ed4326db033258f368b",
+      "gzipBytes": 1439,
+      "gzipSha256": "46b16003feb6db290e9fd12de7e8d54571ebd4280cdf55862abbbdbbc4668f9a"
+    },
+    {
+      "path": "metadata/candidate-merge-commit.json.gz",
+      "source": "final-source-bdc-complete/candidate-merge-commit.json",
+      "rawBytes": 10166,
+      "rawSha256": "386becdda54c7bf4cf0dcce9fbe38d42038bb7d0fea567b2fff43798fa2f2700",
+      "gzipBytes": 3335,
+      "gzipSha256": "067fee721aa9ce39d3582654c83221818b17267f9a9ca164105da6d6ed18fae0"
+    },
+    {
+      "path": "metadata/original-comparer-byteproof.json.gz",
+      "source": "final-source-bdc-complete/original-comparer-byteproof.json",
+      "rawBytes": 401,
+      "rawSha256": "b528bdb8163569e4408471489d5499c7b73ee81dbfe5aff3eb69aebe1118a63a",
+      "gzipBytes": 305,
+      "gzipSha256": "4ef12e6ef765a6bbec1792b0afdf06cd3c5da3a012556551983242526794f5ac"
+    },
+    {
+      "path": "metadata/full-comparison-receipt.json.gz",
+      "source": "final-source-bdc-complete/full-comparison/receipt.json",
+      "rawBytes": 511,
+      "rawSha256": "0d9a3ecd19d7a2eacbd750a3776bf51865c4266b0b86be275204414611504182",
+      "gzipBytes": 305,
+      "gzipSha256": "e9f6722b4e3b074a8ab516762f66e0832cf27d5dc8e973ffcd624fbeb4dbed74"
+    },
+    {
+      "path": "comparison/comparison.json.gz",
+      "source": "final-source-bdc-complete/full-comparison/extracted/comparison.json",
+      "rawBytes": 7764544,
+      "rawSha256": "3ca288288871696a0a6101c6f41c692241e7675e7d60b731c01b09158aa06e60",
+      "gzipBytes": 251435,
+      "gzipSha256": "f147d7db5933c710988bb20f89f5a8e4bfc885bc2df8ce82467ada2894472477"
+    },
+    {
+      "path": "comparison/comparison.md.gz",
+      "source": "final-source-bdc-complete/full-comparison/extracted/comparison.md",
+      "rawBytes": 736,
+      "rawSha256": "0381dd779a5df8f02a0699bbd95d77c018363fcdbfaa674fb9ee01b53706cff5",
+      "gzipBytes": 272,
+      "gzipSha256": "76dd5325c85bf931a8573dae0cc0687f3a076e7c8f2b64f3b66d3c2a6b4d4944"
+    },
+    {
+      "path": "metadata/linux-raw-receipt.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/receipt.json",
+      "rawBytes": 9326,
+      "rawSha256": "26a4bcf47073bacaa9dcf3419046f6fa2b84547bd164fedc77ec46940424bda2",
+      "gzipBytes": 2614,
+      "gzipSha256": "e41989028d58d6df09945ef63711a472726e84c69d4653dc96c3b32de9b8264c"
+    },
+    {
+      "path": "linux/baseline-1/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/npm-ci.log",
+      "rawBytes": 3408,
+      "rawSha256": "b3f722f2385d6b44d8cab9ba7157200a38f9a7110234eb3339bd89d001133f46",
+      "gzipBytes": 1192,
+      "gzipSha256": "dc33a3a08d8ed12979e1f9a3d824c72885c748f88a268d77a5c571f91630ed36"
+    },
+    {
+      "path": "linux/baseline-1/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "ee098cba9a93e6f382ac1602a0b105ce9ab62f971b3245ba9e1568c6f0780195",
+      "gzipBytes": 188,
+      "gzipSha256": "0697aa32ffdd36e62fff9d347a652350ea0644b2998a05e2854b44b43ee858e5"
+    },
+    {
+      "path": "linux/baseline-1/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/runtime.json",
+      "rawBytes": 13074385,
+      "rawSha256": "f666303628b6feba14fefa33083e7257c8e41bea08e38eb8c832ff90757191c6",
+      "gzipBytes": 607038,
+      "gzipSha256": "ba693d213bd7f5b5525d56d24fd186f7e6c41d5aa79604b32c6667e87bc62d05"
+    },
+    {
+      "path": "linux/baseline-1/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/source-report.json",
+      "rawBytes": 9488539,
+      "rawSha256": "84b7032944ce8e9fec0bb123419b05072bc421cebc9b9417c723d9d8094f54f0",
+      "gzipBytes": 551601,
+      "gzipSha256": "147e28aff20181320a5048bd5d811cffab814a681ed0517259d933e06596e953"
+    },
+    {
+      "path": "linux/baseline-1/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/tests.log",
+      "rawBytes": 2449,
+      "rawSha256": "e6568dcac40922cfe2e410444b5273d02422f587d5fd4c579a1dca4788fca41a",
+      "gzipBytes": 775,
+      "gzipSha256": "880d800c90f04b8e281b14b71ba080b6f30b39ff575a9537197e6c1c79b02669"
+    },
+    {
+      "path": "linux/baseline-1/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "linux/baseline-1/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-1/vitest.json",
+      "rawBytes": 7482582,
+      "rawSha256": "2abdaad0fb34d52c3eedf294ed432daaa8b20777dcb9974f608769177cd9bee4",
+      "gzipBytes": 746508,
+      "gzipSha256": "c09d6fdc9f273a1cd83c9afd3710671c3eebc6be720c3a4a89b5a33f57525049"
+    },
+    {
+      "path": "linux/baseline-2/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/npm-ci.log",
+      "rawBytes": 3409,
+      "rawSha256": "2c4917ba83c3c49a209e66d59656fd0f4d10df16c91f52454849b26bcea508ba",
+      "gzipBytes": 1193,
+      "gzipSha256": "c75534000504c07c8030391d4760480427ea61901ede390759df1317be6b144a"
+    },
+    {
+      "path": "linux/baseline-2/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "ee098cba9a93e6f382ac1602a0b105ce9ab62f971b3245ba9e1568c6f0780195",
+      "gzipBytes": 188,
+      "gzipSha256": "0697aa32ffdd36e62fff9d347a652350ea0644b2998a05e2854b44b43ee858e5"
+    },
+    {
+      "path": "linux/baseline-2/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/runtime.json",
+      "rawBytes": 43889286,
+      "rawSha256": "40a9bcc0c5c1d139de75c5e6a03c6671e0a9b8d25e49a7853004fe2c44e6316d",
+      "gzipBytes": 959250,
+      "gzipSha256": "4d97d74349d44efc1cdd38d801415ad5e3b0f50b55855c052a8d6cea313f6680"
+    },
+    {
+      "path": "linux/baseline-2/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/source-report.json",
+      "rawBytes": 28591988,
+      "rawSha256": "5c37a7f98c138c29aea26f4cd98e1d2cfdbdc7207b8adab571b7f7919f4c7da8",
+      "gzipBytes": 831004,
+      "gzipSha256": "79465cfc43f5ef6c1c332e5fde7d642602c0bfd38e6f51a443e1f4a338dd17ff"
+    },
+    {
+      "path": "linux/baseline-2/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/tests.log",
+      "rawBytes": 120699,
+      "rawSha256": "35b01d74970a6daed51e6d2bbb0e89206f06cf4a5cb26ef68fc6c509055d99dd",
+      "gzipBytes": 6770,
+      "gzipSha256": "0272af2b1fbd8223ed809d95aee35a7558d433407d794c3c70ac2ed96a2f5758"
+    },
+    {
+      "path": "linux/baseline-2/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "linux/baseline-2/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-2/vitest.json",
+      "rawBytes": 22983146,
+      "rawSha256": "8f6b47e00efaa45312e19fdafe2e403b795e431d81e32ab15d8c23d5340a6fd2",
+      "gzipBytes": 1350948,
+      "gzipSha256": "a43932452bb7c91534366d75f593c1539ae7dc29c15e1a75181d99ad4c447c57"
+    },
+    {
+      "path": "linux/baseline-3/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/npm-ci.log",
+      "rawBytes": 3404,
+      "rawSha256": "14fadba0c7f463c774a52bd1561b066a30b5f23f7f01c3998c0914529413ccb0",
+      "gzipBytes": 1193,
+      "gzipSha256": "3b7f2e6dbfebe7f815a065ba8e1f986b0520b6a91c6eba78f43aa10877681998"
+    },
+    {
+      "path": "linux/baseline-3/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "ee098cba9a93e6f382ac1602a0b105ce9ab62f971b3245ba9e1568c6f0780195",
+      "gzipBytes": 188,
+      "gzipSha256": "0697aa32ffdd36e62fff9d347a652350ea0644b2998a05e2854b44b43ee858e5"
+    },
+    {
+      "path": "linux/baseline-3/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/runtime.json",
+      "rawBytes": 10905636,
+      "rawSha256": "121193993cb0c627fd8652de3bf5ad5af89c50b67b60380b63fd14f1245e7206",
+      "gzipBytes": 558085,
+      "gzipSha256": "1d0aaab3cd4562c6838e31501807d003efaf491e26d1c37c32c6c9f8f7f7f8a6"
+    },
+    {
+      "path": "linux/baseline-3/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/source-report.json",
+      "rawBytes": 8173934,
+      "rawSha256": "867274bd1693bb4ee6224a43d9ca772a0520eacb9410e8a84a6c4f6bad71d9b8",
+      "gzipBytes": 512613,
+      "gzipSha256": "89e2575fc60a34008b2f20f91aa6724f4df7a65a92e78a4f9fae8b6449e42b52"
+    },
+    {
+      "path": "linux/baseline-3/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/tests.log",
+      "rawBytes": 607,
+      "rawSha256": "2570e37ef85ec7307af659a3fc9f667027f419d97c10d5ce15dac40d72ecbdf5",
+      "gzipBytes": 280,
+      "gzipSha256": "abeca05a3fbcc168ace7ec0dbad4eda56ab847ba3697882737dd2ac10e7b4389"
+    },
+    {
+      "path": "linux/baseline-3/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "linux/baseline-3/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-3/vitest.json",
+      "rawBytes": 6333705,
+      "rawSha256": "eeb4af68fdb7d7d50953783386b730c978cd74ddf5d1b2097e980a24447c9d99",
+      "gzipBytes": 704461,
+      "gzipSha256": "a23322dd49cdbea38dd4d27696c6aa9ed91b3543aa919044a05525449fc3b8ce"
+    },
+    {
+      "path": "linux/baseline-4/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/npm-ci.log",
+      "rawBytes": 3361,
+      "rawSha256": "b07ec4c7e800bd23f09f0b57e4c3dbf9791c5d714d6405ba04460f16c9d05063",
+      "gzipBytes": 1163,
+      "gzipSha256": "835c8a4e184a298ccd5a73630d302f1d9d6e10d52a8853c2060d5e19ea467cae"
+    },
+    {
+      "path": "linux/baseline-4/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "7e1630281e94c203399d80448603db2b3f355db898e9271561b6462d3973f449",
+      "gzipBytes": 188,
+      "gzipSha256": "a371839e2fe2bbc5f5c3a115cf0ffaf419969eeede9f547f8ef10e9283af1735"
+    },
+    {
+      "path": "linux/baseline-4/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/runtime.json",
+      "rawBytes": 10978669,
+      "rawSha256": "e353c1cd5a7e887b9679f03eb0dee1036d2241c2e97f6656a5beb9ec34bb7974",
+      "gzipBytes": 579517,
+      "gzipSha256": "a8efc5d158775a732d95086f1f915077f4e2496a2e691b6bb4876078791d4ca0"
+    },
+    {
+      "path": "linux/baseline-4/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/source-report.json",
+      "rawBytes": 8109466,
+      "rawSha256": "d088a6b2a0a18ee2c0c9d95c93b50ad1237e0f43089ca13fbdb7a61b355898b4",
+      "gzipBytes": 531603,
+      "gzipSha256": "5338a16d86560371eabe4b2f68ea972fcf52f0865df66bbe1507f0af349f3840"
+    },
+    {
+      "path": "linux/baseline-4/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/tests.log",
+      "rawBytes": 193337,
+      "rawSha256": "f6bfb5092f79e1bee6410401110e3bd435a4ea765f72f3c3cd3a1d28f57ee71d",
+      "gzipBytes": 21461,
+      "gzipSha256": "6afceeee9c5b496ea04067541734e2af7295e5f3efb6a3f1ee30bc2d3782f3ba"
+    },
+    {
+      "path": "linux/baseline-4/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "linux/baseline-4/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/baseline-4/vitest.json",
+      "rawBytes": 6353751,
+      "rawSha256": "59a195209577788017b009625b2256f884486dc311a4144710fb00a4dea183b0",
+      "gzipBytes": 728172,
+      "gzipSha256": "891f03c6a7435eb4bf24110c66562ef1af30d0ae6860616501355327ddd51286"
+    },
+    {
+      "path": "linux/batch-receipt.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/batch-receipt.json",
+      "rawBytes": 683,
+      "rawSha256": "8ead2e9d3b2c4d3752f221a721a1aa04bf7677797721ed3ab75254a6a57170f0",
+      "gzipBytes": 135,
+      "gzipSha256": "81a3c6f782932cc36e2ca3f331d35ec18956075d587cebdc85c9fbe630e7e3ac"
+    },
+    {
+      "path": "linux/candidate-1/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/npm-ci.log",
+      "rawBytes": 3425,
+      "rawSha256": "8c96fb10ee6669043d74a514ff83a3c4f8dd540cd81077910f77a6b6f0b82368",
+      "gzipBytes": 1198,
+      "gzipSha256": "81517a8a44d627a35ece4d873bb598bba054ce30148d89d6bc791c5885ddb0e1"
+    },
+    {
+      "path": "linux/candidate-1/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "8796d64868654333e1e50993a3286692cad3f217427ec386879aaa3c1b55f0ec",
+      "gzipBytes": 192,
+      "gzipSha256": "d38f1e516fd39511253fa3a05586e1684ef8e22d1abd51f0462795e8d6f2de96"
+    },
+    {
+      "path": "linux/candidate-1/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/runtime.json",
+      "rawBytes": 12978328,
+      "rawSha256": "8221186ab47e9804e2f0945a24d7f729a57309878db8c83d4a0b80196cfda940",
+      "gzipBytes": 614330,
+      "gzipSha256": "2abdfeed5db014df13670d049531495d0c3040bec4dc66cb733bd13a27ea1f10"
+    },
+    {
+      "path": "linux/candidate-1/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/source-report.json",
+      "rawBytes": 9607149,
+      "rawSha256": "dc3106e41b4971b3b17227dda18f005dde0dc27e5607b9b3ccf4977200cb3fec",
+      "gzipBytes": 561168,
+      "gzipSha256": "e1a9a831a175c3513b4148c06786fbd81a635f2ee1d3d4d00505139f1a100123"
+    },
+    {
+      "path": "linux/candidate-1/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/tests.log",
+      "rawBytes": 2328,
+      "rawSha256": "074df2b8f5996621ac905e5b387a5fcfdab70b0e8e1e47460673eae55a3132ba",
+      "gzipBytes": 782,
+      "gzipSha256": "fd12159d29e1bcaf5416dae3bb8f282daf17e13aaa8fecc05093b630a4ac4769"
+    },
+    {
+      "path": "linux/candidate-1/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "linux/candidate-1/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-1/vitest.json",
+      "rawBytes": 7568503,
+      "rawSha256": "dfd009efa553b94097338ffe9b4b733122889d69d4b37763bbe5c07f7348d0d7",
+      "gzipBytes": 757150,
+      "gzipSha256": "a1b157a714065e6b0683aaebf16d6dc403ccc20ecff578192e53be0e11533059"
+    },
+    {
+      "path": "linux/candidate-2/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/npm-ci.log",
+      "rawBytes": 2552,
+      "rawSha256": "eb30a663e049d7366337011f50fd445b457d5ce4c09c7fdde5000eee909bff0f",
+      "gzipBytes": 1038,
+      "gzipSha256": "0ca46be0ac2e6ab7eb378108ab1f7e38f5f5d1d2b840c0dd3fe565f895df7102"
+    },
+    {
+      "path": "linux/candidate-2/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "60187d35f89b0aebad5adfdbe7de9a22588bc53af0c976fd9752ea00c18ae6ad",
+      "gzipBytes": 191,
+      "gzipSha256": "5cae6a98be2038fe93918099ecafb5afc0e467848da0fb8769c1e01ca686d09b"
+    },
+    {
+      "path": "linux/candidate-2/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/runtime.json",
+      "rawBytes": 43526453,
+      "rawSha256": "ad165a5c720f0d32a58270d422eca5056c634864a93b5bfb22a72bc5d2b083f6",
+      "gzipBytes": 970133,
+      "gzipSha256": "67ec78452296c39b51310a6d9877ed1375c16ba464eeb88244738fa49d88ea5a"
+    },
+    {
+      "path": "linux/candidate-2/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/source-report.json",
+      "rawBytes": 28775936,
+      "rawSha256": "8be764b8ab527fedfdd9526c55e43a2d5b0efc423c45e66b9af8c8f31d01148b",
+      "gzipBytes": 843409,
+      "gzipSha256": "7c0594de52a8d30c7baad7eaa9b2207e3d298ab3495442bded5f9774851cbd7d"
+    },
+    {
+      "path": "linux/candidate-2/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/tests.log",
+      "rawBytes": 162257,
+      "rawSha256": "b6bfb9493f3fb81a7c378a9b6ebfd79aaedc50f041b4dde42530f8a11d02bd5c",
+      "gzipBytes": 16748,
+      "gzipSha256": "f2599c38f020799a87a4fdcbe801bfdf8fa75aee45e62ba9ba7a7061bbab9a89"
+    },
+    {
+      "path": "linux/candidate-2/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "linux/candidate-2/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-2/vitest.json",
+      "rawBytes": 23127266,
+      "rawSha256": "94dfe427e80c2af831f0098d518d55121251a2e89f9c3ce829af4ba5e1727b5e",
+      "gzipBytes": 1367557,
+      "gzipSha256": "d736be2081e46b8657c2bc2682119839770056bf602615e66283a766ad31d266"
+    },
+    {
+      "path": "linux/candidate-3/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/npm-ci.log",
+      "rawBytes": 2509,
+      "rawSha256": "10eaa79af96c22a6db7fdee45b557e512cfcbc4e48794799d4f67b885b347cc5",
+      "gzipBytes": 1013,
+      "gzipSha256": "25dfc75825e3f1352857325e3040a5e32b2d84d44ef4ce787aa4be990b53decd"
+    },
+    {
+      "path": "linux/candidate-3/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "60187d35f89b0aebad5adfdbe7de9a22588bc53af0c976fd9752ea00c18ae6ad",
+      "gzipBytes": 191,
+      "gzipSha256": "5cae6a98be2038fe93918099ecafb5afc0e467848da0fb8769c1e01ca686d09b"
+    },
+    {
+      "path": "linux/candidate-3/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/runtime.json",
+      "rawBytes": 10872520,
+      "rawSha256": "493d994fdcfa39ff44914715451f0dcdf4dfbfb8d88c8eaf37dbd599a290b605",
+      "gzipBytes": 568213,
+      "gzipSha256": "956263298fba6fceccd1647b3bf9d8a232f0ec5e2b2afce5847bba38b01e2a50"
+    },
+    {
+      "path": "linux/candidate-3/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/source-report.json",
+      "rawBytes": 8307038,
+      "rawSha256": "f7b0f0f68d57c1ae683b99a02927d9a4896f7b2b983e71350613d7ba4be6d5e9",
+      "gzipBytes": 523932,
+      "gzipSha256": "eef3805d4d6809ca3914a5bcbed5e434d9c53b265ea10e6ac89aaac8363e631d"
+    },
+    {
+      "path": "linux/candidate-3/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/tests.log",
+      "rawBytes": 661,
+      "rawSha256": "9dac374910b8430708520a80c572ba43c35ee2cc674e6c9bca7426daf49901c8",
+      "gzipBytes": 288,
+      "gzipSha256": "ec1bc149ae5a093e26e8a877f2dec430f6deb9b030596ca445a10548b0dcb520"
+    },
+    {
+      "path": "linux/candidate-3/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "linux/candidate-3/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-3/vitest.json",
+      "rawBytes": 6435079,
+      "rawSha256": "6c03bf3c3b808e2bfadb2df70b0b138ae273d85ee70272a4eba3fac89ee36a81",
+      "gzipBytes": 718388,
+      "gzipSha256": "acb42ad979206882266fd99da3689ac949d24da947cdb7483fd104aedbb8a964"
+    },
+    {
+      "path": "linux/candidate-4/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/npm-ci.log",
+      "rawBytes": 2557,
+      "rawSha256": "2217cf50a091553de83ce9f4384d13915fa420d06c6315e07c9937edacec698e",
+      "gzipBytes": 1039,
+      "gzipSha256": "9ade31ec2baebadb3635d56b397e9dbb0670c4781f5f81052669b3600b9c6acf"
+    },
+    {
+      "path": "linux/candidate-4/pretest.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "5a022c1905672dd932207c9f62b3a60e76f6029a750d6b47555d1f2c6bb8e7b3",
+      "gzipBytes": 192,
+      "gzipSha256": "51a774390eaf65b2406fc646df223454ba7adc1a565ab47a4e7efd21b1a15bfa"
+    },
+    {
+      "path": "linux/candidate-4/runtime.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/runtime.json",
+      "rawBytes": 11084864,
+      "rawSha256": "275e4af3b97dc610c199af1c0d84148ac6c3ba163aae44c811933098740d7340",
+      "gzipBytes": 588774,
+      "gzipSha256": "2c62d94fe2fca26dc807f6a4157330a86e749ca80e21c0b0268c6db110a8013c"
+    },
+    {
+      "path": "linux/candidate-4/source-report.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/source-report.json",
+      "rawBytes": 8387874,
+      "rawSha256": "fb5694f1bd69a5e376cda9cbb9a62a2be5f9229f6ab7c7b63a122d978152424e",
+      "gzipBytes": 542203,
+      "gzipSha256": "e3cbfc997b6aa16740f2454b9b6d91475f782b6d7a3b48e1c774914053ba266e"
+    },
+    {
+      "path": "linux/candidate-4/tests.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/tests.log",
+      "rawBytes": 305172,
+      "rawSha256": "5b48fd21a17985cac9da3abbaadfddf5ecb1c6f0c9b92f71078a8fbf7b3b3cdc",
+      "gzipBytes": 32552,
+      "gzipSha256": "52da429dbfa332f3724da8a62d7f2bf917e9579dc588f9f77cfc1eebcc323451"
+    },
+    {
+      "path": "linux/candidate-4/typecheck.log.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "linux/candidate-4/vitest.json.gz",
+      "source": "final-source-bdc-complete/linux-raw/extracted/candidate-4/vitest.json",
+      "rawBytes": 6601455,
+      "rawSha256": "c018d56b02ec9903f0eb80542050f8e95065a8e008d23e4694e05388bb22ec4c",
+      "gzipBytes": 742006,
+      "gzipSha256": "2380c094d041fd061e2d9b01c43c9ab51e9c09f36e37dc8512d4a2d49b97ada3"
+    },
+    {
+      "path": "mac-and-harness/earthnano-harness-comparison/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-harness-comparison/download-receipt.json",
+      "rawBytes": 260,
+      "rawSha256": "f2a0aa866d967d697d65104b1e74ecf837d4065c7a7f9bf9e488b3d8c5001acb",
+      "gzipBytes": 207,
+      "gzipSha256": "9ffed2deecac84da55462ae9907acf99c20ec8b3c025748183e8e0581bb8901f"
+    },
+    {
+      "path": "mac-and-harness/earthnano-harness-comparison/harness-baseline.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-harness-comparison/harness-baseline.json",
+      "rawBytes": 1368,
+      "rawSha256": "9885fdf1ca42c7f5e0eabea5b3bcba11f312aa6255a6d67a7ca9c4300fcef7f5",
+      "gzipBytes": 614,
+      "gzipSha256": "bf66ad6672b72c35af30153a816a970afc7369d8189998f4ced3dd4a0cae3921"
+    },
+    {
+      "path": "mac-and-harness/earthnano-harness-comparison/harness-candidate.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-harness-comparison/harness-candidate.json",
+      "rawBytes": 12800,
+      "rawSha256": "b37481883492c5950351cac8e18b5749cf281d7a8d394103a751709da6f775d7",
+      "gzipBytes": 2711,
+      "gzipSha256": "31182c85a46f11cb289afea081e2b58f63752bdf395c80df1dba444adfeb24ef"
+    },
+    {
+      "path": "mac-and-harness/earthnano-harness-comparison/harness-comparison.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-harness-comparison/harness-comparison.json",
+      "rawBytes": 520,
+      "rawSha256": "bd3876dd592b714185abdb4dc7481e52ebf47de242ff1141aa0e9fae7b7aa062",
+      "gzipBytes": 305,
+      "gzipSha256": "f324b6badf54b8df96e07e8852a7f047fcb74dae766e01dbd48b3e0b1cd1bc50"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/download-receipt.json",
+      "rawBytes": 271,
+      "rawSha256": "a5f0f95acf68951f3bd4f1cf488bd3ce0d3f019fdaa942f72d838e9790311646",
+      "gzipBytes": 213,
+      "gzipSha256": "d4e4af225dd57ee4b445e32731ad35aff41d3bb5c67cb0e818343af5b7146b56"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/npm-ci.log",
+      "rawBytes": 3486,
+      "rawSha256": "a655fc40633a370b532c25cfd15b7ff5f77128d436f460c3d8156e3e34a9644e",
+      "gzipBytes": 1213,
+      "gzipSha256": "40e0cb67da68bbf971f2e8e3b8467461acf03c5f093319f4c314678976d36f10"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "441cbb63935e489f9b4e490be5c7008ce03a2984e6d740142d068f8524f8a176",
+      "gzipBytes": 189,
+      "gzipSha256": "ac9efb894b7332f5d9ecbc5e048b60745d2d798222c9c7ffebf8d39501fe96b9"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/runtime.json",
+      "rawBytes": 13096244,
+      "rawSha256": "9a355b739b19041af4a97c899ca614df3822d02d5b8cdc5e79d9e611f9383dcf",
+      "gzipBytes": 607363,
+      "gzipSha256": "efb1c38fe86442a61920d7027a8c4057c90bcc3e50eac0dfaecd8c210a9be051"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/source-report.json",
+      "rawBytes": 9488635,
+      "rawSha256": "12cf069a4b0580bed6dcc3e8bcb8ea996fe01c20bb058ef6215c73ab71c17076",
+      "gzipBytes": 552331,
+      "gzipSha256": "7b76c673b148318224d1ba3e13231d1f75842a965031e2179f432a2e737377aa"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/tests.log",
+      "rawBytes": 2370,
+      "rawSha256": "94f16c652fb355ea04f1419e7b84c006087c4b23bc930ecf193bf84d52b37397",
+      "gzipBytes": 800,
+      "gzipSha256": "21867fd18b323f00874deffed0e444e4c5b64f19e09d10b88ac7a83fcf78fcde"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-1/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-1/vitest.json",
+      "rawBytes": 7484179,
+      "rawSha256": "8f4f23b19a09ddd85e6039a73204576e19fc5d8952e03dcd29499e798b07b502",
+      "gzipBytes": 736540,
+      "gzipSha256": "6bf4fef70f53d61dc952a173884c0eac571ce63cda51d6983116472c8bd35b59"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/download-receipt.json",
+      "rawBytes": 271,
+      "rawSha256": "453a8e833cdc4ce71628cd2415c0907fa47578b02d26c888b5d97901b0cb5c2d",
+      "gzipBytes": 214,
+      "gzipSha256": "ea1f63a9182991391d81201269d43da37f791b8acd4c38579c01ea81dd2299cb"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/npm-ci.log",
+      "rawBytes": 3438,
+      "rawSha256": "92c2b254ead522ebd0a471d01337854d62b82a3646d7318a6ca06dde525c69ae",
+      "gzipBytes": 1184,
+      "gzipSha256": "45ab3c999b9a751417d5ed57dfce4aa3e700acb911c8e00c85991053301e5d37"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "80d0fde2837c31cd7b61a7659ac05288fb8d7977c38b112a7345a9800d4c6611",
+      "gzipBytes": 188,
+      "gzipSha256": "61649019c83c3719aefef5d80ba97501cbe1a137980cdeabf21169a2ce7c1b5c"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/runtime.json",
+      "rawBytes": 43944427,
+      "rawSha256": "e42c358822c519b59dd02df20642470185e0379d2e5d16cd9aae6cb2ce72af65",
+      "gzipBytes": 959400,
+      "gzipSha256": "8c766511e1d91dd2a3781c7c4d91143a9e5c229d27bd6fb14368a233191f812b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/source-report.json",
+      "rawBytes": 28574728,
+      "rawSha256": "f4a32effb676d509279c74dde78e53a24835a2f9fa42f9ef211c5ce47d39d922",
+      "gzipBytes": 830411,
+      "gzipSha256": "eb588d532ff380714315372be9ec69c9134cbb6eee0a4f48e4f7b3d4d53953bf"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/tests.log",
+      "rawBytes": 120776,
+      "rawSha256": "6c7ca16a858e26de2140dae04d9ca409f8ac06819139cd7f12010720a019627f",
+      "gzipBytes": 6825,
+      "gzipSha256": "c28c8c7b00d59a939cd730d286b109ded2fd843f82dd97946472390155c9a6aa"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-2/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-2/vitest.json",
+      "rawBytes": 22959727,
+      "rawSha256": "2486d67ea54b35fec1e24a087000ddb5385887d688bb8de53ae108804d339455",
+      "gzipBytes": 1340166,
+      "gzipSha256": "d77ee85458cfec6e4c041dce6b6b39c76d2e8ddaa9c3f93dce5e7c08d5796d3a"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/download-receipt.json",
+      "rawBytes": 271,
+      "rawSha256": "65cba222bab02ac1b0cb04ec873e4980587786c9b2bd0c6c2a1df7b0b83bd534",
+      "gzipBytes": 213,
+      "gzipSha256": "14577c618da6b4dd7619df4ed16148af540c14e86eb8dc50fe1ff5b1799c2716"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/npm-ci.log",
+      "rawBytes": 3482,
+      "rawSha256": "c6293ce68a9b1f0760ad49f5f7a8b6f19ca53944efa60e0c70a23591d96bdce6",
+      "gzipBytes": 1212,
+      "gzipSha256": "35c5ead7c7791c424a72545c7773c4c03d364bf4237464ea2c52c3c61139915a"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "b3dd5889919827faea1749acfb76efc9af61eddf3e0a50ea75474451207c74a2",
+      "gzipBytes": 188,
+      "gzipSha256": "982335d33118e722d48b6c332d56535aa9fa447c35749223fa644d71a41a3d77"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/runtime.json",
+      "rawBytes": 10924890,
+      "rawSha256": "45184f0b29ed839b8ef1f9ce562e636c561a86573f0af43d3d73cef6c2cdaab3",
+      "gzipBytes": 558239,
+      "gzipSha256": "1e0181ade9b5ee4eff910df5b4dded9fcde35f99ddb4968e74736c8256cf2cad"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/source-report.json",
+      "rawBytes": 8173914,
+      "rawSha256": "b7d479ae35830033436d6e20469b1601324875291f807f1e4f4eb2576f8c98da",
+      "gzipBytes": 512641,
+      "gzipSha256": "2ff7f925674e2a337666a666f0bf1456609543eeb605be21594043473e387837"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/tests.log",
+      "rawBytes": 544,
+      "rawSha256": "efa4725121cb727c8d62b01c853ee622c97060f8900ae245fc00e54251b6be64",
+      "gzipBytes": 273,
+      "gzipSha256": "bf56551ec50232f0eef5723ef7dddb6fe2d66240d34e460ad7b76a5ee1d29abc"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-3/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-3/vitest.json",
+      "rawBytes": 6336632,
+      "rawSha256": "597f334cb65051a24c191fe6fb2e3ddd457e1d7e75a7793cdd86a92fb38aac98",
+      "gzipBytes": 690118,
+      "gzipSha256": "bd1021af4f5372b045283d65e281bbb290b99b47c3c7d76fd37c055893578f50"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/download-receipt.json",
+      "rawBytes": 271,
+      "rawSha256": "d762ee4500b7070dc1374a789c50146d98c261aa230493e70b256b9d389d1dc3",
+      "gzipBytes": 214,
+      "gzipSha256": "2805245bf3cbcb4d90d5470148a058d3484accfa217cce077bc88bb8671807e4"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/npm-ci.log",
+      "rawBytes": 3438,
+      "rawSha256": "423cac30eb81800ccfa01e47a395cbe7e7d9183ec0d5304068c4941e135e00d6",
+      "gzipBytes": 1185,
+      "gzipSha256": "1c0e4aba7f1b68f569ea473e81d0b02404ce1f5de3f9fbff8cd35bcbac62775b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/pretest.log",
+      "rawBytes": 281,
+      "rawSha256": "defff5e54fa86c7eb9966c27b601e6293a6c3f08e3c88f04f41d8fcd1e424b98",
+      "gzipBytes": 189,
+      "gzipSha256": "f1fb312c8b46cfd27f56fc9fe8a95519cdd2a47fa68018e09c50589c1f41e7ef"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/runtime.json",
+      "rawBytes": 10998024,
+      "rawSha256": "b2250bb7e38b3fa27688b6290174d2d107afef4fc47a25188e43e6588ea9b3b1",
+      "gzipBytes": 579553,
+      "gzipSha256": "76cc07763dfed309f740029ef21997c89fda5f9f9b5e14bfbfd852cd570fb95b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/source-report.json",
+      "rawBytes": 8106572,
+      "rawSha256": "ff593eea7bee1d4e52f1e2ab285364a8c041d1cfdc0c1b71ff8acf2de33e466b",
+      "gzipBytes": 531286,
+      "gzipSha256": "74cd6eaf0c74a7b148a1d95905a6f3d5dbebb03574b950c47ec0418409691f6a"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/tests.log",
+      "rawBytes": 193317,
+      "rawSha256": "c82f7e47348be8d545d93d7454362ce2317454abf6400a19985ea2c1fb4252a7",
+      "gzipBytes": 21475,
+      "gzipSha256": "17ead1be844d405b831d54b371e68378c9b775da5d1a1e6aaedb458922636549"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/typecheck.log",
+      "rawBytes": 674,
+      "rawSha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4",
+      "gzipBytes": 242,
+      "gzipSha256": "b3dcd7df173f96e4ad04412e7d6b48e5ed72804237fc9a19400f3d93fe83fa74"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-baseline-4/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-baseline-4/vitest.json",
+      "rawBytes": 6351555,
+      "rawSha256": "f67b0af5b4fd773739e082f29e362b233f9d9d03ea675f2c93a06078e622a562",
+      "gzipBytes": 717492,
+      "gzipSha256": "b232cbf1b81e1d9f13bc7007c30d269ad7c838d594f2591c14c0b591d3563a83"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/download-receipt.json",
+      "rawBytes": 272,
+      "rawSha256": "ae02e45010d5b596293bc7f86c2bb13ac36ab1a6e4dd2088e5994f799e4729ab",
+      "gzipBytes": 213,
+      "gzipSha256": "b79a21941f611acef47875ebd04279df1cab99e32b9f23af5af33a4938ece299"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/npm-ci.log",
+      "rawBytes": 3502,
+      "rawSha256": "76257414acc8edd895f26d4104ef0a7cbce871326f8f895220b395970bee6a96",
+      "gzipBytes": 1218,
+      "gzipSha256": "d8e13a49f545f2fd5a1270a4083ee9b7853e682129f5428ea41bc9bddec74556"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "e03b6544c249bcc454255ffff7bddffb581bc108befb2718898c7486082e05ff",
+      "gzipBytes": 192,
+      "gzipSha256": "63bcb29a750b3961baf5104a59fda7b769df629326c09843a7554ffd0ab9ff7c"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/runtime.json",
+      "rawBytes": 13000468,
+      "rawSha256": "bd466ee847601fc987c03981e5e8c5438a5642cbaeb35cde4cfdc763b3b6ef22",
+      "gzipBytes": 614360,
+      "gzipSha256": "082e02929c1aefb6c9be350e46c565b70afc2ba74103b63b4849402932bc576e"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/source-report.json",
+      "rawBytes": 9607245,
+      "rawSha256": "10a7f1d8901572c47d3fc07306f634c254bdf76160aa266e2ee49779d27d6add",
+      "gzipBytes": 561909,
+      "gzipSha256": "c1d3ac6811e82f29e256d000489c6cedd112b0b7b5bad916381cf159601ba8b5"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/tests.log",
+      "rawBytes": 2554,
+      "rawSha256": "f67036b5bd3146aa1a055c2f1afb2a2b52e30084d5d984ae531e2adcc16a83e0",
+      "gzipBytes": 840,
+      "gzipSha256": "e9c69805cd8b2d2bfa604374ca1e5484bd45b5bd802b9e31d6515571bad0919b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-1/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-1/vitest.json",
+      "rawBytes": 7569290,
+      "rawSha256": "53badd6ca38754453f38f2e8c6a94efaf308a7e8f483ff4a105fa0f9dba58298",
+      "gzipBytes": 747392,
+      "gzipSha256": "b09204dff9f57ca4530a7ceae007861d33448ddd52aa1fc64d8a56e07e2f93f1"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/download-receipt.json",
+      "rawBytes": 272,
+      "rawSha256": "2ce13b81d67cc95e0e44008281f8167206c991cb2fe35d94e963d801ffcc559c",
+      "gzipBytes": 214,
+      "gzipSha256": "11d7461eba013c1a693dcef98e90100379f75939cafebed684e32505b6319eb9"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/npm-ci.log",
+      "rawBytes": 3502,
+      "rawSha256": "c818fe1b0f97255c3774f789cf119eee441717adbde7dde0f6d43a819f0c5635",
+      "gzipBytes": 1218,
+      "gzipSha256": "9b228f5cd132e5b9d99e75021d234df064525506097a3a7106ded1b29e48b1c6"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "a4b558d4b2cd64171b8bd429496be176b4d69f36f9a92610558c9935130a2bac",
+      "gzipBytes": 192,
+      "gzipSha256": "1c024c7fb8d9f186c3e55aab672f3486eb7b1f0da3016b57e75885e850bf6e77"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/runtime.json",
+      "rawBytes": 43582018,
+      "rawSha256": "81c0992eb669f4dd7e567c0d9ffe8d2386393ba9af683a0c06bd12907d0c088d",
+      "gzipBytes": 970224,
+      "gzipSha256": "e62712bb337975384a3cdbe2381708985fdd9c8d20bc3cd65fa59d18ebd1577b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/source-report.json",
+      "rawBytes": 28759688,
+      "rawSha256": "4053dce4abbe297b6d5d1c5e81b4b2bf148aa181a60f74d9e25544544e6fbd4a",
+      "gzipBytes": 841698,
+      "gzipSha256": "8bc4c1e7877eff0a6974e979672ee312f7a0511b597ff4da943c4ed0728f0a55"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/tests.log",
+      "rawBytes": 162330,
+      "rawSha256": "a9ac67a972940f2daf6aba6c6d5f125cf59cdc1925890bcb9b11377addf801da",
+      "gzipBytes": 16809,
+      "gzipSha256": "2bbbe2d53a33ec9bbed48699d1abbfae398cd5f3041b67510eae183799012ce7"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-2/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-2/vitest.json",
+      "rawBytes": 23107112,
+      "rawSha256": "64fb86df95b95c2ea32e4c41467aca8981c8f6480123112ec27cd40756eb29d5",
+      "gzipBytes": 1350559,
+      "gzipSha256": "4c64a7d75eb33f04e13819cb0cbd53a1652e64127964a7665fa11703155d2afe"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/download-receipt.json",
+      "rawBytes": 272,
+      "rawSha256": "733634718b7880d541e467077d358226419a9eeecac3a680050c207be03591ab",
+      "gzipBytes": 212,
+      "gzipSha256": "a056d81b0212243319ce3a4ba170406a99b3c154a8708db693ed04de0d5300ce"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/npm-ci.log",
+      "rawBytes": 3502,
+      "rawSha256": "72e9cff359def997781e07f5027dd918044c47712ce750e4801b80457f0b3560",
+      "gzipBytes": 1218,
+      "gzipSha256": "94bab990dfd76f7681a83ae314dbb3be650f5981c939be316406ad63b69fb09d"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "0612adced260d51a2355b91f0c8a30ef56eaedd0d8c04135dfaab58ada4c1a93",
+      "gzipBytes": 192,
+      "gzipSha256": "a9816808609959427a42b08e84c7f2a9963a5de306d1d35cd65cf47039b557e3"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/runtime.json",
+      "rawBytes": 10892098,
+      "rawSha256": "4125bae4976682642cc8a212220f5d8308a33637bb2fe9b249936812d15a02b4",
+      "gzipBytes": 568659,
+      "gzipSha256": "c063fab235120b9efa6785484ce2c8b207034f39862dc001496c1a8e114bfab4"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/source-report.json",
+      "rawBytes": 8307018,
+      "rawSha256": "95a25dc32c02823ba702dc9a9c49e38dbdfb1cd033a2a65e29c2f2ec824472db",
+      "gzipBytes": 524034,
+      "gzipSha256": "0dbe658674024db2334f0c1ac7728726864f58f386b782439d5def034a6c9d10"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/tests.log",
+      "rawBytes": 640,
+      "rawSha256": "9c933bd5aaa878a0d5a53d93e54bd39ad9d73c4713e2d84c6bee8d4ad8629913",
+      "gzipBytes": 282,
+      "gzipSha256": "36c30c4aae29a345dc9fa459b14ed3f81bf92c2b8b072168bfeec6836d383314"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-3/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-3/vitest.json",
+      "rawBytes": 6436792,
+      "rawSha256": "c55463144893ec3aed51cfbdd8efd6f3598b0c6b7fb875cc735df3fc56c63788",
+      "gzipBytes": 708331,
+      "gzipSha256": "033cf19fea86659a279a205b7bfed7d83b158d1bb0abc6f61a29bac6c3782a41"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/download-receipt.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/download-receipt.json",
+      "rawBytes": 277,
+      "rawSha256": "21e5b9f2936fc1e5496f44529a34532b0022e610c43ca5565f3dfaa26959ef6c",
+      "gzipBytes": 219,
+      "gzipSha256": "a9b56439454ce8d849fc5f642ea6c085ea84c6a19a0c05953560831cfc85ff6b"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/npm-ci.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/npm-ci.log",
+      "rawBytes": 3497,
+      "rawSha256": "e6955fe7ffe9986991eaa7dc17766108f82c3da8c9481477e14a22ea2c6573c0",
+      "gzipBytes": 1218,
+      "gzipSha256": "b628b4aef3c47604c94515d1de18ec38dee1f3333ebef35b1a63d78c1021bc92"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/pretest.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/pretest.log",
+      "rawBytes": 297,
+      "rawSha256": "e7895ca80f8fd7183252f0b7c5ee52cf4a448aece2c14562b64c812a6f5b2e8b",
+      "gzipBytes": 192,
+      "gzipSha256": "2c01de4e78ce199f917ac6f1910790e3cc73730a8adc4883b52df0fb7b0a05cd"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/runtime.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/runtime.json",
+      "rawBytes": 11104535,
+      "rawSha256": "5e76d6ebd88a8daae4abb8cd5ee961f2f3a5653b741b5e9555d2db54a5ce7841",
+      "gzipBytes": 589170,
+      "gzipSha256": "2704a047b4d16e74c244e37b74fa316602bfe2f7486c8363ebddc199bc0891fb"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/source-report.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/source-report.json",
+      "rawBytes": 8385175,
+      "rawSha256": "f60e8db9737f3522c903d95e03b7e066c92a5e083db503678809892496e736a3",
+      "gzipBytes": 542168,
+      "gzipSha256": "87968dca21eec042228d5797127eefd154b27c8cc69ee0c859b9a3be5c1da1fe"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/tests.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/tests.log",
+      "rawBytes": 305149,
+      "rawSha256": "f131249d08cae949c0019d0fc0bad5efd0c493a4d1c361053a211c8133738dde",
+      "gzipBytes": 32572,
+      "gzipSha256": "1ea39bf67d4788314911c92ca10ffe417ae0b974b93605874dd6ae48631e1f73"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/typecheck.log.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/typecheck.log",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "mac-and-harness/earthnano-source-macos-15-candidate-4/vitest.json.gz",
+      "source": "final-source-bdc-complete/mac-raw/earthnano-source-macos-15-candidate-4/vitest.json",
+      "rawBytes": 6599961,
+      "rawSha256": "69769755fbb82e549cc054015448ad36b54601d043c36c37b05d19b45f3a60af",
+      "gzipBytes": 729934,
+      "gzipSha256": "9e1aea853519b6be8e99556bfeed6e6beff63fc50b1eb8bd95102ac2e5719ea5"
+    },
+    {
+      "path": "independent-unix-review/REPORT.md.gz",
+      "source": "final-source-bdc-complete/independent-unix-review/REPORT.md",
+      "rawBytes": 6337,
+      "rawSha256": "94f7144cd61fd3e2fae6f5396e63e09fd707f705a62c5cd64e94d1cfce23e489",
+      "gzipBytes": 3190,
+      "gzipSha256": "fc976b4c9cd5a34cc5313996ccb69e23dfff4db781b645b5ddeb5f055bc08977"
+    },
+    {
+      "path": "independent-unix-review/facts.json.gz",
+      "source": "final-source-bdc-complete/independent-unix-review/facts.json",
+      "rawBytes": 47208,
+      "rawSha256": "b4840422532a8fa8a138fe270625a3794918a181d9b28a70c96951e09059ad21",
+      "gzipBytes": 5823,
+      "gzipSha256": "2545ee66997ccc1ae70c7a951372b7c4de252bb905d3bf6f51edc66b9e115a7b"
+    },
+    {
+      "path": "independent-unix-review/original-pure-validation.json.gz",
+      "source": "final-source-bdc-complete/independent-unix-review/original-pure-validation.json",
+      "rawBytes": 1800,
+      "rawSha256": "221b6bc91e522972325819efae1e9699c37a7de0d81d683c88f50f5407575050",
+      "gzipBytes": 394,
+      "gzipSha256": "980c157d8bdc3cc90d60745beef947ff0f56e5b9525b9bcb9e89250baaace5b5"
+    },
+    {
+      "path": "independent-unix-review/receipt.json.gz",
+      "source": "final-source-bdc-complete/independent-unix-review/receipt.json",
+      "rawBytes": 576,
+      "rawSha256": "915f2c16989fb7b9d84c9c388983a6802c078c469ce0b22c52a1ff5b8c92df61",
+      "gzipBytes": 396,
+      "gzipSha256": "0374ac70035d1102403f9e51961a1745a43048f4bba813364da039e17f1606e4"
+    },
+    {
+      "path": "independent-mac-review/REPORT.md.gz",
+      "source": "final-source-bdc-complete/independent-mac-review/REPORT.md",
+      "rawBytes": 6037,
+      "rawSha256": "dc5da7532e32c1c7c198697f437689a0bfb268ee7228e27ac0fd4d2c4f5f9a49",
+      "gzipBytes": 2998,
+      "gzipSha256": "289e9167a20376a7d184f32267ec0b359a41fc8b19652c2a9351d5a60f887588"
+    },
+    {
+      "path": "independent-mac-review/facts.json.gz",
+      "source": "final-source-bdc-complete/independent-mac-review/facts.json",
+      "rawBytes": 27056,
+      "rawSha256": "d7a4f3b990e74335b38e4f37b51faed3f362437feec0d1d610c57f8f9b2cf1b7",
+      "gzipBytes": 4823,
+      "gzipSha256": "0314dcca0884c895c7516364fa66522019a4716cf94e126e5497523e5ef3c702"
+    },
+    {
+      "path": "independent-mac-review/original-pure-validation.json.gz",
+      "source": "final-source-bdc-complete/independent-mac-review/original-pure-validation.json",
+      "rawBytes": 2645,
+      "rawSha256": "c3964745c57db196fe51933e1d55ba4dd782b669c8d578851d90bd14aa8e1059",
+      "gzipBytes": 799,
+      "gzipSha256": "3206e6c1f1a4b482c1b47de0815c9318513a54a65520fcb862be0d9c8312d0c9"
+    },
+    {
+      "path": "independent-mac-review/receipt.json.gz",
+      "source": "final-source-bdc-complete/independent-mac-review/receipt.json",
+      "rawBytes": 508,
+      "rawSha256": "395df3a5beef1f30c34e95f071f4e0ace17435dca901ea161b308ee3d5ce3b34",
+      "gzipBytes": 363,
+      "gzipSha256": "1227fd072895a3e0b4bc9e635d727ddb45077d5dc2720e8357a91f4d5040a35c"
+    },
+    {
+      "path": "metadata/credential-pattern-source-map.json.gz",
+      "source": "final-source-bdc-complete/credential-pattern-source-map.json",
+      "rawBytes": 3077,
+      "rawSha256": "d1d3bb493ea8b3d0845f5b31cb9250b46a3a9b7fa0cea2d80d6662671b0df765",
+      "gzipBytes": 945,
+      "gzipSha256": "7f6ac57b37c1c74ea759d3ff5ef9999285a572545359047a1a73dd16c713e2b7"
+    }
+  ],
+  "credentialPatternReview": "six matched values all exact static tracked test fixtures: four PDF risk-name substrings, two synthetic credential-rejection fixtures. No unknown pattern value; original bytes preserved."
+}
