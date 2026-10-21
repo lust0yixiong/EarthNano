@@ -36,3 +36,5 @@
 5. 取得 Windows 源码与实际安装的完整证据后，再恢复 Windows 构建、验收及公开分发，并更新版本支持范围。
 
 本次延期不改变 Python/R/Compute、产物/审阅及 Harness² 原方法的融合范围。0.1-Alpha 尚须完成其余融合、macOS/Linux 最终验证及 PR 审查，不能因跳过 Windows 就标记版本完成。
+
+发布准备同步采用显式 `mac,linux` 范围，清单与认证聚合器均拒绝混入 Windows 文件或引用，不把缺少 Windows 记录伪装为完整五目标验收。相关 130 项本地检查使用合成文件字节，未执行 Windows 安装、诊断或 CI；见 [发布范围验证](validation/alpha/unix-0.1-release/manifest.json)。原稳定发布工具的完整默认保留，实际 Alpha 发布入口尚未启用。

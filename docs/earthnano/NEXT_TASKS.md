@@ -8,6 +8,8 @@
 
 0.1 最终发布时，安装包清单与更新 feed 也须显式使用 macOS/Linux 范围；现存上游 stable 发布工具的五目标默认保留，不可直接用于本版，也不能把缺少已延期 Windows 包当作未完成四目标验收。范围调整的本地检查见 [CI 证据](validation/alpha/unix-0.1-ci/manifest.json)，当前尚未公开发布。
 
+发布准备工具现已支持在原 manifest generator 和认证聚合器中显式传入 `--platforms mac,linux`：仍检查六项安装器、两份 Mac 更新 ZIP、三份 feed 和四个平台的同源认证；范围外文件及引用直接拒绝。独立审查发现的 URL 后缀分类缺口已有四例真实字节 fixture 复现并修复，四套检查最终 130/130、完整 compiled types/lint 通过，见 [原始证据与限制](validation/alpha/unix-0.1-release/manifest.json)。这仅完成发布工具准备，未启用发布工作流或上传安装包。归档中另有旧 CI 源 `c1e663279` 的 Mac ARM64 DMG/ZIP 原脚本本机启动检查，不能替代最终融合提交的四目标原生验收。
+
 2026-10-21 更新：R 已通过同一构建的真实桌面离线和首次 DeepSeek 双模式/停止续跑/独立审阅，详见 [R 实际验收](ALPHA_R_CONTRACT.md#后续实际验收2026-10-21)。原 108 个新增失败 ID 的本地定向修复已逐项通过，仍需以修复 head 完成 hosted 比较及 PR 审查。仓库已公开且 runner 已实际执行，旧账户限额不再作为当前阻断。先收尾这些已有 PR/回归和原生包，再继续原 Compute/二进制能力的候选融合；不另造工具运行时。自动触发、平台配置发布/回滚及完整精确账本与上游功能补全分别标注，见 [来源说明](ALPHA_CONTRACT.md#功能来源说明)。
 
 PR #12 已审查合并。本轮固定提交 `5812df666` 的完整 Notebook 普通执行/优化/停止/重开/续跑/独立评估已通过 DeepSeek；前三次失败、原上游对照和修复均保留。白底图标已整合，跨平台原生包仍待 CI。完整状态以 [Alpha契约](ALPHA_CONTRACT.md) 和 [本轮证据](ALPHA_INTEGRATION.md) 为准，不把独立 helper 算作已接通。
