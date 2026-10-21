@@ -8,7 +8,7 @@
 
 0.1 最终发布时，安装包清单与更新 feed 也须显式使用 macOS/Linux 范围；现存上游 stable 发布工具的五目标默认保留，不可直接用于本版，也不能把缺少已延期 Windows 包当作未完成四目标验收。范围调整的本地检查见 [CI 证据](validation/alpha/unix-0.1-ci/manifest.json)，当前尚未公开发布。
 
-Compute 当前推进到原控制/审批及后台 continuation 基础设施整合，初轮 1024 项和后续投递/固定来源/多 Review 引用整合 565 项检查通过，原类型/架构门槛保留。零 admission 消耗投递重试预算的实际 SQLite 竞态已修复。实际私有 Session/Job/多 Turn producer/逐 Turn Review owner 正在实现，桌面与冷启动路由尚待接通；serializer 仍关闭，不能把这些基础设施检查称为完整 Compute 或 DeepSeek 验收。源码接点、证据和剩余项见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)。
+Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由；serializer 随这些 owner 一起开放。普通 Python/R 在共享路由中的实际兼容回归已修复。主集成树的原生联验 135 项、控制/投递 125 项、磁盘 journal 6 项通过，正常关闭后重开不重复调用，unknown 保留真实锁。相同构建的桌面 Python 完整流程也通过：20/24 admissions，59 次本地 fixture 请求、零上游 API，含停止/重开/续跑。以上不等于实际 Compute 全链或 DeepSeek 验收：当前 Compute owner fixture 替代了 submit/harvest，下一步须沿原 Compute 服务完成该链并以 DeepSeek 验证，之后才提交本轮 PR。源码接点与原始证据见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md) 及 [整合验证](validation/alpha/compute-owner-desktop/manifest.json)。
 
 2026-10-21 更新：R 已通过同一构建的真实桌面离线和首次 DeepSeek 双模式/停止续跑/独立审阅，详见 [R 实际验收](ALPHA_R_CONTRACT.md#后续实际验收2026-10-21)。原 108 个新增失败 ID 的本地定向修复已逐项通过，仍需以修复 head 完成 hosted 比较及 PR 审查。仓库已公开且 runner 已实际执行，旧账户限额不再作为当前阻断。继续收尾这些已有 PR/回归和原生包；二进制原 owner/方法资产、真实 RDS/PNG 及 4746 同构建桌面/DeepSeek 已接通，最终平台包仍待，见 [二进制集成](ALPHA_BINARY.md)。Compute 候选融合仍须复用原模块，不另造工具运行时。自动触发、平台配置发布/回滚及完整精确账本与上游功能补全分别标注，见 [来源说明](ALPHA_CONTRACT.md#功能来源说明)。
 
@@ -27,7 +27,7 @@ PR #12 已审查合并。本轮固定提交 `5812df666` 的完整 Notebook 普�
 | 3            | 平台复用原 Notebook R、Compute、ManagedFileVersion 与 producer；主智能体扩公共profile和桌面；方法贯通科研domain后续任务 | 每项单独验证固定输入、授权、原producer、取消/收尾、不可变产物和独立评估；二进制保留真实字节，评估不可用须明确。普通上游能力保留不等于候选已接通。                                                                                                                                                                   |
 | 独立后续设计 | 平台级配置批准、发布、推广和 rollback；本轮不展开，不等同原 Library adoption                                            | 将来实施时验证只影响后续任务及回滚；当前仍须完成原 Library/反思与同域任务经验传递，不以单次高分证明收益或发布资格。                                                                                                                                                                                                 |
 | 独立后续设计 | 普通任务证据触发的自动优化；本轮保留显式入口，不新增触发策略                                                            | 将来实施时区分环境故障、局部修复、方法问题并验证去重/预算/停止；不把该策略缺失称为 Harness² 原方法丢失。                                                                                                                                                                                                            |
-| 并行         | 主智能体继续 macOS/Linux 独立CI、白底图标原生观察、安装/升级数据安全、许可与Alpha发布材料；Luna做覆盖复核              | 同环境原树对照，macOS ARM64/x64 与 Linux x64/ARM64 四目标的实际结果与跳过清单；最终包对应已验证提交；Windows 延期至 0.2，不记成通过。                                                                                                                                                                                |
+| 并行         | 主智能体继续 macOS/Linux 独立CI、白底图标原生观察、安装/升级数据安全、许可与Alpha发布材料；Luna做覆盖复核               | 同环境原树对照，macOS ARM64/x64 与 Linux x64/ARM64 四目标的实际结果与跳过清单；最终包对应已验证提交；Windows 延期至 0.2，不记成通过。                                                                                                                                                                               |
 
 以上公共契约由主智能体先定，平台与方法智能体分别使用独立worktree；不各自增加任务/运行状态或结果数据库。本轮 PR保留待审查，不自动合并。
 

@@ -2,6 +2,8 @@
 
 固定来源仍为 `UPSTREAMS.json` 的 OpenScience `9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5` 与 Harness² `1cfe254e8d25b15f37048c3730134686abe60335`。在已验证二进制融合 `ce0e1d498` 上继续实施；Windows 版本延期 0.2，当前验收为 macOS/Linux。
 
+当前状态见文末“真实 owner 与桌面整合”；下列共享类型阶段的准入关闭描述保留为历史。当前已随真实 owner 开放 Compute snapshot 和同一任务目录入口，但完整原 Compute 服务链及 DeepSeek 验收仍未完成。
+
 复用原 Node control REPL、ComputeService/Job repository、审批、结果回投、Notebook producer、ArtifactVersion 和 Review。不能新增 SSH/Job 引擎、第二份任务状态或产物存储。下文是实施契约；共享类型通过不等于 Compute 候选已可用。
 
 ## 已落地的共同类型
@@ -69,3 +71,21 @@
 进一步原有 owner 集成回归发现取消兼容缺口：为后台等待引入的 live getter 改变了普通任务审阅提交中 Stop 的既有结果。主集成树在未修改旧 owner 的条件下复现原 `stop-during-submission` 断言失败，`b288c6801` 已恢复无后台 hook 时的原 snapshot 语义；四套 105/105、完整 types 通过，原断言保留。只有 Compute 后台 hook 使用 live 状态。
 
 真实 Compute snapshot 支持另存于独立 `feat/alpha-compute-snapshots` 的 `0354708fc`，尚未并入本集成分支或开放入口。四套 147/147、完整 types/lint 通过，覆盖零/多个固定输入的实际 freeze/resolve/reopen/materialize、跨 Project/profile 拒绝，原 Python/R snapshot SHA 与附件约束保持。它供执行 owner 用真实 store 做下一阶段原 Node/SQLite 验证，不能替代实际 Job 结果或 DeepSeek 验收。上述普通回归红绿、独立 snapshot 与最初 readonly fixture 类型错误记录见 [原始证据及准入边界](validation/alpha/compute-snapshot-preparation/manifest.json)。
+
+## 真实 owner 与桌面整合
+
+固定业务实现 `a93b8def1` 已整合 snapshot、原私有 Session reservation/persistence、Node control REPL、多 Job/多 Turn 投递、原 producer→Version→Review、共享桌面路由与来源任务。`67207ef3c` 补齐真实 FileExecutionStore 重开证据；该提交相对桌面构建 `addeeda5e` 只改测试文件。
+
+调用关系为：原优化面板的 Notebook runtime 选择 Compute → 原 `startSweep` / `normalizeDesktopSweep` → `resolveDesktopSweepTask` 读取原消息、固定 Version 与 host 身份 → 同一 `runPersistentOptimization` / Harness² 原 sweep → 原 candidate owner / ExecutionCore / ACP driver → 原 Node RPC 与 Compute 服务。proposer、composer、selector、reflection 仍沿原隔离角色；基线和候选共享同一冻结 Task 和 Compute 环境。没有第二份 Job/Task 状态或结果数据库。
+
+共享路由在原 application startup 的后台投递与 Notebook bridge 创建前安装同一组闭包，工厂在任何 dispatch 前注册原能力；正常 reaped 后才退役，unknown 保留重试 handle。冷启动只读原 desktop、resume、execution 记录，不自动重提、不偷锁；明确的 setup-only 尚未执行证据由原 manager 保存。所有工厂都返回路由能力，普通 Python/R 无需注入 Compute 服务，原 control profile 保持。
+
+整合中修复两个实际 TCP 反例：受限 token 不再写共享 host details；Compute 请求必须属于读取 body 前的原 active invocation，缺失或跨 invocation 拒绝。原普通 token 的五种时序行为保留。普通候选在共享路由中的真实原生失败也已红绿验证并修复。新增 fixture 发生的“断言全绿但 Prisma 全局错误/进程 exit1”保留为失败，退出时现 join 原 delivery drain，不改生产 dispose API。
+
+主集成树检查分组：来源 59/59、桌面与 i18n 906/906、原依赖/归属 504/504、原生联验 135/135、控制/投递 125/125、磁盘 journal 6/6，均零跳过且进程 exit0；分组有重叠，不相加。完整 Node/sandbox/Web types、原 derived-consumer 检查、后端与桌面构建通过。原 Core、scope、TaskRunner 和 Job/Notebook/delivery repositories 以及 Harness² vendor 代码在本轮保持，原守卫断言未放宽。
+
+真实磁盘测试只在 owner 已 reaped、Core settle 且原记录 cleanup confirmed 后正常 close/reopen；新原 Core/driver/factory 对同请求返回同记录，模型、Job、binding、native Run 和预算不增。unknown 情况保留原真实锁、字节与预算并拒绝第二 store；不把预算已耗尽说成独立资源 fence，也不声称新 Core 已接管未知远端资源。
+
+同一构建的实际桌面 Python 科研流程通过普通 Send→原 sweep 的基线/候选→独立评估→Stop→重开→续跑，20/24 admissions、59 次本地 fixture 请求、零上游 API；原固定来源、producer、Version 和 Review 均核对。白底 master 已复看，最终发布包对应关系仍需验证。
+
+证据和失败原文共 169 份 gzip，逐字节 roundtrip 与摘要核对、实际 API key 匹配为零，见 [原始记录](validation/alpha/compute-owner-desktop/manifest.json)。当前 Compute owner fixture 注入 submit/harvest；这只证明原生/Node/SQLite/外层 owner 整合，不能冒称原完整 dispatcher/reaper 或外部 SSH/Slurm，更不是 DeepSeek 调用。后续以原连接/运输端口验证完整服务链，保留原 Project/private grant 与字段保护条件，禁止 auto-once/明文放行；然后开展真实模型验证、PR 和最终 Unix 包验收。
