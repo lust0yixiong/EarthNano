@@ -600,7 +600,11 @@ export async function runHarnessProcess(options: {
             value = true
           } else {
             if (result !== undefined) return stop()
-            value = await options.binding.dispatch(string(message.operation, 64), message)
+            // The transport owns correlation fields; the binding validates only its payload.
+            const args = { ...message }
+            delete args.id
+            delete args.operation
+            value = await options.binding.dispatch(string(message.operation, 64), args)
           }
           if (!failed) {
             const response = JSON.stringify({ id: message.id, result: value }) + '\n'

@@ -768,6 +768,49 @@ describe('version-backed binary binding', () => {
       f.binding.dispatch('materializeArtifact', { executionId, artifactRef: file.artifactRef })
     ).rejects.toThrow()
   })
+  it.each([false, true])(
+    'separates the original JSONL envelope while preserving binary payload validation (extra=%s)',
+    async (extra) => {
+      const materialize =
+        vi.fn<NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>>()
+      const f = await setup(input, materialize)
+      const file = binary(f)
+      const result = { file, assetPath: '/isolated/opaque.png' }
+      materialize.mockResolvedValue(result)
+      const executionId = await admitted(f)
+      const operation = runHarnessProcess({
+        binding: f.binding,
+        python: 'python3',
+        cwd: resolve('vendor/harness2'),
+        env: { PATH: process.env.PATH },
+        timeoutMs: 3000,
+        args: [
+          '-c',
+          [
+            'import json, sys',
+            'from harness2.core.earthnano_binding import JsonLineClient',
+            'client = JsonLineClient(sys.stdin, sys.stdout)',
+            'result = client.exchange("materializeArtifact", **json.loads(sys.argv[1]))',
+            'client.exchange("done", result=result)'
+          ].join('\n'),
+          JSON.stringify({
+            executionId,
+            artifactRef: file.artifactRef,
+            ...(extra ? { targetPath: '/chosen/by/caller' } : {})
+          })
+        ]
+      })
+      if (extra) {
+        await expect(operation).rejects.toThrow('did not complete')
+        expect(materialize).not.toHaveBeenCalled()
+      } else {
+        await expect(operation).resolves.toEqual(result)
+        expect(materialize).toHaveBeenCalledOnce()
+        expect(materialize.mock.calls[0]![0].executionId).toBe(executionId)
+        expect(materialize.mock.calls[0]![1]).toEqual(file.artifactRef)
+      }
+    }
+  )
   it('refuses a role reply artifact as a scientific asset and rejects unknown context sources', async () => {
     const materialize = vi.fn()
     const f = await setup(input, materialize)
