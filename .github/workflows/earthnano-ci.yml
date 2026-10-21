@@ -1,4 +1,5 @@
 name: EarthNano CI
+run-name: EarthNano packaged QA - ${{ inputs.mode }} - ${{ inputs.target }}
 
 # Operational branch only: replace this existing workflow path, not the default branch.
 on:
@@ -9,6 +10,11 @@ on:
         type: choice
         options: [macos-26-intel, macos-26]
         default: macos-26-intel
+      mode:
+        description: Science acceptance or read-only Keychain context diagnosis
+        type: choice
+        options: [science, keychain-context-diagnostic]
+        default: science
 
 permissions:
   contents: read
@@ -20,6 +26,7 @@ concurrency:
 
 jobs:
   packaged-science:
+    name: ${{ inputs.mode == 'keychain-context-diagnostic' && 'Keychain context diagnostic (no science acceptance)' || 'Packaged same-task science acceptance' }}
     if: github.ref == 'refs/heads/ci/earthnano-packaged-qa'
     runs-on: ${{ inputs.target == 'macos-26-intel' && 'macos-26-intel' || 'macos-26' }}
     timeout-minutes: 60
@@ -102,12 +109,16 @@ jobs:
       - name: Verify exact source and real bytes; project diagnostic paths only
         run: node qa-operation/scripts/ci/packaged-qa/prepare.mjs prepare
       - name: Original packaged Keychain wrapper and offline same-Task explicit resume
+        if: inputs.mode == 'science'
         run: bash qa-operation/scripts/ci/packaged-qa/run.sh
+      - name: Diagnostic only - original packaged Keychain metadata contexts
+        if: inputs.mode == 'keychain-context-diagnostic'
+        run: node qa-operation/scripts/ci/packaged-qa/keychain-context-diagnostic.mjs
       - name: Retain original failed or successful acceptance evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: earthnano-packaged-science-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ inputs.mode == 'keychain-context-diagnostic' && 'earthnano-keychain-context' || 'earthnano-packaged-science' }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.QA_ROOT }}/evidence/
             ${{ env.QA_ROOT }}/results/
