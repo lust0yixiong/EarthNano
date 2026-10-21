@@ -1,133 +1,169 @@
 name: EarthNano CI
 
+# Temporary operational branch only. No release/tag writes and no automatic triggers.
 on:
-  pull_request:
-    branches: [main, feat/alpha-*, fix/alpha-*]
-  push:
-    branches: [main, ci/earthnano-native]
   workflow_dispatch:
     inputs:
-      native:
-        description: Build unsigned native packages and execute original launch/resource smoke (required before Alpha acceptance)
-        type: boolean
-        default: false
+      qa_run_id:
+        description: Actual completed successful packaged-science QA run ID (required; no placeholder)
+        required: true
+        type: string
+      qa_operational_sha:
+        description: Full approved operational commit SHA of that QA run, separate from application4a31
+        required: true
+        type: string
+      notes:
+        description: Reviewed Alpha release notes; metadata preparation does not publish them
+        required: true
+        type: string
+        default: Unsigned 0.1-Alpha preview for macOS and Linux. Windows is deferred to 0.2-Alpha. These packages are not Developer ID signed or notarized.
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: earthnano-ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: earthnano-alpha-assets-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  plan:
-    name: Resolve original platform sharding
+  prepare-alpha-assets:
+    if: github.ref == 'refs/heads/ci/earthnano-alpha-assets'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    if: github.ref != 'refs/heads/ci/earthnano-native'
-    outputs:
-      unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
+    timeout-minutes: 45
+    env:
+      ALPHA_SOURCE_ROOT: ${{ github.workspace }}/alpha-source
+      ALPHA_OPERATION_SHA: ${{ github.sha }}
+      ALPHA_QA_RUN_ID: ${{ inputs.qa_run_id }}
+      ALPHA_QA_OPERATIONAL_SHA: ${{ inputs.qa_operational_sha }}
     steps:
-      - id: matrix
-        shell: node {0}
+      - name: Initialize isolated asset preparation root
         run: |
-          const fs = require('node:fs')
-          const include = [{os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true}]
-          for (const [os, total] of [['macos-15', 4]])
-            for (const kind of ['baseline', 'candidate'])
-              for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total, batch: false})
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unix_matrix=${JSON.stringify({include})}\n`)
-
-  source_unix:
-    name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
-    needs: plan
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.unix_matrix) }}
-    uses: ./.github/workflows/earthnano-source.yml
-    with:
-      os: ${{ matrix.os }}
-      kind: ${{ matrix.kind }}
-      shard: ${{ matrix.shard }}
-      total: ${{ matrix.total }}
-      batch: ${{ matrix.batch }}
-
-  comparison:
-    name: Enforce pinned original source comparison
-    needs: source_unix
-    if: always() && github.ref != 'refs/heads/ci/earthnano-native'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
+          set -euo pipefail
+          [[ -n "$RUNNER_TEMP" && "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ && "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]] || exit 1
+          alpha_root="$RUNNER_TEMP/earthnano-alpha-assets-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          [[ "$alpha_root" == "$RUNNER_TEMP"/earthnano-alpha-assets-* && "$alpha_root" != *$'\n'* && "$alpha_root" != *$'\r'* ]] || exit 1
+          printf 'ALPHA_ROOT=%s\n' "$alpha_root" >> "$GITHUB_ENV"
+      - name: Checkout exact operational instructions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          path: alpha-operation
+          persist-credentials: false
+      - name: Checkout fixed application release helpers (not an application rebuild)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          path: alpha-source
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: .github/earthnano-node-version }
-      - name: Require complete Unix source matrix
-        shell: node {0}
+        with:
+          node-version-file: alpha-source/.github/earthnano-node-version
+      - name: Require real native, source and QA completion before downloading packages
+        id: runs
         env:
-          SOURCE_UNIX_RESULT: ${{ needs.source_unix.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          for (const key of ['SOURCE_UNIX_RESULT'])
-            if (process.env[key] !== 'success') throw new Error(`Required source matrix did not succeed: ${key}`)
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with: { pattern: earthnano-source-*, path: source-reports }
-      - run: node scripts/ci/earthnano-source.mjs compare --platforms darwin,linux --reports source-reports --out test-results/earthnano-ci
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
+          set -euo pipefail
+          [[ "$ALPHA_QA_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ALPHA_QA_OPERATIONAL_SHA" =~ ^[a-f0-9]{40}$ ]]
+          mkdir -p "$ALPHA_ROOT/evidence"
+          gh run view 39629283517 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/native-run.json"
+          gh run view 39629363410 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/source-run.json"
+          gh run view "$ALPHA_QA_RUN_ID" -R lust0yixiong/EarthNano --json databaseId,headSha,headBranch,workflowName,status,conclusion,attempt,jobs > "$ALPHA_ROOT/evidence/qa-run.json"
+          node alpha-operation/scripts/ci/alpha-assets/prepare-assets.mjs verify-runs 2>&1 | tee "$ALPHA_ROOT/evidence/verify-runs.log"
+      - name: Original release transform dependencies, without lifecycle scripts or application build
+        working-directory: alpha-source
+        run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
+      - name: Download same-run four original Unix package artifacts, keeping Mac feeds separate
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
+          github-token: ${{ github.token }}
+          repository: lust0yixiong/EarthNano
+          run-id: 39629283517
+          pattern: earthnano-unsigned-*
+          path: ${{ env.ALPHA_ROOT }}/inputs/packages
+      - name: Download same-run four original Unix native evidence artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          repository: lust0yixiong/EarthNano
+          run-id: 39629283517
+          pattern: earthnano-native-evidence-*
+          path: ${{ env.ALPHA_ROOT }}/inputs/native
+      - name: Download original source comparison outcome
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          repository: lust0yixiong/EarthNano
+          run-id: 39629363410
           name: earthnano-source-comparison
-          path: test-results/earthnano-ci/
-          retention-days: 14
-          if-no-files-found: error
-
-  harness:
-    name: Pinned Harness source and original unittest comparison (Python 3.12)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    if: github.ref != 'refs/heads/ci/earthnano-native'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: .github/earthnano-node-version }
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
-        with: { python-version-file: .github/earthnano-python-version }
-      - name: Fetch exact original Harness source (no model packages)
-        run: |
-          git clone --filter=blob:none --no-checkout https://github.com/google-research/harness2.git "$RUNNER_TEMP/harness-original"
-          git -C "$RUNNER_TEMP/harness-original" checkout --detach 1cfe254e8d25b15f37048c3730134686abe60335
-          test "$(git -C "$RUNNER_TEMP/harness-original" rev-parse 'HEAD^{tree}')" = edc756a4d03a2826a248115482084a176e60e751
-          cmp "$RUNNER_TEMP/harness-original/LICENSE" vendor/harness2/LICENSE
-      - name: Execute original and integrated tests with identical Python
-        run: |
-          python scripts/ci/earthnano-harness.py "$RUNNER_TEMP/harness-original" test-results/harness-baseline.json --kind baseline
-          python scripts/ci/earthnano-harness.py vendor/harness2 test-results/harness-candidate.json --kind candidate
-          node scripts/ci/earthnano-harness-compare.mjs
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
+          path: ${{ env.ALPHA_ROOT }}/evidence/source-comparison
+      - name: Download exact successful QA attempt evidence, never an arbitrary prior attempt
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: earthnano-harness-comparison
-          path: test-results/harness-*.json
+          github-token: ${{ github.token }}
+          repository: lust0yixiong/EarthNano
+          run-id: ${{ inputs.qa_run_id }}
+          name: ${{ steps.runs.outputs.qa_artifact }}
+          path: ${{ env.ALPHA_ROOT }}/inputs/qa
+      - name: Verify actual source, bytes, original certifications and QA; stage without overwrites
+        run: |
+          set -euo pipefail
+          node alpha-operation/scripts/ci/alpha-assets/prepare-assets.mjs collect 2>&1 | tee "$ALPHA_ROOT/evidence/collect.log"
+      - name: Original Unix certification aggregate
+        working-directory: alpha-source
+        run: |
+          set -euo pipefail
+          node scripts/ci/release-certification-evidence.mjs aggregate \
+            --directory "$ALPHA_ROOT/assets" \
+            --output "$ALPHA_ROOT/assets/RELEASE-CERTIFICATION.json" \
+            --expected-sha 4a31b9ae72654cf6ddf7749103abb48b5f85043f \
+            --platforms mac,linux 2>&1 | tee "$ALPHA_ROOT/evidence/aggregate.log"
+      - name: Original mac feed merge for the explicit Alpha channel
+        working-directory: alpha-source
+        run: |
+          set -euo pipefail
+          node scripts/merge-mac-feed.mjs "$ALPHA_ROOT/assets" --channel alpha 2>&1 | tee "$ALPHA_ROOT/evidence/merge-mac-feed.log"
+      - name: Original real-byte SHA256SUMS recipe
+        run: |
+          set -euo pipefail
+          cd "$ALPHA_ROOT/assets"
+          shopt -s nullglob
+          files=(*.dmg *.zip *.AppImage *.deb)
+          [[ ${#files[@]} -eq 8 ]]
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+          sha256sum --check --strict SHA256SUMS.txt 2>&1 | tee "$ALPHA_ROOT/evidence/checksums.log"
+      - name: Original complete Alpha manifest generator with explicit Unix scope
+        working-directory: alpha-source
+        env:
+          VERSION: 0.1.0-alpha.1
+          UPDATE_CHANNEL: alpha
+          ASSET_BASE_URL: https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1
+          NOTES: ${{ inputs.notes }}
+        run: |
+          set -euo pipefail
+          export RELEASE_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node scripts/generate-version-manifest.mjs "$ALPHA_ROOT/assets" "$ALPHA_ROOT/assets/version.json" --require-complete --platforms mac,linux 2>&1 | tee "$ALPHA_ROOT/evidence/manifest.log"
+          printf '%s\n' "$RELEASE_DATE" > "$ALPHA_ROOT/evidence/asset-preparation-time.txt"
+      - name: Upload prepared Alpha assets as an Actions artifact only (no publication)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-alpha-prepared-4a31-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.ALPHA_ROOT }}/assets/
+            ${{ env.ALPHA_ROOT }}/evidence/
+          compression-level: 0
           retention-days: 14
           if-no-files-found: error
-
-  native_unix:
-    name: Unsigned native build and original launch ${{ matrix.os }}
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.native) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: macos-26, platform: mac, arch: arm64, subdir: osx-arm64 }
-          - { os: macos-26-intel, platform: mac, arch: x64, subdir: osx-64 }
-          - { os: ubuntu-24.04, platform: linux, arch: x64, subdir: linux-64 }
-          - { os: ubuntu-24.04-arm, platform: linux, arch: arm64, subdir: linux-aarch64 }
-    uses: ./.github/workflows/earthnano-native.yml
-    with:
-      os: ${{ matrix.os }}
-      platform: ${{ matrix.platform }}
-      arch: ${{ matrix.arch }}
-      subdir: ${{ matrix.subdir }}
+      - name: Preserve raw gate and helper failures independently of the prepared asset
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-alpha-prepare-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.ALPHA_ROOT }}/evidence/
+            ${{ env.ALPHA_ROOT }}/inputs/native/
+            ${{ env.ALPHA_ROOT }}/inputs/qa/evidence/
+          retention-days: 14
+          if-no-files-found: error
