@@ -48,4 +48,4 @@
 
 本轮恢复到 `fdf3a26cb` 后，四项契约测试及完整 Node/sandbox/Web compiled types 均通过，原始记录保存在工作区的 `EarthNano-validation/binary-current-20261021/contract-vitest.json` 和 `binary-contract-current-types.log`。旧文本分支类型、JSON 字节及精确引用继续受检；这仍仅证明共享契约，不证明 owner 字节导出、匿名资产、独立审阅或原生/DeepSeek 链路已经接通。后续集成以同一当前源码和实际 producer/Version/lease 证据验收，不把保留的旧 WIP 测试当成本轮通过。
 
-当前 owner、方法资产与真实 RDS/PNG 验收已进一步完成，模块调用、证据及尚未取得的桌面/模型/平台结果见 [本轮集成状态](ALPHA_BINARY.md)。上面的 UTF-8 导出和未使用资产路径描述是实施前故障，不是当前实现结论。
+当前 owner、方法资产与真实 RDS/PNG 验收已进一步完成，模块调用、后续真实桌面/DeepSeek 证据及尚待的最终平台包结果见 [本轮集成状态](ALPHA_BINARY.md)。上面的 UTF-8 导出和未使用资产路径描述是实施前故障，不是当前实现结论。

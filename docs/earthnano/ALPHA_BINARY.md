@@ -32,4 +32,16 @@ JSON 检查只读声明的文本 JSON。二进制命中该检查时明确拒绝�
 
 方法侧已验证两种递归模式、实际匿名复制字节，以及在第 4/12/14 次接纳后停止并重开时不重复材料化或接纳；纯文本两模式各 15 阶段的完整 freezeInvocation 参数 JSON 按原 task/scope/label 身份逐个匹配后字节相同。并发阶段的整体到达顺序不同，不能称完整轨迹数组逐字相同。
 
-新增真实 RDS+PNG 用例与原 Python/R CSV 用例共 3/3 通过、无跳过：后续输入 head 改为 999，baseline/candidate 仍读取旧版本 2/4/6，分别通过原 producer 发布 JSON 与 PNG；四条原 used-input 精确指向旧 Version。两份 4704 字节 PNG 从原版本到材料化及 INPUT 投影的完整 SHA-256 相同，重开未重放。原 notebook-analysis 与固定上游目录 hash 相同，未放宽分析器或 producer 断言。原始记录见 [验证清单](validation/alpha/binary-current/manifest.json)。当前记录不代表已取得二进制图像语义评估、当前提交的 DeepSeek 桌面验收、Windows 原生安装或完整 hosted 源码比较。Compute 等其余融合继续按 [完成契约](ALPHA_CONTRACT.md) 和 [功能来源](FUNCTION_ORIGINS.md) 推进。
+新增真实 RDS+PNG 用例与原 Python/R CSV 用例共 3/3 通过、无跳过：后续输入 head 改为 999，baseline/candidate 仍读取旧版本 2/4/6，分别通过原 producer 发布 JSON 与 PNG；四条原 used-input 精确指向旧 Version。两份 4704 字节 PNG 从原版本到材料化及 INPUT 投影的完整 SHA-256 相同，重开未重放。原 notebook-analysis 与固定上游目录 hash 相同，未放宽分析器或 producer 断言。原始记录见 [验证清单](validation/alpha/binary-current/manifest.json)。上述为最初原 owner/方法资产验收，后续真实桌面证据如下；Compute 等其余融合继续按 [完成契约](ALPHA_CONTRACT.md) 和 [功能来源](FUNCTION_ORIGINS.md) 推进。
+
+## 同一构建的真实桌面及 DeepSeek 验收（2026-10-21）
+
+干净源码 `4746f52f79a80aa9de5ec0d5ea184eb4fca18733` 的真实 Electron / 原 Claude Code 桌面链路已通过离线和 DeepSeek 验收。普通执行、原 parallel k2 的基线与候选使用同一固定科研任务，沿原 R Notebook producer、ArtifactVersion 和独立 Review 保存并重开；停止后显式续跑沿用同一预算与截止，重开零模型重放。离线为 20/24 次核心接纳、70 次 fixture 请求、0 次上游请求；DeepSeek 为 22/24 次核心接纳、142 次实际上游请求（其中 1 次取消）。这些请求数来自测试 provider，不是生产费用账本。
+
+DeepSeek 运行有 26 份二进制上下文资产记录和 8 次真正的 PNG Read 图像 tool_result，原版本、匿名投影、模型工具收到的字节和 SHA 对应。**图像语义评估未执行**；独立 Review 只对冻结的数值文本标准给出模型判断，不能据此证明图像科学正确或配置改进收益。生产用量为 20/22 执行覆盖，API/美元仍未知。
+
+实际联调先后暴露并修复：可信工作根的 `/var` 与 `/private/var` 别名、native 配置物化验证遗漏二进制 manifest、已验证 JSONL 信封误传为严格 payload；另修正真实 native 图像路径和 producer 证据的测试断言。四次失败桌面尝试及各项红/绿证据均保留，没有挑选重跑隐藏失败；旧 transport fixture 缺少 reader/writer、一次错误 Python 路径的结果明确标为测试设置错误。修复后原配置定向验证共 335 项，330 通过、0 失败，5 项原付费 opt-in 用例按条件跳过；完整 compiled types、原构建和 consumer generator 已通过。
+
+原六个 Harness 方法模块本轮未变。独立源码审查未发现可证明的严重阻断；最后 native 完整性重读沿原 prepare API 没有 signal，不能声称该读取可即时中断。owner 投影/复制已有取消校验，派发前 driver 仍检查停止状态。原始报告、Session/journal、构建摘要、审查与故障记录见 [桌面验证清单](validation/alpha/binary-desktop-current/manifest.json)。
+
+后续仅整合 CI 与文档，`src/packages/vendor/resources/e2e/contracts` 与受测 4746 源码相同。当前源码的 hosted 全量对照和最终 macOS/Linux 发布包仍待完成；Windows 按用户决定延期至 0.2-Alpha。上述证据不代替完整 Alpha 完成验收。
