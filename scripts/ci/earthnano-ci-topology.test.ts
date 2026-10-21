@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { load } from 'js-yaml'
@@ -126,9 +126,99 @@ describe('EarthNano runtime dependency split', () => {
       { os: 'macos-26', platform: 'mac', arch: 'arm64', subdir: 'osx-arm64' },
       { os: 'macos-26-intel', platform: 'mac', arch: 'x64', subdir: 'osx-64' },
       { os: 'ubuntu-24.04', platform: 'linux', arch: 'x64', subdir: 'linux-64' },
+      { os: 'ubuntu-24.04-arm', platform: 'linux', arch: 'arm64', subdir: 'linux-aarch64' },
       { os: 'windows-2022', platform: 'win', arch: 'x64', subdir: 'win-64' }
     ])
   })
+  it('retains all five upstream native tuples, including its exact Linux ARM64 runner and resources', () => {
+    const pinnedBuild = spawnSync(
+      'git',
+      ['show', '9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5:.github/workflows/build.yml'],
+      { encoding: 'utf8' }
+    )
+    expect(pinnedBuild.status, pinnedBuild.stderr).toBe(0)
+    const original = load(pinnedBuild.stdout) as Workflow
+    const matrix = Object.values(original.jobs)
+      .flatMap((job) => job.steps ?? [])
+      .filter((step) => step.id === 'set' && step.run?.includes('linux-aarch64'))
+    expect(matrix).toHaveLength(1)
+    const arrays = [...matrix[0].run!.matchAll(/\b(?:mac|rest)='(\[[\s\S]*?\])'/g)]
+    expect(arrays).toHaveLength(2)
+    const upstream = arrays.flatMap((match) => JSON.parse(match[1])) as Array<{
+      os: string
+      platform: string
+      bin_arch: string
+      subdir: string
+      engine_keep: string
+    }>
+    expect(upstream).toHaveLength(5)
+    const targets = ['native_unix', 'native_windows'].flatMap(
+      (name) => (workflow.jobs[name].strategy!.matrix as { include: unknown[] }).include
+    )
+    // Preserve the existing x64 Linux/Windows image pins; the added ARM64 tuple is byte-for-byte upstream.
+    const existingRunnerPins: Record<string, string> = {
+      'linux-x64': 'ubuntu-24.04',
+      'win-x64': 'windows-2022'
+    }
+    expect(targets).toEqual(
+      upstream.map((target) => ({
+        os: existingRunnerPins[`${target.platform}-${target.bin_arch}`] ?? target.os,
+        platform: target.platform,
+        arch: target.bin_arch,
+        subdir: target.subdir
+      }))
+    )
+    const arm = upstream.find(
+      (target) => target.platform === 'linux' && target.bin_arch === 'arm64'
+    )!
+    expect(arm).toMatchObject({
+      os: 'ubuntu-24.04-arm',
+      platform: 'linux',
+      bin_arch: 'arm64',
+      subdir: 'linux-aarch64',
+      engine_keep: 'linux-arm64-openssl-3.0.x.so.node'
+    })
+    const pruning = readWorkflow('native').jobs.native.steps!.find(
+      (step) => step.name === 'Original target Prisma engine pruning'
+    )!
+    expect(pruning.run).toContain(`linux-arm64) keep='${arm.engine_keep}' ;;`)
+  })
+  it.each([true, false])(
+    'runs original ARM64 Prisma pruning and fails without its target engine (present=%s)',
+    (present) => {
+      const root = mkdtempSync(join(tmpdir(), 'earthnano-native-arm64-'))
+      try {
+        const directory = join(root, 'node_modules/.prisma/client')
+        mkdirSync(directory, { recursive: true })
+        const target = 'libquery_engine-linux-arm64-openssl-3.0.x.so.node'
+        const foreign = [
+          'libquery_engine-debian-openssl-3.0.x.so.node',
+          'query_engine-windows.dll.node',
+          'libquery_engine-darwin-arm64.dylib.node'
+        ]
+        for (const name of [...foreign, ...(present ? [target] : [])])
+          writeFileSync(join(directory, name), 'synthetic engine identity fixture')
+        const pruning = readWorkflow('native').jobs.native.steps!.find(
+          (step) => step.name === 'Original target Prisma engine pruning'
+        )!
+        const result = spawnSync(
+          'bash',
+          [
+            '-eu',
+            '-c',
+            pruning
+              .run!.replaceAll('${{ inputs.platform }}', 'linux')
+              .replaceAll('${{ inputs.arch }}', 'arm64')
+          ],
+          { cwd: root, encoding: 'utf8' }
+        )
+        expect(result.status, result.stderr).toBe(present ? 0 : 1)
+        expect(readdirSync(directory)).toEqual(present ? [target] : [])
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
+    }
+  )
   it('shares exact original recipes instead of copying commands into split callers', () => {
     for (const kind of ['source', 'native']) {
       for (const platform of ['unix', 'windows']) {
@@ -152,12 +242,13 @@ describe('EarthNano runtime dependency split', () => {
       // Original d4b20667d inventories plus the reviewed exact Python and Node inputs:
       // Python 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset);
       // floating Node 24 → one exact version file (runner caches resolved different patches).
-      // Restore only these inputs and the original packaging heap ceiling below to prove
-      // all other steps still match d4. No pin, condition, command or artifact waiver.
+      // Restore only these inputs, the original packaging heap ceiling and exact Linux ARM64
+      // pruning case below to prove all other steps still match d4. No pin, condition, command
+      // or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
           ? '46e765f74fe2bcaa5741a0b8dec64043f674978ca324f164558ddeaebc644b82'
-          : 'd9a774c1482cbf33f5622c87a96535fa2006fb79b9f105e58577b3aa9cdf8a7e'
+          : 'eeaf802903b62b7084a9f48db22fb6d976e710c59fe30b5114aaf7f669c20c68'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
@@ -192,8 +283,15 @@ describe('EarthNano runtime dependency split', () => {
         expect(build).toHaveLength(1)
         expect(build[0].run).toBe('npm run build')
         expect(build[0].env).toEqual({ NODE_OPTIONS: packaging[0].env!.NODE_OPTIONS })
-        // Only the exact, separately verified upstream budget is removed for the d4 inventory.
+        // Only the exact, separately verified upstream additions are removed for the d4 inventory.
         delete build[0].env
+        const pruning = originalSteps.filter(
+          (step) => step.name === 'Original target Prisma engine pruning'
+        )
+        expect(pruning).toHaveLength(1)
+        const addedCase = "  linux-arm64) keep='linux-arm64-openssl-3.0.x.so.node' ;;\n"
+        expect(pruning[0].run!.split(addedCase)).toHaveLength(2)
+        pruning[0].run = pruning[0].run!.replace(addedCase, '')
       }
 
       expect(digest(originalSteps)).toBe(

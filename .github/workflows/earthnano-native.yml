@@ -70,6 +70,7 @@ jobs:
             mac-arm64) keep=darwin-arm64 ;;
             mac-x64) keep=darwin.dylib ;;
             linux-x64) keep='openssl-3.0.x.so.node' ;;
+            linux-arm64) keep='linux-arm64-openssl-3.0.x.so.node' ;;
             win-x64) keep=query_engine-windows.dll.node ;;
             *) exit 1 ;;
           esac

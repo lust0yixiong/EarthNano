@@ -83,8 +83,8 @@ build-success evidence; Windows still must complete its original verification be
 The root workflow partitions the original source inventory into `source_unix` (16 Linux/macOS
 shards) and `source_windows` (16 Windows shards). Both invoke the single reusable
 `.github/workflows/earthnano-source.yml` recipe. Unix source shards depend only on the plan;
-Windows source shards also require the runtime. The four original native targets are similarly
-partitioned into three Unix targets and one Windows target, invoking the same
+Windows source shards also require the runtime. The five original release targets are now
+partitioned into four Unix targets and one Windows target, invoking the same
 `.github/workflows/earthnano-native.yml` recipe. Unix native targets can start independently;
 the Windows target still requires the verified runtime. There are no duplicated test recipes
 or alternate source/native commands.
@@ -99,9 +99,9 @@ Harness comparison. PR base matching also accepts `feat/alpha-*` for stacked Alp
 triggers, explicit native opt-in, read-only permissions and no-publication policy are unchanged.
 
 Focused local topology tests execute the actual plan and status guard, verify all 32 unique
-shards/four native targets, check dependency isolation, and compare shared step inventories
+shards/five native targets, check dependency isolation, and compare shared step inventories
 against the parsed recipes at `d4b20667d` (normalizing the matrix-to-input variable context and
-the single common Python input change documented below).
+the reviewed Python/Node inputs, original build heap ceiling and exact Linux ARM64 pruning case documented below).
 This covers original commands, immutable action pins, conditions, environments and artifact
 names; it does not constitute a hosted source or native build result. Local YAML/guard tests
 do not replace GitHub's workflow validation or an actual Windows cold build.
@@ -144,7 +144,7 @@ started by explicitly pushing the reviewed commit to `ci/earthnano-native`. This
 branch is a validation ref, never a release trigger. It skips the duplicate source/Harness matrices;
 ordinary pull requests continue to run their complete source comparisons.
 The source definition alone does not complete Alpha acceptance. The native matrix must actually
-finish on macOS ARM64, macOS Intel, Linux x64, and Windows x64 for that same source version:
+finish on macOS ARM64, macOS Intel, Linux x64, Linux ARM64, and Windows x64 for that same source version:
 
 - Exact lockfile Electron package **and actual executable** identity; a cached 43.4 executable
   cannot satisfy a 43.7.5 lockfile. The probe uses `ELECTRON_RUN_AS_NODE=1` and
@@ -163,10 +163,10 @@ finish on macOS ARM64, macOS Intel, Linux x64, and Windows x64 for that same sou
 - Byte-identical declared packaged licenses and streamed SHA-256 package/icon/source manifests.
   Validated unsigned packages are retained as short-lived CI artifacts, not published releases.
 
-Signed/notarized distribution, updater feed availability, ARM Linux/Windows packages, visual
-regression screenshots, and paid provider quality are not established by these native x64/Apple
-build lanes. Original optional tests report their own skips. Cross-product historical installer
-upgrade certification requires matching previous-package identity metadata and is not claimed
+Signed/notarized distribution, updater feed availability, ARM Windows packages, visual
+regression screenshots, and paid provider quality are not established by these unsigned native
+build lanes. Configuring the Linux ARM64 lane does not establish that its package has passed.
+Original optional tests report their own skips. Cross-product historical installer upgrade certification requires matching previous-package identity metadata and is not claimed
 by a fresh/current Alpha smoke.
 
 ## Commands and retained reports
@@ -246,6 +246,28 @@ PR14 corrected run `39456512139` 的 candidate Ubuntu3/4 job `118745034481` 在 
 
 同一 run 的两个 Mac 目标在完整应用构建时遇到约 2GB Node heap OOM，尚未进入打包/图标编译及包启动验收。原固定 OpenScience `build.yml` 对打包构建显式设置 `NODE_OPTIONS=--max-old-space-size=8192`；EarthNano native lane 漏继承该设置，修复仅恢复原预算，原命令、矩阵与检查不降低。修复后的 Mac 实际结果仍需取得，不能把失败自动追认为通过。记录时 Windows runtime 仍运行中，不代表 Windows 包结果。
 
-原发布认证覆盖五种 target（macOS arm64/x64、Linux x64/arm64、Windows x64）和七种 installer key；当前 unsigned CI 只有四个 target，缺 Linux arm64。四目标 launch/resource smoke 不等于原完整签名/安装/聚合发布认证，后者门槛保持不变。
+原发布认证覆盖五种 target（macOS arm64/x64、Linux x64/arm64、Windows x64）和七种 installer key；该次 run 的 unsigned CI 只有四个 target，缺 Linux arm64。四目标 launch/resource smoke 不等于原完整签名/安装/聚合发布认证，后者门槛保持不变。
 
 原 job/日志、Linux source/artifact manifest 和数据库迁移认证原始字节见 [分项证据清单](validation/alpha/native-39550528030/manifest.json)。这些结果也不替代完整上游源码比较、候选优化的跨平台可达性或 DeepSeek 科研验收。
+
+## Original Linux ARM64 target restored (configuration only)
+
+The native matrix now also carries the exact fixed OpenScience
+`9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5` Linux ARM64 tuple:
+`ubuntu-24.04-arm / linux / arm64 / linux-aarch64`. It invokes the same unsigned native recipe
+as the other Unix targets, including the original dependency/resource staging, full build,
+AppImage/DEB packaging, DEB lifecycle/install, installed launch/resource/RPC/database checks,
+streamed identity digests and failure evidence. The only necessary recipe extension is the
+original target engine selector `linux-arm64-openssl-3.0.x.so.node` in Prisma pruning. A missing
+ARM64 engine still fails; the x64 engine cannot satisfy it.
+
+The other four native tuples and their existing runner pins are retained. The three-OS source
+matrix, source shard counts, signing, publishing and original five-platform/seven-installer
+release certification requirements are unchanged. No workflow was dispatched by this change.
+
+This is **configuration restored, Linux ARM64 package acceptance still pending**. Local topology
+checks compare all five tuples against the fixed original build matrix (retaining the existing
+Linux x64/Windows x64 runner pins) and execute the original pruning step on isolated identity
+fixtures. They neither compile an ARM64 package nor substitute for its actual native build,
+installation, launch, resource, database or shutdown evidence. Historical four-target run results
+above keep their original scope and source SHA; they cannot be relabeled as a five-target pass.
