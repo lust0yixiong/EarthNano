@@ -1,3 +1,6 @@
+import type { ComputeHost } from '@aipoch/compute'
+import { ComputeService } from '../compute/compute-service'
+import type { ComputeHostRepository } from '../compute/repository'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AgentComputeService, type RawComputeService } from '../compute/agent-compute-service'
 
@@ -601,6 +604,120 @@ describe('trusted Compute control policy', () => {
     end()
     connection.release()
   })
+
+  it.each(['append', 'replace'] as const)(
+    'keeps shared host details read-only for a scoped trial while ordinary %s remains available',
+    async (mode) => {
+      const original = 'Original shared host instructions'
+      const host: ComputeHost = {
+        id: 'shared-host',
+        providerId: 'ssh:host',
+        displayName: 'Shared host',
+        shape: 'scheduler_cluster',
+        executionMode: 'direct_ssh',
+        sshAlias: 'host',
+        sshOverrides: undefined,
+        scratchRoot: undefined,
+        scratchPinned: false,
+        concurrencyLimit: undefined,
+        probeResult: undefined,
+        detailsDoc: original,
+        detailsUpdatedAt: undefined,
+        detailsUpdatedBy: undefined,
+        createdAt: 1,
+        updatedAt: 1
+      }
+      const updateDetails = vi.fn(
+        async (
+          providerId: string,
+          text: string,
+          author: 'user' | 'agent',
+          hostId: string,
+          oldText: string
+        ) => {
+          if (providerId !== host.providerId || hostId !== host.id || oldText !== host.detailsDoc)
+            return false
+          host.detailsDoc = text
+          host.detailsUpdatedBy = author
+          return true
+        }
+      )
+      const repository = {
+        get: async (id: string) => (id === host.providerId ? host : null),
+        list: async () => [host],
+        updateDetails
+      } as unknown as ComputeHostRepository
+      const compute = new AgentComputeService(
+        new ComputeService({ runner: {} as never, repository }),
+        { getEnabled: () => [host.providerId], getSelected: () => [host.providerId] }
+      )
+      server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+        transport: 'tcp',
+        computeService: compute
+      })
+      const scoped = await server.issueControlConnection(
+        'private',
+        'project',
+        'root-frame-private',
+        undefined,
+        undefined,
+        {
+          allowedMethods: methods,
+          interactionPolicy: 'deny-unresolved',
+          assertComputeHostCurrent: async () => {}
+        }
+      )
+      const ordinary = await server.issueControlConnection(
+        'ordinary',
+        'project',
+        'root-frame-ordinary'
+      )
+      const end = scoped.beginControlInvocation({
+        turnId: 'turn',
+        controlInvocationGeneration: 1,
+        toolInvocationId: 'producer'
+      })
+      const params = {
+        op: 'details',
+        provider_id: host.providerId,
+        mode,
+        text: 'Candidate change',
+        old_text: original
+      }
+      expect(
+        await rpc(scoped, 'computeCall', {
+          op: 'details',
+          provider_id: host.providerId,
+          mode: 'read'
+        })
+      ).toMatchObject({ status: 200, payload: { result: { doc: original } } })
+      const rejected = await rpc(scoped, 'computeCall', {
+        ...params,
+        interactionPolicy: 'interactive',
+        controlPolicy: undefined
+      })
+      expect({
+        status: rejected.status,
+        writes: updateDetails.mock.calls.length,
+        doc: host.detailsDoc
+      }).toEqual({ status: 403, writes: 0, doc: original })
+      expect(rejected.payload).toMatchObject({ error: expect.stringMatching(/shared host/i) })
+      // JSON-supplied restrictions cannot narrow or authorize an ordinary original token.
+      expect(
+        await rpc(ordinary, 'computeCall', { ...params, interactionPolicy: 'deny-unresolved' })
+      ).toEqual({ status: 200, payload: { result: { ok: true } } })
+      expect(updateDetails).toHaveBeenCalledOnce()
+      const expected = mode === 'append' ? `${original}\nCandidate change` : 'Candidate change'
+      expect(host.detailsDoc).toBe(expected)
+      expect(host.detailsUpdatedBy).toBe('agent')
+      expect(
+        await rpc(scoped, 'computeCall', { op: 'details', provider_id: host.providerId })
+      ).toMatchObject({ status: 200, payload: { result: { doc: expected } } })
+      end()
+      scoped.release()
+      ordinary.release()
+    }
+  )
 
   it('never substitutes a successor control invocation after a source check awaits', async () => {
     const callCommand = vi.fn()

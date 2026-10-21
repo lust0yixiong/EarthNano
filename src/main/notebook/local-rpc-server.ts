@@ -2249,6 +2249,9 @@ class NotebookLocalRpcServer {
             }
           }
           if (method === 'computeCall' && sessionBinding.controlPolicy) {
+            // Candidate control policy grants execution on frozen hosts, not shared host knowledge writes.
+            if (params.op === 'details' && (params.mode === 'append' || params.mode === 'replace'))
+              throw new RpcHttpError(403, 'Compute trials cannot modify shared host knowledge.')
             const invocation = sessionBinding.activeControlInvocation
             if (typeof params.provider_id === 'string') {
               await sessionBinding.controlPolicy.assertComputeHostCurrent(params.provider_id)
