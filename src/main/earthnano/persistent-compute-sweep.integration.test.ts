@@ -21,6 +21,8 @@ import { disconnectProjectDbClient } from '../projects/prisma-client'
 import { loadSessionMutationAuthority } from '../session-persistence/repository'
 import { resolveConfigRoot, resolveDataRoot } from '../storage-root'
 import { NotebookRunRepository } from '../notebook/repository'
+import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository'
+import { ArtifactRepository } from '../artifacts/repository'
 import {
   DesktopOptimizationManager,
   readDesktopOptimizationResume,
@@ -39,9 +41,9 @@ const sourcePrompt = [
   'This is an explicitly controlled Compute protocol fixture, not remote science.',
   "Use repl_execute with this exact positional API call: await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30}). Do not replace those three positional arguments with one object.",
   'Submit exactly once. End the initial Turn after its receipt. Await the original background result delivery.',
-  "In that continuation call attachJob(the delivered job_id).result(), require result_final, then use require('node:fs') to read the harvested metrics.json at '../'+its featured_files path.",
-  'Copy those exact harvested metrics.json bytes to metrics-source.json without parsing or reformatting the copy. Compute count, sum and arithmetic mean from its actual values array. Write research-results.json in the current directory with exactly the three numeric fields count, sum and mean; put no metadata or additional fields in that report.',
-  'Copy the harvested figure.png to measurements.png. Publish metrics-source.json, research-results.json and measurements.png through write_artifact_file with localPath sources and the actual repl_execute producerRunId returned by the original tool.',
+  "In that continuation use the original exact API await host.compute.create('ssh:fixture').attachJob(the_delivered_job_id).result(), require result_final, then use require('node:fs') to read the harvested metrics.json at '../'+its featured_files path.",
+  'Read the exact harvested metrics.json bytes with fs.readFileSync and write that Buffer unchanged to metrics-source.json with fs.writeFileSync. Compute count, sum and arithmetic mean from its actual values array. Write research-results.json in the current directory with exactly the three numeric fields count, sum and mean; put no metadata or additional fields in that report.',
+  'Use the same readFileSync/writeFileSync Buffer operations to copy the harvested figure.png to measurements.png. Publish metrics-source.json, research-results.json and measurements.png through write_artifact_file with localPath sources and the actual repl_execute producerRunId returned by the original tool.',
   'Never resubmit an existing Job or invent a producer ID. The PNG is a fixture asset, not a newly computed plot.'
 ].join('\n')
 
@@ -345,7 +347,18 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   })
   owned.reader = reader
   const nativeRuns = new NotebookRunRepository(f.root)
+  const provenance = new ArtifactProvenanceRepository({
+    storageRoot: f.root,
+    getClient: f.getClient,
+    compatibilityRepository: new ArtifactRepository(f.root),
+    loadSession: async (projectId, sessionId) => {
+      const original = await loadSessionMutationAuthority(f.sessions, projectId, sessionId)
+      if (original.status !== 'found') throw new Error('Original producer Session missing')
+      return original.session
+    }
+  })
   const outputs: unknown[] = []
+  report.outputs = outputs
   for (const record of taskRecords) {
     const jobs = await f.jobs.findByOwner({
       projectId: f.projectId,
@@ -362,9 +375,33 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     expect(jobs[0].harvest_error).toBeUndefined()
     const runs = await nativeRuns.readSessionRuns(f.projectId, record.identity.sessionId!)
     expect(runs.length).toBeGreaterThanOrEqual(2)
-    expect(runs.every((run) => run.status === 'completed')).toBe(true)
+    // Original Notebook permits a failed tool call followed by a successful correction. Preserve
+    // every attempt, require no in-flight Run, and prove each published Version's actual producer.
+    expect(
+      runs.every(
+        (run) => run.status !== 'queued' && run.status !== 'running' && Number.isFinite(run.endedAt)
+      )
+    ).toBe(true)
     expect(new Set(runs.map((run) => run.promptMessageId)).size).toBe(2)
     const exported = await reader.exportResult(record)
+    const producers: unknown[] = []
+    for (const file of exported.files) {
+      const { execution } = await provenance.getVersionExecution({
+        projectId: f.projectId,
+        appSessionId: record.identity.sessionId!,
+        artifactId: file.artifactRef.artifactId,
+        versionId: file.artifactRef.versionId
+      })
+      expect(execution).toBeDefined()
+      const producer = runs.find((run) => run.runId === execution?.producerRunId)
+      expect(producer).toMatchObject({
+        status: 'completed',
+        endedAt: expect.any(Number),
+        promptMessageId: execution!.terminalPromptMessageId
+      })
+      expect(producer!.promptMessageId).not.toBe(record.identity.promptMessageId)
+      producers.push({ artifactRef: file.artifactRef, execution })
+    }
     const source = exported.files.find((file) => file.path === 'metrics-source.json')
     if (!source || !('content' in source))
       throw new Error('Original metrics source Version missing')
@@ -384,7 +421,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
     expect(png).toEqual(await readFile(join(jobs[0].remote_workdir!, 'figure.png')))
     expect((await reader.readReviews(record)).length).toBeGreaterThan(0)
-    outputs.push({ record: record.executionId, jobs, runs, exported })
+    outputs.push({ record: record.executionId, jobs, runs, exported, producers })
   }
   const summary = completed.sweep?.domains[0].summary.tasks[0]
   expect(summary?.selection).toMatchObject({ trivial: false, fallback: false })
