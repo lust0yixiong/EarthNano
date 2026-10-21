@@ -60,4 +60,8 @@
 
 整合的 18 套检查 1024/1024、零跳过，完整 Node/sandbox/Web compiled types、lint、format 通过。原模块 ownership/完整 host DAG 检查也已通过：修复此前九个新增文件的精确登记，未修改原断言、拓扑规则或豁免。原 Job repository、delivery repository、Notebook repository、TaskRunner、Core/scope 等保护文件逐字节保持；两智能体的初始架构失败、原 pin 三例审批红对照和最终结果一并保留，见 [原始验证记录](validation/alpha/compute-control-lifecycle/manifest.json)。
 
-这些检查尚未执行真实 Compute 候选。候选 Session reservation、原 Job 结果等待、跨 Turn producer 证明和桌面接线仍待实现；serializer 继续拒绝 Compute profile。独立审查另复现“availability 检查后私有 owner 退役，零 admission 仍消耗原 delivery 重试次数”的竞态，正在修复，不以本次 1024 项通过掩盖该缺口。取消 hook 也不得反等 `readResult` 或同一 context signal，避免原 Core 等物理取消时形成循环等待。未开展 Windows、外部 SSH/Slurm、付费模型、原生包或发布操作。
+这些检查尚未执行真实 Compute 候选。候选 Session reservation、原 Job 结果等待、跨 Turn producer 证明和桌面接线仍待实现；serializer 继续拒绝 Compute profile。取消 hook 不得反等 `readResult` 或同一 context signal，避免原 Core 等物理取消时形成循环等待。未开展 Windows、外部 SSH/Slurm、付费模型、原生包或发布操作。
+
+后续固定 `36bf60321` 修复了独立审查复现的“availability 检查后私有 owner 退役，零 admission 仍消耗原 delivery 重试次数”竞态：使用原 owner 导出的明确 host-only 不可用异常，原 repository 只释放精确 claim，保留 correlation 与重试预算；普通错误、已消费和处置优先规则保持。三个真实 SQLite race 修复前红、修复后恢复只发送一次或直接认领已保存 continuation，五套原检查 76/76。原三项 ordinary callback 对整合 base 字节相同、对固定上游 AST 相同。
+
+同一提交还整合固定源读取与评估消费者：`resolveOptimizationComputeInputs` 允许原任务零输入，所附文件仍走同一个原 Version lease/hash/tuple 检查；Python/R 保持原非空约束。受控语义源 reader 支持明确空集合，评估摘要可携带全部真实 `reviewIds`，保留原 primary `reviewId` 和旧 JSON shape；实际各 Turn 的 Review 提交仍由后续 owner 完成，不能拼造 aggregate TurnScope。最终 15 套整合检查 565/565、零跳过，完整 types/原架构检查通过；初次 `it.each` 空数组误展开的 fixture 失败也保留，未充作生产红绿证据。见 [投递、固定来源和审阅引用记录](validation/alpha/compute-delivery-sources/manifest.json)。以上仍不证明完整 Compute 候选路径或外部计算环境已验收。

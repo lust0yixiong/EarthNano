@@ -1,0 +1,226 @@
+{
+  "source": "36bf603216804a8f46f01c9f5785b559e642e3ae",
+  "sourceAndReviewConsumerCommit": "6c06e69ecb70befc932a4beee246a41980601caf",
+  "originalDeliveryFixCommit": "96e2e0395ceae58cebe18b8fb160189fb8bf4a0a",
+  "integratedDeliveryFixCommit": "36bf603216804a8f46f01c9f5785b559e642e3ae",
+  "scope": "Original delivery authority availability, shared immutable source reader, and retained original per-Turn Review references. Compute serializer/candidate Job/desktop path remains disabled/incomplete.",
+  "tests": {
+    "files": 15,
+    "passed": 565,
+    "failed": 0,
+    "skipped": 0,
+    "compiledNodeSandboxWebTypes": "passed",
+    "completeOriginalHostGraphAndModuleOwnershipGuards": "passed",
+    "sourceReviewConsumers": {
+      "files": 8,
+      "passed": 139
+    },
+    "realSQLiteDeliveryFix": {
+      "files": 5,
+      "passed": 76,
+      "redControlFailures": 3
+    }
+  },
+  "initialSourceConsumerTrial": "138 pass/1 fail and type error caused by it.each interpreting [] as zero arguments; fixed fixture rows, retained raw results. This is not production red/green evidence.",
+  "retainedRules": [
+    "Original ordinary callbacks byte-identical to56c and AST-identical tofixed OpenScience9e18.",
+    "Only a host Error instance indicating authority unavailability releases its exact original claim without retry cost; ordinary Error with identical wording still exhausts original attempts.",
+    "Compute can freeze an exact source task with zero managed inputs; Python/R keep original nonempty attachment requirement and all supplied references keep original Version tuple/hash/lease checks.",
+    "Independent assessment returns all original per-Turn Review IDs, retaining primary reviewId and old single-Turn JSON shapes. No aggregate TurnScope is invented."
+  ],
+  "limits": [
+    "No actual Compute candidate, external SSH/Slurm, DeepSeek call, native build/install, Windows operation or publication validated here.",
+    "Source picker, serializer, live owner/control/delivery composition and full offline/DeepSeek validation still required."
+  ],
+  "files": [
+    {
+      "path": "root__source-inputs.json.gz",
+      "rawBytes": 24443,
+      "rawSha256": "4e494f3c67512801f423bbe9d67f14df258df43ca8abe480cb4cec6fe97c89f4",
+      "gzipBytes": 3483,
+      "gzipSha256": "5a8ac3b3da2c57f743d46777d458b8f492c4e2d1d3aaa947d10dc7fe23aeba1a"
+    },
+    {
+      "path": "root__source-inputs.log.gz",
+      "rawBytes": 708,
+      "rawSha256": "4a2f5a6b02732bb10aba170555607e3a0e2220b79210d3b823613b9ce75aa76b",
+      "gzipBytes": 404,
+      "gzipSha256": "85c40b1dbd2fafc4325049cdf655dfdfb0493b34d9dd3a33132ec7a1b811dfff"
+    },
+    {
+      "path": "root__source-review-consumers.json.gz",
+      "rawBytes": 184537,
+      "rawSha256": "d7f910e308adb7ed8f0861954f9d5471fb40d29172169659b9fb4f733033da03",
+      "gzipBytes": 7717,
+      "gzipSha256": "c06e8c4867b146ca1ada9cf9cf68510bef6c4abceabca7989bfc4e38e9a78279"
+    },
+    {
+      "path": "root__source-review-consumers.log.gz",
+      "rawBytes": 6447,
+      "rawSha256": "fdef22836c951258132f10b42eed44ae43a5ca4dbb8ed99b69fb248b30b6979b",
+      "gzipBytes": 2304,
+      "gzipSha256": "1f3b30fcab538126b951ab1d74a2ae820b8865db61f93687a6c92679032fb426"
+    },
+    {
+      "path": "root__source-review-types.log.gz",
+      "rawBytes": 840,
+      "rawSha256": "fd074bb473957f34e086dc266e78d4a965dae40812b86076b8aa9b7fb7176abf",
+      "gzipBytes": 417,
+      "gzipSha256": "fbe1ff22be2fc131e452a5448c21e606bfc56de310ab8e473bda70ab9701a60c"
+    },
+    {
+      "path": "root__source-review-consumers-final.json.gz",
+      "rawBytes": 183849,
+      "rawSha256": "a57a20f1cd1f83be45cf3339afdb6ded391a63814703fd956a515ccaf89833f3",
+      "gzipBytes": 7446,
+      "gzipSha256": "6f54f0972fa960008a817f043935c3600cf314203b348051b72a01b1a03737eb"
+    },
+    {
+      "path": "root__source-review-consumers-final.log.gz",
+      "rawBytes": 3330,
+      "rawSha256": "39092706118ca1238b62348a17e682b2507871bcf729ecc413db94276ca8b8c6",
+      "gzipBytes": 1230,
+      "gzipSha256": "d5ed38d3e7132bf6f8f68e704e9bc31ec3b7d6e9305123e391f5fef6f2b2ce87"
+    },
+    {
+      "path": "root__source-review-types-final.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "root__source-review-lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "root__source-review-format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "root__source-review-diff.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "root__delivery-source-review-final.json.gz",
+      "rawBytes": 339988,
+      "rawSha256": "0a28d00380fe4c0851bb7ba37ef529bff8aeaa0f4254b45ec2e1d2af5c3b409a",
+      "gzipBytes": 19436,
+      "gzipSha256": "ed2d1323e175de2d58bd55b7aa3c381d7e6450cd587a3771df7816a5fb7eb4e0"
+    },
+    {
+      "path": "root__delivery-source-review-final.log.gz",
+      "rawBytes": 5874,
+      "rawSha256": "f7c537329deeab0a50c2ce89537d53d0258d6758c02e220b1f279ab3f00c5518",
+      "gzipBytes": 2086,
+      "gzipSha256": "f64cd7691a6ee726f57cfe63ac411717bf3602ca64183ac532acaf294d01a039"
+    },
+    {
+      "path": "root__delivery-source-review-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "root__delivery-source-review-diff.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "delivery__REPORT.md.gz",
+      "rawBytes": 4729,
+      "rawSha256": "fa2b742bebccd88aa8b4acef0d20cf0fa6593eecced03b4903ff193de2620596",
+      "gzipBytes": 2170,
+      "gzipSha256": "20819cdb65a1e0531fbc64ea45cb4d5d4c0eb38c86b2509293607d6cdebb4458"
+    },
+    {
+      "path": "delivery__red.json.gz",
+      "rawBytes": 8434,
+      "rawSha256": "d61cd1392d4726f916356ef4914b2176a97592ae43d3e0f75e004e16b8e61107",
+      "gzipBytes": 1468,
+      "gzipSha256": "c38cfafc581b9800d5c96331162b9e3370b23a70f4ae4172414230d8bb4c3cfc"
+    },
+    {
+      "path": "delivery__red.log.gz",
+      "rawBytes": 127,
+      "rawSha256": "c83fd18d6325ffd995358c4a332305cfa4719f14ef3df061bceaeb218e699ec6",
+      "gzipBytes": 132,
+      "gzipSha256": "ecdef81796ce1fea53b00b7896039aa4d04232b11ab4c456f921a2030a7e3ce8"
+    },
+    {
+      "path": "delivery__green-final.json.gz",
+      "rawBytes": 28088,
+      "rawSha256": "b027191ad84caff685209d9a734b1ebfcd41ff7d89544d2a9089a8192e9e47e6",
+      "gzipBytes": 3739,
+      "gzipSha256": "b082ba2dc222d17a06dd398730e0aa14f96b1737d1aa2864571dcdd4739692fd"
+    },
+    {
+      "path": "delivery__green-final.log.gz",
+      "rawBytes": 135,
+      "rawSha256": "301d46ce1dcb79caba1c86e1100bfa4e51a18d854d64154a1614e385480701f8",
+      "gzipBytes": 137,
+      "gzipSha256": "fe9397cf265937977d560542a42a5f06e8b6b0ef671be6ef89b0fd6e2329a266"
+    },
+    {
+      "path": "delivery__types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "delivery__lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "delivery__format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "delivery__ordinary-function-comparison.json.gz",
+      "rawBytes": 564,
+      "rawSha256": "965d2521e9be091c1c62ded565a8716ddd773602ec55f207ba55019d4886d46e",
+      "gzipBytes": 274,
+      "gzipSha256": "647d6130e2bdbc8d2fa7074b049168e7d16c1ae104da10285c5bd5e4866bffae"
+    },
+    {
+      "path": "lifecycle-620c-review.md.gz",
+      "rawBytes": 4703,
+      "rawSha256": "310f1b534c1ea5bcda53c3fe55a517eaffe5484933a99fa24a6a8030667f3709",
+      "gzipBytes": 2313,
+      "gzipSha256": "bf458022ebc266a0b8398dd78c3c06f2d832888023d24bbcd7ca152238f645b2"
+    },
+    {
+      "path": "lifecycle-620c-route-race.json.gz",
+      "rawBytes": 544,
+      "rawSha256": "3858857d45468e5f2ebfad4f7915f4140cb5828341e9845137d66ed75cd25ae1",
+      "gzipBytes": 244,
+      "gzipSha256": "f08d580ef098abf56b68ebcc1a4774d93316f877c8192e2628dff24beb312bf0"
+    },
+    {
+      "path": "lifecycle-620c-route-race.log.gz",
+      "rawBytes": 1060,
+      "rawSha256": "a1729edc2eda6633cfc401dd1eb08c8122994ce5c67cf230d62b4f1296096528",
+      "gzipBytes": 366,
+      "gzipSha256": "dd4c1c8d123118c5626c3a5521ae5b035f540fb327e8c8c05d2d9c30a3356a69"
+    }
+  ]
+}
