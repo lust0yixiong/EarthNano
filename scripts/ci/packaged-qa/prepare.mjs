@@ -228,7 +228,8 @@ export function adaptSpec(original, specPath, adapterPath) {
     originalProjection,
     "bundleEntrypointSha256: await packagedEntrypointSha256()",
   );
-  const addedImport = `import { packagedEntrypointSha256 } from ${JSON.stringify(adapterPath)}\n`;
+  const hookPath = resolve(dirname(adapterPath), "keychain-launch-context.mjs");
+  const addedImport = `import { packagedEntrypointSha256 } from ${JSON.stringify(adapterPath)}\nimport { installKeychainLaunchContext } from ${JSON.stringify(hookPath)}\ninstallKeychainLaunchContext()\n`;
   adapted = addedImport + adapted;
   let restored = adapted
     .slice(addedImport.length)
@@ -251,6 +252,7 @@ export function adaptSpec(original, specPath, adapterPath) {
       businessBytesUnchanged: true,
       importRelocations: mappings.length,
       diagnosticProjectionReplacements: 1,
+      operationalLaunchHookAdded: true,
     },
   };
 }
@@ -293,9 +295,12 @@ async function verifyRuns(source, root) {
     ),
     operationalFiles: Object.fromEntries(
       await Promise.all(
-        ["prepare.mjs", "packaged-diagnostics.mjs", "run.sh"].map(
-          async (name) => [name, await hashFile(join(operation, name))],
-        ),
+        [
+          "prepare.mjs",
+          "packaged-diagnostics.mjs",
+          "run.sh",
+          "keychain-launch-context.mjs",
+        ].map(async (name) => [name, await hashFile(join(operation, name))]),
       ),
     ),
   });
@@ -444,6 +449,54 @@ async function prepare(source, root, operation) {
   );
 }
 
+export async function verifyKeychainContextEvidence(
+  root,
+  app,
+  runnerTemp = process.env.RUNNER_TEMP,
+) {
+  assert.deepEqual(
+    await json(join(root, "evidence/process-exit.json")),
+    {
+      originalWrapperAndTestExit: 0,
+      teeExit: 0,
+    },
+    "Original wrapper/test and evidence pipeline must both succeed",
+  );
+  const bindingText = await readFile(
+    join(root, "evidence/keychain-context-binding.jsonl"),
+    "utf8",
+  );
+  assert(
+    bindingText.endsWith("\n"),
+    "Complete original launch-context evidence required",
+  );
+  const { assertKeychainContextEvidence } = await import(
+    pathToFileURL(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "keychain-launch-context.mjs",
+      ),
+    )
+  );
+  assertKeychainContextEvidence(
+    bindingText
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line)),
+    {
+      root,
+      runnerTemp: await realpath(runnerTemp),
+      app,
+      probeSha256: await hashFile(
+        join(
+          app,
+          "Contents/Resources/backend/node_modules/@aipoch/credential-identity-probe-native/build/Release/credential_identity_probe",
+        ),
+      ),
+    },
+  );
+}
+
 async function finalize(source, root) {
   const { app } = await json(join(root, "evidence/launch.json"));
   const after = await bundleInventory(app);
@@ -495,6 +548,7 @@ async function finalize(source, root) {
   for (const key of ["unexpected", "flaky", "skipped"])
     assert.equal(playwright.stats[key], 0);
   assert.deepEqual(playwright.errors ?? [], []);
+  await verifyKeychainContextEvidence(root, app);
   await save(join(root, "evidence/acceptance.json"), {
     status: "passed",
     originalBusinessAssertions: "unchanged",
