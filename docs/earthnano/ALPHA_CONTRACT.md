@@ -6,6 +6,8 @@
 
 2026-10-21 用户调整平台范围：**0.1-Alpha 交付 macOS 与 Linux，Windows 版本及安装失败修复延期至 0.2-Alpha。** 本版不运行 Windows 构建/安装验收、不发布 Windows 安装包；原有代码、失败结果和尝试保留，详见 [Windows 延期记录](WINDOWS_0_2_ALPHA.md)。macOS/Linux 的原上游对照与最终包验证要求不降低，其他原能力融合范围不变。
 
+对应 CI 已调整为 9 个物理 source jobs、16 份 macOS/Linux 原基线及候选报告和 4 个原生目标；所选平台的完整分片、原始 Vitest/sidecar、环境与差异检查仍必需。221/221 本地 CI 检查及完整 compiled types 通过，见 [范围调整证据](validation/alpha/unix-0.1-ci/manifest.json)；这不替代当前提交的 hosted 对照或最终安装验收。
+
 ## 功能来源说明
 
 OpenScience 的 Python/R、Compute、文件/二进制产物、版本及 Reviewer，Harness² 的递归、匿名选择、完整 sweep/过滤/并发/续跑、Library/reflection 和同域后续任务经验，均为固定上游已有能力。把这些能力接到同一执行、配置隔离、预算/停止和证据生命周期属于本项目的融合工作，不能仅因需要新增接口就称为需求扩散。
