@@ -546,6 +546,7 @@ export async function runPersistentOptimization(
       optimizationId,
       budgetRef: optimizationId,
       timeoutMs: executionTimeoutMs,
+      contextFileView: true as const,
       exportResult: owners.exportResult,
       materializeArtifact: owners.materializeArtifact
     }

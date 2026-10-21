@@ -40,7 +40,7 @@ const sourcePrompt = [
   "Use repl_execute with this exact positional API call: await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30}). Do not replace those three positional arguments with one object.",
   'Submit exactly once. End the initial Turn after its receipt. Await the original background result delivery.',
   "In that continuation call attachJob(the delivered job_id).result(), require result_final, then use require('node:fs') to read the harvested metrics.json at '../'+its featured_files path.",
-  'Copy those exact harvested metrics.json bytes to metrics-source.json without parsing or reformatting the copy. Compute count, sum and arithmetic mean from its actual values array and write research-results.json in the current directory.',
+  'Copy those exact harvested metrics.json bytes to metrics-source.json without parsing or reformatting the copy. Compute count, sum and arithmetic mean from its actual values array. Write research-results.json in the current directory with exactly the three numeric fields count, sum and mean; put no metadata or additional fields in that report.',
   'Copy the harvested figure.png to measurements.png. Publish metrics-source.json, research-results.json and measurements.png through write_artifact_file with localPath sources and the actual repl_execute producerRunId returned by the original tool.',
   'Never resubmit an existing Job or invent a producer ID. The PNG is a fixture asset, not a newly computed plot.'
 ].join('\n')

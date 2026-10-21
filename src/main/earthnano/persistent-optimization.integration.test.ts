@@ -184,10 +184,6 @@ async function exercise(
         return
       }
       const inputDirectory = /^INPUT: (.+)$/m.exec(userText)?.[1]?.trim()
-      if (research?.domain && inputDirectory && ['proposer', 'composer'].includes(role)) {
-        const csv = await readFile(join(inputDirectory, 'values.csv'), 'utf8')
-        if (csv.includes('three,6')) successorContexts.set(inputDirectory, userText)
-      }
       const allBlocks = body.messages.flatMap((message: { content: unknown }) =>
         Array.isArray(message.content) ? message.content : []
       )
@@ -281,6 +277,47 @@ async function exercise(
       } else {
         const output = /^OUTPUT: (.+)$/m.exec(userText)?.[1]?.trim()
         if (!output) return reject()
+        if (research?.domain && inputDirectory && ['proposer', 'composer'].includes(role)) {
+          const csv = await readFile(join(inputDirectory, 'values.csv'), 'utf8')
+          if (csv.includes('three,6')) {
+            const experiences = (await readdir(inputDirectory, { recursive: true })).filter(
+              (path) => path.endsWith('/EXPERIENCE.md')
+            )
+            expect(experiences.length).toBeGreaterThan(0)
+            const blocks = allBlocks as Array<{
+              type?: string
+              name?: string
+              id?: string
+              input?: { file_path?: string }
+              tool_use_id?: string
+              is_error?: boolean
+              content?: unknown
+            }>
+            for (const path of experiences) {
+              const file = join(inputDirectory, path)
+              const reads = new Set(
+                blocks
+                  .filter(
+                    (block) =>
+                      block.type === 'tool_use' &&
+                      block.name === 'Read' &&
+                      block.input?.file_path === file
+                  )
+                  .map((block) => block.id)
+              )
+              const result = blocks.find(
+                (block) =>
+                  block.type === 'tool_result' && reads.has(block.tool_use_id) && !block.is_error
+              )
+              if (!result) {
+                stream(response, body.model, { name: 'Read', input: { file_path: file } })
+                return
+              }
+              expect(JSON.stringify(result.content)).toContain('CSV aggregation')
+              successorContexts.set(file, await readFile(file, 'utf8'))
+            }
+          }
+        }
         const alreadyWrote = body.messages.some(
           (message: { role: string; content: unknown }) =>
             message.role === 'assistant' &&
@@ -373,10 +410,6 @@ async function exercise(
             .split('\n')
             .slice(1)
             .reduce((total, row) => total + Number(row.split(',')[1]), 0)
-          if (research?.domain && editing && sum === 15) {
-            expect(userText).toContain('EXPERIENCE.md')
-            expect(userText).toContain('CSV aggregation')
-          }
         }
         stream(response, body.model, {
           name: 'Write',
@@ -834,11 +867,7 @@ async function exercise(
     if (!live) expect(successorContexts.size).toBeGreaterThanOrEqual(3)
     if (firstExperience) {
       for (const context of successorContexts.values())
-        expect(context).toContain(
-          JSON.stringify(firstExperience.content)
-            .replaceAll('@', '\\u0040')
-            .replaceAll('`', '\\u0060')
-        )
+        expect(context).toBe(firstExperience.content)
     } else expect(result.domain!.tasks[0]!.experience).toBeUndefined()
   } else
     expect(result.methodResult).toMatchObject({ configurationChanged: true, fallbackStages: [] })

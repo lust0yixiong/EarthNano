@@ -3,7 +3,7 @@ import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candida
 import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import { execFileSync } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, stat, lstat, chmod, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
@@ -29,9 +29,20 @@ import type { ExecutionRequest, ExecutionHandle } from '../../shared/earthnano/e
 
 const roots: string[] = []
 const cores: ExecutionCore[] = []
+const writableFixture = async (path: string): Promise<void> => {
+  const entry = await lstat(path)
+  if (entry.isSymbolicLink()) return
+  if (entry.isDirectory()) {
+    await chmod(path, 0o700)
+    for (const child of await readdir(path)) await writableFixture(join(path, child))
+  } else await chmod(path, 0o600)
+}
 afterEach(async () => {
   cores.splice(0).forEach((core) => core.dispose())
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
+  for (const root of roots.splice(0)) {
+    await writableFixture(root)
+    await rm(root, { recursive: true, force: true })
+  }
 })
 const input: CandidateSnapshotInput = {
   task: {
@@ -64,7 +75,8 @@ const invocation = (role = 'proposer'): Record<string, unknown> => ({
 })
 const setup = async (
   sourceInput: CandidateSnapshotInput = input,
-  materializeArtifact?: HarnessOptimizationBindingOptions['materializeArtifact']
+  materializeArtifact?: HarnessOptimizationBindingOptions['materializeArtifact'],
+  contextFileView?: true
 ): Promise<{
   root: string
   binding: HarnessOptimizationBinding
@@ -117,6 +129,7 @@ const setup = async (
     files: [{ path: 'result.txt', content: 'persisted', digest: checksum, artifactRef: ref }]
   }
   const binding = new HarnessOptimizationBinding({
+    ...(contextFileView ? { contextFileView } : {}),
     core,
     snapshots,
     input: sourceInput,
@@ -694,6 +707,75 @@ it.each(['proposer', 'composer', 'selector', 'reflection'])(
   }
 )
 
+it('materializes the complete original context package while keeping a large reflection prompt bounded', async () => {
+  const f = await setup(input, undefined, true)
+  const context = Array.from({ length: 40 }, (_, index) => ({
+    path: `rollouts/run-${String(index).padStart(2, '0')}.md`,
+    content: `Original readable evidence 科学 @opaque \`literal\` ${index}\n${'x'.repeat(12_000)}`
+  }))
+  const request = (await f.binding.dispatch('freezeInvocation', {
+    ...invocation('reflection'),
+    contextFiles: context
+  })) as ExecutionRequest
+  const resolved = await f.snapshots.resolve(request)
+  expect(resolved.invocation.contextFiles).toEqual(context)
+  expect(resolved.invocation.mission.length).toBeLessThan(12_000)
+  expect(resolved.invocation.mission).not.toContain('x'.repeat(100))
+  expect(resolved.invocation.mission).toContain('read-only files beneath INPUT')
+  const view = await f.snapshots.materialize({ executionId: 'context-view', refs: request })
+  for (const file of context) {
+    expect(await readFile(join(view.inputDir, file.path), 'utf8')).toBe(file.content)
+    expect((await stat(join(view.inputDir, file.path))).mode & 0o222).toBe(0)
+    expect(view.manifest).toContainEqual({
+      path: `workspace/inputs/${file.path}`,
+      digest: `sha256:${createHash('sha256').update(file.content).digest('hex')}`,
+      bytes: Buffer.byteLength(file.content)
+    })
+  }
+})
+
+it('reuses completed context-file requests exactly and rejects changed file bytes before admission', async () => {
+  const f = await setup(input, undefined, true)
+  const original = (await f.binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+  await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+  const record = await f.core.get(handle.executionId)
+  const { outputDigest } = await import('./output-checks')
+  const resumed = new HarnessOptimizationBinding({
+    core: f.core,
+    snapshots: f.snapshots,
+    input,
+    contextFileView: true,
+    projectId: original.projectId,
+    optimizationId: original.origin.optimizationId!,
+    taskId: 't1',
+    budgetRef: original.budgetRef,
+    timeoutMs: original.timeoutMs,
+    resumeRecords: [record],
+    resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+    exportResult: async (value) => ({ ...f.exportValue, executionId: value.executionId })
+  })
+  const request = (await resumed.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  expect(request).toEqual(original)
+  expect(await resumed.dispatch('submit', { request })).toMatchObject({
+    executionId: handle.executionId
+  })
+  expect(Object.values(f.readState().budgets)[0].admitted).toBe(1)
+  await expect(
+    resumed.dispatch('freezeInvocation', {
+      ...invocation('baseline'),
+      contextFiles: [{ path: 'context/harness/instructions.md', content: 'Changed evidence' }]
+    })
+  ).rejects.toThrow('identity changed')
+  expect(Object.values(f.readState().budgets)[0].admitted).toBe(1)
+})
+
 it('reuses only the exact completed original stage and refuses changed task or role context before replay', async () => {
   const f = await setup()
   const original = (await f.binding.dispatch(
@@ -707,6 +789,7 @@ it('reuses only the exact completed original stage and refuses changed task or r
   const slot = outputDigest(['baseline', 'inv1', 'inv1.a1', 1])
   const resumed = (source = input): HarnessOptimizationBinding =>
     new HarnessOptimizationBinding({
+      contextFileView: true,
       core: f.core,
       snapshots: f.snapshots,
       input: source,
