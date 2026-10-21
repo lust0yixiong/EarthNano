@@ -152,12 +152,12 @@ describe('EarthNano runtime dependency split', () => {
       // Original d4b20667d inventories plus the reviewed exact Python and Node inputs:
       // Python 3.12.13 → canonical version file (hosted macOS arm64 has no 3.12.13 asset);
       // floating Node 24 → one exact version file (runner caches resolved different patches).
-      // Keep the complete new hash AND restore only these inputs to prove all other steps
-      // still match d4. No pin, condition, command, environment or artifact waiver.
+      // Restore only these inputs and the original packaging heap ceiling below to prove
+      // all other steps still match d4. No pin, condition, command or artifact waiver.
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
           ? '46e765f74fe2bcaa5741a0b8dec64043f674978ca324f164558ddeaebc644b82'
-          : '6d1b89192db29d9f2177ddc787c4766e9587258a103295c48bc66908b344e33b'
+          : 'd9a774c1482cbf33f5622c87a96535fa2006fb79b9f105e58577b3aa9cdf8a7e'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
@@ -173,6 +173,28 @@ describe('EarthNano runtime dependency split', () => {
         cache: 'npm'
       })
       node[0].with = { 'node-version': 24, cache: 'npm' }
+      if (kind === 'native') {
+        const pinnedBuild = spawnSync(
+          'git',
+          ['show', '9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5:.github/workflows/build.yml'],
+          { encoding: 'utf8' }
+        )
+        expect(pinnedBuild.status, pinnedBuild.stderr).toBe(0)
+        const original = load(pinnedBuild.stdout) as Workflow
+        const packaging = Object.values(original.jobs)
+          .flatMap((job) => job.steps ?? [])
+          .filter((step) => step.run?.includes('npm run build:e2e'))
+        expect(packaging).toHaveLength(1)
+        expect(packaging[0].env?.NODE_OPTIONS).toBe('--max-old-space-size=8192')
+        const build = originalSteps.filter(
+          (step) => step.name === 'Original full application build'
+        )
+        expect(build).toHaveLength(1)
+        expect(build[0].run).toBe('npm run build')
+        expect(build[0].env).toEqual({ NODE_OPTIONS: packaging[0].env!.NODE_OPTIONS })
+        // Only the exact, separately verified upstream budget is removed for the d4 inventory.
+        delete build[0].env
+      }
 
       expect(digest(originalSteps)).toBe(
         kind === 'source'

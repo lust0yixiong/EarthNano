@@ -59,6 +59,9 @@ jobs:
           node scripts/fetch-micromamba.mjs '${{ inputs.subdir }}' 'resources/bin/${{ inputs.platform }}/${{ inputs.arch }}/'"$name"
           if [[ '${{ inputs.platform }}' == win ]]; then node scripts/fetch-micromamba.mjs win-64 'resources/bin/win/x64/micromamba-compat.exe' compatibility; fi
       - name: Original full application build
+        # Match the pinned original packaging budget, including the Intel renderer build.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: npm run build
       - name: Original target Prisma engine pruning
         shell: bash
