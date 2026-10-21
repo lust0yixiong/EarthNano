@@ -22,6 +22,7 @@ import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { initDataRoot } from '../storage-root'
 import { SessionRepository, loadSessionMutationAuthority } from '../session-persistence/repository'
+import { resolveTurnOutcome } from '../../shared/session-persistence'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { ArtifactRepository } from '../artifacts/repository'
 import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository'
@@ -150,6 +151,8 @@ configureTestRuntimeMetadata()
 // producer capture, Version leases and Reviews. Only the remote submit/harvest transport is injected.
 it.each([
   'complete',
+  'continuation-failure',
+  'tool-failure-repaired',
   'multi-batch',
   'stop-continuation',
   'prepare-failure',
@@ -413,7 +416,29 @@ it.each([
           emit(response, body.model, { name: tool.name, input })
         }
         const runs = nestedRunIds(body.messages)
-        const next = stage++
+        let next = stage++
+        // Fail the native application Turn after a real control Run and partial Artifact publish,
+        // rather than treating an ordinary recoverable Notebook tool error as a failed Turn.
+        if (mode === 'continuation-failure' && next >= 5) {
+          response.writeHead(400, { 'content-type': 'application/json' })
+          response.end(
+            JSON.stringify({
+              type: 'error',
+              error: {
+                type: 'invalid_request_error',
+                message: 'Local fixture terminal continuation failure'
+              }
+            })
+          )
+          return
+        }
+        if (mode === 'tool-failure-repaired') {
+          if (next === 3)
+            return call('repl_execute', {
+              code: `throw new Error('Local fixture recoverable Notebook tool failure');`
+            })
+          if (next >= 4) next -= 1
+        }
         if (next === 0)
           return call('repl_execute', {
             code: `const receipt=await host.compute.create('ssh:fixture').submitJob('owned fixture','printf done'); ${mode === 'multi-batch' ? "await host.compute.create('ssh:fixture').submitJob('owned fixture 2','printf later');" : ''} const fs=require('node:fs'); fs.writeFileSync('receipt.json',JSON.stringify({submitted:true}),{flag:'wx'}); fs.writeFileSync('initial.png',Buffer.from('${png.toString('base64')}','base64'),{flag:'wx'}); console.log(JSON.stringify(receipt));`
@@ -558,7 +583,9 @@ it.each([
       },
       interactionPolicy: 'deny-unresolved',
       budgetRef: 'one',
-      timeoutMs: 45_000
+      // Preserve the original delivery owner's three attempts; allow them to settle before the
+      // Core deadline so this case proves the native failure outcome, not deadline cancellation.
+      timeoutMs: mode === 'continuation-failure' ? 75_000 : 45_000
     }
     core.configureBudget(projectId, request.budgetRef, 1)
     const handle = await core.submit(request)
@@ -805,6 +832,49 @@ it.each([
     }
     const record = await core.waitForTerminal(handle.executionId)
     expect(providerErrors).toEqual([])
+    if (mode === 'continuation-failure') {
+      const current = await loadSessionMutationAuthority(sessions, projectId, privateId!)
+      expect(current.status).toBe('found')
+      if (current.status !== 'found') throw new Error('Missing original private Session')
+      const messages = current.session.conversationGraph?.messages ?? current.session.messages
+      const outcomes = messages
+        .filter((message) => message.role === 'user')
+        .map((message) => ({
+          id: message.id,
+          outcome: resolveTurnOutcome(current.session, message.id)
+        }))
+      const delivery = await deliveries.findBySource({
+        sourceKind: 'compute-job',
+        sourceId: 'owned-job',
+        projectId,
+        sessionId: privateId!
+      })
+      expect(outcomes.at(-1)?.outcome?.kind).toBe('failed')
+      expect(
+        record,
+        JSON.stringify({
+          phase: record.phase,
+          error: record.error,
+          stage,
+          outcomes,
+          delivery,
+          agents: messages
+            .filter((message) => message.role === 'agent')
+            .map((message) => ({
+              id: message.id,
+              responseToMessageId: message.responseToMessageId,
+              status: message.status
+            })),
+          artifacts: record.evidence.artifacts
+        })
+      ).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed',
+        identity: initial.identity
+      })
+      expect(submit).toHaveBeenCalledOnce()
+      return
+    }
     expect(
       record,
       JSON.stringify({ phase: record.phase, error: record.error, stage })
@@ -815,14 +885,28 @@ it.each([
     })
     expect(Object.values(journal.load().budgets)).toEqual([{ limit: 1, admitted: 1 }])
     const runs = await new NotebookRunRepository(root).readSessionRuns(projectId, privateId!)
-    expect(runs).toHaveLength(2)
+    expect(runs).toHaveLength(mode === 'tool-failure-repaired' ? 3 : 2)
     expect(new Set(runs.map((run) => run.promptMessageId)).size).toBe(2)
     expect(
       runs.every(
         (run) =>
-          run.kernelKind === 'repl' && run.status === 'completed' && run.executionInvocationId
+          run.kernelKind === 'repl' &&
+          (run.status === 'completed' ||
+            (mode === 'tool-failure-repaired' && run.status === 'failed')) &&
+          run.executionInvocationId
       )
     ).toBe(true)
+    if (mode === 'tool-failure-repaired') {
+      expect(runs.map((run) => run.status)).toEqual(['completed', 'failed', 'completed'])
+      const saved = await loadSessionMutationAuthority(sessions, projectId, privateId!)
+      if (saved.status !== 'found') throw new Error('Missing original private Session')
+      const prompts = (saved.session.conversationGraph?.messages ?? saved.session.messages).filter(
+        (message) => message.role === 'user'
+      )
+      expect(prompts.map((message) => resolveTurnOutcome(saved.session, message.id)?.kind)).toEqual(
+        ['completed', 'completed']
+      )
+    }
     expect(runs.at(-1)?.script).toContain("attachJob('owned-job').result()")
     const exported = await owners.exportResult(record)
     expect(exported.files.map((file) => file.path)).toEqual([
