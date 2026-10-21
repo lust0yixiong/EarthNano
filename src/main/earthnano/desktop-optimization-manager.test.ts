@@ -921,3 +921,82 @@ it('Stop remains available while preview is pending and does not wait on its sub
   await pending
   expect(await manager.shutdown()).toEqual({ reaped: true })
 })
+
+it('persists a false execution boundary for original setup failure without fencing ordinary routing', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'earthnano-setup-boundary-'))
+  roots.push(root)
+  const configRoot = join(root, 'config'),
+    dataRoot = join(root, 'data')
+  mkdirSync(dataRoot)
+  const run = vi.fn()
+  const manager = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    executionRoot: () => join(dataRoot, 'earthnano', 'desktop-runs'),
+    validateSession: async () => undefined,
+    createOptions: async () => {
+      throw new Error('Original provider setup failed')
+    },
+    run
+  })
+  const started = await manager.start(task)
+  await vi.waitFor(async () => expect((await manager.get(key(started.runId))).state).toBe('failed'))
+  const desktop = JSON.parse(
+    readFileSync(join(configRoot, 'earthnano-desktop', started.runId, 'desktop.json'), 'utf8')
+  )
+  expect(desktop).toMatchObject({
+    executionStarted: false,
+    progress: { executions: [], budget: { admitted: 0 } }
+  })
+  const { readDesktopPrivateSessions } = await import('./desktop-candidate-owner-routing')
+  expect([...readDesktopPrivateSessions({ configRoot, dataRoot })]).toEqual([])
+  expect(run).not.toHaveBeenCalled()
+  const reopened = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    validateSession: async () => undefined,
+    createOptions: vi.fn()
+  })
+  expect((await reopened.get(key(started.runId))).state).toBe('failed')
+})
+it('flushes the possible-execution boundary before creating resources or entering the original runner', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'earthnano-start-boundary-'))
+  roots.push(root)
+  const configRoot = join(root, 'config'),
+    dataRoot = join(root, 'data')
+  mkdirSync(dataRoot)
+  const manager = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    executionRoot: () => {
+      const id = readdirSync(join(configRoot, 'earthnano-desktop'))[0]
+      const saved = JSON.parse(
+        readFileSync(join(configRoot, 'earthnano-desktop', id, 'desktop.json'), 'utf8')
+      )
+      expect(saved.executionStarted).toBe(true)
+      return join(dataRoot, 'earthnano', 'desktop-runs')
+    },
+    validateSession: async () => undefined,
+    createOptions: async () => ({}) as PersistentOptimizationOptions,
+    run: async () => {
+      throw new Error('Original runner failed before journal')
+    }
+  })
+  const started = await manager.start(task)
+  await vi.waitFor(async () => expect((await manager.get(key(started.runId))).state).toBe('failed'))
+  const { readDesktopPrivateSessions } = await import('./desktop-candidate-owner-routing')
+  expect(() => readDesktopPrivateSessions({ configRoot, dataRoot })).toThrow('unavailable')
+})
+it('rejects a malformed persisted execution boundary and retains legacy missing boundaries as unknown', async () => {
+  const f = fixture(async () => complete)
+  const started = await f.manager.start(task)
+  await vi.waitFor(async () =>
+    expect((await f.manager.get(key(started.runId))).state).toBe('completed')
+  )
+  const path = join(f.root, started.runId, 'desktop.json'),
+    saved = JSON.parse(readFileSync(path, 'utf8'))
+  saved.executionStarted = 'false'
+  writeFileSync(path, JSON.stringify(saved))
+  expect(() => new DesktopOptimizationManager(f.options)).toThrow('Invalid persisted')
+  delete saved.executionStarted
+  writeFileSync(path, JSON.stringify(saved))
+  new DesktopOptimizationManager(f.options)
+  expect(JSON.parse(readFileSync(path, 'utf8')).executionStarted).toBeUndefined()
+})

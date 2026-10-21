@@ -85,6 +85,8 @@ export interface DesktopOptimizationManagerOptions {
 export class DesktopOptimizationSetupError extends Error {}
 
 interface SavedRun {
+  /** True only means execution may have begun; never provider/Core success. Absent is legacy unknown. */
+  executionStarted?: boolean
   kind?: 'sweep-v2'
   digest: string
   requestKey: string
@@ -254,6 +256,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         !safeId(entry.progress.sourceSessionId) ||
         !safeId(entry.requestKey) ||
         !entry.digest ||
+        (entry.executionStarted !== undefined && typeof entry.executionStarted !== 'boolean') ||
         (entry.kind !== undefined && entry.kind !== 'sweep-v2')
       )
         throw new Error('Invalid persisted desktop optimization')
@@ -348,6 +351,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
       const runId = randomUUID()
       mkdirSync(join(this.options.root, runId), { mode: 0o700 })
       const saved: SavedRun = {
+        executionStarted: false,
         ...(sweep ? { kind: 'sweep-v2' as const } : {}),
         digest,
         requestKey: captured.requestKey,
@@ -425,6 +429,7 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
         throw new Error('This project has active or unreconciled optimization work')
       const original = this.resumeRequest(saved, data.manifest)
       validateRequest(original)
+      saved.executionStarted = true
       saved.progress.state = 'queued'
       saved.progress.stage = 'queued'
       delete saved.progress.error
@@ -526,6 +531,9 @@ export class DesktopOptimizationManager implements DesktopOptimizationApi {
           inputs: structuredClone([...prepared.input.task.managedInputs]),
           runtime: structuredClone(prepared.input.environment.notebook.runtime)
         }
+      // Persist the possible-execution boundary before directories or the runner can own resources.
+      saved.executionStarted = true
+      this.persist(saved)
       const executionRoot = this.options.executionRoot?.() ?? this.options.root
       if (!isAbsolute(executionRoot)) throw new Error('Execution root must be absolute')
       mkdirSync(join(executionRoot, saved.progress.runId), { recursive: true, mode: 0o700 })

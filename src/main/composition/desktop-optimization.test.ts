@@ -938,3 +938,50 @@ it.each(['missing', 'foreign-project', 'archived', 'imported'])(
     expect(mocks.releaseWriter).toHaveBeenCalledOnce()
   }
 )
+
+it('passes the original owner registration unchanged through single and sweep options', async () => {
+  const onOwnersReady = vi.fn()
+  const single = await createDesktopOptimizationOptions(request, {
+    ...dependencies(),
+    onOwnersReady
+  })
+  const sweep = await createDesktopSweepOptions(catalogRequest(), {
+    ...catalogDependencies(),
+    onOwnersReady
+  })
+  expect(single.onOwnersReady).toBe(onOwnersReady)
+  expect(sweep.onOwnersReady).toBe(onOwnersReady)
+  expect(onOwnersReady).not.toHaveBeenCalled()
+  single.releaseAdmission()
+  sweep.releaseAdmission()
+})
+it('retries retained original owners during desktop teardown without promoting the manager gate', async () => {
+  mocks.corrupt = true
+  const lifecycle: Parameters<typeof registerDesktopOptimizationComposition>[1]['lifecycle'] = {
+    current: undefined
+  }
+  const candidateOwners = {
+    onOwnersReady: vi.fn(),
+    resolveCandidateDelivery: vi.fn(),
+    resolveControlPolicy: vi.fn(),
+    hasActiveWork: vi.fn(() => true),
+    shutdown: vi.fn(async () => ({ reaped: true }))
+  }
+  const modules = {
+    add: async (_input: unknown, factory: (input: unknown) => { capability: unknown }) =>
+      factory(_input).capability
+  } as unknown as ApplicationModuleBuilder
+  await registerDesktopOptimizationComposition(modules, {
+    settings: {},
+    archive: {},
+    sessions: {},
+    sessionRepository: {},
+    lifecycle,
+    candidateOwners,
+    declareElectronAdapter: vi.fn()
+  } as unknown as Parameters<typeof registerDesktopOptimizationComposition>[1])
+  expect(await lifecycle.current!.shutdown()).toEqual({ reaped: false })
+  expect(await lifecycle.current!.prepareForUpdateGate()).toEqual({ reaped: false })
+  expect(candidateOwners.shutdown).toHaveBeenCalledTimes(2)
+  expect(lifecycle.current!.hasActiveWork()).toBe(true)
+})

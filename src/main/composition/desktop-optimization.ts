@@ -1,3 +1,4 @@
+import type { DesktopCandidateOwnerRouting } from '../earthnano/desktop-candidate-owner-routing'
 import { access, realpath } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { resolvePythonCommand, probeInterpreterVersion } from '@aipoch/environment'
@@ -154,6 +155,7 @@ export interface DesktopOptimizationDependencies {
   notebook?: PersistentCandidateNotebookOptions
   sessionPersistence?: PersistentCandidateOwnersOptions['sessionPersistence']
   signal?: AbortSignal
+  onOwnersReady?: PersistentOptimizationOptions['onOwnersReady']
   /** Pure original task_stream preview; injected only by host tests. */
   previewSweep?: typeof previewOptimizationSweep
 }
@@ -363,6 +365,7 @@ export async function createDesktopOptimizationOptions(
         }
       },
       binding: runtime.binding,
+      ...(dependencies.onOwnersReady ? { onOwnersReady: dependencies.onOwnersReady } : {}),
       releaseAdmission
     }
   } catch (error) {
@@ -523,6 +526,7 @@ export async function createDesktopSweepOptions(
           : {})
       },
       binding: runtime.binding,
+      ...(dependencies.onOwnersReady ? { onOwnersReady: dependencies.onOwnersReady } : {}),
       releaseAdmission
     }
   } catch (error) {
@@ -555,6 +559,7 @@ export async function registerDesktopOptimizationComposition(
     sessionRepository: SessionRepository
     lifecycle: { current: DesktopOptimizationLifecycle | undefined }
     notebook?: PersistentCandidateNotebookOptions
+    candidateOwners?: DesktopCandidateOwnerRouting
     declareElectronAdapter(name: string, install: () => void): void
   }
 ): Promise<DesktopOptimizationApi> {
@@ -578,6 +583,7 @@ export async function registerDesktopOptimizationComposition(
       const dependencies = (signal?: AbortSignal): DesktopOptimizationDependencies => ({
         settings: options.settings,
         notebook: options.notebook,
+        onOwnersReady: options.candidateOwners?.onOwnersReady,
         sessionPersistence: {
           repository: options.sessionRepository,
           coordinator: options.sessions
@@ -633,6 +639,18 @@ export async function registerDesktopOptimizationComposition(
         releaseUpdateGate: () => undefined
       }
     }
+    const retireOwners = async (
+      original: Promise<{ reaped: boolean }>
+    ): Promise<{ reaped: boolean }> => {
+      const result = await original
+      const owners = await options.candidateOwners?.shutdown()
+      // Retrying the original owners cannot reconcile Core or relax the manager's existing gate.
+      return { reaped: result.reaped && (owners?.reaped ?? true) }
+    }
+    const shutdown = manager.shutdown.bind(manager)
+    const prepareForUpdateGate = manager.prepareForUpdateGate.bind(manager)
+    manager.shutdown = () => retireOwners(shutdown())
+    manager.prepareForUpdateGate = () => retireOwners(prepareForUpdateGate())
     options.lifecycle.current = manager
     return {
       name: 'desktop-optimization',

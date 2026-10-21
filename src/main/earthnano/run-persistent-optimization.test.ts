@@ -900,3 +900,36 @@ it('transports a mixed R/Python catalog through the same original sweep config w
   ).rejects.toThrow('MIXED_PRIVATE_TRANSPORT_VALIDATED_NO_DISPATCH')
   expect(f.evaluate).not.toHaveBeenCalled()
 })
+
+it.each([true, false])(
+  'registers the same original owners synchronously and releases only reaped=%s',
+  async (reaped) => {
+    const o = await options(),
+      release = vi.fn()
+    o.onOwnersReady = vi.fn((owner) => {
+      expect(owner.shutdown).toBe(f.shutdown)
+      expect(f.core).not.toHaveBeenCalled()
+      return release
+    })
+    f.shutdown.mockResolvedValue({ reaped })
+    f.method.mockRejectedValue(new Error('ORIGINAL_METHOD_FAILURE'))
+    await expect(runPersistentOptimization(o)).rejects.toThrow('ORIGINAL_METHOD_FAILURE')
+    expect(o.onOwnersReady).toHaveBeenCalledOnce()
+    expect(f.shutdown).toHaveBeenCalledOnce()
+    expect(release).toHaveBeenCalledTimes(reaped ? 1 : 0)
+    if (reaped)
+      expect(f.shutdown.mock.invocationCallOrder[0]).toBeLessThan(
+        release.mock.invocationCallOrder[0]
+      )
+  }
+)
+it('still retires the original factory when synchronous owner registration fails', async () => {
+  const o = await options()
+  o.onOwnersReady = () => {
+    throw new Error('HOST_REGISTRATION_FAILED')
+  }
+  f.shutdown.mockResolvedValue({ reaped: true })
+  await expect(runPersistentOptimization(o)).rejects.toThrow('HOST_REGISTRATION_FAILED')
+  expect(f.shutdown).toHaveBeenCalledOnce()
+  expect(f.method).not.toHaveBeenCalled()
+})

@@ -1,3 +1,4 @@
+import type { CandidateOwnersReady } from './desktop-candidate-owner-routing'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
 import { mkdir, realpath, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
@@ -100,6 +101,8 @@ export interface PersistentSingleOptimizationOptions extends OptimizationTaskInp
   signal?: AbortSignal
   /** Projection of committed execution facts, including reviewer admissions. */
   onProgress?: (progress: PersistentOptimizationProgress) => void
+  /** Host-only registration of the same original owner capabilities before any dispatch. */
+  onOwnersReady?: CandidateOwnersReady
 }
 /** Same lifecycle, journal, owners and Core; the catalog replaces the single-task payload. */
 export type PersistentSweepOptimizationOptions = Omit<
@@ -342,6 +345,7 @@ export async function runPersistentOptimization(
   let core: ExecutionCore | undefined
   let binding: HarnessOptimizationBinding | HarnessDomainBinding | undefined
   let owners: ReturnType<typeof createPersistentCandidateOwners> | undefined
+  let releaseOwners: (() => void) | void = undefined
   let failureStage: OptimizationFailureStage = 'resume-validation'
   const rethrowCleanupFailure = (error: unknown): never => {
     recordOptimizationFailure(options.workRoot, 'cleanup', error)
@@ -446,6 +450,7 @@ export async function runPersistentOptimization(
       // projection leaf. System aliases such as macOS /var must not weaken child-link checks.
       artifactProjectionRoot: join(await realpath(options.workRoot), 'artifact-projections')
     })
+    releaseOwners = options.onOwnersReady?.(owners)
     if (options.resume) {
       for (const record of previousRecords) {
         signal.throwIfAborted()
@@ -832,6 +837,7 @@ export async function runPersistentOptimization(
     try {
       await binding?.stop()
       const cleanup = owners ? await owners.shutdown() : { reaped: true }
+      if (cleanup.reaped) releaseOwners?.()
       const settled = (await core?.settle()) ?? true
       const state = store.load()
       stage = 'settled'

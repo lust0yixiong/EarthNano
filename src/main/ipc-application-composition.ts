@@ -1,3 +1,4 @@
+import { createDesktopCandidateOwnerRouting } from './earthnano/desktop-candidate-owner-routing'
 import { hasPendingLifecycleSettlement, waitForLifecycleSettlement } from './lifecycle-settlement'
 import { type DiagnosticOperation } from '@aipoch/diagnostics/node'
 import type { ArtifactReproducibilityCheckState } from '../shared/artifact-reproducibility'
@@ -269,7 +270,9 @@ export const createApplicationModules = async (
   const runtimeRef: { current: ReturnType<typeof createAcpRuntime> | undefined } = {
     current: undefined
   }
+  const candidateOwners = createDesktopCandidateOwnerRouting()
   const backgroundResults = await composeBackgroundResults({
+    resolveCandidateDelivery: candidateOwners.resolveCandidateDelivery,
     applicationEvents,
     ...settingsBootstrap,
     runtimeRef,
@@ -460,6 +463,7 @@ export const createApplicationModules = async (
     mainEntryPath
   })
   const notebookBridge = await composeNotebookBridge({
+    resolveControlPolicy: candidateOwners.resolveControlPolicy,
     ...settingsBootstrap,
     managedFileVersionService: uploadStorage.managedFileVersionService,
     runtimeRef,
@@ -768,6 +772,7 @@ export const createApplicationModules = async (
     declareElectronAdapter
   })
   const optimizationCommandOwner = await registerDesktopOptimizationComposition(modules, {
+    candidateOwners,
     settings: settingsBootstrap.settingsService,
     archive: projectLifecycle.archiveCoordinator,
     sessions: sessionAuthority.sessionPersistenceCoordinator,
