@@ -453,7 +453,7 @@ export async function createEarthnanoMessagesProvider(
             )
           )
             return call('repl_execute', {
-              code: `var earthnanoAnalyzed=await host.compute.create('ssh:fixture').attachJob(${JSON.stringify(delivery[1])}).result();if(!earthnanoAnalyzed.result_final)throw new Error('Compute result is not final');var earthnanoFs=require('node:fs');var earthnanoValues=JSON.parse(earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('metrics.json')),'utf8')).values;var earthnanoSum=earthnanoValues.reduce((a,b)=>a+b,0);earthnanoFs.writeFileSync('research-results.json',JSON.stringify({count:earthnanoValues.length,sum:earthnanoSum,mean:earthnanoSum/earthnanoValues.length}),{flag:'wx'});${publishFigure ? "earthnanoFs.writeFileSync('measurements.png',earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('figure.png'))),{flag:'wx'});" : ''}console.log('Derived from original harvested bytes');`
+              code: `var earthnanoAnalyzed=await host.compute.create('ssh:fixture').attachJob(${JSON.stringify(delivery[1])}).result();if(!earthnanoAnalyzed.result_final)throw new Error('Compute result is not final');var earthnanoFs=require('node:fs');var earthnanoMetrics=earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('metrics.json')));earthnanoFs.writeFileSync('metrics-source.json',earthnanoMetrics,{flag:'wx'});var earthnanoValues=JSON.parse(earthnanoMetrics.toString('utf8')).values;var earthnanoSum=earthnanoValues.reduce((a,b)=>a+b,0);earthnanoFs.writeFileSync('research-results.json',JSON.stringify({count:earthnanoValues.length,sum:earthnanoSum,mean:earthnanoSum/earthnanoValues.length}),{flag:'wx'});${publishFigure ? "earthnanoFs.writeFileSync('measurements.png',earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('figure.png'))),{flag:'wx'});" : ''}console.log('Derived from original harvested bytes');`
             })
           const producer = [...blocks]
             .reverse()
@@ -464,6 +464,7 @@ export async function createEarthnanoMessagesProvider(
             throw new Error('Original control producer identity missing')
           const filenames = [
             'research-results.json',
+            'metrics-source.json',
             ...(publishFigure ? ['measurements.png'] : [])
           ]
           for (const filename of filenames) {
@@ -642,7 +643,7 @@ export async function createEarthnanoMessagesProvider(
           join(output, 'context/harness/instructions.md'),
           scientificOptimization
             ? scientificCompute
-              ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json values with node:fs, compute count/sum/mean and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish through write_artifact_file with the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
+              ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json bytes with node:fs, copy those exact bytes to metrics-source.json without parsing/reformatting the copy, then compute count/sum/mean from its values and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish metrics-source.json, research-results.json and the requested PNG through write_artifact_file with localPath sources and the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
               : scientificLanguage === 'r'
                 ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
                 : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
@@ -657,7 +658,23 @@ export async function createEarthnanoMessagesProvider(
         )
         const value = JSON.parse(file.content)
         let expected = { count: 3, sum: 12, mean: 4 }
-        if (scientificOptimization && !scientificCompute) {
+        let metricsSource: { path: string; artifactRef: string; content: string } | undefined
+        if (scientificCompute) {
+          metricsSource = artifacts.find(
+            (file: { path: string }) => file.path === 'metrics-source.json'
+          )
+          if (!metricsSource || typeof metricsSource.content !== 'string')
+            throw new Error('Original metrics source Version unavailable for offline assessment')
+          const values = JSON.parse(metricsSource.content).values
+          if (
+            !Array.isArray(values) ||
+            !values.length ||
+            values.some((number: unknown) => typeof number !== 'number' || !Number.isFinite(number))
+          )
+            throw new Error('Invalid original metrics source values')
+          const sum = values.reduce((total: number, number: number) => total + number, 0)
+          expected = { count: values.length, sum, mean: sum / values.length }
+        } else if (scientificOptimization) {
           // Only the offline model's decision is substituted. Recompute from the actual
           // independently frozen source evidence, so a second task cannot pass using task one's CSV.
           const sources = JSON.parse(await readFile(join(input, 'evidence/sources.json'), 'utf8'))
@@ -682,13 +699,22 @@ export async function createEarthnanoMessagesProvider(
             score: pass ? 100 : 0,
             outcome: pass ? 'pass' : 'flagged',
             rationale: scientificCompute
-              ? 'Checked the published JSON against the known controlled protocol expectations.'
+              ? 'Recomputed count, sum and mean from the published metrics-source.json Version; no visual or remote science claim.'
               : 'Recomputed arithmetic and checked the fixed result bytes.',
             checks: plan.criteria.map((criterion: { id: string }) => ({
               criterionId: criterion.id,
               status: pass ? 'pass' : 'fail',
               evidence: [
-                { path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() }
+                { path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() },
+                ...(metricsSource
+                  ? [
+                      {
+                        path: metricsSource.path,
+                        artifactRef: metricsSource.artifactRef,
+                        quote: metricsSource.content.trim()
+                      }
+                    ]
+                  : [])
               ]
             }))
           })

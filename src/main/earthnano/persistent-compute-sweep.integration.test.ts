@@ -40,8 +40,8 @@ const sourcePrompt = [
   "Use repl_execute with this exact positional API call: await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30}). Do not replace those three positional arguments with one object.",
   'Submit exactly once. End the initial Turn after its receipt. Await the original background result delivery.',
   "In that continuation call attachJob(the delivered job_id).result(), require result_final, then use require('node:fs') to read the harvested metrics.json at '../'+its featured_files path.",
-  'Compute count, sum and arithmetic mean from its actual values array and write research-results.json in the current directory.',
-  'Copy the harvested figure.png to measurements.png. Publish both through write_artifact_file with localPath sources and the actual repl_execute producerRunId returned by the original tool.',
+  'Copy those exact harvested metrics.json bytes to metrics-source.json without parsing or reformatting the copy. Compute count, sum and arithmetic mean from its actual values array and write research-results.json in the current directory.',
+  'Copy the harvested figure.png to measurements.png. Publish metrics-source.json, research-results.json and measurements.png through write_artifact_file with localPath sources and the actual repl_execute producerRunId returned by the original tool.',
   'Never resubmit an existing Job or invent a producer ID. The PNG is a fixture asset, not a newly computed plot.'
 ].join('\n')
 
@@ -254,7 +254,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
         sourceSessionId: f.sourceSessionId,
         source: { kind: 'compute', promptMessageId: f.sourcePromptMessageId! },
         criteria:
-          'Verify research-results.json contains count 3, sum 12 and mean 4 from the original harvested metrics fixture.\nDo not treat the copied fixture PNG as a new plot or evidence of remote science.',
+          'Read the published original metrics-source.json Version and independently recompute count, sum and arithmetic mean from its values array. Verify research-results.json matches those values: count 3, sum 12 and mean 4. Require the source Version as evidence, not an assumed fixture constant.\nThis numerical assessment does not require a visual or scientific conclusion about the PNG. Native Read and separate byte assertions validate the copied fixture asset; it is not a new plot or evidence of remote science.',
         checks: [
           { kind: 'json-value', path: 'research-results.json', pointer: '/count', expected: 3 },
           { kind: 'json-value', path: 'research-results.json', pointer: '/sum', expected: 12 },
@@ -365,6 +365,13 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     expect(runs.every((run) => run.status === 'completed')).toBe(true)
     expect(new Set(runs.map((run) => run.promptMessageId)).size).toBe(2)
     const exported = await reader.exportResult(record)
+    const source = exported.files.find((file) => file.path === 'metrics-source.json')
+    if (!source || !('content' in source))
+      throw new Error('Original metrics source Version missing')
+    expect(jobs[0].remote_workdir).toEqual(expect.any(String))
+    const transportMetricsPath = join(jobs[0].remote_workdir!, 'metrics.json')
+    expect(f.transport.calls).toContainEqual({ kind: 'download', path: transportMetricsPath })
+    expect(Buffer.from(source.content, 'utf8')).toEqual(await readFile(transportMetricsPath))
     const result = exported.files.find((file) => file.path === 'research-results.json')
     if (!result || !('content' in result)) throw new Error('Original text report missing')
     expect(JSON.parse(result.content)).toEqual({ count: 3, sum: 12, mean: 4 })
@@ -375,6 +382,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       (await reader.materializeArtifact!(record, figure.artifactRef)).assetPath
     )
     expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
+    expect(png).toEqual(await readFile(join(jobs[0].remote_workdir!, 'figure.png')))
     expect((await reader.readReviews(record)).length).toBeGreaterThan(0)
     outputs.push({ record: record.executionId, jobs, runs, exported })
   }

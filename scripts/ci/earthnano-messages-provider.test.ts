@@ -352,6 +352,9 @@ it('offline Compute decisions wait for real delivery and publish using the retur
   expect(analyze.code).toContain('attachJob("11111111-2222-3333-4444-555555555555").result()')
   expect(analyze.code).toContain('result_final')
   expect(analyze.code).toContain('earthnanoValues.reduce')
+  expect(analyze.code).toContain(
+    "writeFileSync('metrics-source.json',earthnanoMetrics,{flag:'wx'})"
+  )
   messages.push(
     { role: 'assistant', content: [{ type: 'tool_use', name: tools[0].name, input: analyze }] },
     {
@@ -366,12 +369,97 @@ it('offline Compute decisions wait for real delivery and publish using the retur
       ]
     }
   )
-  expect(input(await send())).toMatchObject({
-    filename: 'research-results.json',
-    producerRunId: 'actual-control-producer'
-  })
+  for (const filename of ['research-results.json', 'metrics-source.json', 'measurements.png']) {
+    const publish = input(await send())
+    expect(publish).toMatchObject({
+      filename,
+      source: { kind: 'localPath', path: filename },
+      producerRunId: 'actual-control-producer'
+    })
+    messages.push({
+      role: 'assistant',
+      content: [{ type: 'tool_use', name: tools[1].name, input: publish }]
+    })
+  }
   expect(provider.stats.upstreamRequests).toBe(0)
 })
+
+it.each([
+  {
+    source: '{\n "values": [10,20]\n}\n',
+    report: { count: 2, sum: 30, mean: 15 },
+    outcome: 'pass'
+  },
+  { source: '{"values":[10,20]}', report: { count: 3, sum: 12, mean: 4 }, outcome: 'flagged' },
+  { source: undefined, report: { count: 3, sum: 12, mean: 4 }, outcome: undefined },
+  { source: '{"values":["2",4,6]}', report: { count: 3, sum: 12, mean: 4 }, outcome: undefined }
+])(
+  'offline Compute reviewer requires actual source values: %j',
+  async ({ source, report, outcome }) => {
+    const root = await mkdtemp(join(tmpdir(), 'earthnano-compute-review-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    await mkdir(join(root, 'evidence'))
+    await writeFile(
+      join(root, 'evidence/artifacts.json'),
+      JSON.stringify([
+        {
+          path: 'research-results.json',
+          artifactRef: 'result-version-ref',
+          content: JSON.stringify(report)
+        },
+        ...(source === undefined
+          ? []
+          : [{ path: 'metrics-source.json', artifactRef: 'source-version-ref', content: source }])
+      ])
+    )
+    await writeFile(
+      join(root, 'evidence/criteria.json'),
+      JSON.stringify({ criteria: [{ id: 'count' }, { id: 'sum' }, { id: 'mean' }] })
+    )
+    const provider = await createEarthnanoMessagesProvider(false, true, false, {
+      scientificCompute: true
+    })
+    cleanups.push(() => provider.close())
+    const response = await fetch(`${provider.url}/v1/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        ...body,
+        messages: [
+          {
+            role: 'user',
+            content: `EarthNano execution role: reviewer.\nINPUT: ${root}\nOUTPUT: ${root}`
+          }
+        ]
+      })
+    })
+    expect(provider.stats.upstreamRequests).toBe(0)
+    if (!outcome) {
+      expect(response.status).toBe(400)
+      expect(provider.stats.rejected).toBe(1)
+      await response.text()
+      return
+    }
+    expect(response.status).toBe(200)
+    const event = (await response.text())
+      .split('\n')
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => JSON.parse(line.slice(6)))
+      .find((event) => event.delta?.partial_json)
+    const assessment = JSON.parse(JSON.parse(event.delta.partial_json).content)
+    expect(assessment.outcome).toBe(outcome)
+    expect(assessment.score).toBe(outcome === 'pass' ? 100 : 0)
+    expect(assessment.checks).toHaveLength(3)
+    for (const check of assessment.checks) {
+      expect(check.status).toBe(outcome === 'pass' ? 'pass' : 'fail')
+      expect(check.evidence).toContainEqual({
+        path: 'metrics-source.json',
+        artifactRef: 'source-version-ref',
+        quote: source!.trim()
+      })
+    }
+  }
+)
 
 it('forwards live Compute tools and messages without substituting model decisions', async () => {
   const upstream = vi.fn<typeof fetch>(async () => new Response('data: [DONE]\n\n'))
