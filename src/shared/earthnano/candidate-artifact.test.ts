@@ -31,7 +31,9 @@ const binary = {
 }
 
 it('preserves the original UTF-8 owner export type, JSON bytes and exact Version reference', () => {
-  expectTypeOf<CandidateTextArtifactFile>().toEqualTypeOf<PersistentCandidateFile>()
+  expectTypeOf<
+    Extract<PersistentCandidateFile, { content: string }>
+  >().toEqualTypeOf<CandidateTextArtifactFile>()
   const normalized = normalizeCandidateArtifactFile(original)
   expect(normalized).toStrictEqual(original)
   expect(JSON.stringify(normalized)).toBe(JSON.stringify(original))
