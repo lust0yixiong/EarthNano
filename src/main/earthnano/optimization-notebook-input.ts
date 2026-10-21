@@ -10,15 +10,14 @@ import {
 } from '../../shared/earthnano/notebook-source'
 import {
   normalizeFrozenNotebookInputs,
+  normalizeFrozenManagedInputs,
   normalizeFrozenNotebookRuntime,
   type FrozenNotebookRuntime,
   type FrozenNotebookInput
 } from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 
-/** Main checks original message authority; the original Notebook registry later stages exact versions.
- * No latest lookup, new upload publication, inline binary copy or arbitrary path authorization. */
-export async function resolveOptimizationNotebookInputs(options: {
+interface OptimizationSourceInputOptions {
   projectId: string
   sourceSessionId: string
   source: NotebookOptimizationSource
@@ -26,7 +25,28 @@ export async function resolveOptimizationNotebookInputs(options: {
   loadSession(): Promise<PersistedChatSession>
   versions: Pick<ManagedFileVersionReadPort, 'openVersion'>
   signal?: AbortSignal
-}): Promise<FrozenNotebookInput[]> {
+}
+
+/** Python/R retain the original nonempty attachment and runtime requirements. */
+export async function resolveOptimizationNotebookInputs(
+  options: OptimizationSourceInputOptions
+): Promise<FrozenNotebookInput[]> {
+  return resolveOptimizationSourceInputs(options, false)
+}
+
+/** Compute may use no input files; every supplied reference uses the same original Version lease. */
+export async function resolveOptimizationComputeInputs(
+  options: OptimizationSourceInputOptions
+): Promise<FrozenNotebookInput[]> {
+  return resolveOptimizationSourceInputs(options, true)
+}
+
+/** Main checks original message authority; the original Notebook registry later stages exact versions.
+ * No latest lookup, new upload publication, inline binary copy or arbitrary path authorization. */
+async function resolveOptimizationSourceInputs(
+  options: OptimizationSourceInputOptions,
+  allowEmpty: boolean
+): Promise<FrozenNotebookInput[]> {
   options.signal?.throwIfAborted()
   const session = await options.loadSession()
   if (
@@ -42,7 +62,7 @@ export async function resolveOptimizationNotebookInputs(options: {
   const message = messages.find((entry) => entry.id === options.source.promptMessageId)
   if (!isSupportedNotebookOptimizationMessage(message) || message.content !== options.prompt)
     throw new Error('Notebook optimization requires an exact supported source task')
-  const unique = notebookOptimizationSourceReferences(message, session.id)
+  const unique = notebookOptimizationSourceReferences(message, session.id, { allowEmpty })
   const inputs: FrozenNotebookInput[] = []
   for (const reference of unique) {
     options.signal?.throwIfAborted()
@@ -91,7 +111,8 @@ export async function resolveOptimizationNotebookInputs(options: {
     }
   }
   options.signal?.throwIfAborted()
-  return normalizeFrozenNotebookInputs([
+  const normalizeInputs = allowEmpty ? normalizeFrozenManagedInputs : normalizeFrozenNotebookInputs
+  return normalizeInputs([
     ...new Map(
       inputs.map((input) => [input.sourceKind + ':' + input.inputFileVersionId, input])
     ).values()

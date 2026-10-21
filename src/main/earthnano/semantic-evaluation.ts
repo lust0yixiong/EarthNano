@@ -1,7 +1,9 @@
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import { isComputeToolsProfile } from '../../shared/earthnano/compute-profile'
 import { createHash, randomUUID } from 'node:crypto'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
 import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
+import { normalizeCommittedReviewReferences } from '../../shared/earthnano/research-outcome'
 import type {
   ArtifactReference,
   ExecutionRecord,
@@ -322,7 +324,8 @@ export async function evaluateOptimizationSemantics(options: {
       fail('Assessment task differs from the frozen optimization task')
   }
   const sourceEvidence =
-    notebookLanguageForTools(input.harness.tools) !== undefined
+    notebookLanguageForTools(input.harness.tools) !== undefined ||
+    isComputeToolsProfile(input.harness.tools)
       ? await options.owners.readSemanticSourceEvidence({
           target: baselines[0]!,
           snapshots: options.snapshots,
@@ -464,7 +467,7 @@ export async function evaluateOptimizationSemantics(options: {
       return {
         executionId,
         targetExecutionId: target.executionId,
-        reviewId: committed.reviewId,
+        ...normalizeCommittedReviewReferences(committed),
         outcome: document.outcome,
         score: document.score,
         rationale: document.rationale

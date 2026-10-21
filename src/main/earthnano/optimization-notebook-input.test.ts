@@ -6,7 +6,10 @@ import type {
   ManagedFileReadLease,
   ManagedFileVersionReadPort
 } from '../managed-file-versions/read-port'
-import { resolveOptimizationNotebookInputs } from './optimization-notebook-input'
+import {
+  resolveOptimizationNotebookInputs,
+  resolveOptimizationComputeInputs
+} from './optimization-notebook-input'
 const bytes = Buffer.from('sample,value\nA,2\nB,4\nC,6\n')
 const checksum = createHash('sha256').update(bytes).digest('hex')
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- preserve typed test mocks
@@ -57,6 +60,56 @@ const fixture = () => {
   }
   return { options, lease, session }
 }
+it('allows an exact Compute source with no attachments while retaining Python/R nonempty requirements', async () => {
+  const { options, session } = fixture()
+  session.messages[0].uploads = []
+  expect(await resolveOptimizationComputeInputs(options)).toEqual([])
+  await expect(resolveOptimizationNotebookInputs(options)).rejects.toThrow(/inputs unavailable/)
+  expect(options.versions.openVersion).not.toHaveBeenCalled()
+})
+
+it('uses the same fixed Version bytes and closed lease for Compute inputs', async () => {
+  const { options, lease } = fixture()
+  const notebook = await resolveOptimizationNotebookInputs(options)
+  const compute = await resolveOptimizationComputeInputs(options)
+  expect(compute).toEqual(notebook)
+  expect(options.versions.openVersion.mock.calls.map((call) => call[1])).toEqual([
+    'version-1',
+    'version-1'
+  ])
+  expect(lease.verifyUnchanged).toHaveBeenCalledTimes(2)
+  expect(lease.close).toHaveBeenCalledTimes(2)
+})
+
+it.each(['project', 'session', 'prompt', 'archived', 'attribution'] as const)(
+  'rejects an empty Compute source with invalid %s authority before reading versions',
+  async (attack) => {
+    const { options, session } = fixture()
+    session.messages[0].uploads = []
+    if (attack === 'project') session.projectId = 'foreign'
+    if (attack === 'session') session.id = 'foreign'
+    if (attack === 'prompt') options.prompt = 'different task'
+    if (attack === 'archived') session.archivedAt = 1
+    if (attack === 'attribution')
+      session.messages[0].attribution = {
+        kind: 'application',
+        feature: 'background-results',
+        purpose: 'agent-result-delivery',
+        deliveryKey: 'agent-result-delivery:other',
+        deliveryIds: ['foreign']
+      }
+    await expect(resolveOptimizationComputeInputs(options)).rejects.toThrow()
+    expect(options.versions.openVersion).not.toHaveBeenCalled()
+  }
+)
+
+it('rejects changed Compute input bytes and closes the original Version lease', async () => {
+  const { options, lease } = fixture()
+  vi.mocked(lease.readRange).mockImplementation(async (begin, end) => Buffer.alloc(end - begin, 0))
+  await expect(resolveOptimizationComputeInputs(options)).rejects.toThrow(/bytes changed/)
+  expect(lease.close).toHaveBeenCalledOnce()
+})
+
 it('freezes the exact original task and upload version without copying bytes into the snapshot or reading latest', async () => {
   const { options, lease } = fixture()
   const result = await resolveOptimizationNotebookInputs(options)

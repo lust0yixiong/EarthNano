@@ -389,6 +389,28 @@ async function setup(
 }
 
 describe('fixed reference assessment for multiple original baselines', () => {
+  it('retains all original per-Turn semantic Review IDs for both fixed targets', async () => {
+    const f = await setup(10, 2)
+    f.owners.commitSemanticReview = async (value) => ({
+      reviewId: `review-${value.target.executionId}-initial`,
+      reviewIds: [
+        `review-${value.target.executionId}-initial`,
+        `review-${value.target.executionId}-analysis`
+      ],
+      outcome: value.document.outcome
+    })
+    const result = await evaluateOptimizationSemantics(f.options)
+    for (const target of [result.baseline, result.candidate])
+      expect(target).toMatchObject({
+        reviewId: `review-${target.targetExecutionId}-initial`,
+        reviewIds: [
+          `review-${target.targetExecutionId}-initial`,
+          `review-${target.targetExecutionId}-analysis`
+        ]
+      })
+    expect(f.admissions).toHaveLength(2)
+  })
+
   it('evaluates base1 even when another reference precedes it in the execution projection', async () => {
     const f = await setup(10, 2)
     const result = await evaluateOptimizationSemantics({

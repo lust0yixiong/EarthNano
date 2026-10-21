@@ -72,7 +72,8 @@ interface NotebookSourceReference {
 }
 export function notebookOptimizationSourceReferences(
   message: PersistedChatMessage,
-  sourceSessionId: string
+  sourceSessionId: string,
+  options: { allowEmpty?: boolean } = {}
 ): NotebookSourceReference[] {
   const expected: NotebookSourceReference[] = []
   for (const upload of message.uploads ?? []) {
@@ -104,7 +105,7 @@ export function notebookOptimizationSourceReferences(
       name: reference.name
     })
   }
-  if (!expected.length || expected.length > 32)
+  if ((!expected.length && !options.allowEmpty) || expected.length > 32)
     throw new Error('Notebook source inputs unavailable')
   const unique = [
     ...new Map(

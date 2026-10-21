@@ -1,5 +1,6 @@
 import type { ExecutionRecord, ArtifactReference } from '../../shared/earthnano/execution-port'
 import type { OutputCheckSpec, ResearchOutcome } from '../../shared/earthnano/research-outcome'
+import { normalizeCommittedReviewReferences } from '../../shared/earthnano/research-outcome'
 import type { SemanticAssessmentSummary } from '../../shared/earthnano/desktop-optimization'
 import type { PersistentCandidateOwners } from './persistent-candidate-owner'
 import { canonicalOutput, checkOutputFiles } from './output-checks'
@@ -50,7 +51,7 @@ export async function evaluateResearchOutcome(options: {
     !semanticPass || !allChecksPass ? 'failed' : checks.length ? 'passed' : 'unverified'
   const regressed = options.assessments.candidate.score < options.assessments.baseline.score
   return {
-    artifact: { status, checks, ...(review ? { reviewId: review.reviewId } : {}) },
+    artifact: { status, checks, ...(review ? normalizeCommittedReviewReferences(review) : {}) },
     configuration: {
       status:
         status === 'failed' || regressed

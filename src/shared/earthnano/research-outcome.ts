@@ -2,10 +2,30 @@ import type { ArtifactReference, Ref } from './execution-port'
 import type { OptimizationMethodOptions } from './optimization-method'
 import { minimumOptimizationExecutions } from './optimization-method'
 
-export interface SemanticAssessmentSummary {
+export interface CommittedReviewReferences {
+  reviewId: string
+  /** Each remains an original single-Turn Review. Absent on existing single-Turn results. */
+  reviewIds?: string[]
+}
+
+export function normalizeCommittedReviewReferences(
+  value: CommittedReviewReferences
+): CommittedReviewReferences {
+  if (value.reviewIds === undefined) return { reviewId: value.reviewId }
+  if (
+    !Array.isArray(value.reviewIds) ||
+    !value.reviewIds.length ||
+    value.reviewIds.some((id) => typeof id !== 'string' || !id.trim() || id !== id.trim()) ||
+    new Set(value.reviewIds).size !== value.reviewIds.length ||
+    !value.reviewIds.includes(value.reviewId)
+  )
+    throw new Error('Invalid original Review references')
+  return { reviewId: value.reviewId, reviewIds: [...value.reviewIds] }
+}
+
+export interface SemanticAssessmentSummary extends CommittedReviewReferences {
   executionId: string
   targetExecutionId: string
-  reviewId: string
   outcome: 'pass' | 'flagged'
   score: number
   rationale: string
@@ -39,6 +59,7 @@ export interface ResearchOutcome {
     status: 'passed' | 'failed' | 'unverified'
     checks: OutputCheckResult[]
     reviewId?: string
+    reviewIds?: string[]
   }
   configuration: {
     /** eligible means eligible for further validation, never automatically published. */

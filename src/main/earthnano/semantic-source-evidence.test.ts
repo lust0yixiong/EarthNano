@@ -52,6 +52,15 @@ function setup(
   return { inputs, leases, versions }
 }
 describe('controlled independent source evidence', () => {
+  it('represents an explicitly empty Compute input set without changing the Notebook default', async () => {
+    const f = setup(Buffer.alloc(0), 0)
+    const result = await readSemanticSourceVersions({ ...f, projectId: 'p', allowEmpty: true })
+    expect(result).toMatchObject({ schemaVersion: 1, profile: 'bounded-utf8-v1', inputs: [] })
+    expect(result.digest).toMatch(/^sha256:[a-f0-9]{64}$/)
+    await expect(readSemanticSourceVersions({ ...f, projectId: 'p' })).rejects.toThrow()
+    expect(f.versions.openVersion).not.toHaveBeenCalled()
+  })
+
   it('preserves exact UTF8 including BOM and rejects cross-project authority', async () => {
     const f = setup(Buffer.from('\ufeffcolumn\r\n一\r\n'))
     const result = await readSemanticSourceVersions({ ...f, projectId: 'p' })

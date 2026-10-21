@@ -35,6 +35,38 @@ async function setup() {
 const check = { kind: 'json-value' as const, path: 'result.json', pointer: '/sum', expected: 6 }
 
 describe('artifact acceptance and configuration admission', () => {
+  it('retains every original per-Turn Review reference in the acceptance result', async () => {
+    const f = await setup()
+    const ids = ['initial-turn-review', 'analysis-turn-review']
+    f.options.owners.commitDeterministicReview = async () => ({
+      reviewId: ids[0],
+      reviewIds: ids,
+      outcome: 'pass'
+    })
+    const result = await evaluateResearchOutcome({ ...f.options, checks: [check] })
+    expect(result.artifact).toMatchObject({
+      reviewId: 'initial-turn-review',
+      reviewIds: ['initial-turn-review', 'analysis-turn-review']
+    })
+    expect(result.artifact.reviewIds).not.toBe(ids)
+  })
+
+  it.each(
+    [[], ['unrelated-review'], ['primary-review', 'primary-review']].map((reviewIds) => ({
+      reviewIds
+    }))
+  )('rejects an incomplete or ambiguous original Review set: %j', async ({ reviewIds }) => {
+    const f = await setup()
+    f.options.owners.commitDeterministicReview = async () => ({
+      reviewId: 'primary-review',
+      reviewIds,
+      outcome: 'pass'
+    })
+    await expect(evaluateResearchOutcome({ ...f.options, checks: [check] })).rejects.toThrow(
+      'Review references'
+    )
+  })
+
   it.each([undefined, []])(
     'keeps semantic pass unverified without supplied deterministic checks: %j',
     async (checks) => {

@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto'
 import type { FrozenNotebookInput } from '../../shared/earthnano/notebook-profile'
-import { normalizeFrozenNotebookInputs } from '../../shared/earthnano/notebook-profile'
+import {
+  normalizeFrozenNotebookInputs,
+  normalizeFrozenManagedInputs
+} from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 import { originalEvidenceCanonical, originalEvidenceDigest } from './original-turn-evidence'
 
@@ -24,8 +27,12 @@ export async function readSemanticSourceVersions(options: {
   projectId: string
   inputs: readonly FrozenNotebookInput[]
   signal?: AbortSignal
+  /** Host-only Compute sources may have no managed files; Python/R keep the original default. */
+  allowEmpty?: boolean
 }): Promise<SemanticSourceEvidence> {
-  const inputs = normalizeFrozenNotebookInputs(options.inputs)
+  const inputs = options.allowEmpty
+    ? normalizeFrozenManagedInputs(options.inputs)
+    : normalizeFrozenNotebookInputs(options.inputs)
   const entries: SemanticSourceEntry[] = []
   let retained = 0
   for (const input of inputs) {
