@@ -205,6 +205,30 @@ it('cannot narrow stable publication or bypass Alpha verification using a scope'
       /complete, byte-verified/
     )
 })
+
+it.each(['#tail', '?tail', '%23tail', '%3Ftail'])(
+  'rejects URL metadata on a scope-disguised installer with valid local bytes: %s',
+  (suffix) => {
+    const { dir } = unixRelease()
+    expect(Object.keys(buildManifest(unixOptions(dir)).downloads)).toHaveLength(6)
+    const name = `EarthNano-${version}-win-x64-setup.exe${suffix}`
+    const bytes = 'synthetic forbidden installer bytes'
+    writeFileSync(join(dir, name), bytes)
+    writeFileSync(
+      join(dir, 'SHA256SUMS.txt'),
+      readFileSync(join(dir, 'SHA256SUMS.txt'), 'utf8') + `${hash(bytes)}  ${name}\n`
+    )
+    const path = join(dir, 'alpha-mac.yml')
+    const feed = load(readFileSync(path, 'utf8')) as Feed
+    feed.files.push({
+      url: name,
+      size: Buffer.byteLength(bytes),
+      sha512: hash(bytes, 'sha512', 'base64')
+    })
+    writeFileSync(path, dump(feed))
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/URL metadata/)
+  }
+)
 it('passes the explicit Unix scope through the original generator CLI without a Windows feed', () => {
   const { dir } = unixRelease()
   const output = join(dir, 'version.json')

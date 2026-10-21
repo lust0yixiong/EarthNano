@@ -19,6 +19,9 @@ export function validateReleasePlatforms(value = 'mac,linux,win') {
 // Artifact names, versions, bytes and feed metadata still pass their original strict validators.
 export function assertReleaseArtifactScope(name, platforms) {
   if (typeof name !== 'string') return
+  // Builder artifacts are literal basenames, not URLs. Query/fragment syntax or escaped spelling
+  // can hide an excluded extension from classification while still naming a real local file.
+  if (/[?#%]/.test(name)) throw new Error(`Release artifact name contains URL metadata: ${name}`)
   const platform =
     /\.exe(?:\.blockmap)?$/i.test(name) ||
     /(?:win|windows)-(?:x64|arm64)(?:-setup)?\.zip$/i.test(name) ||
