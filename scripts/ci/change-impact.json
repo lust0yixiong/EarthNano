@@ -355,6 +355,7 @@
         "src/main/update/verification-process.ts",
         "src/main/acp/claude-candidate-preparation.ts",
         "src/main/composition/desktop-optimization.ts",
+        "src/main/earthnano/persistent-candidate-owner.ts",
         "src/main/earthnano/sweep-plan.ts",
         "src/main/earthnano/execution-store.ts"
       ],
