@@ -12,11 +12,16 @@ export class HarnessDomainBinding {
   constructor(tasks: HarnessOptimizationBindingOptions[]) {
     for (const task of tasks) {
       if (this.bindings.has(task.taskId)) throw new Error('Duplicate domain task identity')
-      this.bindings.set(task.taskId, new HarnessOptimizationBinding(task))
+      const binding = new HarnessOptimizationBinding(task)
+      this.bindings.set(task.taskId, binding)
+      for (const record of task.resumeRecords ?? []) {
+        this.requests.set(record.requestKey, binding)
+        this.executions.set(record.executionId, binding)
+      }
     }
   }
   get executionIds(): string[] {
-    return [...this.executions.keys()]
+    return [...this.bindings.values()].flatMap((binding) => binding.executionIds)
   }
   executionIdsForTask(taskId: string): string[] {
     return this.bindings.get(taskId)?.executionIds ?? []
@@ -27,6 +32,11 @@ export class HarnessDomainBinding {
   }
   async dispatch(operation: string, args: Record<string, unknown>): Promise<unknown> {
     if (this.stopped) throw new Error('Domain binding stopped')
+    if (operation === 'taskRecords') {
+      const binding = typeof args.taskId === 'string' ? this.bindings.get(args.taskId) : undefined
+      if (!binding) throw new Error('Unknown domain task')
+      return binding.dispatch(operation, args)
+    }
     if (operation === 'freezeInvocation') {
       const taskId = (args.invocation as { taskId?: string } | undefined)?.taskId
       const binding = taskId ? this.bindings.get(taskId) : undefined

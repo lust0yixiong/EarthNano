@@ -163,10 +163,13 @@ type ApplicationCommandCompositionDependencies = Readonly<{
 }>
 
 const ELECTRON_NATIVE_COMMAND_NAMES = Object.freeze([
+  'optimization:previewSweep',
+  'optimization:startSweep',
   'optimization:start',
   'optimization:get',
   'optimization:latest',
   'optimization:stop',
+  'optimization:resume',
   ...pdfTranslationApplicationCommandGroup.commands.map(({ name }) => name),
   'office-preview:open',
   'office-preview:attach-frame',

@@ -12,7 +12,7 @@ import {
   writeFileSync
 } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import {
   ExecutionCore,
@@ -101,12 +101,24 @@ export class FileExecutionStore implements ExecutionStore {
         closeSync(fd)
       }
       renameSync(temp, this.filename)
-      // fsync the directory on supported POSIX hosts. This local implementation targets those hosts.
-      const directory = openSync(dirname(this.filename), 'r')
       try {
-        fsyncSync(directory)
-      } finally {
-        closeSync(directory)
+        const directory = openSync(dirname(this.filename), 'r')
+        try {
+          fsyncSync(directory)
+        } finally {
+          closeSync(directory)
+        }
+      } catch (error) {
+        // Match the pinned durable-files policy: Node cannot open/flush Windows directories.
+        // The payload above is always flushed; all other failures retain the durability barrier.
+        if (
+          process.platform !== 'win32' ||
+          typeof error !== 'object' ||
+          error === null ||
+          !('code' in error) ||
+          !['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'].includes(String(error.code))
+        )
+          throw error
       }
     } finally {
       if (existsSync(temp)) unlinkSync(temp)
@@ -143,6 +155,10 @@ const serializeRecovery = async (
  * Unknown cleanup retains its lock and blocks this resource; this helper never dispatches a provider. */
 export async function recoverExecutionJournals(options: {
   directory: string
+  /** Host-selected exact journal; avoids scanning sibling private manifests as execution records. */
+  filename?: string
+  /** Explicit audit may retire a dead writer whose original journal already confirms all cleanup. */
+  releaseSettledLock?: boolean
   /** Only this resource is being admitted; unrelated unknown resources remain fenced individually. */
   targetEnvironmentId?: string
   matches(record: ExecutionRecord): boolean
@@ -168,7 +184,17 @@ export async function recoverExecutionJournals(options: {
       else if (entry.isFile() && entry.name.endsWith('.json')) files.push(filename)
     }
   }
-  await walk(options.directory)
+  if (options.filename) {
+    if (
+      !isAbsolute(options.filename) ||
+      dirname(resolve(options.filename)) !== resolve(options.directory)
+    )
+      throw new Error('Execution recovery journal must belong to its exact directory')
+    const boundary = lstatSync(options.filename)
+    if (!boundary.isFile() || boundary.isSymbolicLink())
+      throw new Error('Linked execution recovery journal is unsupported')
+    files.push(options.filename)
+  } else await walk(options.directory)
   for (const filename of files) {
     await serializeRecovery(filename, async () => {
       const snapshot =
@@ -180,7 +206,9 @@ export async function recoverExecutionJournals(options: {
           (record.cleanup !== 'confirmed' ||
             !['completed', 'failed', 'cancelled', 'interrupted'].includes(record.phase))
       )
-      if (!unresolved.length) return
+      const settledLock =
+        options.releaseSettledLock && options.filename && existsSync(`${filename}.lock`)
+      if (!unresolved.length && !settledLock) return
       const blocksTarget = unresolved.some(
         (record) =>
           !options.targetEnvironmentId ||

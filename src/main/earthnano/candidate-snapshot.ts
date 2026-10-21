@@ -1,12 +1,34 @@
 import { constants } from 'node:fs'
-import { lstat, mkdir, open, realpath, chmod } from 'node:fs/promises'
+import { lstat, mkdir, open, realpath, chmod, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 
 import type { ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
+import type {
+  ComputeToolsProfile,
+  FrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import { defaultFileDurability } from '@aipoch/durable-files'
 import {
+  normalizeCandidateArtifactFile,
+  type CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
+import {
+  assertDiskReserve,
+  copyOpenFileWithinBudget,
+  digestFileWithinBudget
+} from '../bounded-file-io'
+import { LOCAL_RESOURCE_BUDGETS, assertWithinResourceBudget } from '../resource-budget'
+import { availableBytes } from '../storage/usage'
+import {
   normalizeFrozenNotebookInputs,
+  normalizeFrozenManagedInputs,
+  notebookLanguageForTools,
+  type NotebookToolsProfile,
   normalizeFrozenNotebookRuntime,
   type FrozenNotebookInput,
   type FrozenNotebookRuntime
@@ -21,7 +43,7 @@ export type CandidateTask = Readonly<{
 export type CandidateHarness = Readonly<{
   instructions: string
   skills: readonly CandidateTextFile[]
-  tools: 'workspace-only' | 'notebook-python'
+  tools: 'workspace-only' | NotebookToolsProfile | ComputeToolsProfile
 }>
 export type CandidateAgent = Readonly<{
   backend: 'claude-code'
@@ -33,6 +55,7 @@ export type CandidateEnvironment = Readonly<{
   isolation: 'directory-process'
   network: 'provider-only' | 'provider-and-notebook-policy'
   notebook?: Readonly<{ runtime: FrozenNotebookRuntime }>
+  compute?: FrozenComputeContext
 }>
 export type CandidateSnapshotInput = Readonly<{
   task: CandidateTask
@@ -49,6 +72,15 @@ export type CandidateInvocation = Readonly<{
   taskSnapshotRef: Ref
   harnessRevisionRef: Ref
   mission: string
+  contextFiles?: readonly CandidateTextFile[]
+  assets?: readonly CandidateContextAsset[]
+}>
+/** Host-only provenance. The method binding authorizes the exact admitted source before freezing.
+ * Source identities are not candidate labels or a model-facing arbitrary file capability. */
+export type CandidateContextAsset = Readonly<{
+  path: string
+  sourceExecutionId: string
+  artifact: CandidateBinaryArtifactFile
 }>
 export type ResolvedCandidateSnapshots = CandidateSnapshotInput &
   Readonly<{ invocation: CandidateInvocation }>
@@ -74,6 +106,7 @@ export interface CandidateSnapshotStore {
   materialize(input: {
     executionId: string
     refs: CandidateExecutionRefs
+    signal?: AbortSignal
   }): Promise<MaterializedCandidate>
 }
 
@@ -185,12 +218,43 @@ const ref = (value: unknown, kind: Kind): Ref => {
 
 const sameRef = (left: Ref, right: Ref): boolean => canonical(left) === canonical(right)
 
+const contextAssets = (value: unknown): CandidateContextAsset[] => {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 64)
+    throw new Error('Candidate assets require a bounded nonempty manifest')
+  const result = value.map((item) => {
+    const entry = object(item, ['path', 'sourceExecutionId', 'artifact'])
+    const artifact = normalizeCandidateArtifactFile(entry.artifact)
+    if (!('representation' in artifact))
+      throw new Error('Candidate context assets require a binary descriptor')
+    const sourceExecutionId = text(entry.sourceExecutionId, true)
+    if (
+      sourceExecutionId.length > 256 ||
+      [...sourceExecutionId].some((character) => {
+        const point = character.codePointAt(0)!
+        return point < 32 || point === 127
+      })
+    )
+      throw new Error('Invalid candidate asset source identity')
+    return { path: portablePath(entry.path), sourceExecutionId, artifact }
+  })
+  files(result.map(({ path }) => ({ path, content: '' })))
+  return result.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+}
+
+const validateInvocationFiles = (task: CandidateTask, invocation: CandidateInvocation): void => {
+  files([
+    ...task.files,
+    ...(invocation.contextFiles ?? []),
+    ...(invocation.assets ?? []).map(({ path }) => ({ path, content: '' }))
+  ])
+}
+
 const normalize = (kind: Kind, value: unknown): unknown => {
   if (kind === 'task') {
     const entry = object(value, ['prompt', 'files'], ['managedInputs'])
     const taskFiles = files(entry.files)
     const managedInputs = Object.hasOwn(entry, 'managedInputs')
-      ? normalizeFrozenNotebookInputs(entry.managedInputs)
+      ? normalizeFrozenManagedInputs(entry.managedInputs)
       : undefined
     if (managedInputs && taskFiles.length)
       throw new Error('Notebook tasks cannot mix immutable managed inputs and inline files')
@@ -202,12 +266,16 @@ const normalize = (kind: Kind, value: unknown): unknown => {
   }
   if (kind === 'harness') {
     const entry = object(value, ['instructions', 'skills', 'tools'])
-    if (entry.tools !== 'workspace-only' && entry.tools !== 'notebook-python')
+    if (
+      entry.tools !== 'workspace-only' &&
+      notebookLanguageForTools(entry.tools) === undefined &&
+      !isComputeToolsProfile(entry.tools)
+    )
       throw new Error('Unsupported candidate tools profile')
     return {
       instructions: text(entry.instructions),
       skills: files(entry.skills, true),
-      tools: entry.tools
+      tools: entry.tools as CandidateHarness['tools']
     } satisfies CandidateHarness
   }
   if (kind === 'agent') {
@@ -224,26 +292,37 @@ const normalize = (kind: Kind, value: unknown): unknown => {
     } satisfies CandidateAgent
   }
   if (kind === 'environment') {
-    const entry = object(value, ['isolation', 'network'], ['notebook'])
+    const entry = object(value, ['isolation', 'network'], ['notebook', 'compute'])
     const notebook = Object.hasOwn(entry, 'notebook')
       ? { runtime: normalizeFrozenNotebookRuntime(object(entry.notebook, ['runtime']).runtime) }
       : undefined
+    const compute = Object.hasOwn(entry, 'compute')
+      ? normalizeFrozenComputeContext(entry.compute)
+      : undefined
     if (
       entry.isolation !== 'directory-process' ||
-      entry.network !== (notebook ? 'provider-and-notebook-policy' : 'provider-only')
+      (notebook && compute) ||
+      entry.network !== (notebook || compute ? 'provider-and-notebook-policy' : 'provider-only')
     )
       throw new Error('Unsupported candidate environment profile')
     return {
       isolation: 'directory-process',
       network: entry.network as CandidateEnvironment['network'],
-      ...(notebook ? { notebook } : {})
+      ...(notebook ? { notebook } : {}),
+      ...(compute ? { compute } : {})
     } satisfies CandidateEnvironment
   }
-  const entry = object(value, ['taskSnapshotRef', 'harnessRevisionRef', 'mission'])
+  const entry = object(
+    value,
+    ['taskSnapshotRef', 'harnessRevisionRef', 'mission'],
+    ['assets', 'contextFiles']
+  )
   return {
     taskSnapshotRef: ref(entry.taskSnapshotRef, 'task'),
     harnessRevisionRef: ref(entry.harnessRevisionRef, 'harness'),
-    mission: text(entry.mission)
+    mission: text(entry.mission),
+    ...(Object.hasOwn(entry, 'contextFiles') ? { contextFiles: files(entry.contextFiles) } : {}),
+    ...(Object.hasOwn(entry, 'assets') ? { assets: contextAssets(entry.assets) } : {})
   } satisfies CandidateInvocation
 }
 
@@ -252,9 +331,25 @@ const validateProfile = (
   harness: CandidateHarness,
   environment: CandidateEnvironment
 ): void => {
-  const scientific = harness.tools === 'notebook-python'
+  const language = notebookLanguageForTools(harness.tools)
+  const scientific = language !== undefined
+  const compute = isComputeToolsProfile(harness.tools)
+  if (compute !== Boolean(environment.compute))
+    throw new Error('Compute tools require the frozen original Compute context')
+  if (compute && (environment.notebook || task.files.length))
+    throw new Error('Compute uses original managed inputs and control, not an inline data runtime')
+  if (compute) {
+    const frozen = normalizeFrozenComputeContext(environment.compute)
+    if (task.managedInputs?.some((input) => input.sourceProjectId !== frozen.sourceProjectId))
+      throw new Error('Compute managed input belongs to another Project')
+  } else if (task.managedInputs !== undefined) {
+    // Only Compute accepts empty managed inputs. Preserve every existing profile's old bounds.
+    normalizeFrozenNotebookInputs(task.managedInputs)
+  }
   if (scientific !== Boolean(environment.notebook) || (scientific && !task.managedInputs?.length))
     throw new Error('Notebook tools require fixed managed inputs and a frozen runtime')
+  if (scientific && environment.notebook?.runtime.language !== language)
+    throw new Error('Notebook tools/runtime language mismatch')
 }
 
 const freezeDeep = <T>(value: T): T => {
@@ -318,10 +413,16 @@ const readRegular = async (path: string): Promise<string> => {
  * Directory/process isolation and mode bits are not an OS sandbox against the same user. */
 export const createCandidateSnapshotStore = async ({
   root,
-  candidatesRoot
+  candidatesRoot,
+  materializeAsset
 }: {
   root: string
   candidatesRoot: string
+  /** Host-only original Version owner; never deserialize this callback from a request. */
+  materializeAsset?(
+    asset: CandidateContextAsset,
+    signal?: AbortSignal
+  ): Promise<{ file: CandidateBinaryArtifactFile; assetPath: string }>
 }): Promise<CandidateSnapshotStore> => {
   const contentRoot = await directory(root)
   const candidateRoot = await directory(candidatesRoot)
@@ -401,6 +502,7 @@ export const createCandidateSnapshotStore = async ({
     )
       throw new Error('Candidate invocation refers to a different task or Harness revision')
     validateProfile(task, harness, environment)
+    validateInvocationFiles(task, invocation)
     return freezeDeep({ task, harness, agent, environment, invocation })
   }
   return {
@@ -421,17 +523,42 @@ export const createCandidateSnapshotStore = async ({
     },
     async freezeInvocation(input) {
       const checked = normalize('invocation', input) as CandidateInvocation
-      await Promise.all([
+      const [task] = await Promise.all([
         read(checked.taskSnapshotRef, 'task'),
         read(checked.harnessRevisionRef, 'harness')
       ])
+      validateInvocationFiles(task as CandidateTask, checked)
       return put('invocation', checked)
     },
     resolve,
-    async materialize({ executionId, refs }) {
+    async materialize({ executionId, refs, signal }) {
+      signal?.throwIfAborted()
       if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(executionId))
         throw new Error('Candidate executionId is not a safe directory identity')
       const snapshots = await resolve(refs)
+      if (snapshots.invocation.assets && !materializeAsset)
+        throw new Error('Original candidate asset owner is unavailable')
+      {
+        let bytes = 0
+        for (const file of [
+          ...snapshots.task.files,
+          ...(snapshots.invocation.contextFiles ?? [])
+        ]) {
+          const size = Buffer.byteLength(file.content, 'utf8')
+          assertWithinResourceBudget('file', size, LOCAL_RESOURCE_BUDGETS.artifactFileBytes)
+          bytes += size
+          assertWithinResourceBudget('turn', bytes, LOCAL_RESOURCE_BUDGETS.artifactTurnBytes)
+        }
+        for (const asset of snapshots.invocation.assets ?? []) {
+          assertWithinResourceBudget(
+            'file',
+            asset.artifact.sizeBytes,
+            LOCAL_RESOURCE_BUDGETS.artifactFileBytes
+          )
+          bytes += asset.artifact.sizeBytes
+          assertWithinResourceBudget('turn', bytes, LOCAL_RESOURCE_BUDGETS.artifactTurnBytes)
+        }
+      }
       await candidateRoot.assert()
       const projectionRoot = join(candidateRoot.path, executionId)
       await mkdir(projectionRoot, { mode: 0o700 }) // Exclusive. Existing directories/links are never reused.
@@ -462,6 +589,7 @@ export const createCandidateSnapshotStore = async ({
       }
       for (const path of [inputDir, outputDir, runtimeHome, skillsDir]) await ensureDirectory(path)
       const write = async (path: string, content: string): Promise<void> => {
+        signal?.throwIfAborted()
         const rel = relative(projectionRoot, path).split(sep).join('/')
         let parent = dirname(path)
         await ensureDirectory(parent)
@@ -484,6 +612,102 @@ export const createCandidateSnapshotStore = async ({
         })
       }
       for (const file of snapshots.task.files) await write(join(inputDir, file.path), file.content)
+      for (const file of snapshots.invocation.contextFiles ?? [])
+        await write(join(inputDir, file.path), file.content)
+      for (const asset of snapshots.invocation.assets ?? []) {
+        signal?.throwIfAborted()
+        const original = await materializeAsset!(asset, signal)
+        signal?.throwIfAborted()
+        if (
+          canonical(normalizeCandidateArtifactFile(original.file)) !== canonical(asset.artifact) ||
+          !isAbsolute(original.assetPath)
+        )
+          throw new Error('Original candidate asset differs from its frozen Version')
+        const path = join(inputDir, asset.path)
+        let parent = dirname(path)
+        await ensureDirectory(parent)
+        while (parent !== projectionRoot) {
+          directories.add(parent)
+          parent = dirname(parent)
+        }
+        const observed = await lstat(original.assetPath)
+        if (
+          !observed.isFile() ||
+          observed.isSymbolicLink() ||
+          observed.nlink !== 1 ||
+          observed.size !== asset.artifact.sizeBytes
+        )
+          throw new Error('Candidate asset is not the original ordinary file')
+        assertWithinResourceBudget('file', observed.size, LOCAL_RESOURCE_BUDGETS.artifactFileBytes)
+        assertDiskReserve(
+          await availableBytes(inputDir),
+          observed.size,
+          LOCAL_RESOURCE_BUDGETS.diskReserveBytes
+        )
+        const handle = await open(
+          original.assetPath,
+          constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)
+        )
+        let copied = false
+        try {
+          const before = await handle.stat()
+          if (
+            !before.isFile() ||
+            before.nlink !== 1 ||
+            before.dev !== observed.dev ||
+            before.ino !== observed.ino
+          )
+            throw new Error('Candidate asset identity changed while opening')
+          const result = await copyOpenFileWithinBudget(
+            handle,
+            path,
+            asset.artifact.sizeBytes,
+            signal
+          )
+          copied = true
+          const after = await handle.stat()
+          const current = await lstat(original.assetPath)
+          if (
+            before.size !== after.size ||
+            before.mtimeMs !== after.mtimeMs ||
+            before.ctimeMs !== after.ctimeMs ||
+            current.isSymbolicLink() ||
+            current.dev !== before.dev ||
+            current.ino !== before.ino ||
+            result.sizeBytes !== asset.artifact.sizeBytes ||
+            `sha256:${result.checksum}` !== asset.artifact.digest
+          )
+            throw new Error('Original candidate asset bytes changed')
+          await ensureDirectory(dirname(path))
+          await chmod(path, 0o400)
+          const targetBefore = await lstat(path)
+          if (!targetBefore.isFile() || targetBefore.isSymbolicLink() || targetBefore.nlink !== 1)
+            throw new Error('Candidate asset projection is linked')
+          const persisted = await digestFileWithinBudget(path, asset.artifact.sizeBytes, signal)
+          const targetAfter = await lstat(path)
+          if (
+            targetBefore.dev !== targetAfter.dev ||
+            targetBefore.ino !== targetAfter.ino ||
+            targetBefore.size !== targetAfter.size ||
+            targetBefore.mtimeMs !== targetAfter.mtimeMs ||
+            targetBefore.ctimeMs !== targetAfter.ctimeMs ||
+            targetAfter.isSymbolicLink() ||
+            persisted.sizeBytes !== asset.artifact.sizeBytes ||
+            `sha256:${persisted.checksum}` !== asset.artifact.digest
+          )
+            throw new Error('Candidate asset projection bytes changed')
+          manifest.push({
+            path: relative(projectionRoot, path).split(sep).join('/'),
+            digest: asset.artifact.digest,
+            bytes: persisted.sizeBytes
+          })
+        } catch (error) {
+          if (copied) await rm(path, { force: true }).catch(() => undefined)
+          throw error
+        } finally {
+          await handle.close()
+        }
+      }
       await write(instructionsPath, snapshots.harness.instructions)
       for (const file of snapshots.harness.skills)
         await write(join(skillsDir, file.path), file.content)

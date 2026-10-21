@@ -1,0 +1,820 @@
+{
+  "status": "passed",
+  "optimizationState": "completed",
+  "resume": {
+    "runId": "65f7f4e6-b219-4296-b6c6-439ad1dc75da",
+    "originalBudget": 24,
+    "stoppedAdmissions": 4,
+    "noCallsOnReopen": true,
+    "completedBeforeResume": [
+      "112b4b7b-14ae-41c0-bfb8-d256abc8b303",
+      "22ba477e-17f9-4e05-b3e4-8ea30a244897"
+    ]
+  },
+  "live": false,
+  "progress": {
+    "runId": "65f7f4e6-b219-4296-b6c6-439ad1dc75da",
+    "projectId": "cmvgtbwj50000xje2maob12fv",
+    "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+    "method": {
+      "mode": "parallel",
+      "k": 2,
+      "concurrency": 2
+    },
+    "state": "completed",
+    "stage": "completed",
+    "updatedAt": 1792508630466,
+    "executions": [
+      {
+        "executionId": "112b4b7b-14ae-41c0-bfb8-d256abc8b303",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "09dbf41b-a61f-41fa-867a-881990e2c4e3"
+      },
+      {
+        "executionId": "22ba477e-17f9-4e05-b3e4-8ea30a244897",
+        "role": "baseline",
+        "stageId": "base2",
+        "phase": "completed",
+        "sessionId": "544149b6-c472-4ee6-95f7-7dfa93cc6a58"
+      },
+      {
+        "executionId": "d272a015-a3d6-46dd-83f0-7738bd91b5cb",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "cancelled",
+        "sessionId": "a7452530-e6cc-4f43-92ed-362a77ed84c0"
+      },
+      {
+        "executionId": "5ccbe341-0165-48ad-9453-73363ddb1a9b",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "cancelled",
+        "sessionId": "f70cc03a-4d6e-4b0c-b9c6-15626fc6be29"
+      },
+      {
+        "executionId": "a10713fa-a1b5-4da3-877b-6b7725edd339",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "5fcf35f2-4493-4fab-bd7d-cf742cd54a8f"
+      },
+      {
+        "executionId": "c72be5a3-838d-4cd6-b52c-3c36af2c844e",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "36ab4edc-b8ce-4ce4-83e7-c20fc35eb161"
+      },
+      {
+        "executionId": "5e397dd1-ae76-4b1d-85d8-a9ec9f4e8a6e",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "b9a0c0f6-a556-471e-9197-b57885eb6aa2"
+      },
+      {
+        "executionId": "992738bf-bafe-4e07-8a4a-b0433d026d29",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "5cc11df8-d9ac-4c77-a818-b7cf03f1f1c0"
+      },
+      {
+        "executionId": "a62dda93-4329-46e9-b966-c4789c184f50",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "060d3f6f-bc12-4dcf-83a9-49754d4f62c6"
+      },
+      {
+        "executionId": "1b9c61bf-1eeb-4e42-997f-9c04af1c7843",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "9ae31537-0014-4ba5-8b44-51a9747075a2"
+      },
+      {
+        "executionId": "5e05aa85-8009-4469-90f9-e08802b44c50",
+        "role": "candidate",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "49b8cedd-0425-4bf9-a274-a255bd4e8f71"
+      },
+      {
+        "executionId": "0a5c873f-70a8-4c7c-a190-eab755b4816e",
+        "role": "candidate",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "c8845e96-0462-434b-ac7d-39c0118ed47c"
+      },
+      {
+        "executionId": "c34e75ce-fa6e-4d2e-aa68-395aa727f605",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "bdf5e9b1-3e89-4341-9035-9cbcd196213a"
+      },
+      {
+        "executionId": "ffde9881-25f4-4eff-a29c-f3c8a1691745",
+        "role": "composer",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "47c4d9ab-c3cc-47af-ad9a-d76cac43543b"
+      },
+      {
+        "executionId": "0e94daea-f05f-46a4-9594-911590f9848e",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "2ce536c2-2c48-4c77-a769-08de61430184"
+      },
+      {
+        "executionId": "5b9bb110-0c61-4e1e-9141-feca58aae56c",
+        "role": "candidate",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "036c7c3e-3c13-4142-b1cf-c0b223f6cac3"
+      },
+      {
+        "executionId": "1fa74bb4-64e9-4875-a5a8-33acf002669a",
+        "role": "selector",
+        "stageId": "select.agg2",
+        "phase": "completed",
+        "sessionId": "ebcc1bfb-47e2-460e-931b-e32486309b95"
+      },
+      {
+        "executionId": "32749dd7-ca98-4c0b-9086-92627554c4a3",
+        "role": "reviewer",
+        "stageId": "semantic:3e6c399b-fbb4-46fe-b494-905e8406caa6",
+        "phase": "completed",
+        "sessionId": "6a77a8e6-d7e2-4503-9993-c37d42a1a57c"
+      },
+      {
+        "executionId": "98d69f57-9d38-4eb9-8647-b84c62b0e19d",
+        "role": "reviewer",
+        "stageId": "semantic:8d942577-2299-4c58-be6b-3bc9a6b6db4d",
+        "phase": "completed",
+        "sessionId": "b313addb-7850-4374-9d87-16ed03b1ce24"
+      }
+    ],
+    "budget": {
+      "limit": 24,
+      "admitted": 19,
+      "completed": 19,
+      "active": 0
+    },
+    "notebook": {
+      "source": {
+        "promptMessageId": "message-1792508585838-1"
+      },
+      "inputs": [
+        {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        }
+      ],
+      "runtime": {
+        "language": "python",
+        "runtimeId": "/opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+        "source": "external",
+        "provenance": "user-own",
+        "interpreterPath": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+        "version": "3.12.13"
+      }
+    },
+    "outcome": {
+      "artifact": {
+        "status": "passed",
+        "checks": [
+          {
+            "path": "research-results.json",
+            "pointer": "",
+            "artifactRef": {
+              "artifactId": "bf6e4b31-55a2-4ac9-b179-4f4c42cf5665",
+              "versionId": "6530ee33-5343-4415-90f0-406f4eb03d8e",
+              "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+            },
+            "status": "pass",
+            "reason": "matched"
+          }
+        ],
+        "reviewId": "cmvgtcv4t000yxje32ch1z4ml"
+      },
+      "configuration": {
+        "status": "eligible",
+        "reasons": [],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:f349e53af37abc1be9f8bc56d414a40300eb5b9e66c18384d298c1ff4793d82e",
+          "version": "1",
+          "digest": "sha256:f349e53af37abc1be9f8bc56d414a40300eb5b9e66c18384d298c1ff4793d82e"
+        }
+      }
+    },
+    "selection": {
+      "chosenLabel": "agg2",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Both finals satisfy the frozen research input."
+    },
+    "assessments": {
+      "baseline": {
+        "executionId": "32749dd7-ca98-4c0b-9086-92627554c4a3",
+        "targetExecutionId": "112b4b7b-14ae-41c0-bfb8-d256abc8b303",
+        "reviewId": "cmvgtcuf1000sxje3hkltbxa4",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "Recomputed arithmetic and checked the fixed result bytes."
+      },
+      "candidate": {
+        "executionId": "98d69f57-9d38-4eb9-8647-b84c62b0e19d",
+        "targetExecutionId": "5b9bb110-0c61-4e1e-9141-feca58aae56c",
+        "reviewId": "cmvgtcv4f000wxje3gka18edn",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "Recomputed arithmetic and checked the fixed result bytes."
+      }
+    }
+  },
+  "sourceArtifact": {
+    "artifactId": "92686f0d-35d0-4412-abe0-6b478a5bbf52",
+    "versionId": "b08fa38d-dab5-4290-8d71-5dc5baf746ef",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792508591064-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "executionFacts": [
+    {
+      "executionId": "112b4b7b-14ae-41c0-bfb8-d256abc8b303",
+      "role": "baseline",
+      "stageId": "base1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "22ba477e-17f9-4e05-b3e4-8ea30a244897",
+      "role": "baseline",
+      "stageId": "base2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "d272a015-a3d6-46dd-83f0-7738bd91b5cb",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5ccbe341-0165-48ad-9453-73363ddb1a9b",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "a10713fa-a1b5-4da3-877b-6b7725edd339",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "c72be5a3-838d-4cd6-b52c-3c36af2c844e",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5e397dd1-ae76-4b1d-85d8-a9ec9f4e8a6e",
+      "role": "proposer",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "992738bf-bafe-4e07-8a4a-b0433d026d29",
+      "role": "proposer",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "a62dda93-4329-46e9-b966-c4789c184f50",
+      "role": "candidate",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "1b9c61bf-1eeb-4e42-997f-9c04af1c7843",
+      "role": "candidate",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5e05aa85-8009-4469-90f9-e08802b44c50",
+      "role": "candidate",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0a5c873f-70a8-4c7c-a190-eab755b4816e",
+      "role": "candidate",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "c34e75ce-fa6e-4d2e-aa68-395aa727f605",
+      "role": "composer",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "ffde9881-25f4-4eff-a29c-f3c8a1691745",
+      "role": "composer",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0e94daea-f05f-46a4-9594-911590f9848e",
+      "role": "candidate",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5b9bb110-0c61-4e1e-9141-feca58aae56c",
+      "role": "candidate",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "1fa74bb4-64e9-4875-a5a8-33acf002669a",
+      "role": "selector",
+      "stageId": "select.agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "32749dd7-ca98-4c0b-9086-92627554c4a3",
+      "role": "reviewer",
+      "stageId": "semantic:3e6c399b-fbb4-46fe-b494-905e8406caa6",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "98d69f57-9d38-4eb9-8647-b84c62b0e19d",
+      "role": "reviewer",
+      "stageId": "semantic:8d942577-2299-4c58-be6b-3bc9a6b6db4d",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    }
+  ],
+  "identicalOriginalSourceEvidence": {
+    "schemaVersion": 1,
+    "profile": "bounded-utf8-v1",
+    "inputs": [
+      {
+        "input": {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        },
+        "status": "available",
+        "content": "sample,value\nA,2\nB,4\nC,6\n",
+        "digest": "sha256:2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+      }
+    ],
+    "digest": "sha256:6a10c0cfc488b6817b666487fc8af981ea1fb14c6513dd9299b019b34a23200d"
+  },
+  "scientificRuns": [
+    {
+      "executionId": "112b4b7b-14ae-41c0-bfb8-d256abc8b303",
+      "role": "baseline",
+      "sessionId": "09dbf41b-a61f-41fa-867a-881990e2c4e3",
+      "computationRunId": "notebook-run-1792508598871-3",
+      "producerRunId": "notebook-run-1792508598871-3",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "d8479222-8171-4802-9d8a-266752a7bf3a",
+          "versionId": "10af806f-9fe8-4151-9b10-8adc8693eaa9",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "22ba477e-17f9-4e05-b3e4-8ea30a244897",
+      "role": "baseline",
+      "sessionId": "544149b6-c472-4ee6-95f7-7dfa93cc6a58",
+      "computationRunId": "notebook-run-1792508598727-2",
+      "producerRunId": "notebook-run-1792508598727-2",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "5b872e2a-b073-478a-934c-ed512beff90d",
+          "versionId": "eb66dcfd-0367-4132-b82a-ef5d06292679",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "a62dda93-4329-46e9-b966-c4789c184f50",
+      "role": "candidate",
+      "sessionId": "060d3f6f-bc12-4dcf-83a9-49754d4f62c6",
+      "computationRunId": "notebook-run-1792508612596-2",
+      "producerRunId": "notebook-run-1792508612596-2",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "c4d66152-db43-459e-8b61-166f4b22f09c",
+          "versionId": "12c9e494-15f5-43a3-a8ea-d4fdf2e5d7dd",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "1b9c61bf-1eeb-4e42-997f-9c04af1c7843",
+      "role": "candidate",
+      "sessionId": "9ae31537-0014-4ba5-8b44-51a9747075a2",
+      "computationRunId": "notebook-run-1792508612418-1",
+      "producerRunId": "notebook-run-1792508612418-1",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "1154a185-f2c2-4c0c-8d01-6e83a57dcc8f",
+          "versionId": "5a17686e-a8e1-4563-8640-62db997b1873",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "5e05aa85-8009-4469-90f9-e08802b44c50",
+      "role": "candidate",
+      "sessionId": "49b8cedd-0425-4bf9-a274-a255bd4e8f71",
+      "computationRunId": "notebook-run-1792508618799-3",
+      "producerRunId": "notebook-run-1792508618799-3",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "475f8390-c164-43a5-9ad6-8d5c002e20b1",
+          "versionId": "8691c952-2d8b-4b07-8d5d-374529469ae1",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "0a5c873f-70a8-4c7c-a190-eab755b4816e",
+      "role": "candidate",
+      "sessionId": "c8845e96-0462-434b-ac7d-39c0118ed47c",
+      "computationRunId": "notebook-run-1792508618918-4",
+      "producerRunId": "notebook-run-1792508618918-4",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "18bcc08b-b7ce-49a3-921e-4311221ab002",
+          "versionId": "b375c1eb-23f8-4619-8026-416a0e47704a",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "0e94daea-f05f-46a4-9594-911590f9848e",
+      "role": "candidate",
+      "sessionId": "2ce536c2-2c48-4c77-a769-08de61430184",
+      "computationRunId": "notebook-run-1792508626295-6",
+      "producerRunId": "notebook-run-1792508626295-6",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "b3c6a29e-6dd5-4701-8094-e135e29abca7",
+          "versionId": "d8998397-b0d8-44be-8088-6b86002604e4",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "5b9bb110-0c61-4e1e-9141-feca58aae56c",
+      "role": "candidate",
+      "sessionId": "036c7c3e-3c13-4142-b1cf-c0b223f6cac3",
+      "computationRunId": "notebook-run-1792508626145-5",
+      "producerRunId": "notebook-run-1792508626145-5",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e",
+        "version": "1",
+        "digest": "sha256:fe9461b3301dabd4e50cd19f1cd23395a0816f266eef005b683063f3d5d7eb2e"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82",
+          "sourceKind": "upload-version",
+          "sourceFileId": "4ae6783a-5bb3-4d76-b12a-b8010b928bca",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:03:07.245Z",
+          "sourceProjectId": "cmvgtbwj50000xje2maob12fv",
+          "sourceSessionId": "052138df-2db5-4d4c-beb9-2bb648cb8391",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgtbwj50000xje2maob12fv/052138df-2db5-4d4c-beb9-2bb648cb8391/4ae6783a-5bb3-4d76-b12a-b8010b928bca/versions/b5bcf02a-f63e-45d1-bf7d-ae3b86e83e82/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "bf6e4b31-55a2-4ac9-b179-4f4c42cf5665",
+          "versionId": "6530ee33-5343-4415-90f0-406f4eb03d8e",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    }
+  ],
+  "sameScientificTask": true,
+  "sourceVersionsPreserved": true,
+  "nativeNotebookProducersVerified": true,
+  "inputAccessEvidence": "Exact original source Versions attached to each Run; external Python file-access evidence may be partial. No complete dependency-proof claim.",
+  "reopened": true,
+  "noPaidReplay": true,
+  "sourceProducerVerified": true,
+  "ordinaryCoreVerified": true,
+  "independentReviewsReopened": true,
+  "acceptancePassed": true,
+  "provider": {
+    "requests": 59,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 19,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 1,
+    "upstreamRequests": 0,
+    "cancelledUpstreamRequests": 0,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 8,
+      "proposer": 11,
+      "candidate": 24,
+      "composer": 4,
+      "selector": 2,
+      "reviewer": 4
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Write"
+    ],
+    "usage": {
+      "input": 0,
+      "cacheRead": 0,
+      "output": 0,
+      "incompleteRequests": 0
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "e934e2732acd3887708e46a227bac05b67388bb9",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "a688e623a1a9855eed8bccd8a236e2c5d45e14f8b8ddc027d14386c235034a11",
+      "out/main/index.js": "b220e99bb19d83497df078799286384ddbb5b5331d0a1d0c090ed12794c7f340",
+      "out/preload/index.js": "641791ec005a5e292ad0f6d4e9d8de2d966123f8919dd2ea4405b24700688a55",
+      "out/renderer/index.html": "1366c7a6eb424491c5a88eb205f2c175b87ba4c58db814f233217929a9d2499d"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

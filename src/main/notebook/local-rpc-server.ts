@@ -1,3 +1,5 @@
+import type { AgentComputeContext } from '../compute/agent-compute-service'
+import type { TrustedControlPolicy } from '../earthnano/compute-candidate-ports'
 import { createHash, randomUUID } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import {
@@ -156,7 +158,7 @@ type NotebookLocalRpcServerOptions = {
   sessionMemorySignal?: (sessionId: string) => AbortSignal | undefined
   computeService?: {
     callCommand(
-      context: { sessionId: string; projectId: string },
+      context: AgentComputeContext,
       providerId: string,
       cmd: string,
       intent: string,
@@ -181,14 +183,14 @@ type NotebookLocalRpcServerOptions = {
       args: { text: string; oldText: string; author: 'agent' }
     ): Promise<void>
     download(
-      context: { sessionId: string; projectId: string },
+      context: AgentComputeContext,
       providerId: string,
       remotePath: string,
       dest: { kind: 'session-cache' },
       signal?: AbortSignal
     ): Promise<unknown>
     submitJob(
-      context: { sessionId: string; projectId: string },
+      context: AgentComputeContext,
       providerId: string,
       intent: string,
       command: string,
@@ -203,21 +205,9 @@ type NotebookLocalRpcServerOptions = {
       },
       signal?: AbortSignal
     ): Promise<unknown>
-    getJobStatus(
-      context: { sessionId: string; projectId: string },
-      providerId: string,
-      jobId: string
-    ): Promise<unknown>
-    cancelJob(
-      context: { sessionId: string; projectId: string },
-      providerId: string,
-      jobId: string
-    ): Promise<unknown>
-    getJobResult(
-      context: { sessionId: string; projectId: string },
-      providerId: string,
-      jobId: string
-    ): Promise<unknown>
+    getJobStatus(context: AgentComputeContext, providerId: string, jobId: string): Promise<unknown>
+    cancelJob(context: AgentComputeContext, providerId: string, jobId: string): Promise<unknown>
+    getJobResult(context: AgentComputeContext, providerId: string, jobId: string): Promise<unknown>
     // Session-level concurrency control (Phase 3c, issue 05).
     setSessionConcurrencyLimit(sessionId: string, limit: number): Promise<void>
     getSessionConcurrencyStatus(sessionId: string): Promise<{
@@ -401,6 +391,7 @@ type NotebookRpcSessionBinding = {
   activeControlInvocation?: TrustedControlInvocationIdentity
   executionCwd?: string
   isControl?: true
+  controlPolicy?: TrustedControlPolicy
   delegatedNotebook?: {
     permissionPrompts?: 'none'
     attemptId: string
@@ -1604,7 +1595,8 @@ class NotebookLocalRpcServer {
       role: 'main' | 'delegate'
       attemptId?: string
     }> = { role: 'main' },
-    executionCwd?: string
+    executionCwd?: string,
+    policy?: TrustedControlPolicy
   ): Promise<
     NotebookRpcConnection & {
       beginControlInvocation(context: TrustedControlInvocationIdentity): () => void
@@ -1624,6 +1616,10 @@ class NotebookLocalRpcServer {
       resolvedSessionId !== sessionId && agentFrameId === `root-frame-${sessionId}`
         ? `root-frame-${resolvedSessionId}`
         : agentFrameId
+    const originalMethods =
+      delegatedWorkIdentity.role === 'delegate'
+        ? DELEGATED_CONTROL_RPC_METHODS
+        : CONTROL_RPC_METHODS
     const binding: NotebookRpcSessionBinding = {
       sessionId: resolvedSessionId,
       projectId,
@@ -1633,10 +1629,10 @@ class NotebookLocalRpcServer {
       ...(delegatedWorkIdentity.attemptId
         ? { delegatedWorkAttemptId: delegatedWorkIdentity.attemptId }
         : {}),
-      allowedMethods:
-        delegatedWorkIdentity.role === 'delegate'
-          ? DELEGATED_CONTROL_RPC_METHODS
-          : CONTROL_RPC_METHODS,
+      allowedMethods: policy
+        ? new Set([...originalMethods].filter((method) => policy.allowedMethods.has(method)))
+        : originalMethods,
+      ...(policy ? { controlPolicy: policy, capabilityLifetime: new AbortController() } : {}),
       isControl: true,
       ...(executionCwd ? { executionCwd } : {})
     }
@@ -2252,6 +2248,37 @@ class NotebookLocalRpcServer {
               }
             }
           }
+          if (method === 'computeCall' && sessionBinding.controlPolicy) {
+            // Candidate control policy grants execution on frozen hosts, not shared host knowledge writes.
+            if (params.op === 'details' && (params.mode === 'append' || params.mode === 'replace'))
+              throw new RpcHttpError(403, 'Compute trials cannot modify shared host knowledge.')
+            const invocation = initialControlInvocation
+            if (!invocation?.toolInvocationId)
+              throw new RpcHttpError(
+                403,
+                'Compute trials require an active trusted control invocation.'
+              )
+            if (
+              initialSessionBinding !== sessionBinding ||
+              sessionBinding.activeControlInvocation !== invocation
+            )
+              throw new RpcHttpError(
+                409,
+                'Compute control invocation ended before request admission.'
+              )
+            if (typeof params.provider_id === 'string') {
+              await sessionBinding.controlPolicy.assertComputeHostCurrent(params.provider_id)
+            }
+            // Source checks can await disk/SQL. A revoked epoch cannot regain admission afterward.
+            if (this.sessionRpcCapabilities.get(bearerToken) !== sessionBinding)
+              throw new RpcHttpError(401, 'Invalid notebook RPC token.')
+            if (sessionBinding.activeControlInvocation !== invocation)
+              throw new RpcHttpError(
+                409,
+                'Compute control invocation ended before request admission.'
+              )
+            sessionBinding.capabilityLifetime?.signal.throwIfAborted()
+          }
           // The request body is agent-controlled. Owner fields always come from the unforgeable,
           // per-session capability issued while building this session's Notebook environment.
           const delegatedQuestionInvocationId =
@@ -2279,7 +2306,8 @@ class NotebookLocalRpcServer {
             ...(method === 'computeCall'
               ? {
                   // Bound by beginControlInvocation; an agent-controlled body value is overwritten.
-                  producerRunId: sessionBinding.activeControlInvocation?.toolInvocationId
+                  producerRunId: sessionBinding.activeControlInvocation?.toolInvocationId,
+                  interactionPolicy: sessionBinding.controlPolicy?.interactionPolicy
                 }
               : {}),
             ...(method === 'agentsCall' || method === 'skillsCall'
@@ -2979,7 +3007,15 @@ class NotebookLocalRpcServer {
         typeof params.producerRunId === 'string' && params.producerRunId
           ? params.producerRunId
           : undefined
-      const context = { sessionId, projectId, producerRunId }
+      const context: AgentComputeContext = {
+        sessionId,
+        projectId,
+        producerRunId,
+        ...(params.interactionPolicy === 'interactive' ||
+        params.interactionPolicy === 'deny-unresolved'
+          ? { interactionPolicy: params.interactionPolicy }
+          : {})
+      }
       if (op === 'call_command') {
         const providerId = typeof params.provider_id === 'string' ? params.provider_id : ''
         const cmd = typeof params.cmd === 'string' ? params.cmd : ''

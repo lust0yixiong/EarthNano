@@ -562,16 +562,25 @@ describe('electron-builder Linux desktop identity', () => {
 })
 
 describe('electron-builder macOS icons', () => {
-  it('uses the transparent EarthNano ICNS for the app and signed DMG container', () => {
+  it('uses Icon Composer for the app and signs the legacy-icon DMG container', () => {
     const config = load(readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8')) as {
       mac?: { icon?: string; darkModeSupport?: boolean }
       dmg?: { icon?: string; sign?: boolean }
     }
 
-    expect(config.mac?.icon).toBe('build/icon.icns')
+    expect(config.mac?.icon).toBe('build/icon.icon')
     expect(config.mac?.darkModeSupport).toBe(true)
     expect(config.dmg?.icon).toBe('build/icon.icns')
     expect(config.dmg?.sign).toBe(true)
+
+    const catalog = JSON.parse(readFileSync('build/icon.icon/icon.json', 'utf8'))
+    expect(catalog['fill-specializations']).toEqual([
+      { value: { solid: 'srgb:1.00000,1.00000,1.00000,1.00000' } }
+    ])
+    const layer = catalog.groups[0].layers[0]
+    expect(layer['image-name']).toBe('earthnano.png')
+    expect(layer.opacity).toBe(1)
+    expect(existsSync(join('build/icon.icon/Assets', layer['image-name']))).toBe(true)
 
     const icon = readFileSync(join(process.cwd(), 'build', 'icon.icns'))
     expect(icon.subarray(0, 4).toString('ascii')).toBe('icns')

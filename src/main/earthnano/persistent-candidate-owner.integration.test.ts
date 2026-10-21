@@ -7,16 +7,37 @@ import { join } from 'node:path'
 import { expect, it, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: true } }))
 import { initDataRoot } from '../storage-root'
+import { AcpRuntime } from '../acp/runtime'
+import { composeAcpRuntimeBaseOwners } from '../acp/runtime-base-composition'
+import { composeAcpRuntimeSessionOwners } from '../acp/runtime-session-composition'
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { ReviewRepository } from '../reviewer/repository'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
+import { SettingsRepository } from '../settings/repository'
+import { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
+import { ManagedFileIndexRepository } from '../project-files/repository'
+import { ManagedFileVersionService } from '../managed-file-versions/service'
+import { UploadRepository } from '../uploads/repository'
 import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
+import { createDesktopCandidateOwnerRouting } from './desktop-candidate-owner-routing'
+import { routeCandidateContinuations } from '../composition/background-results'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
 import { outputDigest } from './output-checks'
+import { readExecutionTurnUsage } from './original-turn-usage'
+import {
+  persistCandidateOwnerSettlement,
+  readCandidateOwnerSettlement
+} from './candidate-settlement-witness'
+import type { CandidateArtifactFile } from '../../shared/earthnano/candidate-artifact'
+const textContent = (file: CandidateArtifactFile): string => {
+  expect('content' in file).toBe(true)
+  if (!('content' in file)) throw new Error('Expected original text artifact fixture')
+  return file.content
+}
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -38,7 +59,12 @@ const send = (
           content: [],
           stop_reason: null,
           stop_sequence: null,
-          usage: { input_tokens: 11, output_tokens: 0 }
+          usage: {
+            input_tokens: 11,
+            cache_read_input_tokens: 5,
+            cache_creation_input_tokens: 2,
+            output_tokens: 0
+          }
         }
       }
     ],
@@ -83,6 +109,9 @@ it
   .skipIf(process.platform === 'win32')
   .each([
     'original',
+    'non-compute-routing',
+    'shared-session-hydration',
+    'pre-admission-rejection',
     'six-outputs-and-skills',
     'uppercase-invalid-json',
     'submission-failure',
@@ -93,7 +122,14 @@ it
     'checks-freeze-before-await',
     'checks-mismatch',
     'reflection-owner-export',
-    'reflection-reserved-collision'
+    'reflection-reserved-collision',
+    'selector-owner-export',
+    'selector-reserved-collision',
+    'proposer-reply-only',
+    'composer-reply-only',
+    'proposer-file-only',
+    'proposer-empty',
+    'proposer-reserved-collision'
   ] as const)(
   'persists original owners with bounded integrity checks and review cleanup: %s',
   async (scenario) => {
@@ -102,16 +138,91 @@ it
     const configRoot = join(root, 'config')
     await mkdir(configRoot)
     const client = createProjectDbClient(configRoot)
+    const repository = new SessionRepository(configRoot)
+    const coordinator = new SessionPersistenceCoordinator(
+      repository,
+      new ManagedFileIndexRepository(
+        async () => client,
+        root,
+        new ManagedFileVersionService({ storageRoot: root, getClient: async () => client }),
+        new UploadRepository(root, { getClient: async () => client })
+      )
+    )
+    const hydratedSessions: string[] = []
+    const revokeLiveness = vi.fn<() => void>()
+    if (scenario === 'shared-session-hydration') {
+      const register = repository.registerRuntimeSessionLiveness.bind(repository)
+      vi.spyOn(repository, 'registerRuntimeSessionLiveness').mockImplementation((scope) => {
+        expect(scope.isLive()).toBe(true)
+        const release = register(scope)
+        revokeLiveness.mockImplementation(release)
+        return revokeLiveness
+      })
+      const admit = coordinator.admitTaskTurn.bind(coordinator)
+      vi.spyOn(coordinator, 'admitTaskTurn').mockImplementation(async (input) => {
+        const result = await admit(input)
+        expect(repository.hasLiveRuntimeSession(input.session.projectId, input.session.id)).toBe(
+          true
+        )
+        // A renderer hydration in the original Task-admit -> Runtime-begin gap must see the
+        // actual private ACP attachment through the application's original persistence owner.
+        await coordinator.loadAll()
+        const current = await loadSessionMutationAuthority(
+          repository,
+          input.session.projectId,
+          input.session.id
+        )
+        expect(current.status).toBe('found')
+        if (current.status !== 'found') throw new Error('Hydrated Session is unavailable')
+        expect(current.session.activeRun?.promptMessageId).toBe(
+          input.session.activeRun?.promptMessageId
+        )
+        hydratedSessions.push(input.session.id)
+        return result
+      })
+    }
     let owners = createPersistentCandidateOwners({
       dataRoot: root,
       configRoot,
-      getClient: async () => client
+      getClient: async () => client,
+      settings: new SettingsRepository(configRoot),
+      sessionPersistence: { repository, coordinator },
+      ...(scenario === 'pre-admission-rejection'
+        ? {
+            runtimeFactory: (options) => {
+              const base = composeAcpRuntimeBaseOwners(options)
+              const runtime = new AcpRuntime(
+                options,
+                base,
+                composeAcpRuntimeSessionOwners(options, base)
+              )
+              vi.spyOn(runtime, 'sendPrompt').mockRejectedValue(
+                new Error('Original ACP pre-admission rejection')
+              )
+              return runtime
+            }
+          }
+        : {})
     })
     let disposeCore = (): void => undefined
     const reflectionScenario = scenario.startsWith('reflection-')
+    const methodRole = reflectionScenario
+      ? 'reflection'
+      : scenario.startsWith('selector-')
+        ? 'selector'
+        : scenario.startsWith('proposer-')
+          ? 'proposer'
+          : scenario.startsWith('composer-')
+            ? 'composer'
+            : undefined
+    const reservedCollision = scenario.endsWith('reserved-collision')
     const finalReply = reflectionScenario
       ? '<experience>\ncue: Complete source rows\nlesson: Reconcile every source row\nevidence: The selected final reconciles all rows\n</experience>'
-      : 'PERSISTED_FINAL_REPLY'
+      : methodRole === 'selector'
+        ? '<why>Both finals are usable; prefer B.</why>\n```choice\nB\n```'
+        : scenario === 'proposer-file-only' || scenario === 'proposer-empty'
+          ? ''
+          : 'PERSISTED_FINAL_REPLY'
     const outputs = reflectionScenario
       ? [
           {
@@ -123,25 +234,42 @@ it
               'This model-written file intentionally differs from the final reflection reply.'
           }
         ]
-      : [
-          { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
-          {
-            path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
-            content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
-          },
-          ...(scenario === 'six-outputs-and-skills'
-            ? ['one', 'two', 'three', 'four'].map((name) => ({
-                path: `context/harness/skills/${name}/SKILL.md`,
-                content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
-              }))
-            : [])
-        ]
+      : methodRole
+        ? reservedCollision
+          ? [
+              {
+                path: `${methodRole[0].toUpperCase() + methodRole.slice(1)}-Reply.md`,
+                content: 'Model text differs from committed reply'
+              }
+            ]
+          : scenario === 'proposer-file-only'
+            ? [
+                {
+                  path: 'context/harness/instructions.md',
+                  content: 'Persisted file-only instructions'
+                }
+              ]
+            : []
+        : [
+            { path: 'context/harness/instructions.md', content: 'Persisted instructions' },
+            {
+              path: scenario === 'uppercase-invalid-json' ? 'RESULT.JSON' : 'result.json',
+              content: scenario === 'uppercase-invalid-json' ? '{invalid JSON' : '{"answer":42}'
+            },
+            ...(scenario === 'six-outputs-and-skills'
+              ? ['one', 'two', 'three', 'four'].map((name) => ({
+                  path: `context/harness/skills/${name}/SKILL.md`,
+                  content: `---\nname: ${name}\ndescription: Synthetic skill\n---\nPlain frozen instructions.`
+                }))
+              : [])
+          ]
     const expectedOutputs = [
       ...outputs,
-      ...(scenario === 'reflection-owner-export'
-        ? [{ path: 'reflection-reply.md', content: finalReply }]
+      ...(methodRole && !reservedCollision && (finalReply.trim() || !outputs.length)
+        ? [{ path: `${methodRole}-reply.md`, content: finalReply }]
         : [])
     ]
+    let taskProviderRequests = 0
     const server = createServer(async (req, response) => {
       if (!req.url?.startsWith('/v1/messages')) {
         response.writeHead(404)
@@ -155,6 +283,8 @@ it
         send(response, body, { text: 'background' }, 'background')
         return
       }
+      // Original native startup can make a background request; it is not this task's prompt.
+      taskProviderRequests++
       const messages = JSON.stringify(body.messages)
       const output = /OUTPUT: ([^\n"\\]+)/.exec(messages)?.[1]
       if (!output) throw new Error('Missing explicit output location')
@@ -238,7 +368,7 @@ it
       projectId: 'persistent-project',
       ...refs,
       invocationRef,
-      role: reflectionScenario ? 'reflection' : 'candidate',
+      role: methodRole ?? 'candidate',
       origin: { kind: 'optimization', optimizationId: 'local', stageId: 'candidate' },
       interactionPolicy: 'deny-unresolved',
       budgetRef: 'synthetic',
@@ -268,7 +398,77 @@ it
             apiEndpoints: ['messages']
           }
         }),
-        openOwner: owners.openOwner
+        openOwner: async (input) => {
+          const owner = await owners.openOwner(input)
+          if (scenario !== 'non-compute-routing') return owner
+          const prepare = owner.preparePlan
+          const shutdown = owner.shutdown
+          let assertRetired: (() => Promise<void>) | undefined
+          owner.preparePlan = async () => {
+            const plan = await prepare()
+            const sessionId = plan.prompt.sessionId
+            const privateSessions = vi.fn(async () => new Set([sessionId]))
+            const routing = createDesktopCandidateOwnerRouting(privateSessions)
+            const release = routing.onOwnersReady(owners)
+            const ordinary = {
+              sendContinuation: vi.fn(),
+              isContinuationSaved: vi.fn(async () => false),
+              canStartSessionTurn: vi.fn(async () => true)
+            }
+            const routed = routeCandidateContinuations(ordinary, routing.resolveCandidateDelivery)
+            const binding = {
+              projectId: input.request.projectId,
+              sessionId,
+              agentFrameId: 'ordinary-frame',
+              executionCwd: input.materialized.cwd
+            }
+            // A real factory without Compute services must be recognized before the cold index.
+            await expect(routing.resolveControlPolicy(binding)).resolves.toBeUndefined()
+            expect(privateSessions).not.toHaveBeenCalled()
+            expect(await routing.resolveCandidateDelivery(sessionId)).toEqual({
+              kind: 'private-unavailable'
+            })
+            const delivery = {
+              sessionId,
+              deliveryIds: ['not-a-compute-delivery'],
+              continuationMessageId: 'no-ordinary-fallback'
+            }
+            expect(await routed.canStartSessionTurn(sessionId)).toBe(false)
+            await expect(routed.isContinuationSaved(delivery)).rejects.toThrow('unavailable')
+            const dispatch = routed.sendContinuation({
+              ...delivery,
+              text: 'unowned'
+            })
+            await expect(dispatch.admitted).rejects.toThrow('unavailable')
+            await expect(dispatch.result).rejects.toThrow('unavailable')
+            for (const callback of Object.values(ordinary)) expect(callback).not.toHaveBeenCalled()
+            assertRetired = async () => {
+              await expect(routing.resolveControlPolicy(binding)).rejects.toThrow('unavailable')
+              expect(await routing.resolveCandidateDelivery(sessionId)).toEqual({
+                kind: 'private-unavailable'
+              })
+              expect(privateSessions).not.toHaveBeenCalled()
+              release?.()
+            }
+            return plan
+          }
+          owner.shutdown = async () => {
+            const result = await shutdown()
+            if (result.reaped) await assertRetired?.()
+            return result
+          }
+          return owner
+        },
+        ...(scenario === 'original'
+          ? {
+              ownerSettled: async (settlement) => {
+                await persistCandidateOwnerSettlement(root, {
+                  ...settlement,
+                  identity: (await core.get(settlement.executionId)).identity
+                })
+              }
+            }
+          : {})
       })
     )
     disposeCore = () => core.dispose()
@@ -293,7 +493,27 @@ it
       { timeout: 60000, interval: 50 }
     )
     const record = await core.get(handle.executionId)
-    if (scenario === 'reflection-reserved-collision') {
+    if (scenario === 'pre-admission-rejection') {
+      expect(record).toMatchObject({
+        phase: 'failed',
+        cleanup: 'confirmed',
+        error: {
+          code: 'prompt-rejected-before-admission',
+          message: expect.stringContaining('Original ACP pre-admission rejection')
+        },
+        evidence: { status: 'unavailable', artifacts: [] }
+      })
+      expect(record.error!.message).toContain('No original runtime admission evidence')
+      expect(
+        state.events[record.executionId]!.some((event) => event.type === 'session-admitted')
+      ).toBe(false)
+      expect(record.identity.runtimeExecutionId).toBeUndefined()
+      expect(taskProviderRequests).toBe(0)
+      expect(await client.artifactVersion.count()).toBe(0)
+      expect(await owners.shutdown()).toEqual({ reaped: true })
+      return
+    }
+    if (reservedCollision) {
       expect(record, JSON.stringify(record)).toMatchObject({
         phase: 'failed',
         cleanup: 'confirmed'
@@ -309,7 +529,7 @@ it
       expect(original.status).toBe('found')
       if (original.status === 'found') {
         expect(original.session.activeRun).toBeUndefined()
-        expect(JSON.stringify(original.session.messages)).toContain('Reconcile every source row')
+        expect(JSON.stringify(original.session.messages)).toContain(finalReply.split('\n')[0])
       }
       expect(await owners.shutdown()).toEqual({ reaped: true })
       return
@@ -343,6 +563,13 @@ it
       promptAttemptId: expect.any(String),
       runId: expect.any(String)
     })
+    if (scenario === 'shared-session-hydration') {
+      expect(hydratedSessions).toEqual([record.identity.sessionId])
+      expect(revokeLiveness).toHaveBeenCalledTimes(1)
+      expect(repository.hasLiveRuntimeSession(request.projectId, record.identity.sessionId!)).toBe(
+        false
+      )
+    }
     expect(record.evidence.artifacts).toHaveLength(expectedOutputs.length)
     const session = await loadSessionMutationAuthority(
       new SessionRepository(configRoot),
@@ -353,6 +580,39 @@ it
     if (session.status !== 'found') throw new Error('Session not persisted')
     expect(session.session.activeRun).toBeUndefined()
     expect(session.session.runtimeTranscriptOwner).toBe('main')
+    const originalUsage = readExecutionTurnUsage(session.session, record.identity)
+    if (scenario === 'proposer-file-only' || scenario === 'proposer-empty') {
+      // The original empty-narrative fixtures lack complete exact usage evidence. Output
+      // publication alone cannot manufacture token counters, even when its Version is complete.
+      expect(originalUsage).toBeUndefined()
+      expect(record.usage).toEqual({ status: 'unknown' })
+    } else {
+      expect(originalUsage).toBeDefined()
+      expect(record.usage).toEqual({
+        status: 'known',
+        inputTokens: originalUsage!.usage.inputTokens,
+        cacheTokens: originalUsage!.usage.cacheTokens,
+        cachedReadTokens: originalUsage!.usage.cachedReadTokens,
+        cachedWriteTokens: originalUsage!.usage.cachedWriteTokens,
+        outputTokens: originalUsage!.usage.outputTokens,
+        ...(originalUsage!.usage.turnCount === undefined
+          ? {}
+          : { modelTurns: originalUsage!.usage.turnCount }),
+        source: {
+          scope: 'logical-prompt',
+          sessionId: session.session.id,
+          promptMessageId: record.identity.promptMessageId!,
+          ownerMessageId: originalUsage!.ownerMessageId
+        }
+      })
+      expect(record.usage.inputTokens).toBeGreaterThan(0)
+      expect(record.usage.cachedReadTokens).toBeGreaterThan(0)
+      expect(record.usage.cachedWriteTokens).toBeGreaterThan(0)
+    }
+    expect(record.usage.apiRequests).toBeUndefined()
+    expect(record.usage.costMicrousd).toBeUndefined()
+    if (scenario === 'original')
+      expect(readCandidateOwnerSettlement(root, record)?.outcome.usage).toEqual(record.usage)
     await expect(
       lstat(join(configRoot, 'sessions', request.projectId, record.identity.sessionId! + '.json'))
     ).resolves.toBeDefined()
@@ -378,16 +638,31 @@ it
     const before = await owners.exportResult(record)
     expect(
       before.files
-        .map((file) => ({ path: file.path, content: file.content }))
+        .map((file) => ({ path: file.path, content: textContent(file) }))
         .sort((a, b) => a.path.localeCompare(b.path))
     ).toEqual([...expectedOutputs].sort((a, b) => a.path.localeCompare(b.path)))
-    if (scenario === 'reflection-owner-export') {
-      const canonical = before.files.find((file) => file.path === 'reflection-reply.md')!
-      expect(canonical.content).toBe(before.replyText)
-      expect(before.files.find((file) => file.path === 'experience.md')!.content).not.toBe(
-        before.replyText
-      )
+    if (methodRole && (finalReply.trim() || !outputs.length)) {
+      const canonical = before.files.find((file) => file.path === `${methodRole}-reply.md`)!
+      expect(textContent(canonical)).toBe(before.replyText)
+      if (reflectionScenario)
+        expect(textContent(before.files.find((file) => file.path === 'experience.md')!)).not.toBe(
+          before.replyText
+        )
       expect(record.evidence.artifacts).toContainEqual(canonical.artifactRef)
+      expect(
+        session.session.messages.some(
+          (message) =>
+            message.role === 'agent' &&
+            message.status === 'complete' &&
+            message.artifactIds?.includes(canonical.artifactRef.versionId)
+        )
+      ).toBe(true)
+      if (scenario === 'proposer-empty') {
+        expect(textContent(canonical)).toBe('')
+        expect(canonical.artifactRef.checksum).toBe(
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+        )
+      }
     }
     const integrity = (await owners.readReviews(record))[0]!
     expect(integrity).toMatchObject({
@@ -533,6 +808,11 @@ it
           ]
         })
         expect(JSON.parse(log.rawOutput)).toEqual(metadata.results)
+        const countBeforeReuse = await client.review.count()
+        expect(
+          await owners.commitDeterministicReview!({ target: record, checks: originalChecks })
+        ).toEqual(committed)
+        expect(await client.review.count()).toBe(countBeforeReuse)
         expect(checked.scope.artifactVersionIds).toContain(file.artifactRef.versionId)
         expect(await owners.readReviews(record)).toEqual([integrity])
       }
@@ -544,20 +824,24 @@ it
     expect(await owners.shutdown()).toEqual({ reaped: true })
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
     owners = createPersistentCandidateOwners({
+      settings: new SettingsRepository(configRoot),
+      sessionPersistence: { repository, coordinator },
       dataRoot: root,
       configRoot,
       getClient: async () => client
     })
-    await writeFile(
-      join(
-        root,
-        'candidates',
-        record.executionId,
-        `workspace/outputs/${outputs[Math.min(1, outputs.length - 1)]!.path}`
-      ),
-      'MUTATED_CWD'
-    )
+    if (outputs.length)
+      await writeFile(
+        join(
+          root,
+          'candidates',
+          record.executionId,
+          `workspace/outputs/${outputs[Math.min(1, outputs.length - 1)]!.path}`
+        ),
+        'MUTATED_CWD'
+      )
     expect(await owners.exportResult(record)).toEqual(before)
+    expect((await core.get(record.executionId)).usage).toEqual(record.usage)
     const forged = structuredClone(record) as ExecutionRecord
     forged.evidence.artifacts[0].checksum = '0'.repeat(64)
     await expect(owners.exportResult(forged)).rejects.toThrow()

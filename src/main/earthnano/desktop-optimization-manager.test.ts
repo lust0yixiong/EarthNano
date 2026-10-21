@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,6 +12,9 @@ import type {
 } from '../../shared/earthnano/desktop-optimization'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { PersistentOptimizationOptions } from './run-persistent-optimization'
+import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization-method'
+import { writeResumeJson, type SingleOptimizationResumeIdentity } from './optimization-resume'
+import { outputDigest } from './output-checks'
 
 const roots: string[] = []
 afterEach(() => {
@@ -26,6 +29,39 @@ const task: StartDesktopOptimization = {
   criteria: 'The count matches the data rows.',
   executionLimit: 9
 }
+const notebookInput = {
+  sourceKind: 'upload-version' as const,
+  sourceProjectId: task.projectId,
+  sourceSessionId: task.sourceSessionId,
+  sourceFileId: 'source-file',
+  inputFileVersionId: 'source-version',
+  filename: 'values.csv',
+  sizeBytes: 7,
+  checksum: 'a'.repeat(64)
+}
+const notebookSnapshot = (language: 'python' | 'r'): SingleOptimizationResumeIdentity['input'] => ({
+  task: { prompt: task.prompt, files: [], managedInputs: [notebookInput] },
+  harness: { instructions: 'Original harness', tools: `notebook-${language}`, skills: [] },
+  agent: {
+    backend: 'claude-code',
+    model: 'fixture',
+    providerRef: 'fixture',
+    runtimeVersion: 'fixture'
+  },
+  environment: {
+    isolation: 'directory-process',
+    network: 'provider-and-notebook-policy',
+    notebook: {
+      runtime: {
+        language,
+        runtimeId: `/original/${language}`,
+        interpreterPath: `/original/${language}`,
+        source: 'external',
+        provenance: 'user-own'
+      }
+    }
+  }
+})
 const fixture = (
   run: DesktopOptimizationManagerOptions['run'],
   overrides: Partial<DesktopOptimizationManagerOptions> = {}
@@ -76,8 +112,204 @@ const key = (runId: string): OptimizationRunKey => ({
   sourceSessionId: task.sourceSessionId,
   runId
 })
+const writeResumeFixture = (
+  options: PersistentOptimizationOptions,
+  cleanup = 'confirmed',
+  overrides: Partial<SingleOptimizationResumeIdentity> = {}
+): void => {
+  mkdirSync(options.workRoot, { recursive: true })
+  const identity: SingleOptimizationResumeIdentity = {
+    projectId: task.projectId,
+    sourceSessionId: task.sourceSessionId,
+    taskId: options.taskId,
+    input: {
+      task: { prompt: task.prompt, files: task.files },
+      harness: { instructions: 'Original harness', tools: 'workspace-only', skills: [] },
+      agent: {
+        backend: 'claude-code',
+        model: 'fixture',
+        providerRef: 'fixture',
+        runtimeVersion: 'fixture'
+      },
+      environment: { isolation: 'directory-process', network: 'provider-only' }
+    },
+    semanticCriteria: task.criteria,
+    executionLimit: task.executionLimit,
+    executionTimeoutMs: 120_000,
+    method: normalizeOptimizationMethod(task.method),
+    ...overrides
+  }
+  writeResumeJson(join(options.workRoot, 'resume.json'), {
+    schemaVersion: 1,
+    optimizationId: 'opt',
+    identity,
+    identityDigest: outputDigest(identity),
+    methodDigest: `sha256:${'a'.repeat(64)}`
+  })
+  writeFileSync(
+    join(options.workRoot, 'execution.json'),
+    JSON.stringify({
+      records: { prior: { phase: 'completed', cleanup } }
+    })
+  )
+}
 
 describe('DesktopOptimizationManager', () => {
+  it.each(['python', 'r'] as const)(
+    'restores the frozen %s language for a legacy Notebook experiment after reopen',
+    async (language) => {
+      const notebook = {
+        promptMessageId: 'source-prompt',
+        ...(language === 'r' ? { language } : {})
+      }
+      const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+        writeResumeFixture(options, 'confirmed', {
+          sourcePromptMessageId: notebook.promptMessageId,
+          input: notebookSnapshot(language)
+        })
+        if (!options.resume) throw new Error('Interrupted original experiment')
+        return complete
+      })
+      const f = fixture(run, {
+        createOptions: vi.fn(
+          async () =>
+            ({ input: notebookSnapshot(language) }) as unknown as PersistentOptimizationOptions
+        )
+      })
+      const started = await f.manager.start({ ...task, files: [], notebook })
+      await vi.waitFor(async () =>
+        expect(await f.manager.get(key(started.runId))).toMatchObject({
+          state: 'failed',
+          resumeAvailable: true
+        })
+      )
+      const original = run.mock.calls[0]![0]
+      const reopened = new DesktopOptimizationManager(f.options)
+      await reopened.resume(key(started.runId))
+      await vi.waitFor(async () =>
+        expect((await reopened.get(key(started.runId))).state).toBe('completed')
+      )
+      expect(f.options.createOptions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ notebook }),
+        expect.any(AbortSignal)
+      )
+      const requests = vi.mocked(f.options.createOptions).mock.calls
+      expect(requests[requests.length - 1]![0].notebook).toStrictEqual(notebook)
+      expect(run).toHaveBeenCalledTimes(2)
+      expect(run.mock.calls[1]![0]).toMatchObject({
+        resume: true,
+        taskId: original.taskId,
+        workRoot: original.workRoot,
+        executionLimit: task.executionLimit
+      })
+    }
+  )
+
+  it('refuses legacy Notebook resume when the frozen profile and runtime languages disagree', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      writeResumeFixture(options)
+      const filename = join(options.workRoot, 'resume.json')
+      const manifest = JSON.parse(readFileSync(filename, 'utf8'))
+      manifest.identity.sourcePromptMessageId = 'source-prompt'
+      manifest.identity.input.task = {
+        prompt: task.prompt,
+        files: [],
+        managedInputs: [notebookInput]
+      }
+      manifest.identity.input.harness.tools = 'notebook-r'
+      manifest.identity.input.environment.notebook = { runtime: { language: 'python' } }
+      manifest.identityDigest = outputDigest(manifest.identity)
+      writeResumeJson(filename, manifest)
+      throw new Error('Interrupted original experiment')
+    })
+    const f = fixture(run, {
+      createOptions: vi.fn(
+        async () => ({ input: notebookSnapshot('r') }) as unknown as PersistentOptimizationOptions
+      )
+    })
+    const started = await f.manager.start({
+      ...task,
+      files: [],
+      notebook: { promptMessageId: 'source-prompt', language: 'r' }
+    })
+    await vi.waitFor(async () =>
+      expect((await f.manager.get(key(started.runId))).state).toBe('failed')
+    )
+    const reopened = new DesktopOptimizationManager(f.options)
+    expect((await reopened.get(key(started.runId))).resumeAvailable).not.toBe(true)
+    await expect(reopened.resume(key(started.runId))).rejects.toThrow(
+      'Original Notebook profile differs from its frozen runtime language'
+    )
+    expect(f.options.createOptions).toHaveBeenCalledTimes(1)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('resumes only the original stopped experiment after reopen, retaining its task, path and budget', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      // This seam tests desktop authority/forwarding; the original runner validates the real
+      // descriptor and owners in its separate native resume integration tests.
+      writeResumeFixture(options)
+      if (!options.resume) {
+        await new Promise<void>((resolve) =>
+          options.signal!.addEventListener('abort', () => resolve(), { once: true })
+        )
+        throw new Error('Stopped original experiment')
+      }
+      return complete
+    })
+    const f = fixture(run)
+    const started = await f.manager.start(task)
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1))
+    const original = run.mock.calls[0]![0]
+    await f.manager.stop(key(started.runId))
+    await vi.waitFor(async () =>
+      expect(await f.manager.get(key(started.runId))).toMatchObject({
+        state: 'cancelled',
+        resumeAvailable: true
+      })
+    )
+    const reopened = new DesktopOptimizationManager(f.options)
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(await reopened.latest(task)).toMatchObject({ resumeAvailable: true })
+    await reopened.resume(key(started.runId))
+    await vi.waitFor(async () =>
+      expect((await reopened.get(key(started.runId))).state).toBe('completed')
+    )
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(run.mock.calls[1]![0]).toMatchObject({
+      resume: true,
+      taskId: original.taskId,
+      workRoot: original.workRoot,
+      executionLimit: task.executionLimit,
+      semanticCriteria: task.criteria
+    })
+    expect(f.options.createOptions).toHaveBeenLastCalledWith(
+      { ...task, method: normalizeOptimizationMethod(task.method) },
+      expect.any(AbortSignal)
+    )
+    expect(await reopened.resume(key(started.runId))).toMatchObject({ state: 'completed' })
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(await reopened.get(key(started.runId)))).not.toContain(task.prompt)
+    expect(readFileSync(join(f.root, started.runId, 'desktop.json'), 'utf8')).not.toContain(
+      task.prompt
+    )
+  })
+
+  it('refuses a stopped experiment whose original physical cleanup is unknown', async () => {
+    const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+      writeResumeFixture(options, 'unknown')
+      throw new Error('Owner evidence unavailable')
+    })
+    const f = fixture(run)
+    const started = await f.manager.start(task)
+    await vi.waitFor(async () =>
+      expect((await f.manager.get(key(started.runId))).state).toBe('failed')
+    )
+    expect((await f.manager.get(key(started.runId))).resumeAvailable).not.toBe(true)
+    await expect(f.manager.resume(key(started.runId))).rejects.toThrow('cannot be resumed safely')
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
   it('retains resolved source provenance and domain files instead of overwriting them with the raw desktop DTO', async () => {
     const inputArtifacts = [
       {
@@ -129,7 +361,22 @@ describe('DesktopOptimizationManager', () => {
     ).rejects.toThrow('conflicts')
     expect(options.createOptions).toHaveBeenCalledOnce()
   })
-  it('projects committed role admissions, includes assessment costs and persists readable completion without replay', async () => {
+  it('persists usage coverage and reviewer admissions without replay on reopen', async () => {
+    const measured = record('b', 'baseline', 'completed')
+    measured.identity.promptMessageId = 'prompt'
+    measured.usage = {
+      status: 'known',
+      inputTokens: 7,
+      cacheTokens: 5,
+      outputTokens: 4,
+      modelTurns: 2,
+      source: {
+        scope: 'logical-prompt',
+        sessionId: 'session-b',
+        promptMessageId: 'prompt',
+        ownerMessageId: 'answer'
+      }
+    }
     const run = vi.fn(async (options: PersistentOptimizationOptions) => {
       options.onProgress!({
         optimizationId: 'opt',
@@ -144,7 +391,7 @@ describe('DesktopOptimizationManager', () => {
       await Promise.resolve()
       return {
         ...complete,
-        records: [record('b', 'baseline', 'completed'), record('r', 'reviewer', 'completed')]
+        records: [measured, record('r', 'reviewer', 'completed')]
       }
     })
     const { manager, options, release, root } = fixture(run)
@@ -154,6 +401,19 @@ describe('DesktopOptimizationManager', () => {
     )
     const progress = await manager.get(key(admitted.runId))
     expect(progress.budget).toEqual({ limit: 9, admitted: 2, completed: 2, active: 0 })
+    expect(progress.usage).toMatchObject({
+      admittedExecutions: 2,
+      tokens: {
+        status: 'partial',
+        coveredExecutions: 1,
+        inputTokens: 7,
+        cacheTokens: 5,
+        outputTokens: 4
+      },
+      modelTurns: { status: 'partial', coveredExecutions: 1, total: 2 },
+      apiRequests: { status: 'unknown', coveredExecutions: 0 },
+      costMicrousd: { status: 'unknown', coveredExecutions: 0 }
+    })
     expect(progress.assessments?.candidate.score).toBe(90)
     expect(release).toHaveBeenCalledOnce()
     expect(run.mock.calls[0][0]).toMatchObject({
@@ -535,4 +795,208 @@ it('retains an earlier task outcome when the shared domain stream is stopped bef
   expect((await manager.get(key(initial.runId))).domain).toEqual(summary)
   expect(release).toHaveBeenCalledOnce()
   expect(await manager.shutdown()).toEqual({ reaped: true })
+})
+
+const previewDto = {
+  projectId: 'project',
+  sourceSessionId: 'source',
+  catalog: [{ taskId: 'a', domain: 'd' }],
+  sweep: {
+    modes: ['parallel' as const],
+    k: 1,
+    concurrency: 1,
+    stream: { seed: null, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+const previewResult = {
+  planDigest: 'sha256:fixed',
+  order: [{ domain: 'd', taskIds: ['a'] }],
+  modes: ['parallel' as const],
+  minimumExecutions: 10
+}
+it('previews without creating persistent runs, invoking Core or occupying start admission', async () => {
+  const previewSweep = vi.fn().mockResolvedValue(previewResult),
+    run = vi.fn()
+  const { manager, options, root } = fixture(run, { previewSweep })
+  expect(await manager.previewSweep(previewDto)).toEqual(previewResult)
+  expect(previewSweep).toHaveBeenCalledWith(previewDto, expect.any(AbortSignal))
+  expect(options.createOptions).not.toHaveBeenCalled()
+  expect(run).not.toHaveBeenCalled()
+  expect(readdirSync(root)).toEqual([])
+  expect(manager.hasActiveWork()).toBe(false)
+})
+it('rejects cross-project/extra-field previews before original planning', async () => {
+  const previewSweep = vi.fn(),
+    validateSession = vi.fn(async (projectId: string) => {
+      if (projectId !== 'project') throw new Error('wrong project')
+    })
+  const { manager } = fixture(vi.fn(), { previewSweep, validateSession })
+  await expect(manager.previewSweep({ ...previewDto, projectId: 'other' })).rejects.toThrow(
+    'wrong project'
+  )
+  await expect(
+    manager.previewSweep({ ...previewDto, provider: 'secret' } as typeof previewDto)
+  ).rejects.toThrow()
+  expect(previewSweep).not.toHaveBeenCalled()
+})
+it.each(['shutdown', 'prepareForUpdateGate'] as const)(
+  'cancels active preview and waits for physical settlement during %s',
+  async (operation) => {
+    let finish!: () => void, signal!: AbortSignal
+    const previewSweep = vi.fn((_request, originalSignal: AbortSignal) => {
+      signal = originalSignal
+      return new Promise<typeof previewResult>((resolve) => {
+        finish = () => resolve(previewResult)
+      })
+    })
+    const { manager } = fixture(vi.fn(), { previewSweep })
+    const preview = manager.previewSweep(previewDto)
+    const rejected = expect(preview).rejects.toThrow()
+    await vi.waitFor(() => expect(previewSweep).toHaveBeenCalledOnce())
+    expect(manager.hasActiveWork()).toBe(true)
+    let settled = false
+    const stopping = manager[operation]().then((outcome) => {
+      settled = true
+      return outcome
+    })
+    expect(signal.aborted).toBe(true)
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    await expect(manager.previewSweep(previewDto)).rejects.toThrow('closed')
+    finish()
+    expect(await stopping).toEqual({ reaped: true })
+    await rejected
+    expect(manager.hasActiveWork()).toBe(false)
+    if (operation === 'prepareForUpdateGate') {
+      manager.releaseUpdateGate()
+      previewSweep.mockResolvedValueOnce(previewResult)
+      expect(await manager.previewSweep(previewDto)).toEqual(previewResult)
+    }
+  }
+)
+it('does not launch a preview after close during authorization', async () => {
+  let release!: () => void
+  const validateSession = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve
+        })
+    ),
+    previewSweep = vi.fn()
+  const { manager } = fixture(vi.fn(), { validateSession, previewSweep })
+  const pending = manager.previewSweep(previewDto)
+  const rejected = expect(pending).rejects.toThrow()
+  await vi.waitFor(() => expect(validateSession).toHaveBeenCalledOnce())
+  const closing = manager.shutdown()
+  release()
+  expect(await closing).toEqual({ reaped: true })
+  await rejected
+  expect(previewSweep).not.toHaveBeenCalled()
+})
+it('Stop remains available while preview is pending and does not wait on its subprocess', async () => {
+  let endPreview!: () => void
+  const previewSweep = vi.fn(
+    () =>
+      new Promise<typeof previewResult>((resolve) => {
+        endPreview = () => resolve(previewResult)
+      })
+  )
+  const run = vi.fn(async (options: PersistentOptimizationOptions) => {
+    await new Promise<void>((resolve) =>
+      options.signal!.addEventListener('abort', () => resolve(), { once: true })
+    )
+    throw new Error('cancelled')
+  })
+  const { manager } = fixture(run, { previewSweep })
+  const started = await manager.start(task)
+  await vi.waitFor(() => expect(run).toHaveBeenCalledOnce())
+  const pending = manager.previewSweep(previewDto)
+  await vi.waitFor(() => expect(previewSweep).toHaveBeenCalledOnce())
+  expect((await manager.stop(key(started.runId))).state).toBe('stopping')
+  await vi.waitFor(async () =>
+    expect((await manager.get(key(started.runId))).state).toBe('cancelled')
+  )
+  expect(manager.hasActiveWork()).toBe(true)
+  endPreview()
+  await pending
+  expect(await manager.shutdown()).toEqual({ reaped: true })
+})
+
+it('persists a false execution boundary for original setup failure without fencing ordinary routing', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'earthnano-setup-boundary-'))
+  roots.push(root)
+  const configRoot = join(root, 'config'),
+    dataRoot = join(root, 'data')
+  mkdirSync(dataRoot)
+  const run = vi.fn()
+  const manager = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    executionRoot: () => join(dataRoot, 'earthnano', 'desktop-runs'),
+    validateSession: async () => undefined,
+    createOptions: async () => {
+      throw new Error('Original provider setup failed')
+    },
+    run
+  })
+  const started = await manager.start(task)
+  await vi.waitFor(async () => expect((await manager.get(key(started.runId))).state).toBe('failed'))
+  const desktop = JSON.parse(
+    readFileSync(join(configRoot, 'earthnano-desktop', started.runId, 'desktop.json'), 'utf8')
+  )
+  expect(desktop).toMatchObject({
+    executionStarted: false,
+    progress: { executions: [], budget: { admitted: 0 } }
+  })
+  const { readDesktopPrivateSessions } = await import('./desktop-candidate-owner-routing')
+  expect([...readDesktopPrivateSessions({ configRoot, dataRoot })]).toEqual([])
+  expect(run).not.toHaveBeenCalled()
+  const reopened = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    validateSession: async () => undefined,
+    createOptions: vi.fn()
+  })
+  expect((await reopened.get(key(started.runId))).state).toBe('failed')
+})
+it('flushes the possible-execution boundary before creating resources or entering the original runner', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'earthnano-start-boundary-'))
+  roots.push(root)
+  const configRoot = join(root, 'config'),
+    dataRoot = join(root, 'data')
+  mkdirSync(dataRoot)
+  const manager = new DesktopOptimizationManager({
+    root: join(configRoot, 'earthnano-desktop'),
+    executionRoot: () => {
+      const id = readdirSync(join(configRoot, 'earthnano-desktop'))[0]
+      const saved = JSON.parse(
+        readFileSync(join(configRoot, 'earthnano-desktop', id, 'desktop.json'), 'utf8')
+      )
+      expect(saved.executionStarted).toBe(true)
+      return join(dataRoot, 'earthnano', 'desktop-runs')
+    },
+    validateSession: async () => undefined,
+    createOptions: async () => ({}) as PersistentOptimizationOptions,
+    run: async () => {
+      throw new Error('Original runner failed before journal')
+    }
+  })
+  const started = await manager.start(task)
+  await vi.waitFor(async () => expect((await manager.get(key(started.runId))).state).toBe('failed'))
+  const { readDesktopPrivateSessions } = await import('./desktop-candidate-owner-routing')
+  expect(() => readDesktopPrivateSessions({ configRoot, dataRoot })).toThrow('unavailable')
+})
+it('rejects a malformed persisted execution boundary and retains legacy missing boundaries as unknown', async () => {
+  const f = fixture(async () => complete)
+  const started = await f.manager.start(task)
+  await vi.waitFor(async () =>
+    expect((await f.manager.get(key(started.runId))).state).toBe('completed')
+  )
+  const path = join(f.root, started.runId, 'desktop.json'),
+    saved = JSON.parse(readFileSync(path, 'utf8'))
+  saved.executionStarted = 'false'
+  writeFileSync(path, JSON.stringify(saved))
+  expect(() => new DesktopOptimizationManager(f.options)).toThrow('Invalid persisted')
+  delete saved.executionStarted
+  writeFileSync(path, JSON.stringify(saved))
+  new DesktopOptimizationManager(f.options)
+  expect(JSON.parse(readFileSync(path, 'utf8')).executionStarted).toBeUndefined()
 })

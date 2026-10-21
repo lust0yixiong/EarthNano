@@ -1,0 +1,1105 @@
+{
+  "status": "passed",
+  "optimizationState": "completed",
+  "resume": {
+    "runId": "b60a16fc-f6af-4d00-b2db-2ceea8323b66",
+    "originalBudget": 24,
+    "stoppedAdmissions": 3,
+    "noCallsOnReopen": true,
+    "completedBeforeResume": [
+      "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5"
+    ]
+  },
+  "live": true,
+  "profile": "original-sweep-v2",
+  "progress": {
+    "runId": "b60a16fc-f6af-4d00-b2db-2ceea8323b66",
+    "projectId": "cmvgxhvc60000xj3w458l1723",
+    "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+    "state": "completed",
+    "stage": "completed",
+    "updatedAt": 1792515790696,
+    "executions": [
+      {
+        "executionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "b171e18e-4cac-4ec7-854d-34005c6dda8a"
+      },
+      {
+        "executionId": "1aa96a5f-b7e6-43cc-9865-604b2353f554",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "cancelled",
+        "sessionId": "62094198-6810-4a81-8000-2110739580b8"
+      },
+      {
+        "executionId": "e7837f87-c33e-4b94-b180-c3c6ea5d21b6",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "cancelled",
+        "sessionId": "ed18c0b0-211e-4af4-a754-09762c4fd556"
+      },
+      {
+        "executionId": "ef2de40d-086c-45b8-9c5e-a8a9595ae804",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "b52c0548-7a54-4159-89be-3218454ec388"
+      },
+      {
+        "executionId": "e2793d74-308f-4257-af5b-012192ccb9f4",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "b8e2d0e6-428d-480c-9e2f-544f31f67eed"
+      },
+      {
+        "executionId": "de8df0db-6c40-4a81-866a-fd3dc9d25506",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "e30ebf10-dfb8-40de-9305-e076b5b86c41"
+      },
+      {
+        "executionId": "1c9106a4-bfae-4bc0-a1d0-4b898add35d0",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "ebb8da12-979d-4b9e-a4fe-5ff4507aae54"
+      },
+      {
+        "executionId": "0ff8bb58-87c7-4c95-8fc6-9d660a81c3e5",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "188ceafa-2db7-4fee-9c27-9c6693420d0a"
+      },
+      {
+        "executionId": "8d616eb7-fa02-40a8-a40a-5779eb979c5d",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "02b81ef5-0f9d-455a-adaf-efc9cfff2a03"
+      },
+      {
+        "executionId": "ea2f3a9b-50ee-451c-a8a7-e2b3282c9d25",
+        "role": "reflection",
+        "stageId": "experience.agg1",
+        "phase": "completed",
+        "sessionId": "2fda443e-8ab0-4b53-b596-25587a40aeb0"
+      },
+      {
+        "executionId": "5dc7aac0-c4c0-4803-a599-9731411faef6",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "12e1bd61-cc6c-4861-ba08-9e1c5174f765"
+      },
+      {
+        "executionId": "d4dd4720-9dc9-4456-9e61-d78596fd0898",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "a6adfdbd-6e06-49cb-9ed9-40b9df248061"
+      },
+      {
+        "executionId": "cee50999-e822-4bdc-b635-faa3efa98bb4",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "bb15c099-e706-4e75-aa99-3936fd97ae6f"
+      },
+      {
+        "executionId": "16d3e2ed-ad31-4a5f-807e-ee2fd0d73485",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "b3b95897-72e4-408f-b92f-149004fa0f37"
+      },
+      {
+        "executionId": "4b7bd9aa-3387-4176-b5f1-8b694089f17c",
+        "role": "composer",
+        "stageId": "c1",
+        "phase": "completed",
+        "sessionId": "9bf53fdf-f48c-4d1d-a6af-1bada36552b5"
+      },
+      {
+        "executionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+        "role": "candidate",
+        "stageId": "c1",
+        "phase": "completed",
+        "sessionId": "a2972af5-ffc1-49cb-a9f6-78c464af6b01"
+      },
+      {
+        "executionId": "0d23d417-df41-4899-a839-594cebc7a69e",
+        "role": "reflection",
+        "stageId": "experience.seq1",
+        "phase": "completed",
+        "sessionId": "17368e4e-c19e-411b-b233-21dbe8a59345"
+      },
+      {
+        "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+        "role": "reviewer",
+        "stageId": "semantic:c9538fdc-750e-4239-b039-c6ef0836e123",
+        "phase": "completed",
+        "sessionId": "ad27d69d-0149-49d2-b976-634e83843c44"
+      },
+      {
+        "executionId": "19694145-5d2d-4ebb-b9b5-2e8b17bb2864",
+        "role": "reviewer",
+        "stageId": "semantic:d19bc018-1370-44d7-b8e2-67cfaa313063",
+        "phase": "completed",
+        "sessionId": "b51a9c8b-53ec-45c4-bf85-1db6ace4bd47"
+      },
+      {
+        "executionId": "78972c9e-2dd9-4ddb-a659-a6d6b5f1d8cd",
+        "role": "reviewer",
+        "stageId": "semantic:fc1bfa94-f5a8-4623-922e-e2131900f1f8",
+        "phase": "completed",
+        "sessionId": "4131c985-54c4-4fbd-b89f-e47acb6daadf"
+      }
+    ],
+    "budget": {
+      "limit": 24,
+      "admitted": 20,
+      "completed": 20,
+      "active": 0
+    },
+    "usage": {
+      "admittedExecutions": 20,
+      "ambiguousExecutions": 0,
+      "tokens": {
+        "status": "partial",
+        "coveredExecutions": 18,
+        "inputTokens": 328464,
+        "cacheTokens": 1008128,
+        "outputTokens": 33028
+      },
+      "modelTurns": {
+        "status": "partial",
+        "coveredExecutions": 18,
+        "total": 128
+      },
+      "apiRequests": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      },
+      "costMicrousd": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      }
+    },
+    "sweep": {
+      "planDigest": "sha256:47040aee59a55fb845f7456a1ce4cc4d19e9d1f32848fb8e46e713ebe7038530",
+      "order": [
+        {
+          "domain": "research",
+          "taskIds": [
+            "task-0001"
+          ]
+        }
+      ],
+      "modes": [
+        "parallel",
+        "sequential"
+      ],
+      "domains": [
+        {
+          "mode": "parallel",
+          "summary": {
+            "name": "research",
+            "order": [
+              "task-0001"
+            ],
+            "tasks": [
+              {
+                "taskId": "task-0001",
+                "selection": {
+                  "chosenLabel": "agg1",
+                  "candidateCount": 1,
+                  "trivial": true,
+                  "fallback": false,
+                  "reason": "trivial pool: single final at k=1; delivered without a selector session"
+                },
+                "assessments": {
+                  "baseline": {
+                    "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+                    "targetExecutionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+                    "reviewId": "cmvgxly0t000uxjvb53v2kras",
+                    "outcome": "pass",
+                    "score": 95,
+                    "rationale": "The only frozen criterion (c1) requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv is available (status \"available\", digest sha256:2935c5f6...4740) and contains three labeled observations with values 2, 4, 6. Independently recomputing: count = 3, sum = 2+4+6 = 12.0, arithmetic mean = 12/3 = 4.0. The sole published target artifact research-results.json contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}, which matches all three independently derived values. No extra artifacts were supplied, consistent with the instruction not to create extras. All source evidence was available, so no verification gap limits this assessment. The score is a model judgment, not a proven fact."
+                  },
+                  "candidate": {
+                    "executionId": "19694145-5d2d-4ebb-b9b5-2e8b17bb2864",
+                    "targetExecutionId": "8d616eb7-fa02-40a8-a40a-5779eb979c5d",
+                    "reviewId": "cmvgxm4t6000yxjvbx1lck2tq",
+                    "outcome": "pass",
+                    "score": 95,
+                    "rationale": "The single frozen criterion c1 requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv (version 23495014-e778-44e8-987d-6e7e19f87a90, checksum 2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740, status available) has the content \"sample,value\\nA,2\\nB,4\\nC,6\\n\", i.e. three data rows with values 2, 4 and 6. Recomputing: count = 3, sum = 2+4+6 = 12 (12.0), mean = 12/3 = 4.0. The sole target artifact research-results.json (artifactRef 0e2447dd-0e6d-4f0b-90db-2a5d5ddfae8b / a260e0ae-6d54-4394-accf-d62dd8d65fb1 / 606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6) contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. All three required numeric keys are present with the correct values matching an independent recomputation from the full available source content. The work product is a bare results file; the task's publication/runbook steps are process requirements not part of the frozen criterion text, and the artifact's version/checksum provenance is intact. Hence c1 passes. Score reflects only that the file contains raw data with no additional interpretive context, which is outside the criterion and not penalized. The score is a model judgment, not a proven fact; the underlying execution steps were not independently re-run."
+                  }
+                },
+                "outcome": {
+                  "artifact": {
+                    "status": "passed",
+                    "checks": [
+                      {
+                        "path": "research-results.json",
+                        "pointer": "",
+                        "artifactRef": {
+                          "artifactId": "0e2447dd-0e6d-4f0b-90db-2a5d5ddfae8b",
+                          "versionId": "a260e0ae-6d54-4394-accf-d62dd8d65fb1",
+                          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+                        },
+                        "status": "pass",
+                        "reason": "matched"
+                      }
+                    ],
+                    "reviewId": "cmvgxm4tn0010xjvb3v0x7bli"
+                  },
+                  "configuration": {
+                    "status": "eligible",
+                    "reasons": [],
+                    "harnessRevisionRef": {
+                      "id": "candidate:harness:106f31dc5866b6415fa31506e0cb78e9559b7636984d0ee8f1d2546871bd0496",
+                      "version": "1",
+                      "digest": "sha256:106f31dc5866b6415fa31506e0cb78e9559b7636984d0ee8f1d2546871bd0496"
+                    }
+                  }
+                }
+              }
+            ],
+            "library": {
+              "scope": "experiment",
+              "entries": [],
+              "digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          }
+        },
+        {
+          "mode": "sequential",
+          "summary": {
+            "name": "research",
+            "order": [
+              "task-0001"
+            ],
+            "tasks": [
+              {
+                "taskId": "task-0001",
+                "selection": {
+                  "chosenLabel": "c1",
+                  "candidateCount": 1,
+                  "trivial": true,
+                  "fallback": false,
+                  "reason": "trivial pool: single final at k=1; delivered without a selector session"
+                },
+                "experience": {
+                  "scope": "experiment",
+                  "reflectionExecutionId": "0d23d417-df41-4899-a839-594cebc7a69e",
+                  "reflectionArtifacts": [
+                    {
+                      "artifactId": "9ab6b269-288a-46df-91a2-a46da5ba430f",
+                      "versionId": "d5691a09-61e1-4707-ae3e-6dc084d7c046",
+                      "checksum": "67c75af8a8482684f55ed3843bf1bf23a57edd8849c33bad6ae667aa6e90842a"
+                    }
+                  ],
+                  "selectedExecutionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+                  "selectedHarnessRevisionRef": {
+                    "id": "candidate:harness:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b",
+                    "version": "1",
+                    "digest": "sha256:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b"
+                  },
+                  "libraryDigest": "sha256:a3506350f625b5d8494bdbbe5beba2254ac93ae4d409f835d51f543ece5f338b"
+                },
+                "assessments": {
+                  "baseline": {
+                    "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+                    "targetExecutionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+                    "reviewId": "cmvgxly0t000uxjvb53v2kras",
+                    "outcome": "pass",
+                    "score": 95,
+                    "rationale": "The only frozen criterion (c1) requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv is available (status \"available\", digest sha256:2935c5f6...4740) and contains three labeled observations with values 2, 4, 6. Independently recomputing: count = 3, sum = 2+4+6 = 12.0, arithmetic mean = 12/3 = 4.0. The sole published target artifact research-results.json contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}, which matches all three independently derived values. No extra artifacts were supplied, consistent with the instruction not to create extras. All source evidence was available, so no verification gap limits this assessment. The score is a model judgment, not a proven fact."
+                  },
+                  "candidate": {
+                    "executionId": "78972c9e-2dd9-4ddb-a659-a6d6b5f1d8cd",
+                    "targetExecutionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+                    "reviewId": "cmvgxmbz50014xjvb8xnc51tf",
+                    "outcome": "pass",
+                    "score": 98,
+                    "rationale": "The single frozen criterion c1 requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source evidence (sources.json, status available, measurements.csv version 23495014-e778-44e8-987d-6e7e19f87a90) contains 'sample,value\\nA,2\\nB,4\\nC,6\\n', i.e. three numeric observations with values 2, 4 and 6. Independently computing: count = 3, sum = 2+4+6 = 12, mean = 12/3 = 4. The sole published target artifact research-results.json (artifactId 09ea7218-d8d4-442b-9ff8-2b4229246142, versionId 13d9017a-73c1-4841-947a-f45c56cb89a3, checksum sha256:606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6, identical to the artifact digest) contains the JSON object {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. Every value matches the independent computation, keys are numeric and correctly named per the task (count, sum, mean), and no extra artifacts were supplied. Note: sum and mean are JSON numbers written with a .0 decimal (12.0, 4.0); this is numerically equal to 12 and 4 and does not affect correctness. The assessment is limited to the supplied evidence: only the final artifact content and source content are available, so the reviewer cannot independently confirm that the values were produced via the requested Python csv/statistics tools, that the Notebook runtime was bound, or that write_artifact_file was used, but the criterion concerns the published report's values, which are verifiably correct."
+                  }
+                },
+                "outcome": {
+                  "artifact": {
+                    "status": "passed",
+                    "checks": [
+                      {
+                        "path": "research-results.json",
+                        "pointer": "",
+                        "artifactRef": {
+                          "artifactId": "09ea7218-d8d4-442b-9ff8-2b4229246142",
+                          "versionId": "13d9017a-73c1-4841-947a-f45c56cb89a3",
+                          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+                        },
+                        "status": "pass",
+                        "reason": "matched"
+                      }
+                    ],
+                    "reviewId": "cmvgxmbzr0016xjvbna3dvtrn"
+                  },
+                  "configuration": {
+                    "status": "eligible",
+                    "reasons": [],
+                    "harnessRevisionRef": {
+                      "id": "candidate:harness:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b",
+                      "version": "1",
+                      "digest": "sha256:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b"
+                    }
+                  }
+                }
+              }
+            ],
+            "library": {
+              "scope": "experiment",
+              "entries": [
+                "task-0001"
+              ],
+              "digest": "sha256:b028f32e7ff06ff2a25719703666cde7fb25844abe0a882c1ae8c0e09d07cd86"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sourceArtifact": {
+    "artifactId": "7e84a983-5747-404b-ab15-46a2c76d931d",
+    "versionId": "7956a75e-118a-475d-9e7c-be85bebfdc47",
+    "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792515590970-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "executionFacts": [
+    {
+      "executionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+      "role": "baseline",
+      "stageId": "base1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "1aa96a5f-b7e6-43cc-9865-604b2353f554",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "e7837f87-c33e-4b94-b180-c3c6ea5d21b6",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "ef2de40d-086c-45b8-9c5e-a8a9595ae804",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "e2793d74-308f-4257-af5b-012192ccb9f4",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "de8df0db-6c40-4a81-866a-fd3dc9d25506",
+      "role": "candidate",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "1c9106a4-bfae-4bc0-a1d0-4b898add35d0",
+      "role": "candidate",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0ff8bb58-87c7-4c95-8fc6-9d660a81c3e5",
+      "role": "composer",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8d616eb7-fa02-40a8-a40a-5779eb979c5d",
+      "role": "candidate",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "ea2f3a9b-50ee-451c-a8a7-e2b3282c9d25",
+      "role": "reflection",
+      "stageId": "experience.agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5dc7aac0-c4c0-4803-a599-9731411faef6",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "d4dd4720-9dc9-4456-9e61-d78596fd0898",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "cee50999-e822-4bdc-b635-faa3efa98bb4",
+      "role": "candidate",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "16d3e2ed-ad31-4a5f-807e-ee2fd0d73485",
+      "role": "candidate",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "4b7bd9aa-3387-4176-b5f1-8b694089f17c",
+      "role": "composer",
+      "stageId": "c1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+      "role": "candidate",
+      "stageId": "c1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0d23d417-df41-4899-a839-594cebc7a69e",
+      "role": "reflection",
+      "stageId": "experience.seq1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+      "role": "reviewer",
+      "stageId": "semantic:c9538fdc-750e-4239-b039-c6ef0836e123",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "19694145-5d2d-4ebb-b9b5-2e8b17bb2864",
+      "role": "reviewer",
+      "stageId": "semantic:d19bc018-1370-44d7-b8e2-67cfaa313063",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "78972c9e-2dd9-4ddb-a659-a6d6b5f1d8cd",
+      "role": "reviewer",
+      "stageId": "semantic:fc1bfa94-f5a8-4623-922e-e2131900f1f8",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    }
+  ],
+  "sweep": {
+    "sharedBaseline": true,
+    "sharedBaselineAssessment": true,
+    "separateModeAssessments": true,
+    "originalRunSweep": true,
+    "namespaceVersion": 2,
+    "summaries": [
+      {
+        "mode": "parallel",
+        "task": {
+          "taskId": "task-0001",
+          "selection": {
+            "chosenLabel": "agg1",
+            "candidateCount": 1,
+            "trivial": true,
+            "fallback": false,
+            "reason": "trivial pool: single final at k=1; delivered without a selector session"
+          },
+          "assessments": {
+            "baseline": {
+              "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+              "targetExecutionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+              "reviewId": "cmvgxly0t000uxjvb53v2kras",
+              "outcome": "pass",
+              "score": 95,
+              "rationale": "The only frozen criterion (c1) requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv is available (status \"available\", digest sha256:2935c5f6...4740) and contains three labeled observations with values 2, 4, 6. Independently recomputing: count = 3, sum = 2+4+6 = 12.0, arithmetic mean = 12/3 = 4.0. The sole published target artifact research-results.json contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}, which matches all three independently derived values. No extra artifacts were supplied, consistent with the instruction not to create extras. All source evidence was available, so no verification gap limits this assessment. The score is a model judgment, not a proven fact."
+            },
+            "candidate": {
+              "executionId": "19694145-5d2d-4ebb-b9b5-2e8b17bb2864",
+              "targetExecutionId": "8d616eb7-fa02-40a8-a40a-5779eb979c5d",
+              "reviewId": "cmvgxm4t6000yxjvbx1lck2tq",
+              "outcome": "pass",
+              "score": 95,
+              "rationale": "The single frozen criterion c1 requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv (version 23495014-e778-44e8-987d-6e7e19f87a90, checksum 2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740, status available) has the content \"sample,value\\nA,2\\nB,4\\nC,6\\n\", i.e. three data rows with values 2, 4 and 6. Recomputing: count = 3, sum = 2+4+6 = 12 (12.0), mean = 12/3 = 4.0. The sole target artifact research-results.json (artifactRef 0e2447dd-0e6d-4f0b-90db-2a5d5ddfae8b / a260e0ae-6d54-4394-accf-d62dd8d65fb1 / 606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6) contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. All three required numeric keys are present with the correct values matching an independent recomputation from the full available source content. The work product is a bare results file; the task's publication/runbook steps are process requirements not part of the frozen criterion text, and the artifact's version/checksum provenance is intact. Hence c1 passes. Score reflects only that the file contains raw data with no additional interpretive context, which is outside the criterion and not penalized. The score is a model judgment, not a proven fact; the underlying execution steps were not independently re-run."
+            }
+          },
+          "outcome": {
+            "artifact": {
+              "status": "passed",
+              "checks": [
+                {
+                  "path": "research-results.json",
+                  "pointer": "",
+                  "artifactRef": {
+                    "artifactId": "0e2447dd-0e6d-4f0b-90db-2a5d5ddfae8b",
+                    "versionId": "a260e0ae-6d54-4394-accf-d62dd8d65fb1",
+                    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+                  },
+                  "status": "pass",
+                  "reason": "matched"
+                }
+              ],
+              "reviewId": "cmvgxm4tn0010xjvb3v0x7bli"
+            },
+            "configuration": {
+              "status": "eligible",
+              "reasons": [],
+              "harnessRevisionRef": {
+                "id": "candidate:harness:106f31dc5866b6415fa31506e0cb78e9559b7636984d0ee8f1d2546871bd0496",
+                "version": "1",
+                "digest": "sha256:106f31dc5866b6415fa31506e0cb78e9559b7636984d0ee8f1d2546871bd0496"
+              }
+            }
+          }
+        }
+      },
+      {
+        "mode": "sequential",
+        "task": {
+          "taskId": "task-0001",
+          "selection": {
+            "chosenLabel": "c1",
+            "candidateCount": 1,
+            "trivial": true,
+            "fallback": false,
+            "reason": "trivial pool: single final at k=1; delivered without a selector session"
+          },
+          "experience": {
+            "scope": "experiment",
+            "reflectionExecutionId": "0d23d417-df41-4899-a839-594cebc7a69e",
+            "reflectionArtifacts": [
+              {
+                "artifactId": "9ab6b269-288a-46df-91a2-a46da5ba430f",
+                "versionId": "d5691a09-61e1-4707-ae3e-6dc084d7c046",
+                "checksum": "67c75af8a8482684f55ed3843bf1bf23a57edd8849c33bad6ae667aa6e90842a"
+              }
+            ],
+            "selectedExecutionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+            "selectedHarnessRevisionRef": {
+              "id": "candidate:harness:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b",
+              "version": "1",
+              "digest": "sha256:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b"
+            },
+            "libraryDigest": "sha256:a3506350f625b5d8494bdbbe5beba2254ac93ae4d409f835d51f543ece5f338b"
+          },
+          "assessments": {
+            "baseline": {
+              "executionId": "1a4d317b-51f9-46bb-9752-0d8a230fa2e6",
+              "targetExecutionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+              "reviewId": "cmvgxly0t000uxjvb53v2kras",
+              "outcome": "pass",
+              "score": 95,
+              "rationale": "The only frozen criterion (c1) requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source measurements.csv is available (status \"available\", digest sha256:2935c5f6...4740) and contains three labeled observations with values 2, 4, 6. Independently recomputing: count = 3, sum = 2+4+6 = 12.0, arithmetic mean = 12/3 = 4.0. The sole published target artifact research-results.json contains exactly {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}, which matches all three independently derived values. No extra artifacts were supplied, consistent with the instruction not to create extras. All source evidence was available, so no verification gap limits this assessment. The score is a model judgment, not a proven fact."
+            },
+            "candidate": {
+              "executionId": "78972c9e-2dd9-4ddb-a659-a6d6b5f1d8cd",
+              "targetExecutionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+              "reviewId": "cmvgxmbz50014xjvb8xnc51tf",
+              "outcome": "pass",
+              "score": 98,
+              "rationale": "The single frozen criterion c1 requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The source evidence (sources.json, status available, measurements.csv version 23495014-e778-44e8-987d-6e7e19f87a90) contains 'sample,value\\nA,2\\nB,4\\nC,6\\n', i.e. three numeric observations with values 2, 4 and 6. Independently computing: count = 3, sum = 2+4+6 = 12, mean = 12/3 = 4. The sole published target artifact research-results.json (artifactId 09ea7218-d8d4-442b-9ff8-2b4229246142, versionId 13d9017a-73c1-4841-947a-f45c56cb89a3, checksum sha256:606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6, identical to the artifact digest) contains the JSON object {\"count\": 3, \"sum\": 12.0, \"mean\": 4.0}. Every value matches the independent computation, keys are numeric and correctly named per the task (count, sum, mean), and no extra artifacts were supplied. Note: sum and mean are JSON numbers written with a .0 decimal (12.0, 4.0); this is numerically equal to 12 and 4 and does not affect correctness. The assessment is limited to the supplied evidence: only the final artifact content and source content are available, so the reviewer cannot independently confirm that the values were produced via the requested Python csv/statistics tools, that the Notebook runtime was bound, or that write_artifact_file was used, but the criterion concerns the published report's values, which are verifiably correct."
+            }
+          },
+          "outcome": {
+            "artifact": {
+              "status": "passed",
+              "checks": [
+                {
+                  "path": "research-results.json",
+                  "pointer": "",
+                  "artifactRef": {
+                    "artifactId": "09ea7218-d8d4-442b-9ff8-2b4229246142",
+                    "versionId": "13d9017a-73c1-4841-947a-f45c56cb89a3",
+                    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+                  },
+                  "status": "pass",
+                  "reason": "matched"
+                }
+              ],
+              "reviewId": "cmvgxmbzr0016xjvbna3dvtrn"
+            },
+            "configuration": {
+              "status": "eligible",
+              "reasons": [],
+              "harnessRevisionRef": {
+                "id": "candidate:harness:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b",
+                "version": "1",
+                "digest": "sha256:a698dd9866fa2513e232eca26f6ff5f3a3ec2e591e769ec2d0f67c3e555f634b"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "usage": {
+    "ordinary": {
+      "status": "known",
+      "inputTokens": 40147,
+      "cacheTokens": 156416,
+      "outputTokens": 520,
+      "cachedReadTokens": 156416,
+      "cachedWriteTokens": 0,
+      "modelTurns": 5,
+      "source": {
+        "scope": "logical-prompt",
+        "sessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+        "promptMessageId": "message-1792515582660-1",
+        "ownerMessageId": "message-stream-874aed20953869c0"
+      }
+    },
+    "optimization": {
+      "admittedExecutions": 20,
+      "ambiguousExecutions": 0,
+      "tokens": {
+        "status": "partial",
+        "coveredExecutions": 18,
+        "inputTokens": 328464,
+        "cacheTokens": 1008128,
+        "outputTokens": 33028
+      },
+      "modelTurns": {
+        "status": "partial",
+        "coveredExecutions": 18,
+        "total": 128
+      },
+      "apiRequests": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      },
+      "costMicrousd": {
+        "status": "unknown",
+        "coveredExecutions": 0
+      }
+    },
+    "originalOwnerCountersVerified": 19,
+    "scope": "Original root logical-prompt provider facts; incomplete cancellation usage excluded"
+  },
+  "identicalOriginalSourceEvidence": {
+    "schemaVersion": 1,
+    "profile": "bounded-utf8-v1",
+    "inputs": [
+      {
+        "input": {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        },
+        "status": "available",
+        "content": "sample,value\nA,2\nB,4\nC,6\n",
+        "digest": "sha256:2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+      }
+    ],
+    "digest": "sha256:8c89a8e00dd1b99eff429b11877c2ff57e5f911e992406b1048a076031bdb448"
+  },
+  "scientificRuns": [
+    {
+      "executionId": "4d6544bc-ee68-40ca-82ad-3aec7af1b3d5",
+      "role": "baseline",
+      "sessionId": "b171e18e-4cac-4ec7-854d-34005c6dda8a",
+      "computationRunId": "notebook-run-1792515604832-4",
+      "producerRunId": "notebook-run-1792515604832-4",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "756ee736-9a01-48a0-83b5-c0b3de409379",
+          "versionId": "a9b98465-f6c5-4cf9-9cd7-a704ca1ba7b0",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "de8df0db-6c40-4a81-866a-fd3dc9d25506",
+      "role": "candidate",
+      "sessionId": "e30ebf10-dfb8-40de-9305-e076b5b86c41",
+      "computationRunId": "notebook-run-1792515645330-3",
+      "producerRunId": "notebook-run-1792515645330-3",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "53fb3f7e-2ce5-4679-aac9-2faaed3812dc",
+          "versionId": "dff10c0c-33d4-41b8-8e96-b3758a5f9116",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "1c9106a4-bfae-4bc0-a1d0-4b898add35d0",
+      "role": "candidate",
+      "sessionId": "ebb8da12-979d-4b9e-a4fe-5ff4507aae54",
+      "computationRunId": "notebook-run-1792515645611-4",
+      "producerRunId": "notebook-run-1792515645611-4",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "ebaede4e-0f27-4b66-9467-e4435d92328d",
+          "versionId": "3ecdfbe2-ed6a-438f-9ab2-86b3afe65a25",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "8d616eb7-fa02-40a8-a40a-5779eb979c5d",
+      "role": "candidate",
+      "sessionId": "02b81ef5-0f9d-455a-adaf-efc9cfff2a03",
+      "computationRunId": "notebook-run-1792515672776-6",
+      "producerRunId": "notebook-run-1792515672776-6",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "0e2447dd-0e6d-4f0b-90db-2a5d5ddfae8b",
+          "versionId": "a260e0ae-6d54-4394-accf-d62dd8d65fb1",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "cee50999-e822-4bdc-b635-faa3efa98bb4",
+      "role": "candidate",
+      "sessionId": "bb15c099-e706-4e75-aa99-3936fd97ae6f",
+      "computationRunId": "notebook-run-1792515724606-8",
+      "producerRunId": "notebook-run-1792515724606-8",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "f05261df-3453-4040-b318-26b336b055ca",
+          "versionId": "97b7c582-afc4-4634-bf62-42d95d0b643e",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "16d3e2ed-ad31-4a5f-807e-ee2fd0d73485",
+      "role": "candidate",
+      "sessionId": "b3b95897-72e4-408f-b92f-149004fa0f37",
+      "computationRunId": "notebook-run-1792515726835-9",
+      "producerRunId": "notebook-run-1792515726835-9",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "5dbae739-d8c1-47d6-96e5-c2cbd54bc54d",
+          "versionId": "d9f10fdd-c224-407d-affc-7645e5f6fe5c",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "324a1c64-3c05-4a60-928f-a3f19089eee1",
+      "role": "candidate",
+      "sessionId": "a2972af5-ffc1-49cb-a9f6-78c464af6b01",
+      "computationRunId": "notebook-run-1792515751885-11",
+      "producerRunId": "notebook-run-1792515751885-11",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1",
+        "version": "1",
+        "digest": "sha256:814e8e176acc9d0e32c948948b475261d0e2da07d45fe8dd19858bbb1ea7cdf1"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "23495014-e778-44e8-987d-6e7e19f87a90",
+          "sourceKind": "upload-version",
+          "sourceFileId": "32590d93-ddfd-4d3f-8f27-78a416f0df20",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T16:59:43.998Z",
+          "sourceProjectId": "cmvgxhvc60000xj3w458l1723",
+          "sourceSessionId": "b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgxhvc60000xj3w458l1723/b9f4b8fc-b8e7-4be0-b0e7-6dccf4e33685/32590d93-ddfd-4d3f-8f27-78a416f0df20/versions/23495014-e778-44e8-987d-6e7e19f87a90/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "09ea7218-d8d4-442b-9ff8-2b4229246142",
+          "versionId": "13d9017a-73c1-4841-947a-f45c56cb89a3",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    }
+  ],
+  "sameScientificTask": true,
+  "sourceVersionsPreserved": true,
+  "nativeNotebookProducersVerified": true,
+  "inputAccessEvidence": "Exact original source Versions attached to each Run; external Python file-access evidence may be partial. No complete dependency-proof claim.",
+  "reopened": true,
+  "noPaidReplay": true,
+  "sourceProducerVerified": true,
+  "ordinaryCoreVerified": true,
+  "independentReviewsReopened": true,
+  "acceptancePassed": true,
+  "provider": {
+    "requests": 98,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 20,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 1,
+    "upstreamRequests": 97,
+    "cancelledUpstreamRequests": 1,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 6,
+      "proposer": 31,
+      "candidate": 34,
+      "composer": 7,
+      "reflection": 3,
+      "reviewer": 11
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Read",
+      "Write",
+      "Skill",
+      "Edit"
+    ],
+    "usage": {
+      "input": 380789,
+      "cacheRead": 1164544,
+      "output": 33560,
+      "incompleteRequests": 1
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "be1143b2ad1136ee450b73d75899c73f74e0d44a",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "634d796158959879fcf872cd896b19312c4880de3412e9e911df48015dd4ccf0",
+      "out/main/index.js": "0420cf1b5e6c363173b3d774ce86ea861ec86cf6e1d8f7bcffb50f92006ce053",
+      "out/preload/index.js": "2016ba41b25ed87c678885cbe2ec1835a1b3d8f6f99d2e72fc005688d05ac59f",
+      "out/renderer/index.html": "7cf4d2f9ceace70715ef25b73fffd4f71737d21986352d1ca685c21e923b10d1"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

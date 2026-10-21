@@ -361,3 +361,204 @@ it('does not retire a runtime after any observed admission, even when dispatch l
   await s.link().settled
   expect(retireUnadmitted).not.toHaveBeenCalled()
 })
+
+async function applicationExecution(
+  work: (fixture: {
+    boundary: ReturnType<typeof createAcpExecutionBoundary>
+    input: (message?: string) => AcpExecutionDispatch
+    owner: import('../acp/execution-boundary-port').TrustedApplicationExecutionOwner
+    host: SessionExecutionHost
+  }) => Promise<void>
+): Promise<{
+  record: import('../../shared/earthnano/execution-port').ExecutionRecord
+  journal: ExecutionStore
+}> {
+  const s = setup(),
+    journal = store()
+  let executionId: string | undefined
+  const owner: import('../acp/execution-boundary-port').TrustedApplicationExecutionOwner = {
+    projectId: 'demo',
+    sourceSessionId: 'source',
+    ownsExecution: (id) => id === executionId,
+    ownsSession: (id) => id === 'session',
+    ownsTurn: (provenance) =>
+      ['continuation-1', 'continuation-2'].includes(provenance?.promptMessageId ?? ''),
+    ownsApplicationDispatch: (input) =>
+      input.attribution?.feature === 'background-results' &&
+      input.attribution.deliveryIds.length === 1 &&
+      input.attribution.deliveryIds[0] ===
+        `owned-${input.request.provenanceContext?.promptMessageId}`
+  }
+  const host = { prepare: s.prepare }
+  const boundary = createAcpExecutionBoundary({ host, applicationOwner: owner })
+  const input = (message = 'continuation-1'): AcpExecutionDispatch => ({
+    ...s.input,
+    ownerCompletion: undefined,
+    operation: 'sendApplicationPrompt',
+    attribution: {
+      kind: 'application',
+      feature: 'background-results',
+      purpose: 'agent-result-delivery',
+      deliveryKey: `agent-result-delivery:${message}`,
+      deliveryIds: [`owned-${message}`]
+    },
+    request: {
+      sessionId: 'session',
+      text: 'original background result',
+      permissionPrompts: 'none',
+      provenanceContext: { promptMessageId: message }
+    },
+    dispatch: vi.fn(async (observer) => {
+      observer.admitted({
+        sessionId: 'session',
+        promptMessageId: message,
+        turnToken: `native-${message}`
+      })
+      observer.providerAccepted()
+      return response
+    })
+  })
+  const core = new ExecutionCore(journal, {
+    async execute(_request, context) {
+      executionId = context.executionId
+      context.identity({
+        sessionId: 'session',
+        promptMessageId: 'prompt',
+        turnToken: 'initial-token'
+      })
+      context.running()
+      await work({ boundary, input, owner, host })
+      return { phase: 'completed', cleanup: 'confirmed' }
+    }
+  })
+  core.configureBudget('demo', 'trial', 1)
+  try {
+    const handle = await core.submit({
+      ...request(),
+      origin: { kind: 'interactive', sessionId: 'source' },
+      interactionPolicy: 'deny-unresolved'
+    })
+    const record = await core.waitForTerminal(handle.executionId)
+    await core.settle()
+    expect(record.phase, record.error?.message).toBe('completed')
+    expect(s.prepare).not.toHaveBeenCalled()
+    return { record, journal }
+  } finally {
+    core.dispose()
+  }
+}
+
+it('admits exact original application result Turns into one Core without rewriting initial identity or budget', async () => {
+  const { AsyncResource } = await import('node:async_hooks')
+  const outside = new AsyncResource('original-delivery-owner')
+  try {
+    const { record, journal } = await applicationExecution(async ({ boundary, input }) => {
+      for (const message of ['continuation-1', 'continuation-2']) {
+        await outside.runInAsyncScope(async () => {
+          expect(currentExecutionScope()).toBeUndefined()
+          expect(await boundary.execute(input(message))).toEqual(response)
+        })
+      }
+      expect(await boundary.settle()).toBe(true)
+    })
+    expect(record.identity).toEqual({
+      sessionId: 'session',
+      promptMessageId: 'prompt',
+      turnToken: 'initial-token'
+    })
+    expect(Object.values(journal.load().records)).toHaveLength(1)
+    expect(Object.values(journal.load().budgets)[0].admitted).toBe(1)
+  } finally {
+    outside.emitDestroy()
+  }
+})
+it.each([
+  'operation',
+  'attribution',
+  'delivery-key',
+  'delivery-ids',
+  'model-trusted-field',
+  'session',
+  'turn',
+  'policy',
+  'owner',
+  'admission',
+  'missing-admission',
+  'acceptance-before-admission'
+])('rejects an application continuation that fails exact original ownership: %s', async (fault) => {
+  await applicationExecution(async ({ boundary, input, owner, host }) => {
+    const dispatch = input()
+    let selected = boundary
+    if (fault === 'operation') dispatch.operation = 'sendPrompt'
+    else if (fault === 'attribution')
+      dispatch.attribution = {
+        kind: 'application',
+        feature: 'reviewer',
+        purpose: 'correction',
+        causeReviewId: 'foreign'
+      }
+    else if (fault === 'delivery-key')
+      dispatch.attribution = {
+        ...input().attribution!,
+        deliveryKey: 'foreign'
+      } as AcpExecutionDispatch['attribution']
+    else if (fault === 'delivery-ids')
+      dispatch.attribution = {
+        kind: 'application',
+        feature: 'background-results',
+        purpose: 'agent-result-delivery',
+        deliveryKey: 'agent-result-delivery:continuation-1',
+        deliveryIds: ['foreign-job']
+      }
+    else if (fault === 'model-trusted-field')
+      dispatch.attribution = Object.assign(input().attribution!, { trusted: true })
+    else if (fault === 'session') dispatch.request = { ...dispatch.request, sessionId: 'foreign' }
+    else if (fault === 'turn')
+      dispatch.request = { ...dispatch.request, provenanceContext: { promptMessageId: 'foreign' } }
+    else if (fault === 'policy')
+      dispatch.request = { ...dispatch.request, permissionPrompts: undefined }
+    else if (fault === 'owner')
+      selected = createAcpExecutionBoundary({
+        host,
+        applicationOwner: { ...owner, ownsApplicationDispatch: () => false }
+      })
+    else if (fault === 'admission')
+      dispatch.dispatch = async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'foreign' })
+        return response
+      }
+    else if (fault === 'acceptance-before-admission')
+      dispatch.dispatch = async (observer) => {
+        observer.providerAccepted()
+        return response
+      }
+    else dispatch.dispatch = async () => response
+    await expect(selected.execute(dispatch)).rejects.toThrow()
+  })
+})
+it.each(['project', 'source-session', 'execution'])(
+  'rejects a trusted application owner without the exact live %s scope',
+  async (fault) => {
+    await applicationExecution(async ({ owner, host, input }) => {
+      const boundary = createAcpExecutionBoundary({
+        host,
+        applicationOwner: {
+          ...owner,
+          ...(fault === 'project'
+            ? { projectId: 'foreign' }
+            : fault === 'source-session'
+              ? { sourceSessionId: 'foreign' }
+              : { ownsExecution: () => false })
+        }
+      })
+      await expect(boundary.execute(input())).rejects.toThrow('no active shared execution owner')
+    })
+  }
+)
+it('retains the ordinary second-Turn gate even with a valid background attribution', async () => {
+  await applicationExecution(async ({ input, host }) => {
+    await expect(createAcpExecutionBoundary({ host }).execute(input())).rejects.toThrow(
+      'another Session or turn'
+    )
+  })
+})

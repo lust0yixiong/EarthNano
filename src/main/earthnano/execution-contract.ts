@@ -1,7 +1,26 @@
 import { createHash } from 'node:crypto'
 import Ajv from 'ajv'
 import schema from '../../../contracts/execution/schema.json'
-import type { ExecutionRequest } from '../../shared/earthnano/execution-types'
+import type {
+  ExecutionRequest,
+  ExecutionIdentity,
+  ExecutionPort,
+  ExecutionRecord
+} from '../../shared/earthnano/execution-port'
+
+export interface ScopedExecutionPort extends ExecutionPort {
+  waitForTerminal(executionId: string): Promise<ExecutionRecord>
+}
+
+export interface ExecutionContext {
+  readonly executionId: string
+  readonly signal: AbortSignal
+  running(): void
+  identity(value: ExecutionIdentity): void
+  emit(type: 'provider-accepted' | 'session-admitted'): void
+  /** Original owner may reject cancellation. No abort is published before its acknowledgment. */
+  onCancellation?(handler: () => Promise<void>): () => void
+}
 
 const validator = new Ajv({ allErrors: true }).compile(schema)
 const recordValidator = new Ajv({ allErrors: true }).compile({

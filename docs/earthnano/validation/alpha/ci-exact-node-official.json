@@ -1,0 +1,15 @@
+{
+  "version": "24.22.0",
+  "releaseDate": "2026-10-14",
+  "primarySources": [
+    "https://nodejs.org/download/release/index.json",
+    "https://nodejs.org/en/blog/release/v24.22.0"
+  ],
+  "verification": "Official index v24.22.0 entry and release published download links/checksum text inspected through web tool. No binary download or execution claimed. Direct local index read and binary HEAD timed out.",
+  "targets": {
+    "linux-x64.tar.xz": "cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008",
+    "darwin-arm64.tar.gz": "6a9724d9b50a5f22b4816cded441b5a8d9ddae546191a5e5b7efa5a5e2ee26d5",
+    "darwin-x64.tar.gz": "495e3f273c645f3c4677d438304cdfc701729ea5dec5728f5c8e76a2dece4b91",
+    "win-x64.zip": "f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3"
+  }
+}

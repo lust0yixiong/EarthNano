@@ -1,8 +1,17 @@
+import type {
+  StartDesktopSweep,
+  OptimizationSweepSummary,
+  PreviewDesktopSweep,
+  DesktopSweepPreview
+} from './optimization-sweep'
 import type { NotebookOptimizationSource } from './notebook-source'
 import type { FrozenNotebookInput, FrozenNotebookRuntime } from './notebook-profile'
 import type { OptimizationMethodOptions } from './optimization-method'
 import type { OptimizationArtifactInput } from './optimization-input'
+import type { ExecutionUsageSummary } from './execution-usage'
 import type {
+  SemanticAssessmentSummary,
+  OptimizationSelectionSummary,
   OutputCheckSpec,
   OptimizationDomainSpec,
   ResearchOutcome,
@@ -33,21 +42,7 @@ export interface OptimizationRunKey {
   sourceSessionId: string
   runId: string
 }
-export interface SemanticAssessmentSummary {
-  executionId: string
-  targetExecutionId: string
-  reviewId: string
-  outcome: 'pass' | 'flagged'
-  score: number
-  rationale: string
-}
-export interface OptimizationSelectionSummary {
-  chosenLabel: string
-  candidateCount: number
-  trivial: boolean
-  fallback: boolean
-  reason: string
-}
+export type { SemanticAssessmentSummary, OptimizationSelectionSummary } from './research-outcome'
 export interface OptimizationProgress {
   runId: string
   projectId: string
@@ -66,6 +61,8 @@ export interface OptimizationProgress {
   method?: OptimizationMethodOptions
   selection?: OptimizationSelectionSummary
   budget: { limit: number; admitted: number; completed: number; active: number }
+  /** Projection of unique Core admissions; each metric reports its own observed coverage. */
+  usage?: ExecutionUsageSummary
   executions: Array<{
     executionId: string
     role: string
@@ -83,14 +80,22 @@ export interface OptimizationProgress {
   }
   outcome?: ResearchOutcome
   domain?: DomainOptimizationSummary
+  sweep?: OptimizationSweepSummary
   error?: string
+  /** Explicit resume can be requested; main revalidates original snapshots and owners first. */
+  resumeAvailable?: boolean
   updatedAt: number
 }
 export interface DesktopOptimizationApi {
+  /** Original task_stream only: no provider admission, source file reads or Core execution. */
+  previewSweep(request: PreviewDesktopSweep): Promise<DesktopSweepPreview>
   start(request: StartDesktopOptimization): Promise<OptimizationProgress>
+  startSweep(request: StartDesktopSweep): Promise<OptimizationProgress>
   get(request: OptimizationRunKey): Promise<OptimizationProgress>
   latest(
     request: Pick<OptimizationRunKey, 'projectId' | 'sourceSessionId'>
   ): Promise<OptimizationProgress | null>
   stop(request: OptimizationRunKey): Promise<OptimizationProgress>
+  /** Continue the original frozen experiment and remaining original budget, never a new task. */
+  resume(request: OptimizationRunKey): Promise<OptimizationProgress>
 }

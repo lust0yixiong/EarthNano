@@ -9,6 +9,7 @@ import { createInitialSettingsState, useSettingsStore } from '@/stores/settings-
 import { useStorageInfoStore } from '@/stores/storage-info-store'
 import type { EnvironmentCheckResult } from '../../../../shared/settings'
 import type { StorageInfo } from '../../../../shared/storage'
+import { APP } from '../../../../shared/app-config'
 
 let container: HTMLDivElement
 let root: Root
@@ -926,14 +927,14 @@ describe('StoragePanel', () => {
     })
 
     // The warning is gated behind the confirm step — not shown on the collapsed panel.
-    expect(container.textContent).not.toContain('Open-Science manages this folder')
+    expect(container.textContent).not.toContain(`${APP.name} manages this folder`)
 
     await act(async () => {
       clickButton((button) => button.textContent?.trim() === 'Change location')
       await Promise.resolve()
     })
 
-    expect(document.body.textContent).toContain('Open-Science manages this folder')
+    expect(document.body.textContent).toContain(`${APP.name} manages this folder`)
     expect(document.body.textContent).toContain(
       "Don't move, rename, or delete files inside it — doing so can break your projects and history."
     )

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "source": "c392f338656eacb93d6392d9cc15592526c6d4d2",
+  "integratedHeadBeforeEvidence": "73234ca3c28ee112f7cbb8ed1b87f12b4623f810",
+  "scope": "0.1-Alpha macOS/Linux source/native workflow selection; selected-platform baseline and byte/inventory comparison retained. Windows deferred by user to0.2.",
+  "tests": {
+    "files": 3,
+    "total": 221,
+    "passed": 221,
+    "failed": 0,
+    "pending": 0
+  },
+  "checks": {
+    "fullTypecheckCompiled": 0,
+    "eslint": 0,
+    "prettier": 0,
+    "diffCheck": 0
+  },
+  "platforms": ["darwin", "linux"],
+  "nativeTargets": [
+    {
+      "os": "macos-26",
+      "platform": "mac",
+      "arch": "arm64",
+      "subdir": "osx-arm64"
+    },
+    {
+      "os": "macos-26-intel",
+      "platform": "mac",
+      "arch": "x64",
+      "subdir": "osx-64"
+    },
+    {
+      "os": "ubuntu-24.04",
+      "platform": "linux",
+      "arch": "x64",
+      "subdir": "linux-64"
+    },
+    {
+      "os": "ubuntu-24.04-arm",
+      "platform": "linux",
+      "arch": "arm64",
+      "subdir": "linux-aarch64"
+    }
+  ],
+  "physicalSourceJobs": 9,
+  "requiredLogicalReports": 16,
+  "limits": [
+    "Local Node v26.0.0 on macOS; no hosted CI run or platform certification claimed.",
+    "No Windows execution, packaging or diagnostic work; generic Windows comparison fixture coverage remains.",
+    "Only private durable-files dist rebuilt from e74 source; no old B synchronous export remains and shared dependencies were not changed.",
+    "No push, dispatch, cancellation or paid calls."
+  ],
+  "files": [
+    {
+      "path": "final-focused.json.gz",
+      "rawBytes": 78687,
+      "rawSha256": "5e708362151be80a49dc668dff3455f038a59db7d5f690242204166bf6db9932",
+      "gzipBytes": 8098,
+      "gzipSha256": "308ee9327d32ed808bdd43978060f77dd7f4bf7edef52d26d426c3b482546451"
+    },
+    {
+      "path": "final-focused.log.gz",
+      "rawBytes": 1210,
+      "rawSha256": "7bc9f1d552ee621174d715ca75750637cd644a159b26844974fd0dc6ea38eeb3",
+      "gzipBytes": 686,
+      "gzipSha256": "f31118c540aba596c41b9b0a6c93137386f14a13a6eb42c3eef53bea64ecef34"
+    },
+    {
+      "path": "full-compiled-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "diffcheck.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "scope-byteproof.json.gz",
+      "rawBytes": 5300,
+      "rawSha256": "33d7e6f4047e6567d4c00649db20e5dc2c4872797c7da55f58f1e76a2c383cd8",
+      "gzipBytes": 1517,
+      "gzipSha256": "e0a4531bcc3ea4159f5b13db765073865393b73b27bd174b5d15280f0cb13a11"
+    },
+    {
+      "path": "actual-plan.txt.gz",
+      "rawBytes": 661,
+      "rawSha256": "583f470826a795c1683c56bbcdb18cb06b98ab0d9dc512c4e5571c939b05b129",
+      "gzipBytes": 167,
+      "gzipSha256": "edb41b6bdb822c806fa25134624f65bdd87bd89aa3e7b3e4183c451b33b16caf"
+    },
+    {
+      "path": "receipt.json.gz",
+      "rawBytes": 1498,
+      "rawSha256": "4e0af76e5a8d017c835cf69f4c72eb9a0d17b563365cbf37d423fdb1bb17765f",
+      "gzipBytes": 793,
+      "gzipSha256": "71e38ee1112bd63e1d91134f64b78fac92b751aaeaed60b4d0d8715ca4537561"
+    },
+    {
+      "path": "REPORT.md.gz",
+      "rawBytes": 1877,
+      "rawSha256": "52ca707150104c483058374a437542bb7526c390201822c732259d7df6ecc2f0",
+      "gzipBytes": 1069,
+      "gzipSha256": "948a8bad3e8cc3247c17c2aa1eeadc8365a3fba7994d21ce0963e68707989160"
+    }
+  ]
+}

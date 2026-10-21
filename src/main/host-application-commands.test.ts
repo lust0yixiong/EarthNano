@@ -299,7 +299,22 @@ describe('Host application commands', () => {
       .find(({ capability }) => capability === 'notifications')!
       .channels.push('notifications:get-desktop-availability', 'notifications:send-test')
     for (const group of expected) group.channels.sort()
+    // Retain the original 80-channel inventory and pinned test identity, then require every
+    // explicit EarthNano desktop addition in the same capability owner.
     expect(expected.flatMap(({ channels }) => channels)).toHaveLength(80)
+    expected.push({
+      capability: 'optimization',
+      channels: [
+        'optimization:start',
+        'optimization:startSweep',
+        'optimization:previewSweep',
+        'optimization:get',
+        'optimization:latest',
+        'optimization:stop',
+        'optimization:resume'
+      ]
+    })
+    expected.at(-1)!.channels.sort()
     expect(
       hostApplicationCommandGroups.map(({ name, commands }) => ({
         capability: name,
@@ -315,7 +330,11 @@ describe('Host application commands', () => {
       {} as HostApplicationCommandDependencies
     )
 
-    expect(router.dispatcher.commandNames()).toHaveLength(80)
+    expect(
+      router.dispatcher.commandNames().filter((name) => name !== 'optimization:previewSweep')
+    ).toHaveLength(86)
+    expect(router.dispatcher.commandNames()).toContain('optimization:previewSweep')
+    expect(router.dispatcher.commandNames()).toHaveLength(87)
     installation.uninstall()
     expect(router.dispatcher.commandNames()).toEqual([])
   })

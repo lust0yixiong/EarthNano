@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "decisionDate": "2026-10-21",
+  "decision": "User deferred Windows version and installer repair to 0.2-Alpha; 0.1 targets macOS/Linux only.",
+  "status": "deferred; Windows acceptance failed and remains unresolved",
+  "run": "https://github.com/lust0yixiong/EarthNano/actions/runs/39577934563",
+  "job": 119148381587,
+  "source": "f6329ed8cf5993a9b8a807b393b7640c395b42cd",
+  "actualResult": {
+    "packaging": "success",
+    "installerExitCode": 2,
+    "target": "empty",
+    "probe": "compile failed: incorrect stock MultiUser.nsh include; cases did not run"
+  },
+  "originalArtifact": {
+    "id": 12336017291,
+    "bytes": 533927,
+    "sha256": "b5e0278b577c3ff4032f70df77549e68615f3d60f6e9b4d5f9fcc40c71499c83"
+  },
+  "unverified": "Preserved fixes/helper have not passed actual Windows acceptance; excluded from 0.1. No claim that serialization explains the remaining exit.",
+  "files": [
+    {
+      "path": "job.log.gz",
+      "rawBytes": 603303,
+      "rawSha256": "28d38d0117c7ea910312a09bea5636244558b70c1d4e3228f08535a1b1a42671",
+      "gzipBytes": 57614,
+      "gzipSha256": "5ba5053ec1dc94932442d552db6f97243b134526e26345f9f3b356f719bf83bd"
+    },
+    {
+      "path": "probe-report.json.gz",
+      "rawBytes": 17846,
+      "rawSha256": "4f79790a8c2aa0fbcc871f918bfd898deade3a3907f5288b317d1b107321c124",
+      "gzipBytes": 4224,
+      "gzipSha256": "18fa3cfc79c25168fe7ab0c14cf26a5320a4d54c10298f0c6277f26f168ace34"
+    },
+    {
+      "path": "probe.nsi.gz",
+      "rawBytes": 953,
+      "rawSha256": "49166b8b94b2f8bd659ee58d1615782940cf9af7b76e9817372d9f8261bcfaf3",
+      "gzipBytes": 528,
+      "gzipSha256": "2eebfbd0079785f7529556bc546bc5996b522128fa7fcbc26a63d47316d5ab62"
+    },
+    {
+      "path": "builder-debug.yml.gz",
+      "rawBytes": 10705,
+      "rawSha256": "dafecf646c035a87ab8a902dfd341efb6fe004d6d497d72d5b54fe3a87989665",
+      "gzipBytes": 2889,
+      "gzipSha256": "170d5cf9bd4a5ed98c69120b74a3f6970ff4eb25690df1863c6c05ac34a9da2c"
+    },
+    {
+      "path": "stage-options.md.gz",
+      "rawBytes": 5444,
+      "rawSha256": "41ca05d4a2362390e98d6d9075dc3b614756efbfb4e71af40642acbc5cf94d8e",
+      "gzipBytes": 3159,
+      "gzipSha256": "d4f356e4d2a26bb82f58ee4b3222c9fdf3f3ab88ac7cba2756d0094c723d9fc6"
+    },
+    {
+      "path": "deferred-wip.json.gz",
+      "rawBytes": 1102,
+      "rawSha256": "0accd11492f2359b2aee2c2a04d60566574a3f058956f0e7bbd892165ee90f21",
+      "gzipBytes": 653,
+      "gzipSha256": "34fc924cc9a9493aebea5b399cc306e7088517fa3453dd850d32a1cb45a76eff"
+    }
+  ],
+  "preservedBranches": {
+    "fix/alpha-windows-0.2-preserved": "31cf7029e3f4f317403f961f7bd1012b2cb14e59",
+    "fix/alpha-source-windows-regressions": "cb8df6f65879d2c18a8d4e886559d3912f99f21f",
+    "fix/alpha-windows-installer-stage-diagnostic": "0576b813739238f21dfdfa0272dad34d5c5b518c"
+  },
+  "branchPersistence": "All three preserved refs were pushed to origin; excluded from the 0.1 integration branch."
+}

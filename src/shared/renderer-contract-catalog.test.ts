@@ -661,3 +661,15 @@ describe('renderer contract catalog', () => {
     ])
   })
 })
+
+it('exposes read-only optimization preview in Electron and explicitly excludes both Web surfaces', () => {
+  const contract = RENDERER_CONTRACT_CATALOG.find(
+    ({ publicPath }) => publicPath === 'optimization.previewSweep'
+  )
+  expect(contract).toMatchObject({
+    channel: 'optimization:previewSweep',
+    surfaceInstallation: { electron: 'preload', localWeb: 'unavailable', remoteWeb: 'unavailable' }
+  })
+  expect(contract?.dispatchPolicy.electron).toBe('electron-ipc-request')
+  expect(Object.values(WEB_INVOKE_CHANNELS)).not.toContain('optimization:previewSweep')
+})

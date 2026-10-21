@@ -36,6 +36,20 @@ afterEach(async () => {
   for (const directory of directories.splice(0))
     await rm(directory, { recursive: true, force: true })
 })
+it('keeps the checked-in release catalog bound to the complete actual producer recipe', async () => {
+  // The workflow itself is hashed. Updating even an Action pin requires a new matching release;
+  // fixture-only checks would miss a stale real catalog before postinstall starts on CI.
+  const catalog = JSON.parse(await readFile('build/native-components-lock.json', 'utf8')) as Record<
+    string,
+    Release
+  >
+  const actual = await sourceFingerprint()
+  expect(Object.keys(catalog).sort()).toEqual([...spec.targets].sort())
+  for (const target of spec.targets) {
+    expect(catalog[target].source).toBe(actual)
+    expect(() => validateNativeRelease(catalog[target], target, actual)).not.toThrow()
+  }
+})
 async function fixture(): Promise<{
   directory: string
   catalog: Record<string, Release>

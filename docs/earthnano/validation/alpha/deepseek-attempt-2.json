@@ -1,0 +1,44 @@
+{
+  "status": "failed",
+  "live": true,
+  "acceptancePassed": false,
+  "provider": {
+    "requests": 6,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 0,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 0,
+    "upstreamRequests": 6,
+    "cancelledUpstreamRequests": 0,
+    "roles": {
+      "ordinary": 6
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file"
+    ],
+    "usage": {
+      "input": 40867,
+      "cacheRead": 156288,
+      "output": 515,
+      "incompleteRequests": 0
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

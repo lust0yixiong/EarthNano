@@ -381,6 +381,7 @@ export {
   digestFileWithinBudget,
   FileObservationMismatchError,
   inlineDecodedSize,
+  readOpenFileChunks,
   readFilePageAndDigest,
   readVerifiedFilePage,
   writeInlineWithinBudget

@@ -3,11 +3,11 @@ import { join } from 'node:path'
 import type { PrismaClient } from '@prisma/client'
 import type { ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
 import { resolveTurnOutcome, type PersistedChatSession } from '../../shared/session-persistence'
-import { ManagedFileVersionService } from '../managed-file-versions/service'
+import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 import { ProjectRepository } from '../projects/repository'
 import { SessionProjectionRepository } from '../session-persistence/projection'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
-import { SettingsRepository } from '../settings/repository'
+import type { SettingsRepository } from '../settings/repository'
 import { FileExecutionStore, recoverExecutionJournals } from './execution-store'
 import {
   createOriginalTurnEvidenceReader,
@@ -16,11 +16,14 @@ import {
   originalTurnReply
 } from './original-turn-evidence'
 import type { SessionExecutionHost } from './session-execution-host-port'
+import { readOriginalExecutionUsage } from './execution-turn-usage'
 
 export interface SessionExecutionHostOptions {
   dataRoot: string
   configRoot: string
   getClient(): Promise<PrismaClient>
+  settings: Pick<SettingsRepository, 'getSettings'>
+  versions: Pick<ManagedFileVersionReadPort, 'openVersion'>
   /** Flushes the existing original RuntimeSession owner; never creates or shuts down a runtime. */
   flush?(sessionId: string, promptMessageId: string): Promise<unknown>
 }
@@ -41,11 +44,7 @@ export function createSessionExecutionHost(
   // execution journals follow dataRoot. These roots may be selected independently.
   const sessions = new SessionRepository(options.configRoot, {}, projection)
   const projects = new ProjectRepository(options.getClient, options.configRoot)
-  const settings = new SettingsRepository(options.configRoot)
-  const versions = new ManagedFileVersionService({
-    storageRoot: options.dataRoot,
-    getClient: options.getClient
-  })
+  const { settings, versions } = options
   const load = async (projectId: string, sessionId: string): Promise<PersistedChatSession> => {
     const loaded = await loadSessionMutationAuthority(sessions, projectId, sessionId)
     if (loaded.status !== 'found') throw new Error('Original Session is unavailable')
@@ -115,6 +114,7 @@ export function createSessionExecutionHost(
         return {
           phase: outcome.kind,
           cleanup: 'confirmed',
+          usage: readOriginalExecutionUsage(frozen.session, record.identity),
           evidence: {
             status: outcome.kind === 'interrupted' ? 'partial' : 'complete',
             scope:
@@ -296,6 +296,7 @@ export function createSessionExecutionHost(
                   ? 'completed'
                   : 'failed',
             cleanup: complete ? 'confirmed' : 'unknown',
+            usage: readOriginalExecutionUsage(frozen.session, identity),
             evidence: {
               status: complete ? 'complete' : 'partial',
               scope:

@@ -1,16 +1,23 @@
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
+import type { NotebookRuntimeService } from '../notebook/runtime-service'
 import { createHash } from 'node:crypto'
 import { resolveActiveConversationMessages } from '../../shared/conversation-graph'
 import type { PersistedChatSession } from '../../shared/session-persistence'
-import type { NotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
+import {
+  isSupportedNotebookOptimizationMessage,
+  notebookOptimizationSourceReferences,
+  type NotebookOptimizationSource
+} from '../../shared/earthnano/notebook-source'
 import {
   normalizeFrozenNotebookInputs,
+  normalizeFrozenManagedInputs,
+  normalizeFrozenNotebookRuntime,
+  type FrozenNotebookRuntime,
   type FrozenNotebookInput
 } from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 
-/** Main checks original message authority; the original Notebook registry later stages exact versions.
- * No latest lookup, new upload publication, inline binary copy or arbitrary path authorization. */
-export async function resolveOptimizationNotebookInputs(options: {
+interface OptimizationSourceInputOptions {
   projectId: string
   sourceSessionId: string
   source: NotebookOptimizationSource
@@ -18,7 +25,28 @@ export async function resolveOptimizationNotebookInputs(options: {
   loadSession(): Promise<PersistedChatSession>
   versions: Pick<ManagedFileVersionReadPort, 'openVersion'>
   signal?: AbortSignal
-}): Promise<FrozenNotebookInput[]> {
+}
+
+/** Python/R retain the original nonempty attachment and runtime requirements. */
+export async function resolveOptimizationNotebookInputs(
+  options: OptimizationSourceInputOptions
+): Promise<FrozenNotebookInput[]> {
+  return resolveOptimizationSourceInputs(options, false)
+}
+
+/** Compute may use no input files; every supplied reference uses the same original Version lease. */
+export async function resolveOptimizationComputeInputs(
+  options: OptimizationSourceInputOptions
+): Promise<FrozenNotebookInput[]> {
+  return resolveOptimizationSourceInputs(options, true)
+}
+
+/** Main checks original message authority; the original Notebook registry later stages exact versions.
+ * No latest lookup, new upload publication, inline binary copy or arbitrary path authorization. */
+async function resolveOptimizationSourceInputs(
+  options: OptimizationSourceInputOptions,
+  allowEmpty: boolean
+): Promise<FrozenNotebookInput[]> {
   options.signal?.throwIfAborted()
   const session = await options.loadSession()
   if (
@@ -32,74 +60,9 @@ export async function resolveOptimizationNotebookInputs(options: {
     ? resolveActiveConversationMessages(session.conversationGraph)
     : session.messages
   const message = messages.find((entry) => entry.id === options.source.promptMessageId)
-  if (
-    !message ||
-    message.role !== 'user' ||
-    message.status !== 'complete' ||
-    message.content !== options.prompt ||
-    message.images?.length ||
-    message.annotations?.length ||
-    message.pdfContext ||
-    message.structuredOutputEvidence ||
-    message.structuredOutputEvidenceInvalid ||
-    message.attribution ||
-    message.delegatedTask ||
-    message.turnIntent ||
-    message.relayedFrom ||
-    message.delegatedCallerSource ||
-    message.delegatedInputVersionIds?.length ||
-    message.parts?.some((part) => part.type !== 'text' && part.type !== 'artifact')
-  )
+  if (!isSupportedNotebookOptimizationMessage(message) || message.content !== options.prompt)
     throw new Error('Notebook optimization requires an exact supported source task')
-  const expected: Array<{
-    source: 'upload' | 'artifact'
-    fileId: string
-    versionId: string
-    checksum?: string
-    sessionId?: string
-    name: string
-    size?: number
-  }> = []
-  for (const upload of message.uploads ?? []) {
-    if (!upload.id || !upload.versionId || !upload.sha256 || upload.sessionId !== session.id)
-      throw new Error('Notebook source upload has no fixed authority')
-    expected.push({
-      source: 'upload',
-      fileId: upload.id,
-      versionId: upload.versionId,
-      checksum: upload.sha256,
-      sessionId: upload.sessionId,
-      name: upload.name,
-      size: upload.size
-    })
-  }
-  for (const reference of message.parts ?? []) {
-    if (reference.type !== 'artifact') continue
-    if (
-      (reference.source !== 'upload' && reference.source !== 'artifact') ||
-      !reference.sourceFileId ||
-      !reference.versionId
-    )
-      throw new Error('Notebook source reference has no fixed authority')
-    expected.push({
-      source: reference.source,
-      fileId: reference.sourceFileId,
-      versionId: reference.versionId,
-      checksum: reference.checksum,
-      name: reference.name
-    })
-  }
-  if (!expected.length || expected.length > 32)
-    throw new Error('Notebook source inputs unavailable')
-  const unique = [
-    ...new Map(
-      expected.map((entry) => [
-        JSON.stringify([entry.source, entry.fileId, entry.versionId]),
-        entry
-      ])
-    ).values()
-  ]
-  if (unique.length > 10) throw new Error('Notebook task exceeds the original attachment limit')
+  const unique = notebookOptimizationSourceReferences(message, session.id, { allowEmpty })
   const inputs: FrozenNotebookInput[] = []
   for (const reference of unique) {
     options.signal?.throwIfAborted()
@@ -148,9 +111,50 @@ export async function resolveOptimizationNotebookInputs(options: {
     }
   }
   options.signal?.throwIfAborted()
-  return normalizeFrozenNotebookInputs([
+  const normalizeInputs = allowEmpty ? normalizeFrozenManagedInputs : normalizeFrozenNotebookInputs
+  return normalizeInputs([
     ...new Map(
       inputs.map((input) => [input.sourceKind + ':' + input.inputFileVersionId, input])
     ).values()
   ])
+}
+
+/** Common original runtime resolution for legacy and catalog starts. Callers must first authorize
+ * the source Session. An unavailable exact language binding never falls back to another target. */
+export async function resolveOptimizationNotebookRuntime(options: {
+  service: Pick<NotebookRuntimeService, 'listRuntimes'>
+  projectId: string
+  source: Pick<PersistedChatSession, 'id' | 'cwd'>
+  language: NotebookLanguage
+  signal?: AbortSignal
+}): Promise<FrozenNotebookRuntime | undefined> {
+  options.signal?.throwIfAborted()
+  const listing = await options.service.listRuntimes({
+    projectId: options.projectId,
+    sessionId: options.source.id,
+    workspaceCwd: options.source.cwd ?? ''
+  })
+  options.signal?.throwIfAborted()
+  const bound = listing.bindings[options.language]
+  if (
+    !bound ||
+    bound.language !== options.language ||
+    (bound.status ?? 'active') !== 'active' ||
+    !listing.runtimes.some(
+      (runtime) =>
+        runtime.language === options.language &&
+        runtime.runtimeId === bound.runtimeId &&
+        runtime.runnable &&
+        (runtime.status ?? 'active') === 'active'
+    )
+  )
+    return undefined
+  return normalizeFrozenNotebookRuntime({
+    language: bound.language,
+    runtimeId: bound.runtimeId,
+    source: bound.source,
+    provenance: bound.provenance,
+    interpreterPath: bound.interpreterPath,
+    ...(bound.version ? { version: bound.version } : {})
+  })
 }

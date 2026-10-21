@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "base": "ce0e1d498b46ddea5867bb795c6fad63dafb28b5",
+  "scope": "Shared metadata and trusted main-only port declarations only; no Compute candidate dispatch or Job/approval integration claimed.",
+  "tests": {
+    "files": 6,
+    "passed": 136,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullCompiledTypes": "passed before and after explicit test-helper type annotations",
+  "lint": "initial2 missing test-helperreturntypes fixed; finalexit0",
+  "originalTests": [
+    {
+      "path": "src/shared/earthnano/notebook-profile.test.ts",
+      "unchanged": true,
+      "sha256": "51bfdfd77805fce7b85ca98620730b10b48cbbe6f0aa167fc3aaf813c8887645"
+    },
+    {
+      "path": "src/main/compute/session-compute-host-access.test.ts",
+      "unchanged": true,
+      "sha256": "fde8699ecc075cb3847777ec9d733c8de57c86152b14c63227324ee77a0dab4a"
+    },
+    {
+      "path": "src/main/compute/session-enabled-hosts-owner.test.ts",
+      "unchanged": true,
+      "sha256": "ea181da59eb931e3f514856a12e8aab2eb96e4278c6d23bf2b5318fdb52b4e76"
+    },
+    {
+      "path": "src/main/earthnano/acp-execution-boundary.test.ts",
+      "unchanged": true,
+      "sha256": "7e8dbdf4ee0df3efd4e74dbaeae17a7bfe261982468201f38f6760eb0d05b99c"
+    },
+    {
+      "path": "src/main/earthnano/candidate-snapshot.test.ts",
+      "unchanged": true,
+      "sha256": "9cb0d3eed1e4cb3eefe594a3cc7f9913f7ea7435ee5e38543505d1b758b3d1c9"
+    }
+  ],
+  "runtimeByteProof": {
+    "sessionComputeHostAccessPolicy": "complete original runtime after type-only relocation byte-identical",
+    "managedInputValidation": "original per-item/dedup/Project/path/size/SHA body byte-identical; Notebook1to10wrapper retained"
+  },
+  "limits": [
+    "No actual Compute/SSH/Slurm execution or paid call in this shared-contract phase.",
+    "Native capability, approval policy, owned applicationturn/Job lifecycle, source freezing and end-to-end implementation pending."
+  ],
+  "files": [
+    {
+      "path": "shared-contract-focused.json.gz",
+      "rawBytes": 59128,
+      "rawSha256": "166a433f6360182b2ca11b4463e9f1c2b6a98590d4cacf4027e0e92e7fbabd89",
+      "gzipBytes": 6265,
+      "gzipSha256": "0316f44cab08fa0628de019ba263973f949d1aef1265af93802cf6fa3a198381"
+    },
+    {
+      "path": "shared-contract-focused.log.gz",
+      "rawBytes": 125,
+      "rawSha256": "031a6b4e6173b6c2b16fcebda63ca6c5caeffde1a314edc50465ce344b71e2ab",
+      "gzipBytes": 131,
+      "gzipSha256": "d3a6d09cc9eabcbb45273cc256029c9a78ac5a79f83a4c4794d082323a290539"
+    },
+    {
+      "path": "shared-contract-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "shared-contract-types-final.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "shared-contract-lint.log.gz",
+      "rawBytes": 343,
+      "rawSha256": "ac0a3119cc96c2c4a55fcabd4a4a3308f3ce73f8feb637643666a8b58c9661c6",
+      "gzipBytes": 217,
+      "gzipSha256": "dd526a795bf27f9442b0a972d8fa24b3ac932b29df850fe6501145a8d5c91f60"
+    },
+    {
+      "path": "shared-contract-lint-final.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "shared-contract-format.log.gz",
+      "rawBytes": 431,
+      "rawSha256": "c6ef52d179f5f2e1909513a1909c4275d167b5b549c52e1d5c1bcc512cff15e6",
+      "gzipBytes": 211,
+      "gzipSha256": "9e2c46739d295643b75f6cf3e8fd6d26ee9f33f603419054fbca6c26869f90ae"
+    },
+    {
+      "path": "shared-contract-format-final.log.gz",
+      "rawBytes": 62,
+      "rawSha256": "308c50531cc769cda88797e49b33cc3432dc126f5a18ab61f8bf9ead3d98c013",
+      "gzipBytes": 80,
+      "gzipSha256": "1719b1513dd094c650b4758c6e1b1ef4089e4d5ca18a43d9af456ab3f4cc97fd"
+    },
+    {
+      "path": "shared-candidate-field-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    }
+  ],
+  "candidateFieldDeclarations": "CandidateHarness.tools/Environment.compute types declared and full compiledtypes passed; serializer still rejects unsupported Compute profile until original owner/control integration."
+}

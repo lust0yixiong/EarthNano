@@ -5,7 +5,7 @@ import type {
   BackgroundResultDelivery,
   BackgroundResultSourceRef
 } from '../../shared/background-result-delivery'
-import { BackgroundResultDeliveryOwner } from './owner'
+import { BackgroundResultDeliveryOwner, BackgroundResultDeliveryUnavailableError } from './owner'
 import { composeApplicationRuntime } from '../application-runtime'
 
 const delivery = (
@@ -118,6 +118,43 @@ const harness = (resolved: 'terminal' | 'not-ready' | 'missing' = 'terminal') =>
 
 describe('BackgroundResultDeliveryOwner', () => {
   afterEach(() => vi.restoreAllMocks())
+
+  it('keeps an already consumed continuation authoritative over temporary owner unavailability', async () => {
+    const { owner, repository, sendContinuation } = harness()
+    sendContinuation.mockImplementation(() => {
+      throw new BackgroundResultDeliveryUnavailableError('retired')
+    })
+    repository.areConsumed.mockResolvedValue(true)
+    try {
+      await expect(owner.drainSession('session-1')).resolves.toBe('consumed')
+      expect(repository.releaseClaim).not.toHaveBeenCalled()
+      expect(repository.failClaim).not.toHaveBeenCalled()
+    } finally {
+      owner.dispose()
+    }
+  })
+
+  it('retains original pre-dispatch disposal priority when the saved-message authority becomes unavailable', async () => {
+    const { owner, repository, isContinuationSaved } = harness()
+    repository.claimPending.mockResolvedValue([
+      delivery('run-1', { continuationMessageId: 'saved' })
+    ])
+    isContinuationSaved.mockImplementation(async () => {
+      owner.dispose()
+      throw new BackgroundResultDeliveryUnavailableError('retired')
+    })
+    try {
+      await expect(owner.drainSession('session-1')).resolves.toBe('idle')
+      expect(repository.releaseClaim).toHaveBeenCalledExactlyOnceWith(
+        ['local-run:run-1'],
+        'claim-1'
+      )
+      expect(repository.areConsumed).not.toHaveBeenCalled()
+      expect(repository.failClaim).not.toHaveBeenCalled()
+    } finally {
+      owner.dispose()
+    }
+  })
 
   it.each(['authority', 'source', 'dispatch'] as const)(
     'does not start a continuation when %s work finishes after disposal',

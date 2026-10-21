@@ -1,0 +1,741 @@
+{
+  "schemaVersion": 1,
+  "scope": "Catalog/native acceptance receipts; gzip files retain original bytes. Failed attempts are included. Controls have explicit source/dependency limits.",
+  "files": [
+    {
+      "path": "logs/integration-tests.log.gz",
+      "sourceBytes": 266,
+      "sourceSha256": "b11c897810237b9c41a4fed5365aaf8ddce40143b0848de3c569ac7993092f15",
+      "storedSha256": "d51df159f720dab7f33647a243ad6d3472a02b0ea08ea6c93cbdd1bf7b96505e",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/ui-final-tests.log.gz",
+      "sourceBytes": 259,
+      "sourceSha256": "44d770ddfe5ba37a447f81c97df3f64672be47844ddf2e4f83495f27f54f1954",
+      "storedSha256": "d106a55e00d1d7fa8ba601c1f5528a9962f24f24eb77a1cfaaa124828c5396be",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/routing-integration.log.gz",
+      "sourceBytes": 256,
+      "sourceSha256": "686bbe403736a7c93eaa5bb907494f30a3ceba37b3f535fccb6b719fd0c04ae1",
+      "storedSha256": "9975e741fe44922d0242291e2ec811d13d5efc564a32eabf803be8927467d698",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/plan-digest-red.log.gz",
+      "sourceBytes": 1453,
+      "sourceSha256": "b8581a4bfd02d081826e3bfba79f3a203640f5f09b723619fba8233b58b5d3b8",
+      "storedSha256": "6dfdd88570377464545a1db3b1497162dc42debb34e94d96886535f4dde79472",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/plan-digest-green.log.gz",
+      "sourceBytes": 254,
+      "sourceSha256": "422350a47297243baffcd485f89ef39c8de5916fe6ea9b558d92be3acb438475",
+      "storedSha256": "746aeaab09e3cdc32bbfe21606303f21f3327323df1d683c65dafd729e9c88d3",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/browser-1.log.gz",
+      "sourceBytes": 26744,
+      "sourceSha256": "3b6237a459b09f6b0829337787e6e9b27ab316d8afebe608c7930bb60c5cd3b1",
+      "storedSha256": "3ed3b39d05641463a3015858399e8f3a8b04e0e48864cabb661ffb5d3a24026f",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/browser-2.log.gz",
+      "sourceBytes": 19684,
+      "sourceSha256": "01b9458343fccc5d438df59360850854a10d838ce1061e1d3b9fbeeb5cdb7e67",
+      "storedSha256": "77b3ab351d84d102069d62bd20691b53ff48218dbfba6e25f9a41a45cb01a541",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/browser-3.log.gz",
+      "sourceBytes": 10129,
+      "sourceSha256": "29f020b7678ddb65edc6ab598cf56b9dfdd92cc3abf963ad117b3c7cd6d6a360",
+      "storedSha256": "1efadf608e3a5e97d46994ca71b26dd50c2a7952da6ce737ed50988f92dbe6fa",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/browser-install.log.gz",
+      "sourceBytes": 4559,
+      "sourceSha256": "6ec60b52cde1ae19507497f976065bf8180646cf0ab0de4a5a22ce82dbe0d65d",
+      "storedSha256": "b266b6e62ddcec9543abd4fe0003c26b8b91a4e911650797993ed1f2e894685c",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/offline-1.log.gz",
+      "sourceBytes": 8021,
+      "sourceSha256": "6c79318cb657f641261992f6efa2a4f4ba43759056937826d820c6d35a78c962",
+      "storedSha256": "dd0ac268abd5a2cd007f8c405bfe27521c09a42b3d8025a44152abb8c8eeee10",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/offline-2.log.gz",
+      "sourceBytes": 5029,
+      "sourceSha256": "692b252f076c214e7fdaaa823b671b7631863c4cb696207cf3cbce504666dd8f",
+      "storedSha256": "cf6dfeb8529f0b92a03b72e47ecc598c5ab095696ee434187ffb56ae4f5b80c3",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/offline-3.log.gz",
+      "sourceBytes": 933,
+      "sourceSha256": "9ceaa3bc0dc936747a1a4912b5d13631f0f0c7a7f5834de3a82a679ff191dea9",
+      "storedSha256": "ee5af773453a0c7c434a5a01839fdbb8f9ac36d5b268e2796c3a665c92f46cbc",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/live-1.log.gz",
+      "sourceBytes": 546,
+      "sourceSha256": "7e9665f69a2c1f51f551eff0cbbc888db59a186d1a44c1fd985b0e63f5d0231d",
+      "storedSha256": "cadaa8a56231030705216a7e79debc76c7dafa037fcc87dbc91465f7d07279d4",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/routing-build-backend.log.gz",
+      "sourceBytes": 59,
+      "sourceSha256": "914e8ec3bc8ba475fec07f2a9a62ca27dc269ff565a92ea68df0472bd52431cd",
+      "storedSha256": "5689d063f8c75cebf6c226aba1ed3c8bc294b9fda181da5523856a43f9bd023d",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/routing-build-app.log.gz",
+      "sourceBytes": 70594,
+      "sourceSha256": "4271e721ac63746925f28756b7d7fba871d986b1024b580d7e72042f44517d1f",
+      "storedSha256": "2951cc8b7f3cc6d9c1ebb86a222fd6af53637aeb9b3435e3a3a05f3a25201f91",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/final-types-node.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/final-types-web.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/final-lint.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/final-consumer-check.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "controls/harness-baseline.json",
+      "sourceBytes": 1387,
+      "sourceSha256": "7f9b4af1cb3b5bf8ef949ad9bdf9a71f9bf0d92f5f285250a9fa082365618448",
+      "storedSha256": "7f9b4af1cb3b5bf8ef949ad9bdf9a71f9bf0d92f5f285250a9fa082365618448",
+      "compression": null
+    },
+    {
+      "path": "controls/harness-candidate.json",
+      "sourceBytes": 11965,
+      "sourceSha256": "ae989f2d087cee4f1777743da15f4015d3517b59261b3afd442f34903bd06e69",
+      "storedSha256": "ae989f2d087cee4f1777743da15f4015d3517b59261b3afd442f34903bd06e69",
+      "compression": null
+    },
+    {
+      "path": "controls/harness-comparison.json",
+      "sourceBytes": 432,
+      "sourceSha256": "eb4c6e71d04bb286869dfe90485ecb39d19f464dff02c09b0952f73f23750090",
+      "storedSha256": "eb4c6e71d04bb286869dfe90485ecb39d19f464dff02c09b0952f73f23750090",
+      "compression": null
+    },
+    {
+      "path": "controls/browser-environment.json",
+      "sourceBytes": 3114,
+      "sourceSha256": "4e5ea4f4396fafc89401b7ffbd4e250b3dd9415d167445fd517635ba88bbb184",
+      "storedSha256": "4e5ea4f4396fafc89401b7ffbd4e250b3dd9415d167445fd517635ba88bbb184",
+      "compression": null
+    },
+    {
+      "path": "controls/routing-source-control.json",
+      "sourceBytes": 1018,
+      "sourceSha256": "9dddf39e0dc08fbe9e2bc7e04acc9cf413c934f53b18e5ab9b8990a0a2407343",
+      "storedSha256": "9dddf39e0dc08fbe9e2bc7e04acc9cf413c934f53b18e5ab9b8990a0a2407343",
+      "compression": null
+    },
+    {
+      "path": "controls/pr15-state.json",
+      "sourceBytes": 2921,
+      "sourceSha256": "1a07de703a53d484f0aa57bb781c6273418656c1ed90f62135230d8dd7657f54",
+      "storedSha256": "1a07de703a53d484f0aa57bb781c6273418656c1ed90f62135230d8dd7657f54",
+      "compression": null
+    },
+    {
+      "path": "logs/owner-red.log.gz",
+      "sourceBytes": 4805,
+      "sourceSha256": "6fd39501440fae2d5ee7b8316d0b57fcd77d8a9173cb79e3eb2f2f45f37e1628",
+      "storedSha256": "91f92a34d8818c9e803bb7be52752195bdcf19c50121655c0e314d7d76afffb3",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/owner-green.log.gz",
+      "sourceBytes": 251,
+      "sourceSha256": "2dd7304512ef3084906ffc09fcf92faf803b8f2d816d868dfd9c2cf8b6d9703c",
+      "storedSha256": "529733458c3c828f5bf50f348e131dadfd0de6168d3b830c692ddabe992bb878",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/owner-regression.log.gz",
+      "sourceBytes": 253,
+      "sourceSha256": "c7504d8cc9445c19ae213b2bd88d9ebb77115eeb2fdc9a423359d40c6ce138d3",
+      "storedSha256": "9dee79f31e262612156bfd6d119daec5f352fa5ce79408a9df824937d90a76aa",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/owner-types.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "logs/owner-lint.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "controls/owner-unit-evidence.json",
+      "sourceBytes": 1823,
+      "sourceSha256": "6e1ae8923768bb5cdf9a4569b14908f745a5ceb12daae80c3a523399031961b3",
+      "storedSha256": "6e1ae8923768bb5cdf9a4569b14908f745a5ceb12daae80c3a523399031961b3",
+      "compression": null
+    },
+    {
+      "path": "offline-1/.last-run.json.gz",
+      "sourceBytes": 145,
+      "sourceSha256": "63b5261b34780e024194aedfa00c4d30c2bcd2826cfc705b168e988a15d9f436",
+      "storedSha256": "42ddc18da889bc50a1d3a4bb9b4ba8fbcbe0e9a622abd35e827fa8d359d2597e",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/attachments/main-process-log-4cd3d1a54598318d01b650e1d11723fd86f8d900.log.gz",
+      "sourceBytes": 256909,
+      "sourceSha256": "340bf129bf980665b3a23d721fff5584c3be8f14799c10eefde192e9d0e19f12",
+      "storedSha256": "56dfcce5ffed0e8409db24788b04e8e78a8e7830bf0c49571bd278dcf056ac78",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/error-context.md.gz",
+      "sourceBytes": 27878,
+      "sourceSha256": "46aa4aad713c73ecc0c7f409403efe6d84ca9ab5cc4a2781a82b019f5718ffe0",
+      "storedSha256": "c11990d88d2a50d2fe40bf74af686476dc38021ac975183cfc0b7e6e93d61949",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-sessions.json.gz",
+      "sourceBytes": 81590,
+      "sourceSha256": "e9ff2631e3f8fda6f225cf47bfd3786288b97d203211304c7586cc9531a769f7",
+      "storedSha256": "58f8b471bd3edbcb72edd381a68f01dd962a1b20c0af8fd9a44be5cb6e94d89f",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/notebook-catalog.json.gz",
+      "sourceBytes": 1471,
+      "sourceSha256": "92e2d48e60de5b78327710536db8b169e4d23e0963125ab241383fc236dc5529",
+      "storedSha256": "385edf95fd6f7be1b25c86e0fdc61a761c594cb3c78cb909188b7d52e10c0b67",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/test-failed-1.png",
+      "sourceBytes": 175501,
+      "sourceSha256": "ffd6818e06f736cbf3ed1f168f0741a75f0b6c9a55b4dc99efdd337b1898f3a6",
+      "storedSha256": "ffd6818e06f736cbf3ed1f168f0741a75f0b6c9a55b4dc99efdd337b1898f3a6",
+      "compression": null
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/attachments/main-process-log-4cd3d1a54598318d01b650e1d11723fd86f8d900.log.gz",
+      "sourceBytes": 232008,
+      "sourceSha256": "6550020a174bf63aa6eb2884bad83cce988b60942791cc83dd7df23d832e0609",
+      "storedSha256": "93d320b564a67573a1e1b8e28d7ff8eb63c24f866f55a3e05d953e012563391b",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/error-context.md.gz",
+      "sourceBytes": 24425,
+      "sourceSha256": "a740eacbc822f8b3005cd042d947b24d326de3af67fcc0313ff07921506626e1",
+      "storedSha256": "b5d483b24fc22e8a3874f2e99ad22bdeea9e087ed0e4c0a087b9f898c71a8ac8",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "2dbab673271686cae278f505cc91c0e9015adbb54c5e23d170b083b3f88566b6",
+      "storedSha256": "d8c5f495945d4283009bd868848a5e66930b427b41993e41f3c3bf32f64c3019",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json.gz",
+      "sourceBytes": 40944,
+      "sourceSha256": "f5d5cc4e24ebf295291c13af3b2e18355914402f4e48a2347f914593f10d65db",
+      "storedSha256": "37ae2b0af97f8c5f7ae2bc8628a060c6581465f9a5d4ef0e1612d970570c9876",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json.gz",
+      "sourceBytes": 1599,
+      "sourceSha256": "64f7aa235ee11b92f45794db35c12f1d23a68b694af18e4ec57cf2f7232d0bd2",
+      "storedSha256": "72126a67cdd49256d91a0b329a8d42577d343f21acb3af2de834e72d9b39cc08",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/test-failed-1.png",
+      "sourceBytes": 180232,
+      "sourceSha256": "1a1e6cf761a14f71016bda7b20da3b7caba1c80e7f2261789987e5ab1f91cd7f",
+      "storedSha256": "1a1e6cf761a14f71016bda7b20da3b7caba1c80e7f2261789987e5ab1f91cd7f",
+      "compression": null
+    },
+    {
+      "path": "offline-2/.last-run.json.gz",
+      "sourceBytes": 96,
+      "sourceSha256": "8e082f143d64a906926023009bc3f945032bc76202f0de608c59e46fe51260f0",
+      "storedSha256": "86ecb43614c3dd8924ae1e95741ca1e41cef6125693d8eec6ea08fca6829f6d1",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/attachments/main-process-log-4cd3d1a54598318d01b650e1d11723fd86f8d900.log.gz",
+      "sourceBytes": 691208,
+      "sourceSha256": "815958d9998993e8910b42dc1ca8026f5c0e7e88f9aa6ff29b1a58721251b57b",
+      "storedSha256": "6b79e4cf5f8eafbd13025cf10c79cde03d5a098d49fb206e7c2236dea53d8673",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/error-context.md.gz",
+      "sourceBytes": 40489,
+      "sourceSha256": "f6deb104bc7c7383e4404acb13d5c9521849c1aeaa55a3028421d30ab133bbfa",
+      "storedSha256": "67bcc81f6652c42c0c563e88fcd9d6298876c4b2198293306921e6a2e5b08f58",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-67396579-d407-4448-a2b1-032d82b5787f-execution.json.gz",
+      "sourceBytes": 222372,
+      "sourceSha256": "ad66ef69871e40a64e3747faee75b1e9733aa8f66c9383fd451e3778c05b6872",
+      "storedSha256": "06eac5d39acceaf3a08d4c3d72408fe945b6d4e91912603641354bf0516702e3",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-67396579-d407-4448-a2b1-032d82b5787f-failure-diagnostics.jsonl.gz",
+      "sourceBytes": 160,
+      "sourceSha256": "918609b254a246eb9955af975d9fb8a6bf00fac5295fcc27aebdf09dfa7fd1ab",
+      "storedSha256": "67d5859b0e3c6a9ae4ba401a4cc3f3164197e27597b85fb4658a421a1e6d6b9c",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-67396579-d407-4448-a2b1-032d82b5787f-request-tasks.json.gz",
+      "sourceBytes": 7427,
+      "sourceSha256": "40cce71823d351eeeee29df6304ffb51f62c1241b72a9cd97b11c7e624813ddc",
+      "storedSha256": "8a6b658b8fcb3b540e0637cc2a88a299da20ab42f75916e97152d15d5ff6147d",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-67396579-d407-4448-a2b1-032d82b5787f-resume.json.gz",
+      "sourceBytes": 6734,
+      "sourceSha256": "7862277389299a3756a130314a951334523e63615ab8a3262de76c32ff87d388",
+      "storedSha256": "57b1e349dd768174a21e2f788b37fcde984986c43a9c09867623dcd168e75ca8",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-sessions.json.gz",
+      "sourceBytes": 1915884,
+      "sourceSha256": "8dbd410eea407905890f01b2e6ce4d5182ddaecefc9e85f1d6a9557a4759dbb5",
+      "storedSha256": "4e8d0697c73ca879f0b36fd81f28aa85cd8543ba97624e0f71fae1159784b7e0",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/notebook-catalog.json.gz",
+      "sourceBytes": 9041,
+      "sourceSha256": "b36459b23a462ca7dd1f698991beae0d09d8e72db1bdd763f0c87f9d265cfd92",
+      "storedSha256": "b13b45639c0c53c1411d01f0f39838b095c09fbe07f4aaa3448726217cf746a6",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/stopped-journal.json.gz",
+      "sourceBytes": 30649,
+      "sourceSha256": "c15dff6903392527978cc21404ccfae18326fa2d5a0e66f03fe5edb237f8b298",
+      "storedSha256": "1d61756c31b336244224131ddde5858c107c91f72afe31e5d40d2b6ff593d453",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/test-failed-1.png",
+      "sourceBytes": 258402,
+      "sourceSha256": "bc5080aebd1f67f6f9bf3bb4cebf594814fe1b2157b204684a59a5a8435386bc",
+      "storedSha256": "bc5080aebd1f67f6f9bf3bb4cebf594814fe1b2157b204684a59a5a8435386bc",
+      "compression": null
+    },
+    {
+      "path": "offline-2/earthnano-notebook-catalog-833f7-es-without-source-crossover/test-failed-2.png",
+      "sourceBytes": 316346,
+      "sourceSha256": "b1166693d81a7c86eee3d45f7dace704fb854219aaa32d0e6feb3f9e76a4e75c",
+      "storedSha256": "b1166693d81a7c86eee3d45f7dace704fb854219aaa32d0e6feb3f9e76a4e75c",
+      "compression": null
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/execution-journal.json.gz",
+      "sourceBytes": 205029,
+      "sourceSha256": "378e50d5c7dd90b9443514c64c9e7651459e01a4f1b19bfea94b840952a04cef",
+      "storedSha256": "26b668cf25defe2a6ae78c210b27078d1dfd2b7dfad174e80b0a31a4c3f3fdc8",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-journal-799e8317-0656-4e61-a22b-82543e459e80.json.gz",
+      "sourceBytes": 156159,
+      "sourceSha256": "d592d168c0632f1663fe44f04b5397a9e3a64ddf85df5d0ad68da79f12bce544",
+      "storedSha256": "f4cec95ac5d28156734d85073816ef474a73c3828e97fd8d6c40ef86abc3ae75",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "f57d8eae2e01815ec2f479a82ac5d99b60d763b8cdaf0b2d52f0d2e23f1127ea",
+      "storedSha256": "262eaa46d1d9cd36fc660ef1e38db4c9c8817bd7b72d5287ba17d4149b1d92a7",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-799e8317-0656-4e61-a22b-82543e459e80-failure-diagnostics.jsonl.gz",
+      "sourceBytes": 76,
+      "sourceSha256": "65f51c4597896e1724498ceff59a50131b018a2d944f09f1d5becd9d66f6ee0f",
+      "storedSha256": "928d6421c5376517713d0dbdcd7cb0bc9878f62436d4bf57a490665ea8401054",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-799e8317-0656-4e61-a22b-82543e459e80-request-tasks.json.gz",
+      "sourceBytes": 4836,
+      "sourceSha256": "16559028bd0c3423731e75a74522a281cd516be57b5bd8be689ee69b2f2f814a",
+      "storedSha256": "4bb8591c1b2566f833740b059bc6868d503c12cbc41370864735af2d32d28d23",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-799e8317-0656-4e61-a22b-82543e459e80-resume.json.gz",
+      "sourceBytes": 4265,
+      "sourceSha256": "a68051e85526509f40267ff6af055ab3f0554cb53ca9c42cf4382c88504882b8",
+      "storedSha256": "ec62e66c00e014d8cb28d2f2f0130710e26ea469da5693ed26007ae29192a566",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json.gz",
+      "sourceBytes": 1479399,
+      "sourceSha256": "41ba9c436ac723fbd63d9bf173c6ad8771683efb4bee322b99d24c02dd7c6027",
+      "storedSha256": "f18b7c95d7ad14286462d76898f8318a09f83469af5b7c51791c702fb4de62e0",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json.gz",
+      "sourceBytes": 38077,
+      "sourceSha256": "f08fb01b424800406ae230fbca0f843ee1f025141b2b649bf93102dda26c84b2",
+      "storedSha256": "624e47920b3f938ac1e3a0a31d96c9d761ccc992602b23460fd6824e999ac165",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/stopped-journal.json.gz",
+      "sourceBytes": 45818,
+      "sourceSha256": "56fb824951b104e83595a4f5224007eb6ea69b683e1bf43e7a8140f71a69e00d",
+      "storedSha256": "4c89f8705ebfdea967a05ab645cc82f8f0e3f4c47eefe53df83779cf2584c53e",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/.last-run.json.gz",
+      "sourceBytes": 45,
+      "sourceSha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "storedSha256": "891cd7c3ed24e1eb8ee0770e6d3d2544ff30e0338483c5aac9c633da41f090be",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-739f89e6-b8e3-46d3-83eb-d27c4418ca20-execution.json.gz",
+      "sourceBytes": 298246,
+      "sourceSha256": "2b31c830c18acaad24cda374767f089043086780da7ed660e46388903788d520",
+      "storedSha256": "07d3f47af202088a3dc3b2d8cbb22b45cb82567a8f224fe32e832c5617ebe53e",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-739f89e6-b8e3-46d3-83eb-d27c4418ca20-failure-diagnostics.jsonl.gz",
+      "sourceBytes": 76,
+      "sourceSha256": "65f51c4597896e1724498ceff59a50131b018a2d944f09f1d5becd9d66f6ee0f",
+      "storedSha256": "928d6421c5376517713d0dbdcd7cb0bc9878f62436d4bf57a490665ea8401054",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-739f89e6-b8e3-46d3-83eb-d27c4418ca20-request-tasks.json.gz",
+      "sourceBytes": 8174,
+      "sourceSha256": "ab6d6a0b5f98556a79705c522d16759c5ee663c7cef75fad5b26533830172fb5",
+      "storedSha256": "fddfd7f2c8690bb5f79ba5b5ec3dae3bd03a4dd2f83490675a57649a7edc169f",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-739f89e6-b8e3-46d3-83eb-d27c4418ca20-resume.json.gz",
+      "sourceBytes": 6734,
+      "sourceSha256": "111dd3e0b0516ec09d22dc4bc0c8d211fe93e2e72ec44a2053c308b5c97c2652",
+      "storedSha256": "466177d23fd3079f3ae56aa3494648ab3fe233a0f4af0fd52157c13eaa944f44",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-sessions.json.gz",
+      "sourceBytes": 2410768,
+      "sourceSha256": "dfe21eb8c75a41d5c606e9f092f8a2fbb3b69d50dc13db2548196af1f67550af",
+      "storedSha256": "ea687a9aaae8ddc447b81686544378de762d421fefb9fd20fd0fcb460ae55440",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/notebook-catalog.json.gz",
+      "sourceBytes": 28085,
+      "sourceSha256": "52eabe83a2f3901f293f942891c07e564ca6d4f87935a2a277e50735e1df6187",
+      "storedSha256": "be632559d531b8bf03d5e0401cff84f26cd6a1054f87e8b4eaab6896be94fc6b",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-catalog-833f7-es-without-source-crossover/stopped-journal.json.gz",
+      "sourceBytes": 30649,
+      "sourceSha256": "3b13e9f7c53ac637fc82602357446364c9847452d15e354020855de1f50eed46",
+      "storedSha256": "10f39f6b0725dd8b29b7de054d6fb99273973c789cca376bc2d98c6ad9010b7a",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/execution-journal.json.gz",
+      "sourceBytes": 205029,
+      "sourceSha256": "a51c9d3b14dd1d183e5ffb7141a4d6cbef50e0db83aee0fad77243e54bde79a1",
+      "storedSha256": "b6be3e2588c86b783cecbdaa44bd2deb9208dc5b09a16b9bd9399a1ff3e5d480",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-journal-d39d8bf7-abd8-413a-b4b1-18cb8a5cafa7.json.gz",
+      "sourceBytes": 156159,
+      "sourceSha256": "8f097e5779f3721b600711227f150b879e41a7400a2f1946881e2208ed013d9a",
+      "storedSha256": "427a15524dc2a00daa348700485e592134c3080e8b85dc96372ae623dd6f78ce",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "3e8f546f979b4dc17a6c44fc9e2a68ac10bad29e77f3a00b9d7c0f7e75f851f4",
+      "storedSha256": "85a6c5629b3eda5cfdc660dc19302d42f41a40637c8201956d0f41bd23b55468",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-d39d8bf7-abd8-413a-b4b1-18cb8a5cafa7-failure-diagnostics.jsonl.gz",
+      "sourceBytes": 76,
+      "sourceSha256": "65f51c4597896e1724498ceff59a50131b018a2d944f09f1d5becd9d66f6ee0f",
+      "storedSha256": "928d6421c5376517713d0dbdcd7cb0bc9878f62436d4bf57a490665ea8401054",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-d39d8bf7-abd8-413a-b4b1-18cb8a5cafa7-request-tasks.json.gz",
+      "sourceBytes": 4836,
+      "sourceSha256": "e7ec6e9e81323d53efdb2fc876368cf2ad88dd4a777c083ebbfb6994211136e3",
+      "storedSha256": "ba756ae6552ad61173634a156794702689795f8e0cbcc30c32b14c2e173258c3",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-private-d39d8bf7-abd8-413a-b4b1-18cb8a5cafa7-resume.json.gz",
+      "sourceBytes": 4265,
+      "sourceSha256": "e106126a5f2b0b7d6dd9f21df95093c600dda89f4d74f24aded7e7abf8e511c6",
+      "storedSha256": "9c7426489b8d2a79d4d5dfd8fc6eaf3f270c328a2438d1bad3d4d012dc354146",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json.gz",
+      "sourceBytes": 1479401,
+      "sourceSha256": "f220df1a938795e67ed6cfd4e0fe6bdcf9c33501c6c3ced6784c613520cfeea6",
+      "storedSha256": "74d3090d254518440016f536e4e5c45f6b66989da7e6daf9c4ed4a0a0eae8536",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json.gz",
+      "sourceBytes": 38077,
+      "sourceSha256": "efdbf589ce50fdf55241d91815e433c6977b9cd42010a67ca1a4a61939ab5f52",
+      "storedSha256": "b9a396d7aedb59f92e64fe20e6b6969da7408fb63e8f59ce65f27c4bf1cbc781",
+      "compression": "gzip"
+    },
+    {
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/stopped-journal.json.gz",
+      "sourceBytes": 45818,
+      "sourceSha256": "c38e3964aa079b57705dba8160f94aba4519a272308fbd1867232585f7abcdcd",
+      "storedSha256": "8fb884aa81c7cec624af1d8cf19a3fa3f34315991e94f362cbec61b3cbf7386a",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/.last-run.json.gz",
+      "sourceBytes": 45,
+      "sourceSha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "storedSha256": "891cd7c3ed24e1eb8ee0770e6d3d2544ff30e0338483c5aac9c633da41f090be",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-803c7c46-9d59-451d-b976-e33388f64b4d-execution.json.gz",
+      "sourceBytes": 511832,
+      "sourceSha256": "74a7d0d8ae60ec66775e1b17071681045995d1ef4a6f2f7944ebda010b3a3f77",
+      "storedSha256": "10cb358b064fdce4fc9b23f7b7541a21aa62cd1df3e95a7fc1dd7f68e3128f61",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-803c7c46-9d59-451d-b976-e33388f64b4d-failure-diagnostics.jsonl.gz",
+      "sourceBytes": 76,
+      "sourceSha256": "65f51c4597896e1724498ceff59a50131b018a2d944f09f1d5becd9d66f6ee0f",
+      "storedSha256": "928d6421c5376517713d0dbdcd7cb0bc9878f62436d4bf57a490665ea8401054",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-803c7c46-9d59-451d-b976-e33388f64b4d-request-tasks.json.gz",
+      "sourceBytes": 8921,
+      "sourceSha256": "f9089e25184fa5bee5774df7061a3353bcbd53fdcc252f32a17d962e5caca410",
+      "storedSha256": "b96b936c9d4d13046e91d44e69c9ad5afb55c04e1bfd86f1839cf13b4c8fde8d",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-803c7c46-9d59-451d-b976-e33388f64b4d-resume.json.gz",
+      "sourceBytes": 6734,
+      "sourceSha256": "36c4f7eefcb9be62c0508a985c51348b9d1a4f96079cbe1264c0bd65d9dc8d9d",
+      "storedSha256": "c9038f105a225409f6cc9c7779cd2b77d88f8c266d89015aa773d92ba2ae8fef",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/final-sessions.json.gz",
+      "sourceBytes": 6133533,
+      "sourceSha256": "ab74d19196fb20a89be51b4dfd3407f2b498b34a6da57b4715f31bf70f1161ad",
+      "storedSha256": "63afea59b24498db1512eb4ab311be5d093d5df96b1b59995badaa8f67421875",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/notebook-catalog.json.gz",
+      "sourceBytes": 36253,
+      "sourceSha256": "19bfb55f0b2c80e1329e56404268c2c9c7aca1c9603aa747c1bb24f9935d45eb",
+      "storedSha256": "fb54a53eeaa39fc64c0217c0b198553d5ce667e6d3a64e27f3d0c6d8911171ec",
+      "compression": "gzip"
+    },
+    {
+      "path": "live-1/earthnano-notebook-catalog-833f7-es-without-source-crossover/stopped-journal.json.gz",
+      "sourceBytes": 30032,
+      "sourceSha256": "3f92e15f60e63365e7b2999b576a5a3b3cfd7da999b56e7c1ddc35174e0b6060",
+      "storedSha256": "398e9f497d8c9da07fdef2ec6f076710216be41d7eb172f7f38a7fac9ac2ff24",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/.last-run.json.gz",
+      "sourceBytes": 390,
+      "sourceSha256": "eff53d21c2171877c842ce722fe9da61f32945576549314cd22b072c92908018",
+      "storedSha256": "5df42af7ecc861eab107bf43ccfa0e0666a2d1702f5760f90274be9a580b0c91",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-keeps-do-46601-s-private-JSON-expectations-chromium/error-context.md.gz",
+      "sourceBytes": 1343,
+      "sourceSha256": "011fb9f000f30b32d5bd5dd5b5f97eef99a1ba6ff2942bca80cc2c9cb9776bf5",
+      "storedSha256": "0bff6d37f5f7dd0c78e3dbafd0061739cd52d19be0b1114f7811801426d58e72",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-keeps-er-b64e3-hides-unsupported-web-entry-chromium/error-context.md.gz",
+      "sourceBytes": 1323,
+      "sourceSha256": "0354bc87eb3e17f279a5d814972d7c2fcd520ed3757d58839854b7646c0a4e7e",
+      "storedSha256": "0adc4d521d6be10c3897e95adc209040fe088c09e9b2bf6ca58f3cead0100d92",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-shows-in-e04cf-nd-resets-on-Session-switch-chromium/error-context.md.gz",
+      "sourceBytes": 1346,
+      "sourceSha256": "9254b8d73d7a6866c3c64f74d9500875e57ebde713f35e96c21c486bf0f07d22",
+      "storedSha256": "c084caad257961c21aee31519c92effb8d940ff69402ec1762978469fd5da0d6",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-starts-p-8563a-typed-optimization-at-390px-chromium/error-context.md.gz",
+      "sourceBytes": 1314,
+      "sourceSha256": "537ca7f1fbcc4e84c52b30ef0ff3d4b33a8878a89f912c26b6984ff3e75d47a1",
+      "storedSha256": "d3747ab2005f4c1fb7e23196f8b8ecc3a998e7c76d578f6ace7a96778e168d34",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-starts-p-c660b-yped-optimization-at-1100px-chromium/error-context.md.gz",
+      "sourceBytes": 1315,
+      "sourceSha256": "df3bbc8e20ae0cc64784cfff239145b5c4d402c7aba4ff0f4a5e518f6ed62260",
+      "storedSha256": "000da5b1f46e983ce4ef7b964f7a1189f3b2ef524e017f6b6a980a9afbeedc82",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-submits--c3d36-he-original-selector-result-chromium/error-context.md.gz",
+      "sourceBytes": 1326,
+      "sourceSha256": "6df580c5676ef689a14c4abec38096d9de306b2fbca90a50627da2f827256a82",
+      "storedSha256": "d98c47d29fde5062bb83f210148eaf1f9b0d4b21047c36367378c49bd3e86c5c",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-1/task-optimization-submits--d793d-he-original-selector-result-chromium/error-context.md.gz",
+      "sourceBytes": 1324,
+      "sourceSha256": "a6b139298cab95246b67f7d5bb13cf45fdc9d437eb5bd6d4133162d87ee2082c",
+      "storedSha256": "3ec053162a19c78756127c9721bbf11865f6e13ec99e9d238c7bb350ad42c463",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-2/.last-run.json.gz",
+      "sourceBytes": 194,
+      "sourceSha256": "cde42002552893160c5263d19fd2c135e3159e964d6e760e438748e600a5cccf",
+      "storedSha256": "6557367fecf3057ca55dbd02daaef544788659e5429753ad92ccd6b498a948b7",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-2/task-optimization-keeps-do-46601-s-private-JSON-expectations-chromium/error-context.md.gz",
+      "sourceBytes": 15566,
+      "sourceSha256": "abcd3607773ba829026e15d7664aed333095b45e9dd75eb9b32f0b6e508947da",
+      "storedSha256": "e269c4c4a30cac74fb505447ba372ec506c638d32af882fd0549e1a4892c631a",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-2/task-optimization-keeps-do-46601-s-private-JSON-expectations-chromium/test-failed-1.png",
+      "sourceBytes": 44376,
+      "sourceSha256": "48609dc7bacefa5b28853c048456a919fbcedc782a161ebe7521c2f90c7af16f",
+      "storedSha256": "48609dc7bacefa5b28853c048456a919fbcedc782a161ebe7521c2f90c7af16f",
+      "compression": null
+    },
+    {
+      "path": "browser-2/task-optimization-starts-p-8563a-typed-optimization-at-390px-chromium/error-context.md.gz",
+      "sourceBytes": 11676,
+      "sourceSha256": "434bb804a4d4f056f6fb1f0e9b6c92d7ce242d86c4b0a5f6f9bfa15eb0cc22bc",
+      "storedSha256": "46feeddd40ea99c1a10d59fcb6623e3dc64405aab20d9dbd3302a0f5925e154a",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-2/task-optimization-starts-p-8563a-typed-optimization-at-390px-chromium/test-failed-1.png",
+      "sourceBytes": 47952,
+      "sourceSha256": "c1ddadc60e66b8dba8f9dd56debb110ccc9c44fbf386621013c7556acc5d0f56",
+      "storedSha256": "c1ddadc60e66b8dba8f9dd56debb110ccc9c44fbf386621013c7556acc5d0f56",
+      "compression": null
+    },
+    {
+      "path": "browser-2/task-optimization-starts-p-c660b-yped-optimization-at-1100px-chromium/error-context.md.gz",
+      "sourceBytes": 11677,
+      "sourceSha256": "112e8550e7f69577e5e78993f8cef2cb102fbd4826bc10b1e10ec45857515776",
+      "storedSha256": "5282a294bac1dd694885c4931270bbd1ed55f88cea6ce868608bbd8748016d35",
+      "compression": "gzip"
+    },
+    {
+      "path": "browser-2/task-optimization-starts-p-c660b-yped-optimization-at-1100px-chromium/test-failed-1.png",
+      "sourceBytes": 58432,
+      "sourceSha256": "0219570bdb9a8f28bfc4283e73a01ec756699133d87138163426f2c58475984c",
+      "storedSha256": "0219570bdb9a8f28bfc4283e73a01ec756699133d87138163426f2c58475984c",
+      "compression": null
+    },
+    {
+      "path": "browser-3/.last-run.json.gz",
+      "sourceBytes": 45,
+      "sourceSha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "storedSha256": "891cd7c3ed24e1eb8ee0770e6d3d2544ff30e0338483c5aac9c633da41f090be",
+      "compression": "gzip"
+    }
+  ]
+}

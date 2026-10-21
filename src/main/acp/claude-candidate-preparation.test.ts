@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   mkdtemp,
   mkdir,
@@ -12,7 +13,7 @@ import {
   readdir
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCandidateSnapshotStore,
@@ -25,6 +26,7 @@ import {
   assertClaudeCandidateText,
   type ClaudeCandidateBinding
 } from './claude-candidate-preparation'
+import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candidate-artifact'
 
 const roots: string[] = []
 afterEach(async () => {
@@ -43,7 +45,9 @@ afterEach(async () => {
 })
 const fixture = async (
   skills: readonly CandidateTextFile[] = [],
-  scientific = false
+  scientific: boolean | 'r' = false,
+  binary?: Buffer,
+  contextFiles?: readonly CandidateTextFile[]
 ): Promise<{
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
@@ -51,9 +55,26 @@ const fixture = async (
 }> => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'claude-candidate-prep-')))
   roots.push(root)
+  const binarySource = join(root, 'original.png')
+  const binaryArtifact: CandidateBinaryArtifactFile | undefined = binary && {
+    path: 'figure.png',
+    representation: 'binary',
+    sizeBytes: binary.byteLength,
+    contentType: 'image/png',
+    digest: `sha256:${createHash('sha256').update(binary).digest('hex')}`,
+    artifactRef: {
+      artifactId: 'artifact',
+      versionId: 'immutable-png',
+      checksum: createHash('sha256').update(binary).digest('hex')
+    }
+  }
+  if (binary) await writeFile(binarySource, binary)
   const store = await createCandidateSnapshotStore({
     root: join(root, 'snapshots'),
-    candidatesRoot: join(root, 'candidates')
+    candidatesRoot: join(root, 'candidates'),
+    ...(binaryArtifact
+      ? { materializeAsset: async () => ({ file: binaryArtifact, assetPath: binarySource }) }
+      : {})
   })
   const refs = await store.freeze({
     task: scientific
@@ -77,7 +98,7 @@ const fixture = async (
     harness: {
       instructions: 'SYSTEM_ALPHA',
       skills,
-      tools: scientific ? 'notebook-python' : 'workspace-only'
+      tools: scientific === 'r' ? 'notebook-r' : scientific ? 'notebook-python' : 'workspace-only'
     },
     agent: {
       backend: 'claude-code',
@@ -91,11 +112,11 @@ const fixture = async (
           network: 'provider-and-notebook-policy',
           notebook: {
             runtime: {
-              language: 'python',
-              runtimeId: '/usr/bin/python3',
+              language: scientific === 'r' ? 'r' : 'python',
+              runtimeId: scientific === 'r' ? '/usr/bin/R' : '/usr/bin/python3',
               source: 'external',
               provenance: 'user-own',
-              interpreterPath: '/usr/bin/python3'
+              interpreterPath: scientific === 'r' ? '/usr/bin/R' : '/usr/bin/python3'
             }
           }
         }
@@ -104,7 +125,13 @@ const fixture = async (
   const invocationRef = await store.freezeInvocation({
     taskSnapshotRef: refs.taskSnapshotRef,
     harnessRevisionRef: refs.harnessRevisionRef,
-    mission: 'Run the task'
+    mission: 'Run the task',
+    ...(contextFiles ? { contextFiles } : {}),
+    ...(binaryArtifact
+      ? {
+          assets: [{ path: 'anonymous.png', sourceExecutionId: 'source', artifact: binaryArtifact }]
+        }
+      : {})
   })
   const allRefs = { ...refs, invocationRef }
   const resolved = await store.resolve(allRefs)
@@ -136,6 +163,195 @@ const runGate = (root: string, tool: string, args: object): string => {
 }
 
 describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate preparation', () => {
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0xff])
+
+  it('accepts exact readonly invocation context with native expansion syntax only inside evidence files', async () => {
+    const content = '完整证据 🌍\r\n@host !`touch forbidden`\n'
+    const f = await fixture([], false, png, [{ path: 'rollouts/base1.md', content }])
+    await prepareClaudeCandidate(f)
+    const path = join(f.materialized.inputDir, 'rollouts/base1.md')
+    expect(await readFile(path)).toEqual(Buffer.from(content, 'utf8'))
+    expect(runGate(f.materialized.root, 'Read', { file_path: path })).toBe('allow')
+    expect(runGate(f.materialized.root, 'Write', { file_path: path, content: 'replacement' })).toBe(
+      'deny'
+    )
+    expect(f.resolved.invocation.mission).not.toContain(content)
+  })
+
+  it.each(['bytes', 'digest', 'missing', 'extra'] as const)(
+    'rejects %s tampering in the invocation context materialization before native preparation',
+    async (kind) => {
+      const f = await fixture([], false, undefined, [
+        { path: 'rollouts/base1.md', content: 'original evidence' }
+      ])
+      const path = join(f.materialized.inputDir, 'rollouts/base1.md')
+      const manifest = f.materialized.manifest.map((entry) => ({ ...entry }))
+      const entry = manifest.find((entry) => entry.path.endsWith('rollouts/base1.md'))!
+      if (kind === 'bytes') {
+        await chmod(path, 0o600)
+        await writeFile(path, 'changed evidence')
+      } else if (kind === 'digest') entry.digest = `sha256:${'a'.repeat(64)}`
+      else if (kind === 'missing') manifest.splice(manifest.indexOf(entry), 1)
+      else
+        manifest.push({
+          path: 'workspace/inputs/unexpected.txt',
+          bytes: 0,
+          digest: `sha256:${'b'.repeat(64)}`
+        })
+      await expect(
+        prepareClaudeCandidate({ ...f, materialized: { ...f.materialized, manifest } })
+      ).rejects.toThrow(/Candidate (materialization|manifest)/)
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
+
+  const computeFixture = async (): Promise<Awaited<ReturnType<typeof fixture>>> => {
+    const f = await fixture()
+    // Serializer admission belongs to its original owner; exercise this preparation boundary
+    // directly with the shared typed snapshot while that owner is integrated independently.
+    const resolved: ResolvedCandidateSnapshots = {
+      ...f.resolved,
+      harness: { ...f.resolved.harness, tools: 'notebook-compute' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        compute: {
+          sourceProjectId: 'project',
+          sourceSessionId: 'source',
+          access: { enabledProviderIds: ['ssh:host'], selectedProviderIds: ['ssh:host'] },
+          hosts: [
+            {
+              id: 'host-row',
+              providerId: 'ssh:host',
+              shape: 'direct_ssh',
+              executionMode: 'direct_ssh'
+            }
+          ]
+        }
+      }
+    }
+    return { ...f, resolved, materialized: { ...f.materialized, snapshots: resolved } }
+  }
+
+  it.each(['baseline', 'candidate'] as const)(
+    'allows only original foreground Compute control and Artifact publishing for %s',
+    async (role) => {
+      const f = await computeFixture()
+      await prepareClaudeCandidate({ ...f, role })
+      const gate = (tool: string, args: object): string => runGate(f.materialized.root, tool, args)
+      expect(
+        gate('mcp__open_science_notebook__repl_execute', {
+          code: 'await host.compute.listHosts()',
+          background: false,
+          timeoutMs: 1000
+        })
+      ).toBe('ask')
+      expect(gate('mcp__open-science-notebook__repl_execute', { code: 'await host.help()' })).toBe(
+        'ask'
+      )
+      expect(
+        gate('mcp__open_science_artifacts__write_artifact_file', {
+          producerRunId: 'original-producer',
+          localPath: 'report.json'
+        })
+      ).toBe('ask')
+      for (const args of [
+        { code: 'true', background: true },
+        { code: 'true', language: 'python' },
+        { code: 'true', timeoutMs: 0 }
+      ])
+        expect(gate('mcp__open_science_notebook__repl_execute', args)).toBe('deny')
+      for (const tool of ['notebook_execute', 'notebook_bind_runtime', 'manage_packages'])
+        expect(gate('mcp__open_science_notebook__' + tool, { code: 'true' })).toBe('deny')
+      expect(gate('Shell', { command: 'true' })).toBe('deny')
+      expect(
+        gate('mcp__open_science_artifacts__write_artifact_file', { localPath: 'report.json' })
+      ).toBe('deny')
+    }
+  )
+
+  it.each([
+    undefined,
+    'task',
+    'proposer',
+    'composer',
+    'selector',
+    'reflection',
+    'reviewer'
+  ] as const)(
+    'fails closed for Compute without the original task execution role (%s)',
+    async (role) => {
+      const f = await computeFixture()
+      await expect(prepareClaudeCandidate({ ...f, role })).rejects.toThrow(
+        'original baseline or candidate execution role'
+      )
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
+
+  it('does not add Compute control to existing workspace or Python/R native policies', async () => {
+    for (const profile of [false, true, 'r'] as const) {
+      const f = await fixture([], profile)
+      await prepareClaudeCandidate(f)
+      expect(
+        runGate(f.materialized.root, 'mcp__open_science_notebook__repl_execute', {
+          code: 'await host.compute.listHosts()'
+        })
+      ).toBe('deny')
+    }
+  })
+
+  it('verifies frozen binary assets and allows native Read of their private copies', async () => {
+    const f = await fixture([], false, png)
+    await prepareClaudeCandidate(f)
+    const path = join(f.materialized.inputDir, 'anonymous.png')
+    expect(await readFile(path)).toEqual(png)
+    expect(runGate(f.materialized.root, 'Read', { file_path: path })).toBe('allow')
+    expect(runGate(f.materialized.root, 'Write', { file_path: path, content: 'changed' })).toBe(
+      'deny'
+    )
+  })
+
+  it.each(['bytes', 'manifest', 'missing', 'extra', 'link'] as const)(
+    'rejects binary %s substitution before native runtime resources are created',
+    async (mutation) => {
+      const f = await fixture([], false, png)
+      const path = join(f.materialized.inputDir, 'anonymous.png')
+      if (mutation === 'bytes') {
+        await chmod(path, 0o600)
+        await writeFile(path, Buffer.alloc(png.byteLength, 1))
+      } else if (mutation === 'manifest') {
+        const forged = f.materialized.manifest.map((entry) =>
+          entry.path.endsWith('anonymous.png')
+            ? { ...entry, digest: `sha256:${'0'.repeat(64)}` }
+            : entry
+        )
+        f.materialized = { ...f.materialized, manifest: forged }
+      } else if (mutation === 'missing') {
+        f.materialized = {
+          ...f.materialized,
+          manifest: f.materialized.manifest.filter((entry) => !entry.path.endsWith('anonymous.png'))
+        }
+      } else if (mutation === 'extra') {
+        f.materialized = {
+          ...f.materialized,
+          manifest: [
+            ...f.materialized.manifest,
+            { path: 'INPUT/unlisted.png', bytes: 0, digest: '' }
+          ]
+        }
+      } else {
+        await chmod(f.materialized.inputDir, 0o700)
+        await rm(path)
+        await symlink(join(dirname(f.materialized.root), '..', 'original.png'), path)
+      }
+      await expect(prepareClaudeCandidate(f)).rejects.toThrow(
+        /manifest|bytes changed|private regular/
+      )
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
+
   it('uses native framework configuration and replaces inherited process and hook environment', async () => {
     const f = await fixture()
     const prepared = await prepareClaudeCandidate({
@@ -369,6 +585,9 @@ it('routes only exact foreground Python/artifact MCP calls to the original broke
       artifactVersionInputs: ['old-version']
     })
   ).toBe('ask')
+  expect(runGate(root, 'mcp__open_science_notebook__notebook_execute', { code: 'print(1)' })).toBe(
+    'ask'
+  )
   expect(
     runGate(root, 'mcp__open_science_artifacts__write_artifact_file', {
       filename: 'report.json',
@@ -396,4 +615,64 @@ it('routes only exact foreground Python/artifact MCP calls to the original broke
     ['Bash', { command: 'python3 code.py' }]
   ] as const)
     expect(runGate(root, tool, args)).toBe('deny')
+})
+
+it('requires explicit R in the R native gate and keeps original scoped broker ownership', async () => {
+  const f = await fixture([], 'r')
+  await prepareClaudeCandidate(f)
+  const root = f.materialized.root
+  for (const prefix of ['mcp__open_science_notebook__', 'mcp__open-science-notebook__']) {
+    expect(
+      runGate(root, prefix + 'notebook_execute', {
+        code: 'print(1)',
+        language: 'r',
+        artifactVersionInputs: ['old-version']
+      })
+    ).toBe('ask')
+    expect(runGate(root, prefix + 'notebook_state', {})).toBe('ask')
+    expect(runGate(root, prefix + 'list_notebook_runtimes', {})).toBe('ask')
+    for (const args of [
+      { code: 'print(1)' },
+      { code: 'print(1)', language: 'python' },
+      { code: 'print(1)', language: 'r', background: true },
+      { code: 'print(1)', language: 'r', artifactVersionInputs: ['foreign'] },
+      { code: 'print(1)', language: 'r', kernelSkillIds: ['unfrozen'] },
+      { code: 'print(1)', language: 'r', runtimeId: '/another/R' }
+    ])
+      expect(runGate(root, prefix + 'notebook_execute', args)).toBe('deny')
+    for (const tool of [
+      'manage_packages',
+      'notebook_bind_runtime',
+      'notebook_switch_runtime',
+      'shell_execute'
+    ])
+      expect(runGate(root, prefix + tool, { language: 'r', runtimeId: '/usr/bin/R' })).toBe('deny')
+  }
+  expect(runGate(root, 'mcp__other__notebook_execute', { code: 'print(1)', language: 'r' })).toBe(
+    'deny'
+  )
+  expect(runGate(root, 'Bash', { command: 'Rscript run.R' })).toBe('deny')
+  expect(
+    runGate(root, 'mcp__open_science_artifacts__write_artifact_file', {
+      filename: 'report.json',
+      source: { kind: 'localPath', path: 'report.json' },
+      producerRunId: 'real-r-run'
+    })
+  ).toBe('ask')
+})
+
+it('rejects an R profile whose runtime language was replaced before native preparation', async () => {
+  const f = await fixture([], 'r')
+  const resolved: ResolvedCandidateSnapshots = {
+    ...f.resolved,
+    environment: {
+      ...f.resolved.environment,
+      notebook: {
+        runtime: { ...f.resolved.environment.notebook!.runtime, language: 'python' }
+      }
+    }
+  }
+  await expect(prepareClaudeCandidate({ ...f, resolved })).rejects.toThrow(
+    'Unsupported Claude candidate profile'
+  )
 })

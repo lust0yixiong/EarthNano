@@ -1,5 +1,46 @@
 # Harness² 补全与深度融合的后续任务
 
+## Alpha 当前工作队列
+
+本版先完成两侧原能力与统一核心的剩余融合、已有回归和可运行应用交付。下表“独立后续设计”保留讨论目标，但不与原功能补全混作一项 Alpha 硬门。逐模块来源与用户明确要求的交付见 [FUNCTION_ORIGINS.md](FUNCTION_ORIGINS.md)。
+
+2026-10-21 平台决策：**0.1-Alpha 先交付 macOS/Linux；Windows 安装失败及 Windows 版本延期至 0.2-Alpha。** 已停止 Windows 排查、构建、安装验收及重跑，失败与未验证尝试完整保留，见 [0.2 Windows 待办](WINDOWS_0_2_ALPHA.md)。以下早期轮次的 Windows 计划属于历史范围，不再作为 0.1 门槛。
+
+0.1 最终发布时，安装包清单与更新 feed 也须显式使用 macOS/Linux 范围；现存上游 stable 发布工具的五目标默认保留，不可直接用于本版，也不能把缺少已延期 Windows 包当作未完成四目标验收。范围调整的本地检查见 [CI 证据](validation/alpha/unix-0.1-ci/manifest.json)，当前尚未公开发布。
+
+最终候选已合入 Compute 与 PR21 的 Unix 发布范围修改，代码合并点 `9815ac08e`；仅解决本队列文档冲突，原业务与 workflow 未额外改动。四套发布 helper 130/130、完整 types/lint 通过；[原始集成证据](validation/alpha/final-release-integration/manifest.json)。这不代替最终 head 的托管源码对照、四个平台实际安装包及发布；Windows 仍延期 0.2。
+
+最终原生链的实际检查另发现 metadata 上传缺口：现复用原脚本，在实际 Unix smoke 成功后检查原 feed、用真实数据库证书写各平台认证，并保留原 feed/blockmap；六套 205/205、完整 types/lint 通过，尚须新提交实际四平台结果。原 902 的 Linux ARM64 打包在原 Node 下载阶段流中断，原失败保留；其 Linux x64 通过也不冒充新提交验收。白底图标源及原 Icon Composer 接线已再次核对，最终包像素仍待。[接线、失败、图标与发布步骤证据](validation/alpha/final-release-integration/manifest.json)。
+
+Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由。原完整服务链离线 k=2 通过；实际 DeepSeek 第五次实验沿原 manager 恢复后完成 22/24、8 Job、累计 156/240 模型请求，独立评估 88/92 pass、产物 passed。原方法18次执行/既有Job未重提；干净提交8ec对完成实例复核1/1，零模型/运输调用。原反思缺闭合标签，原 parser 正确不保留 Library entry；离线正向 Library、失败工具后修正、24个真实 producer/Version 仍验证。全部先前模型、身份和验收断言失败保留；外部连接/加密器仍为协议 fixture，不能据此声称外部 SSH、科学提升或完整GUI/发布包通过。普通 Python/R 原路由与 unknown 锁边界保持。当前 head Unix 对照、堆叠 PR 审查与最终四目标包待完成；原 hosted 失败和模块登记修复已核对。当前范围见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)，原始红绿见 [服务链验证](validation/alpha/compute-original-workflow/manifest.json)。
+
+发布准备工具现已支持在原 manifest generator 和认证聚合器中显式传入 `--platforms mac,linux`：仍检查六项安装器、两份 Mac 更新 ZIP、三份 feed 和四个平台的同源认证；范围外文件及引用直接拒绝。独立审查发现的 URL 后缀分类缺口已有四例真实字节 fixture 复现并修复，四套检查最终 130/130、完整 compiled types/lint 通过，见 [原始证据与限制](validation/alpha/unix-0.1-release/manifest.json)。这仅完成发布工具准备，未启用发布工作流或上传安装包。归档中另有旧 CI 源 `c1e663279` 的 Mac ARM64 DMG/ZIP 原脚本本机启动检查，不能替代最终融合提交的四目标原生验收。
+
+2026-10-21 更新：R 已通过同一构建的真实桌面离线和首次 DeepSeek 双模式/停止续跑/独立审阅，详见 [R 实际验收](ALPHA_R_CONTRACT.md#后续实际验收2026-10-21)。原 108 个新增失败 ID 的本地定向修复已逐项通过，仍需以修复 head 完成 hosted 比较及 PR 审查。仓库已公开且 runner 已实际执行，旧账户限额不再作为当前阻断。继续收尾这些已有 PR/回归和原生包；二进制原 owner/方法资产、真实 RDS/PNG 及 4746 同构建桌面/DeepSeek 已接通，最终平台包仍待，见 [二进制集成](ALPHA_BINARY.md)。Compute 候选融合仍须复用原模块，不另造工具运行时。自动触发、平台配置发布/回滚及完整精确账本与上游功能补全分别标注，见 [来源说明](ALPHA_CONTRACT.md#功能来源说明)。
+
+PR #12 已审查合并。本轮固定提交 `5812df666` 的完整 Notebook 普通执行/优化/停止/重开/续跑/独立评估已通过 DeepSeek；前三次失败、原上游对照和修复均保留。白底图标已整合，跨平台原生包仍待 CI。完整状态以 [Alpha契约](ALPHA_CONTRACT.md) 和 [本轮证据](ALPHA_INTEGRATION.md) 为准，不把独立 helper 算作已接通。
+
+后续固定应用提交 `b1cb766d6` 已通过同一构建的离线和第五次 DeepSeek 验收：原用量 reader 已接入普通 Send/恢复和候选，桌面保存各项统计覆盖范围；21/24次接纳、19/21优化用量已知，API/美元仍未知，时间统计待补。新 PR 依赖尚待 CI/审查的 PR #13。PR14 中原完整 sweep 的 v2 namespace helper 当时已补原轨迹对照但未启用，详见 [用量与当前工作](ALPHA_USAGE.md)。Windows冷构建90分钟被取消；CI已拆开Unix等待并单独增加冷编译预算，新的hosted结果须实际核对。
+
+本轮原完整 sweep-v2 已接入同一 Core/owners/预算/停止及桌面双模式入口；每 task 独立冻结原 Session/版本/runtime，逐域逐 mode 验证 Library/reflection，当前 journal 精确复用共享基线评审。固定 `be1143b2a` 同一构建的离线和首次 DeepSeek 双模式验收通过（20/24 接纳、97 次模型 API 转发、共享 1 份基线评审及 2 份独立候选评审）。见 [范围、失败和证据](ALPHA_SWEEP.md)。这不代替多来源完整桌面验收或全部 Alpha 完成。CI 又发现原 ONNX 下载超时及浮动 Node/runner 环境不同；不跳过下载或放宽对照。PR15 run39464594843 未获得 runner，GitHub 明确报告账户付款/支出限额；恢复账户后再做托管验证，不将其计为源码测试失败或通过。
+
+本轮进一步统一所有新建 single/both-mode 为同一 `startSweep`：桌面支持跨 Session Notebook catalog、各文本任务独立输入、原 seed/filter/每域上限/workers 与只读预览；启动重新核对 planDigest 后逐来源授权冻结。两来源双模式 k1 经离线和首次 DeepSeek 验收（40/48 接纳、209 上游请求），同构建单任务 k2 离线通过；实际发现的原跨 owner 临时路由碰撞经固定上游控制和最小 UUID 修复。见 [catalog 与完整证据](ALPHA_CATALOG.md)。当时的账户限制属于历史记录；当前托管 CI 已执行，实际新增回归、完整比较、后端/CLI 可达性及剩余能力融合继续按当前证据推进。
+
+| 顺序         | 具体工作与 owner                                                                                                        | 验收                                                                                                                                                                                                                                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1            | 用量接线本轮已实现，先审查PR并核对CI；后续补原时间事实及API/费用的实际采集能力                                          | 原reader、统一契约、两侧owner和桌面已接通，逻辑prompt重叠不相加；生产API/美元未知，耗时尚未接通。普通/候选同一构建经DeepSeek核对，详情见 ALPHA_USAGE。                                                                                                                                                              |
+| 2            | 完整 catalog/stream、统一新建入口、跨 Session 来源及同一 Core 本轮接通；继续核对后端/CLI 可达性及更广任务/平台验收      | 原 seed/filter/每域上限/顺序与并发对照；多mode共用基线，namespace进入缓存身份，所有角色同一预算与停止，原Library与续跑保留。v2 已启用且固定 task/scope/descriptor；普通旧实验不迁移。四任务 k2 为 120 方法+12评审=132；两来源双模式 k1 经 DeepSeek 验证，单任务 k2 另行离线验收；不冒充多来源双模式 k2 原生全覆盖。 |
+| 3            | 平台复用原 Notebook R、Compute、ManagedFileVersion 与 producer；主智能体扩公共profile和桌面；方法贯通科研domain后续任务 | 每项单独验证固定输入、授权、原producer、取消/收尾、不可变产物和独立评估；二进制保留真实字节，评估不可用须明确。普通上游能力保留不等于候选已接通。                                                                                                                                                                   |
+| 独立后续设计 | 平台级配置批准、发布、推广和 rollback；本轮不展开，不等同原 Library adoption                                            | 将来实施时验证只影响后续任务及回滚；当前仍须完成原 Library/反思与同域任务经验传递，不以单次高分证明收益或发布资格。                                                                                                                                                                                                 |
+| 独立后续设计 | 普通任务证据触发的自动优化；本轮保留显式入口，不新增触发策略                                                            | 将来实施时区分环境故障、局部修复、方法问题并验证去重/预算/停止；不把该策略缺失称为 Harness² 原方法丢失。                                                                                                                                                                                                            |
+| 并行         | 主智能体继续 macOS/Linux 独立CI、白底图标原生观察、安装/升级数据安全、许可与Alpha发布材料；Luna做覆盖复核               | 同环境原树对照，macOS ARM64/x64 与 Linux x64/ARM64 四目标的实际结果与跳过清单；最终包对应已验证提交；Windows 延期至 0.2，不记成通过。                                                                                                                                                                               |
+
+以上公共契约由主智能体先定，平台与方法智能体分别使用独立worktree；不各自增加任务/运行状态或结果数据库。本轮 PR保留待审查，不自动合并。
+
+## 早期轮次的历史任务与约定
+
+以下保留当时的任务、范围和状态，不自动升级本版发布门槛；涉及自动触发、配置推广/回滚和完整精确账本时，以本页当前分类和 ALPHA_CONTRACT 的独立后续清单为准。
+
 共同契约、执行路径、Claude 配置隔离、真实 Session/产物版本/Review 和原方法最小优化已完成。
 第五轮新增显式桌面任务入口、进度/执行次数预算/停止与独立语义评估，见 [结果与限制](ROUND5.md)。
 基线与候选的 DeepSeek 样例评分均为 100，不能据此声称优化收益。

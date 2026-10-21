@@ -306,6 +306,16 @@ const reviewerCommands = Object.freeze({
 })
 
 const optimizationCommands = Object.freeze({
+  previewSweep: defineApplicationCommand<
+    'optimization:previewSweep',
+    readonly [request: Parameters<DesktopOptimizationApi['previewSweep']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['previewSweep']>>
+  >('optimization:previewSweep'),
+  startSweep: defineApplicationCommand<
+    'optimization:startSweep',
+    readonly [request: Parameters<DesktopOptimizationApi['startSweep']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['startSweep']>>
+  >('optimization:startSweep'),
   start: defineApplicationCommand<
     'optimization:start',
     readonly [request: Parameters<DesktopOptimizationApi['start']>[0]],
@@ -325,7 +335,12 @@ const optimizationCommands = Object.freeze({
     'optimization:stop',
     readonly [request: Parameters<DesktopOptimizationApi['stop']>[0]],
     Awaited<ReturnType<DesktopOptimizationApi['stop']>>
-  >('optimization:stop')
+  >('optimization:stop'),
+  resume: defineApplicationCommand<
+    'optimization:resume',
+    readonly [request: Parameters<DesktopOptimizationApi['resume']>[0]],
+    Awaited<ReturnType<DesktopOptimizationApi['resume']>>
+  >('optimization:resume')
 })
 
 const storageCommands = Object.freeze({
@@ -973,6 +988,16 @@ const registerHostApplicationCommands = (
       }
     })
     scope.registerGroup(hostApplicationCommandGroups[15], {
+      'optimization:previewSweep': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'previewSweep', args[0])
+      },
+      'optimization:startSweep': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'startSweep', args[0])
+      },
       'optimization:start': ({ callerContext, args }) => {
         requireDesktopCaller(callerContext)
         if (!dependencies.optimization) throw new Error('Optimization is unavailable')
@@ -992,6 +1017,11 @@ const registerHostApplicationCommands = (
         requireDesktopCaller(callerContext)
         if (!dependencies.optimization) throw new Error('Optimization is unavailable')
         return invokeDesktopOptimization(dependencies.optimization, 'stop', args[0])
+      },
+      'optimization:resume': ({ callerContext, args }) => {
+        requireDesktopCaller(callerContext)
+        if (!dependencies.optimization) throw new Error('Optimization is unavailable')
+        return invokeDesktopOptimization(dependencies.optimization, 'resume', args[0])
       }
     })
     return scope.complete()

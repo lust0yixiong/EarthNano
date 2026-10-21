@@ -4,7 +4,7 @@ import {
   type OutputCheckSpec,
   type OutputCheckResult
 } from '../../shared/earthnano/research-outcome'
-import type { PersistentCandidateFile } from './persistent-candidate-owner'
+import type { CandidateArtifactFile } from '../../shared/earthnano/candidate-artifact'
 
 export const canonicalOutput = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(canonicalOutput).join(',')}]`
@@ -20,7 +20,7 @@ export const outputDigest = (value: unknown): string =>
 
 /** Checks supplied expectations on pinned bytes; never runs model-generated code. */
 export function checkOutputFiles(
-  files: readonly PersistentCandidateFile[],
+  files: readonly CandidateArtifactFile[],
   supplied: OutputCheckSpec[]
 ): OutputCheckResult[] {
   const checks = normalizeOutputChecks(supplied)!
@@ -30,6 +30,8 @@ export function checkOutputFiles(
     if (matches.length === 0) return { ...base, status: 'fail', reason: 'missing-file' }
     if (matches.length !== 1) throw new Error('Ambiguous fixed-version output path')
     const file = matches[0]!
+    if (!('content' in file))
+      throw new Error('Binary output is not assessable by the declared JSON value check')
     if (file.digest !== 'sha256:' + createHash('sha256').update(file.content).digest('hex'))
       throw new Error('Output checksum mismatch')
     const pinned = { ...base, artifactRef: structuredClone(file.artifactRef) }

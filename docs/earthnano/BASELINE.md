@@ -1,10 +1,46 @@
 # EarthNano 开发基线与源码试用
 
-当前 `main` 已合并第一至第九轮实现及透明 EarthNano 图标。普通 Send、Task、Reviewer、委派和优化已使用共同 ExecutionCore；原递归模式、多候选选择、实验内 Library 及领域任务流已接通。应用显示名称为 EarthNano，原数据及技术兼容标识保留，独立安装包尚未发布。
+`main` 已合并 PR #1–12；Alpha PR #13–17 尚待适用 CI 和审查。当前版本为 `0.1.0-alpha.1`，尚未发布 EarthNano 安装包或上线 Alpha 更新 feed；平台分项通过不等于最终版本验收。README 中上游下载安装的是 OpenScience。
 
-第十轮新增的 Notebook 科研候选见[模块与验收](ROUND10.md)，通过新 PR 交付，试用时需切到该 PR 分支。先在原 Session 上传数据并使用已启用的 Python 完成科研任务，再在“优化任务”中选择重新执行 Notebook 任务。该模式冻结原提示词、来源版本和运行时；填写独立标准及确定性检查后运行。方法支持 sequential / parallel、k=1–8，预算最多 128 次，实际最低值由所选方法计算；执行次数与模型请求、词元和费用分别理解。环境和候选配置范围见第十轮文档。
+## 复核当前源码
 
-以下保留第一至第五轮的历史验收快照。旧 k=1、9–20 预算和能力状态不代表当前实现；最新后续工作见 [NEXT_TASKS.md](NEXT_TASKS.md)。
+以下固定提交 `4df93008e499941738d91dd75dc653fb033316b0` 为 PR #17 的源码快照，包含 R 的本机验收记录与已整合回归修复；不是已通过完整托管 CI 的发布提交。后续修复以 PR 实际 head 为准，不能把本页历史通过记录转移到任意新提交。
+
+需要 Git、仓库 `.github/earthnano-node-version` 指定的 Node 版本，以及原项目源码开发依赖；优化方法需要 Python 3.11+。完整安装会按原脚本下载和校验 Electron、原生组件及运行时，首次安装需网络和时间。保留原锁文件，不以跳过安装脚本替代可运行依赖。
+
+```bash
+git clone https://github.com/lust0yixiong/EarthNano.git
+cd EarthNano
+git fetch origin feat/alpha-notebook-r
+git switch --detach 4df93008e499941738d91dd75dc653fb033316b0
+npm ci
+npm run dev
+```
+
+原开发与打包要求见 [开发参考](../development-quick-reference.md)；固定上游和集成说明见 [UPSTREAMS.json](../../UPSTREAMS.json)，具体改动以对应 PR 和 Git 差异为准。原命令/协议继续保留 OpenScience 兼容名称。
+
+## 配置和试用
+
+1. 在原设置中启用 Claude Code，并配置支持 Anthropic Messages API 的 custom provider 与明确模型。此次已验证的 CLI 为 2.1.232，模型为 DeepSeek `deepseek-flash`；不代表所有兼容后端均已验证。密钥通过原凭据入口配置，不放入任务、仓库或报告。
+2. 在原 Project/Session 中执行普通科研任务。Notebook 任务先启用对应 Python/R runtime，并提供文件输入；仍使用原工具、权限和产物入口。外部 R 环境需要原 Files 权限覆盖它实际读取的环境 prefix，不能为试用扩大沙箱。
+3. 在 Session 的“优化任务”中显式选择任务及来源，设置原 sequential/parallel、k、seed/filter/workers、独立验收条件和执行预算。当前新建单/多任务、单/双模式统一走 `startSweep → 原 run_sweep → ExecutionCore`；预览由原 task_stream 产生，启动重新授权并冻结各任务自己的输入版本/runtime。
+4. 运行中可查看进度和原 Session/产物/Review，或停止。重开只读取已有事实；续跑须显式触发并使用原任务和剩余预算，不能自动重放已完成阶段。
+
+任务预算按实际方法执行角色计数，最低值随模式/k/任务数变化，当前上限为 128；它不是 HTTP 请求数、token 或美元额度。原用量显示 known/partial/unknown，缺失费用不补造。独立审阅与方法选择分开，单次模型高分不证明配置收益或科研正确性。
+
+优化入口当前在 Windows 和 Web 隐藏；不要据普通上游功能存在或安装包构建成功声称这些平台已经支持候选优化。完整 Alpha 的平台可达性仍须按最终实现和实际验收闭合。原普通用户能力继续保留并回归。
+
+## 证据和剩余工作
+
+- Python、多来源 sweep 与来源导航见 [ALPHA_CATALOG.md](ALPHA_CATALOG.md)。
+- R 的真实原 kernel、Session/版本/Review、停止/续跑和 DeepSeek 验收见 [ALPHA_R_CONTRACT.md](ALPHA_R_CONTRACT.md)；用量与收益限制一并保留。
+- 原 108 个新增失败 ID 本地定向修复通过，不等于完整 hosted comparison 通过。跨平台包、安装与白底图标仍须取得实际结果，见 [CI 范围](ALPHA_CI.md)。
+- Compute/二进制等剩余候选融合继续实施；自动触发、配置治理与完整精确账本单列，见 [功能来源](FUNCTION_ORIGINS.md)和[版本契约](ALPHA_CONTRACT.md)。
+
+<details>
+<summary>第一至第五轮历史基线（当时的启动、限制和验收记录）</summary>
+
+以下原文保留当时状态，包括旧预算、私有仓库及旧入口描述；不代表当前状态，实际试用按本页上方说明。
 
 ## 第一至第五轮历史基线
 
@@ -98,3 +134,5 @@ GitHub 现有审阅意见也逐项核对。以下修复已在同一源码基线�
 
 下一步以该基线开展代表性科研任务的可靠性、质量和成本验证，并推进普通执行的共同核心迁移；
 具体后续任务见 [NEXT_TASKS.md](NEXT_TASKS.md)。
+
+</details>

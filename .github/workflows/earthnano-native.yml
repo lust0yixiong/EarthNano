@@ -1,0 +1,154 @@
+name: EarthNano unsigned native target
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      platform:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+      subdir:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Unsigned native build and original launch ${{ inputs.os }}
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 90
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      MACOSX_DEPLOYMENT_TARGET: '12.0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version, cache: npm }
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with: { python-version-file: .github/earthnano-python-version }
+      - name: Require original Icon Composer compiler
+        if: runner.os == 'macOS'
+        run: xcrun actool --version
+      - name: Original Linux build and smoke dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends libsecret-1-dev libdbus-1-dev xvfb
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        if: runner.os == 'Windows'
+        with:
+          name: earthnano-windows-runtime
+          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
+      - name: Install original dependencies
+        run: node scripts/ci/npm-ci.mjs
+      - name: Require exact lockfile Electron binary
+        run: node scripts/ci/earthnano-source.mjs electron
+      - name: Stage original pinned resources
+        shell: bash
+        run: |
+          name=micromamba
+          [[ '${{ inputs.platform }}' == win ]] && name=micromamba.exe
+          node scripts/fetch-micromamba.mjs '${{ inputs.subdir }}' 'resources/bin/${{ inputs.platform }}/${{ inputs.arch }}/'"$name"
+          if [[ '${{ inputs.platform }}' == win ]]; then node scripts/fetch-micromamba.mjs win-64 'resources/bin/win/x64/micromamba-compat.exe' compatibility; fi
+      - name: Original full application build
+        # Match the pinned original packaging budget, including the Intel renderer build.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm run build
+      - name: Original target Prisma engine pruning
+        shell: bash
+        run: |
+          case '${{ inputs.platform }}-${{ inputs.arch }}' in
+            mac-arm64) keep=darwin-arm64 ;;
+            mac-x64) keep=darwin.dylib ;;
+            linux-x64) keep='openssl-3.0.x.so.node' ;;
+            linux-arm64) keep='linux-arm64-openssl-3.0.x.so.node' ;;
+            win-x64) keep=query_engine-windows.dll.node ;;
+            *) exit 1 ;;
+          esac
+          found=0
+          for file in node_modules/.prisma/client/*query_engine-*; do
+            [[ -e "$file" ]] || continue
+            if [[ "$file" == *"$keep"* ]]; then found=1; else rm "$file"; fi
+          done
+          [[ "$found" == 1 ]]
+      - name: Native unsigned packaging (never publish)
+        shell: bash
+        run: |
+          args=(--'${{ inputs.platform }}' --'${{ inputs.arch }}' --publish never)
+          if [[ '${{ inputs.platform }}' == mac ]]; then args+=(-c.mac.identity=null -c.dmg.sign=false); fi
+          node node_modules/electron-builder/cli.js "${args[@]}"
+      - name: Original macOS DMG/ZIP resource, catalog/fallback and launch smoke
+        if: runner.os == 'macOS'
+        run: node scripts/macos-package-smoke.mjs --artifact-dir dist
+      - name: Original Windows installed resource, RPC and launch smoke
+        if: runner.os == 'Windows'
+        run: node scripts/windows-installer-smoke.mjs --installer-dir dist
+      - name: Original Linux DEB lifecycle, AppImage resources and installed launch smoke
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          trap 'sudo apt-get remove --yes open-science || true' EXIT
+          sudo "$(command -v node)" scripts/deb-package-lifecycle-smoke.mjs ./dist/*.deb
+          sudo apt-get install --yes ./dist/*.deb
+          product="$(node -p "require('./package.json').productName")"
+          xvfb-run -a node scripts/linux-package-smoke.mjs --artifact-dir dist --installed-executable "/opt/$product/open-science" --installed-cli /usr/bin/open-science
+      - name: Original Unix package certification evidence
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+        shell: bash
+        run: |
+          case '${{ inputs.platform }}-${{ inputs.arch }}' in
+            mac-arm64|mac-x64) target='macos-${{ inputs.arch }}'; feed=alpha-mac.yml ;;
+            linux-x64) target=linux-x64; feed=alpha-linux.yml ;;
+            linux-arm64) target=linux-arm64; feed=alpha-linux-arm64.yml ;;
+            *) exit 1 ;;
+          esac
+          test -s "dist/$feed"
+          database_certification="dist/database-migration-certification-$target.json"
+          mv dist/database-migration-certification.json "$database_certification"
+          node scripts/ci/release-certification-evidence.mjs write \
+            --platform "$target" \
+            --artifact-dir dist \
+            --output "dist/certification-$target.json" \
+            --electron-p0 not-applicable \
+            --visual-regression not-applicable \
+            --package-smoke passed \
+            --database-migration-certification "$database_certification" \
+            --authenticode not-applicable
+      - name: Retain validated unsigned packages (CI artifacts, no release publication)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-unsigned-${{ inputs.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+            dist/alpha-mac.yml
+            dist/alpha-linux.yml
+            dist/alpha-linux-arm64.yml
+            dist/*.blockmap
+          retention-days: 3
+          if-no-files-found: error
+      - name: Source identity, license and streamed artifact digests
+        if: always()
+        run: node scripts/ci/earthnano-source.mjs manifest --out test-results/native-evidence
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: earthnano-native-evidence-${{ inputs.os }}
+          path: |
+            test-results/native-evidence/
+            dist/*certification*.json
+            dist/*builder*.yml
+          retention-days: 14
+          if-no-files-found: error

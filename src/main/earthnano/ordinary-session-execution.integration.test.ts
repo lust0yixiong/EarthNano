@@ -30,6 +30,7 @@ import { ArtifactRepository } from '../artifacts/repository'
 import { ArtifactRunRegistry } from '../artifacts/run-registry'
 import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository'
 import { ArtifactTurnOwner } from '../acp/artifact-turn-owner'
+import { SettingsRepository } from '../settings/repository'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { ManagedFileIndexRepository } from '../project-files/repository'
 import { UploadRepository } from '../uploads/repository'
@@ -37,6 +38,7 @@ import { emptyExecutionState } from './execution-core'
 import { requestDigest } from './execution-contract'
 import { createAcpExecutionBoundary } from './acp-execution-boundary'
 import { createSessionExecutionHost } from './session-execution-host'
+import { readExecutionTurnUsage } from './original-turn-usage'
 import {
   createOriginalTurnEvidenceReader,
   originalTurnReply,
@@ -377,6 +379,8 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   let promptContext: import('../../shared/acp').AgentTurnProvenanceContext | undefined = undefined
   let exported = false
   const host = createSessionExecutionHost({
+    settings: new SettingsRepository(configRoot),
+    versions,
     dataRoot,
     configRoot,
     getClient: async () => client,
@@ -684,6 +688,37 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
   )
   expect(await client.review.count()).toBe(0)
   if (!stop) {
+    // Exercise the actual coordinator's onPromptStarted observer, not a test-supplied Core
+    // identity. Only the original live runtime token may authorize these logical turn totals.
+    expect(record.usage.status).toBe('known')
+    const originalUsage = readExecutionTurnUsage(original, record.identity)
+    expect(originalUsage).toBeDefined()
+    expect(record.usage).toEqual({
+      status: 'known',
+      inputTokens: originalUsage!.usage.inputTokens,
+      cacheTokens: originalUsage!.usage.cacheTokens,
+      outputTokens: originalUsage!.usage.outputTokens,
+      ...(originalUsage!.usage.cachedReadTokens === undefined ||
+      originalUsage!.usage.cachedWriteTokens === undefined
+        ? {}
+        : {
+            cachedReadTokens: originalUsage!.usage.cachedReadTokens,
+            cachedWriteTokens: originalUsage!.usage.cachedWriteTokens
+          }),
+      ...(originalUsage!.usage.turnCount === undefined
+        ? {}
+        : { modelTurns: originalUsage!.usage.turnCount }),
+      source: {
+        scope: 'logical-prompt',
+        sessionId: original.id,
+        promptMessageId: promptId,
+        ownerMessageId: originalUsage!.ownerMessageId
+      }
+    })
+    expect(record.usage.inputTokens).toBeGreaterThan(0)
+    expect(record.usage.outputTokens).toBeGreaterThan(0)
+    expect(record.usage.apiRequests).toBeUndefined()
+    expect(record.usage.costMicrousd).toBeUndefined()
     expect(JSON.parse(await readFile(output, 'utf8'))).toEqual({ answer: 42 })
     expect(record.evidence.artifacts).toHaveLength(1)
     const reader = createOriginalTurnEvidenceReader({ dataRoot, versions, load })
@@ -704,6 +739,8 @@ const runOrdinary = async (live: boolean, stop = false, resume = false): Promise
       await lease.close()
     }
   }
+  expect(record.identity.runtimeExecutionId).toBe(runtimeExecutionId)
+  expect(record.identity.turnToken).toBe(runtimeExecutionId)
   expect(runtime.getSnapshot().sessionIds).toContain(created.sessionId)
   expect(await boundary.settle()).toBe(true)
   if (live && process.env.EARTHNANO_LIVE_ORDINARY_REPORT)
@@ -799,7 +836,16 @@ it.each(['missing', 'corrupt'] as const)(
       condition === 'missing' ? 'missing' : 'unreadable'
     )
     const dispatch = vi.fn()
-    const host = createSessionExecutionHost({ dataRoot, configRoot, getClient: async () => client })
+    const host = createSessionExecutionHost({
+      dataRoot,
+      configRoot,
+      getClient: async () => client,
+      settings: new SettingsRepository(configRoot),
+      versions: new ManagedFileVersionService({
+        storageRoot: dataRoot,
+        getClient: async () => client
+      })
+    })
     await expect(
       host.prepare({
         attemptId: 'first-send',

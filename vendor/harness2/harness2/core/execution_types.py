@@ -60,11 +60,23 @@ class ExecutionEvidence(TypedDict):
     references: list[Ref]
     limitations: list[str]
 
+class ExecutionUsageSource(TypedDict):
+    scope: Literal["logical-prompt"]
+    sessionId: str
+    promptMessageId: str
+    ownerMessageId: str
+
 class ExecutionUsage(TypedDict):
     status: Literal["known", "unknown"]
     inputTokens: NotRequired[int]
     outputTokens: NotRequired[int]
     costMicrousd: NotRequired[int]
+    cacheTokens: NotRequired[int]
+    cachedReadTokens: NotRequired[int]
+    cachedWriteTokens: NotRequired[int]
+    modelTurns: NotRequired[int]
+    apiRequests: NotRequired[int]
+    source: NotRequired[ExecutionUsageSource]
 
 class EffectiveConfiguration(TypedDict):
     status: Literal["confirmed", "unknown"]

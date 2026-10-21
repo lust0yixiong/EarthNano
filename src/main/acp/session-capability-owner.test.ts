@@ -38,6 +38,44 @@ const createOwner = (
   })
 
 describe('ACP session capability owner', () => {
+  it('keeps first-turn routing distinct across independent owners within one millisecond', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_234)
+    const owners = [createOwner(), createOwner()]
+    try {
+      const provisions = await Promise.all(
+        owners.map((owner) =>
+          owner.provision({
+            framework: claudeCodeFramework,
+            nativeMcpEnabled: true,
+            bridgeMcpAliasesEnabled: false,
+            policy: CURRENT_PRIMARY_SESSION_CAPABILITY_POLICY,
+            sessionCwd: '/workspace',
+            projectId: 'project'
+          })
+        )
+      )
+      for (const capability of ['ARTIFACT', 'NOTEBOOK', 'SKILL_IMPORT']) {
+        const aliases = provisions.map(
+          (provision) =>
+            provision.mcpServers
+              .flatMap((server) => ('env' in server ? server.env : []))
+              .find((variable) => variable.name === `OPEN_SCIENCE_${capability}_SESSION_ID`)?.value
+        )
+        expect(aliases[0]).toBeTruthy()
+        expect(aliases[1]).toBeTruthy()
+        expect(aliases[0]).not.toBe(aliases[1])
+      }
+      provisions.forEach((provision, index) => provision.commit(`session-${index}`))
+      const secondArtifactRoute = owners[1].artifactRoutingIdFor('session-1')
+      expect(owners[0].artifactRoutingIdFor('session-0')).not.toBe(secondArtifactRoute)
+      owners[0].dispose(['session-0'])
+      expect(owners[1].artifactRoutingIdFor('session-1')).toBe(secondArtifactRoute)
+    } finally {
+      owners.forEach((owner, index) => owner.dispose([`session-${index}`]))
+      clock.mockRestore()
+    }
+  })
+
   it.each([
     [claudeCodeFramework, 'open-science-library'],
     [codexFramework, 'open-science-library'],

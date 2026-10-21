@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "sourcePins": {
+    "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "harness2": "1cfe254e8d25b15f37048c3730134686abe60335"
+  },
+  "buildSource": "002d7b687070574c05821250de30129c0382bc8e",
+  "acceptanceSource": "72444d53315134c00091eafe4fa9d3555a6ad813",
+  "providedCredentialAbsent": true,
+  "scope": "Original Python/R native owners and R desktop single-source dual-mode k1, stop/reopen/resume and independent Reviews. Local targeted regressions, not full hosted source comparison or installed release.",
+  "records": [
+    {
+      "file": "native-tests.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/scientific-native-report.json",
+      "sourceBytes": 1381,
+      "sourceSha256": "8f0d3c5e04e7a0228cebb36af94d686e18eab354413639df983e56a969158a09",
+      "storedSha256": "e3260499faa4a2a9b8a9ef7148a6218fd14cc85df30db30683360f20df8e2e84"
+    },
+    {
+      "file": "native-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/scientific-native-integrated.json",
+      "sourceBytes": 978,
+      "sourceSha256": "b7f40423fd17f41cfacacb81b2fea308493513b51ef8beb54a6bb2efd42674ae",
+      "storedSha256": "3862f42e840bdb9c2fd48fbe393abc011f6f3fc81ce913209cfa52be98313ffa"
+    },
+    {
+      "file": "native-tests.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/scientific-native-integrated.log",
+      "sourceBytes": 718,
+      "sourceSha256": "3e184b80d52eb47e2f842a43fe32fdf36663cd204ae0fffbb7e41ed622e5247e",
+      "storedSha256": "f0ec120159e05c6e256146659de1d7d74c8dd74942d75898725c965e04b2ad5f"
+    },
+    {
+      "file": "original-regressions.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/original-regressions-report.json",
+      "sourceBytes": 299249,
+      "sourceSha256": "909a2283f7b0bf3382fb84f70dabd638c84f8a9f67729866b9aa1887709ab414",
+      "storedSha256": "a679c5e00fe9493a6bd4507f31128530d2bac20898ff15775a85f9bb444c2c0b"
+    },
+    {
+      "file": "original-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/original-regressions-integrated.json",
+      "sourceBytes": 1885,
+      "sourceSha256": "716e3a5c5d2c6f4202a79c5e8ed908e85d08f1b27ff1b96b515d54751385e54b",
+      "storedSha256": "5baf2ee09cf85c4028604fed29f72e08880e385dcda7d4d0dc0e923f587390a8"
+    },
+    {
+      "file": "original-regressions.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/original-regressions-integrated.log",
+      "sourceBytes": 4794,
+      "sourceSha256": "bbcd73acb4beff29e61e508e14d49e32eafb440ec8987a42f34e4b632ddd67e3",
+      "storedSha256": "1320d975261a8857efd9240c42e5704de84c684106aadcf1ea26d63e5e62b549"
+    },
+    {
+      "file": "same-108-id-proof.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/pr16-ready/same-108-id-proof.json",
+      "sourceBytes": 228346,
+      "sourceSha256": "b92c6c00aa5a29dfecc4766059f8ccae4cadd5756afbb8fcff4b659f732889cd",
+      "storedSha256": "1e461df3a7d8340713c80e0bb96920a583fbdc4619c96e8a747859f6ad9352df"
+    },
+    {
+      "file": "r-contract-tests.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-regressions-report.json",
+      "sourceBytes": 130778,
+      "sourceSha256": "f32c43c464a14361f8a580f6e619238e1e26c00a3e834fdc3a242385f9d670ee",
+      "storedSha256": "5c137f441ce27d85e8362a725d0f2aa19cc7643a6faceb753c58bab601f74407"
+    },
+    {
+      "file": "r-contract-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-regressions-fixed.json",
+      "sourceBytes": 1605,
+      "sourceSha256": "3baabfad1896a4c7d25f98df5095e726317a8d9cc5dcc070351654ee0ff755b3",
+      "storedSha256": "b6a00c7afc8f4a2b9b9b5c3287044f358cc81ea6939b33d4a5301eeacd3e657d"
+    },
+    {
+      "file": "types-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/types-integrated.json",
+      "sourceBytes": 672,
+      "sourceSha256": "55add6319aa40d807664965df31352a71d157c1caaf4ec00b73f0f0ac6cc1a8c",
+      "storedSha256": "cba6dd81ed4e247a464b122d6da62ba1a85281942d43c20ce98a1462b9f8f169"
+    },
+    {
+      "file": "types.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/types-integrated.log",
+      "sourceBytes": 706,
+      "sourceSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "storedSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "file": "build-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/build-fixed-head.json",
+      "sourceBytes": 471,
+      "sourceSha256": "424f82a99d4dfc8814cee9336c6661569b1174b6cf906af1fff0c8b05f309106",
+      "storedSha256": "7d67c11f5bf007600ab0bda30ffaf90005815bf273405330ca4d27ad563b2a79"
+    },
+    {
+      "file": "build.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/build-fixed-head.log",
+      "sourceBytes": 144035,
+      "sourceSha256": "e92fef5078f5c4ec67f2b1dfdf02f0668c412944e06b5c26383b6ce72cdc1209",
+      "storedSha256": "a170c42d50d31ada07ea11721da35627f954bc8114851f43cf227e1594ae8df9"
+    },
+    {
+      "file": "build-source-equivalence.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/built-source-equivalence.json",
+      "sourceBytes": 447,
+      "sourceSha256": "30bfd220746f3739816fe85eec48dfc1f1954c869ea9a266dac83b742c4a70da",
+      "storedSha256": "638104e8b54a8ce0677259e8addd2f9377e561a7ef36daced7ce60c2302ebe05"
+    },
+    {
+      "file": "unchanged-source-scopes.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/unchanged-source-scopes.json",
+      "sourceBytes": 332,
+      "sourceSha256": "781ef975b8dfc31cac9a174cf7d1b8f986463ca916b040214fc1984be30b729b",
+      "storedSha256": "81b9f3db0770cadbca79fe57e619073a7657cc69798ef653a1f530691045c916"
+    },
+    {
+      "file": "original-r-production.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/r-restoration-20261021/r-production-evidence.json",
+      "sourceBytes": 78153,
+      "sourceSha256": "303dbf2cde2581d5a7a6da3df1e5691524455c601f24735704fb1c430983a2b2",
+      "storedSha256": "b6723cd4558e567526817014c6556d41c0faed908cca1ca0e8f29486e97bced8"
+    },
+    {
+      "file": "analysis-diagnosis.md.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-input-diagnosis/DIAGNOSIS.md",
+      "sourceBytes": 5534,
+      "sourceSha256": "7a3d3865c97d69553dd70d33820b6102e50d48de06102f79f5b1824c40817088",
+      "storedSha256": "78016d6aa233468d1ddf67c03f3b8b0c25d2254dfe244a2f16070c53b12ac126"
+    },
+    {
+      "file": "analysis-source-identity.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-input-diagnosis/source-identity.json",
+      "sourceBytes": 2814,
+      "sourceSha256": "6972b451ef2836fa597601e7707d64297fdae695d4b531474d9a6bf605e98502",
+      "storedSha256": "4bb82b277bf195fe91f961ec4758bff1b7fe6d4a74a6fa1673defb2176c0c7cb"
+    },
+    {
+      "file": "analysis-comparison.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-input-diagnosis/comparison.json",
+      "sourceBytes": 28393,
+      "sourceSha256": "7c532a27f5a7c239fc12d9b78c7cfc4b0efbf44b5631a998f6cc980e5e574078",
+      "storedSha256": "4f4601eba82680bccdfb0e622c268c73a7fe40b640707e4ef29593ab48871640"
+    },
+    {
+      "file": "analysis-observer-comparison.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-input-diagnosis/observer-comparison.json",
+      "sourceBytes": 34731,
+      "sourceSha256": "c002875a564d6c5e10e7431cf598be220678d7bf6e8401d44d63a6944aec349a",
+      "storedSha256": "920d15884b6ff0d0aca801cf93e0a2a84edef5a71b3927a7916d2109c23e88d3"
+    },
+    {
+      "file": "sandbox-diagnosis.md.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-sandbox-diagnosis/DIAGNOSIS.md",
+      "sourceBytes": 6627,
+      "sourceSha256": "4a56421e9bfd05cd8f95e125c77c8f05918c3fd1db3d2a49cfada462bd7ad762",
+      "storedSha256": "d0892cd8d23d279069e2c55d511f070675c954a99ae12e1fa55db65850b6fd7b"
+    },
+    {
+      "file": "sandbox-comparison.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-sandbox-diagnosis/sandbox-comparison.json",
+      "sourceBytes": 27286,
+      "sourceSha256": "a819329be490c1374ef58e541da351fa290dd1023e0658d8a7c7339b24b652d3",
+      "storedSha256": "a82dfe750b4bbb185585f97b3d0b8763a95451f56f0d6c1843e7219dde78bfd4"
+    },
+    {
+      "file": "sandbox-source-identity.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/original-sandbox-diagnosis/source-identity.json",
+      "sourceBytes": 1685,
+      "sourceSha256": "b4c52b96e37aa591f152661e776d5e3ef9e7fa1d4281ee9419297d2ec932b371",
+      "storedSha256": "6e0954a04cd967f584bdaf66a13bfa26160f761fe10e4ba7d31ba1f20c75c245"
+    },
+    {
+      "file": "native-r-failed.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-r-evidence/scientific-r-diagnostic-report.json",
+      "sourceBytes": 33412,
+      "sourceSha256": "8151e08b83448abcec52aad659e308cddea1eeee66038b786ef3b60c7c62fabc",
+      "storedSha256": "da1ccaad41473b161bfb8598d39e574ae75ef0c61e9ad242b4035a08140d5596"
+    },
+    {
+      "file": "offline-failed-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-offline.json",
+      "sourceBytes": 721,
+      "sourceSha256": "47c09b13fc216905daf829acaf2b92ee5ac142ce29336122e96ec13f5970da64",
+      "storedSha256": "318e6dd2ab6f570b53299898e3f177302757690edbb91b4556d9d46256912ef5"
+    },
+    {
+      "file": "offline-failed.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-offline.log",
+      "sourceBytes": 4124,
+      "sourceSha256": "1eaf8888b7b61a6460028dee35c7943f07c9e40ab77ca9581d54e2f4f0de08b1",
+      "storedSha256": "673b79735c059e73bff999205a49b9349d44f5b9e99f82242f217cbc633d2c86"
+    },
+    {
+      "file": "offline-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-offline-readonly.json",
+      "sourceBytes": 738,
+      "sourceSha256": "56c40a2b7f6f75d5ce2c654fd032309261b84e47224ec50605a525f866ea2dfe",
+      "storedSha256": "5dd38d1f198bd1ecc8ac87f427406c417d87ada62d3fd26ab2657421b78bd607"
+    },
+    {
+      "file": "offline.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-offline-readonly.log",
+      "sourceBytes": 948,
+      "sourceSha256": "c93605ff747aa709bd972b78dde15eaf67a35b95f35726b5ff5fa816382861d2",
+      "storedSha256": "f676ee2a897b913227a8f9d3f217c32a2d4d399f4065ed60d27cdc535ea7a2f5"
+    },
+    {
+      "file": "live-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-live-deepseek.json",
+      "sourceBytes": 725,
+      "sourceSha256": "ab6b801acd00941e5d3fa05529f71a7a0c0865e3d8b453992390040dda369c7c",
+      "storedSha256": "87732a55b615ece735f1a3a005a09956b9f5cd7ce0255b5ec75d46c13bbbd93e"
+    },
+    {
+      "file": "live.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-desktop-live-deepseek.log",
+      "sourceBytes": 1118,
+      "sourceSha256": "73008f789cd2d4ea7959e15790827d105577664f4f23c8be37156612304e9c7d",
+      "storedSha256": "ca26c52b23650907e0596e0ad514091a821653c94118b9a3a736140e0f9c8540"
+    },
+    {
+      "file": "live-report.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-live-deepseek-report.json",
+      "sourceBytes": 50962,
+      "sourceSha256": "5f38c11cbc44fa98f12fbd94f96aa123367d81143d0a6d34a158fd7e329bdfb6",
+      "storedSha256": "370b7b3b33f4b3c89673642bf02051e52d50e0117a1b74ca9c9f39e08ac4a4f4"
+    },
+    {
+      "file": "node-stage-failed.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/stage-node-fixed.json",
+      "sourceBytes": 485,
+      "sourceSha256": "d406ff5fdc56208babf77a1188125ec882e708ebf9f8deca14e4cc2ab9ddf704",
+      "storedSha256": "676eac31f146eb904e5bc79125e3b08c46dd5992776bfa28db15665b81d07368"
+    },
+    {
+      "file": "node-stage-failed.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/stage-node-fixed.log",
+      "sourceBytes": 670,
+      "sourceSha256": "04245c21cf4ee3b761262fe75e1214eca9fccdd21dbbf433fa81c05a4ae555ea",
+      "storedSha256": "de372acecb7f2bb241091af973f97231ed9b29c5c779486f0565d09663dd4c85"
+    },
+    {
+      "file": "node-archive-verified.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/node-archive-verified.json",
+      "sourceBytes": 786,
+      "sourceSha256": "238cfb420cd788d5ee73fb363325c2a0957c0dbd0d2751167e31fca9532c1776",
+      "storedSha256": "865d4cefa79def2a4cdec20bf1d7714e85ca15d32e8ea8e405f385c5b2aad1cc"
+    },
+    {
+      "file": "node-stage-command.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/stage-node-verified.json",
+      "sourceBytes": 486,
+      "sourceSha256": "245e653d6034348e64a8fcb6f3ea86d79d6df91f06bab5e003fdcc94fe2fbfdd",
+      "storedSha256": "57e999150618479ef0d6a765d556b4d6871a32c4757cd8992b53c0c5c72e15b5"
+    },
+    {
+      "file": "node-stage.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/stage-node-verified.log",
+      "sourceBytes": 184,
+      "sourceSha256": "58fb8e512a41bbfc7d5c1a00fb84503901230976de3fdbbf16318203c5466299",
+      "storedSha256": "f1d0f21eaa355126687d5a71181e724caa70a3f57acabf943316cd19e5b33a10"
+    },
+    {
+      "file": "original-signed-node-foundation.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/original-installed-node-e2e-foundation.json",
+      "sourceBytes": 1646,
+      "sourceSha256": "1b33103944add0c27d1d3d103a1af2408c2c1df12233abd92e46c93a0a771d8a",
+      "storedSha256": "2e02e2f0753fb9e3b20535ab400016b046d7b691d5f8336478b38f5791f596d5"
+    },
+    {
+      "file": "offline-notebook-optimization.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-readonly-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json",
+      "sourceBytes": 43627,
+      "sourceSha256": "e5c3387916f4d1d3cf7a2a134f2f3f62e134b991ca779789521b248655f5dcd6",
+      "storedSha256": "cfb0d989cf756013586db3023319790ce1b46df88bef37e9df09746b4cddeab2"
+    },
+    {
+      "file": "offline-execution-journal.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-readonly-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/execution-journal.json",
+      "sourceBytes": 210018,
+      "sourceSha256": "00a4b1697da06cc9d3d6cc66f9a78017f3345d42b7696423ddad0fddf6290e53",
+      "storedSha256": "c3133c50f753cff10270decbe13b37b02b7db765bce03382ece86f9eebd41e61"
+    },
+    {
+      "file": "offline-stopped-journal.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-readonly-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/stopped-journal.json",
+      "sourceBytes": 29522,
+      "sourceSha256": "fa2a3ce31a2aea871f808a0264f12c9c5a6486389328f8d229231776f3c9f914",
+      "storedSha256": "8407c007766546cf80d782020378a0fa9a6ffd8194f4a6a71e3dce36725b2b33"
+    },
+    {
+      "file": "offline-final-scientific-sessions.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-readonly-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json",
+      "sourceBytes": 1281547,
+      "sourceSha256": "2dce2f9fb7c1139b5249616fa90ba0d40b283702835024ef817b9394ffcb025d",
+      "storedSha256": "1adf16d21d38b80fc6a2b1e2e650e10902f9809b7d205c7ff1cebe8eec339b90"
+    },
+    {
+      "file": "live-notebook-optimization.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-live-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json",
+      "sourceBytes": 50962,
+      "sourceSha256": "5f38c11cbc44fa98f12fbd94f96aa123367d81143d0a6d34a158fd7e329bdfb6",
+      "storedSha256": "370b7b3b33f4b3c89673642bf02051e52d50e0117a1b74ca9c9f39e08ac4a4f4"
+    },
+    {
+      "file": "live-execution-journal.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-live-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/execution-journal.json",
+      "sourceBytes": 303309,
+      "sourceSha256": "a91e2eccf362a5dd58ec36a16f4704246ae5c1f785818b3a448d22d8bd65f6af",
+      "storedSha256": "38d94f89a1d39d8c43ae816a75fdc5ac3bee4b1fb7f7f410cb6f4c255219ce85"
+    },
+    {
+      "file": "live-stopped-journal.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-live-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/stopped-journal.json",
+      "sourceBytes": 29452,
+      "sourceSha256": "b538209e2902609cf6932ccf6ff5905c6740145ea33d7651a18bc5898ccd37ce",
+      "storedSha256": "68dd0376204864d57baca4386d2a34853fdb19197c28d6c5b446657259986a60"
+    },
+    {
+      "file": "live-final-scientific-sessions.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-live-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json",
+      "sourceBytes": 3147067,
+      "sourceSha256": "6d9243ef65646d86c02f120e3a7d2ccf789f81994eba93abfcdbc1ecd74801c3",
+      "storedSha256": "aeb122e0ff7a75f89c9244a0257f3db8044da9a2c46557a819714cbe41c7368d"
+    },
+    {
+      "file": "offline-failed-notebook-optimization.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/notebook-optimization.json",
+      "sourceBytes": 1647,
+      "sourceSha256": "a7b6dac55245d29baa5d61e6b02be267e154e2450ef57a3c239041e669559b5e",
+      "storedSha256": "eb99dbc1eb76373483cb0433326062454de829e2d1b3771a8043eaf2bf18fa29"
+    },
+    {
+      "file": "offline-failed-final-scientific-sessions.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-ci-regressions/integration/r-offline-artifacts/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-scientific-sessions.json",
+      "sourceBytes": 51488,
+      "sourceSha256": "cd5524f65686512b77bf8ad53979f8842d4aef8774dc3c4dea42b9292590203e",
+      "storedSha256": "32d5e11c4b291c57401b1fd0b17d7e7904e074243da967670c1f9826ab7e7b70"
+    }
+  ]
+}

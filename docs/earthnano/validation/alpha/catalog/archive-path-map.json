@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "scope": "Archive-only path aliases for catalog receipts; gzip bytes, source bytes and original evidence identifiers are unchanged. Historical names inside retained evidence remain valid through this mapping.",
+  "sourceHead": "6e1a03bc520fd8635a350387aac1b600b2f80c33",
+  "reason": "Windows checkout failed before tests because three added receipt paths exceeded MAX_PATH at the observed runner workspace.",
+  "observedWindowsWorkspacePrefix": "D:\\a\\EarthNano\\EarthNano\\",
+  "maxPathUtf16UnitsIncludingNull": 260,
+  "files": [
+    {
+      "oldPath": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal-0ea5df1f-1a5f-4088-a8cb-a92c2c7eff1c-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json.gz",
+      "path": "offline-1/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "2dbab673271686cae278f505cc91c0e9015adbb54c5e23d170b083b3f88566b6",
+      "storedSha256": "d8c5f495945d4283009bd868848a5e66930b427b41993e41f3c3bf32f64c3019",
+      "oldWindowsPathUtf16Units": 268,
+      "windowsPathUtf16Units": 166
+    },
+    {
+      "oldPath": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal-75036775-4518-4ba7-a605-3352d39c6efd-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json.gz",
+      "path": "offline-2/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "f57d8eae2e01815ec2f479a82ac5d99b60d763b8cdaf0b2d52f0d2e23f1127ea",
+      "storedSha256": "262eaa46d1d9cd36fc660ef1e38db4c9c8817bd7b72d5287ba17d4149b1d92a7",
+      "oldWindowsPathUtf16Units": 268,
+      "windowsPathUtf16Units": 166
+    },
+    {
+      "oldPath": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal-07dd72fc-c7eb-47cb-946a-0e832750a6f3-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json.gz",
+      "path": "offline-3/earthnano-notebook-optimiz-fdf2e-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "sourceBytes": 5797,
+      "sourceSha256": "3e8f546f979b4dc17a6c44fc9e2a68ac10bad29e77f3a00b9d7c0f7e75f851f4",
+      "storedSha256": "85a6c5629b3eda5cfdc660dc19302d42f41a40637c8201956d0f41bd23b55468",
+      "oldWindowsPathUtf16Units": 268,
+      "windowsPathUtf16Units": 166
+    }
+  ]
+}

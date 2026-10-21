@@ -1,5 +1,6 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import type { AcpPromptRequest, AcpRuntimeState, AcpSessionAgentTarget } from '../../shared/acp'
+import type { MessageAttribution } from '../../shared/session-message-contract'
 import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/execution-port'
 
 export interface AcpExecutionObservation {
@@ -34,6 +35,8 @@ export interface AcpExecutionDispatch {
   attemptId: string
   request: AcpPromptRequest
   operation: 'sendPrompt' | 'sendAppContinuation' | 'sendApplicationPrompt'
+  /** Original main-owned application attribution, never an authorization supplied by model JSON. */
+  attribution?: MessageAttribution
   runtimeReviewOwner: 'task' | 'renderer'
   target?: AcpSessionAgentTarget
   ownerCompletion?: AcpExecutionOwnerCompletion
@@ -54,16 +57,24 @@ export interface AcpExecutionBoundary {
   settle(): Promise<boolean>
 }
 
-/** Main-process owner declaration, constructed only from an admitted delegated Attempt. */
-export interface TrustedDelegatedExecutionOwner {
+/** Main-process owned-turn witness; actual Session admission remains the original owner's fact. */
+export interface TrustedExecutionTurnOwner {
   readonly projectId: string
   readonly sourceSessionId: string
+  ownsExecution(executionId: string): boolean
+  ownsTurn(provenance: AcpPromptRequest['provenanceContext']): boolean
+  ownsSession(sessionId: string): boolean
+}
+
+/** Original application result delivery in an existing execution, never a delegated Attempt. */
+export interface TrustedApplicationExecutionOwner extends TrustedExecutionTurnOwner {
+  ownsApplicationDispatch(input: AcpExecutionDispatch): boolean
+}
+
+/** Main-process owner declaration, constructed only from an admitted delegated Attempt. */
+export interface TrustedDelegatedExecutionOwner extends TrustedExecutionTurnOwner {
   readonly parentPromptMessageId: string
   readonly frameId: string
   readonly runtimeSegmentId: string
   readonly attemptId: string
-  ownsExecution(executionId: string): boolean
-  ownsTurn(provenance: AcpPromptRequest['provenanceContext']): boolean
-  /** Checks attachment to the exact private child coordinator, never a renderer claim. */
-  ownsSession(sessionId: string): boolean
 }

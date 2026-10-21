@@ -1,3 +1,5 @@
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import { isComputeToolsProfile } from '../../shared/earthnano/compute-profile'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { TaskAgentPort } from '../tasks/task-runner'
 import {
@@ -29,6 +31,12 @@ export interface ClaudeCandidateDriverOptions {
   snapshots: CandidateSnapshotStore
   /** Resolve explicit provider credentials and the pinned executable; never use an active default. */
   binding(agent: ResolvedCandidateSnapshots['agent']): Promise<ClaudeCandidateBinding>
+  /** Host-only durable attestation, invoked only after the original exact owner confirms retirement. */
+  ownerSettled?(input: {
+    request: ExecutionRequest
+    executionId: string
+    outcome: ExecutionOutcome
+  }): Promise<void>
   /** Creates the existing Session/Artifact/Review ownership binding, not another result database.
    * Construction must be process-free. Spawn belongs to preparePlan/prompt after this returns;
    * otherwise an openOwner rejection could lose the only handle capable of cleaning up resources. */
@@ -67,7 +75,8 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const resolved = await options.snapshots.resolve(request)
         if (
-          resolved.harness?.tools === 'notebook-python' &&
+          (notebookLanguageForTools(resolved.harness?.tools) !== undefined ||
+            isComputeToolsProfile(resolved.harness?.tools)) &&
           !['baseline', 'candidate'].includes(request.role)
         )
           throw new Error('Only task candidates may receive scientific tools')
@@ -75,12 +84,18 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const materialized = await options.snapshots.materialize({
           executionId: context.executionId,
-          refs: request
+          refs: request,
+          signal: context.signal
         })
         // Preparation includes a bounded native --version probe. A failed probe may have
         // started resources without returning an owner, so its failure is conservatively fenced.
         preparingRuntime = true
-        prepared = await prepareClaudeCandidate({ resolved, materialized, binding })
+        prepared = await prepareClaudeCandidate({
+          resolved,
+          materialized,
+          binding,
+          role: request.role
+        })
         preparingRuntime = false
         context.signal.throwIfAborted()
         constructingOwner = true
@@ -127,6 +142,12 @@ export function createClaudeCandidateDriver(
         try {
           const cleanup = await owner.shutdown()
           outcome.cleanup = cleanup.reaped === true ? 'confirmed' : 'unknown'
+          if (cleanup.reaped === true)
+            await options.ownerSettled?.({
+              request: structuredClone(request),
+              executionId: context.executionId,
+              outcome: structuredClone(outcome)
+            })
         } catch {
           outcome.cleanup = 'unknown'
         }

@@ -10,9 +10,20 @@ import type {
   MaterializedCandidate,
   ResolvedCandidateSnapshots
 } from '../earthnano/candidate-snapshot'
-import type { EffectiveConfiguration } from '../../shared/earthnano/execution-port'
+import type {
+  EffectiveConfiguration,
+  ExecutionRequest
+} from '../../shared/earthnano/execution-port'
 import type { ResolvedProvider } from '../settings/provider-env'
 import type { AcpRuntimeOptions } from './runtime-contract'
+import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
+import { readOpenFileChunks } from '../bounded-file-io'
+import { assertWithinResourceBudget } from '../resource-budget'
 
 export interface ClaudeCandidateBinding {
   executablePath: string
@@ -60,12 +71,29 @@ export const assertClaudeCandidateText = (text: string): void => {
 }
 
 const verifyMaterialization = async (materialized: MaterializedCandidate): Promise<void> => {
-  const { task, harness } = materialized.snapshots
-  const expected = new Map([
-    ...task.files.map((file) => [join(materialized.inputDir, file.path), file.content] as const),
-    [materialized.instructionsPath, harness.instructions] as const,
+  const { task, harness, invocation } = materialized.snapshots
+  const text = (content: string): { content: string; bytes: number; digest: string } => ({
+    content,
+    bytes: Buffer.byteLength(content, 'utf8'),
+    digest: `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`
+  })
+  const expected = new Map<string, { content?: string; bytes: number; digest: string }>([
+    ...task.files.map(
+      (file) => [join(materialized.inputDir, file.path), text(file.content)] as const
+    ),
+    ...(invocation.contextFiles ?? []).map(
+      (file) => [join(materialized.inputDir, file.path), text(file.content)] as const
+    ),
+    [materialized.instructionsPath, text(harness.instructions)] as const,
     ...harness.skills.map(
-      (file) => [join(materialized.skillsDir, file.path), file.content] as const
+      (file) => [join(materialized.skillsDir, file.path), text(file.content)] as const
+    ),
+    ...(invocation.assets ?? []).map(
+      ({ path, artifact }) =>
+        [
+          join(materialized.inputDir, path),
+          { bytes: artifact.sizeBytes, digest: artifact.digest }
+        ] as const
     )
   ])
   if (expected.size !== materialized.manifest.length)
@@ -76,6 +104,9 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
     if (!inside(materialized.root, path) || !expected.has(path) || seen.has(path))
       throw new Error('Candidate manifest contains an unexpected path')
     seen.add(path)
+    const frozen = expected.get(path)!
+    if (entry.bytes !== frozen.bytes || entry.digest !== frozen.digest)
+      throw new Error('Candidate manifest differs from its frozen files')
     let ancestor = dirname(path)
     while (inside(materialized.root, ancestor)) {
       const stat = await lstat(ancestor)
@@ -90,15 +121,49 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
     const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
     try {
       const stat = await handle.stat()
-      const bytes = await handle.readFile()
+      let size: number
+      let digest: string
+      if (frozen.content !== undefined) {
+        const bytes = await handle.readFile()
+        if (!bytes.equals(Buffer.from(frozen.content, 'utf8')))
+          throw new Error('Candidate materialization bytes changed')
+        size = bytes.byteLength
+        digest = `sha256:${createHash('sha256').update(bytes).digest('hex')}`
+      } else {
+        const hash = createHash('sha256')
+        size = 0
+        // Reuse the original paced, bounded-memory reader on the already verified file handle.
+        for await (const chunk of readOpenFileChunks(handle)) {
+          size += chunk.byteLength
+          assertWithinResourceBudget('file', size, frozen.bytes)
+          hash.update(chunk)
+        }
+        digest = `sha256:${hash.digest('hex')}`
+      }
+      const after = await handle.stat()
+      const current = await lstat(path)
       if (
         !stat.isFile() ||
         stat.nlink !== 1 ||
         stat.dev !== before.dev ||
         stat.ino !== before.ino ||
-        bytes.length !== entry.bytes ||
-        !bytes.equals(Buffer.from(expected.get(path)!, 'utf8')) ||
-        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !== entry.digest
+        stat.size !== frozen.bytes ||
+        size !== frozen.bytes ||
+        digest !== frozen.digest ||
+        after.dev !== stat.dev ||
+        after.ino !== stat.ino ||
+        after.nlink !== 1 ||
+        after.size !== stat.size ||
+        after.mtimeMs !== stat.mtimeMs ||
+        after.ctimeMs !== stat.ctimeMs ||
+        !current.isFile() ||
+        current.isSymbolicLink() ||
+        current.nlink !== 1 ||
+        current.dev !== stat.dev ||
+        current.ino !== stat.ino ||
+        current.size !== after.size ||
+        current.mtimeMs !== after.mtimeMs ||
+        current.ctimeMs !== after.ctimeMs
       )
         throw new Error('Candidate materialization bytes changed')
     } finally {
@@ -114,11 +179,13 @@ const gateSource = (
   output: string,
   plugin: string,
   names: string[],
-  scientificInputs?: readonly string[]
+  scientificInputs?: readonly string[],
+  scientificLanguage?: NotebookLanguage,
+  compute?: true
 ): string => `
 const fs = require('node:fs');
 const path = require('node:path');
-const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs })};
+const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs, scientificLanguage, compute })};
 const inside = (root, target) => { const rel=path.relative(root,target); return rel==='' || (rel!=='..' && !rel.startsWith('..'+path.sep) && !path.isAbsolute(rel)); };
 const checked = target => {
   if (!path.isAbsolute(target)) throw Error('Absolute path required');
@@ -145,9 +212,12 @@ process.stdin.on('end', ()=>{
     const scientific = roots.scientificInputs;
     const mcp = /^(?:mcp__open_science_notebook__|mcp__open-science-notebook__)(notebook_execute|notebook_state|list_notebook_runtimes)$/.exec(tool);
     const artifact = /^(?:mcp__open_science_artifacts__|mcp__open-science-artifacts__)write_artifact_file$/.test(tool);
-    if (scientific && (mcp || artifact)) {
-      if (mcp?.[1]==='notebook_execute') {
-        if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside scientific Python profile');
+    const control = roots.compute && /^(?:mcp__open_science_notebook__|mcp__open-science-notebook__)repl_execute$/.test(tool);
+    if ((scientific && (mcp || artifact)) || (roots.compute && (control || artifact))) {
+      if (control) {
+        if(Object.keys(args).some(key=>!['code','background','timeoutMs'].includes(key)) || typeof args.code!=='string' || (args.background!==undefined && args.background!==false) || (args.timeoutMs!==undefined && (!Number.isSafeInteger(args.timeoutMs) || args.timeoutMs<=0))) throw Error('Outside frozen Compute control profile');
+      } else if (mcp?.[1]==='notebook_execute') {
+        if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (roots.scientificLanguage==='r' ? args.language!=='r' : args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside frozen scientific language profile');
       } else if (artifact && (typeof args.producerRunId!=='string' || !args.producerRunId)) throw Error('Notebook producer required');
       decision='ask';
       process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:decision,permissionDecisionReason:'Original application permission broker owns this scoped MCP call'}}));
@@ -173,17 +243,26 @@ export const prepareClaudeCandidate = async ({
   resolved,
   materialized,
   binding,
+  role,
   sourceEnv = process.env
 }: {
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
   binding: ClaudeCandidateBinding
+  role?: ExecutionRequest['role']
   sourceEnv?: NodeJS.ProcessEnv
 }): Promise<PreparedClaudeCandidate> => {
   if (process.platform === 'win32')
     throw new Error('Claude candidate command hooks require the POSIX profile')
   const { agent, harness, environment, invocation } = resolved
-  const scientific = harness.tools === 'notebook-python'
+  const scientificLanguage = notebookLanguageForTools(harness.tools)
+  const scientific = scientificLanguage !== undefined
+  const compute = isComputeToolsProfile(harness.tools)
+  if (compute) {
+    if (role !== 'baseline' && role !== 'candidate')
+      throw new Error('Compute tools require an original baseline or candidate execution role')
+    normalizeFrozenComputeContext(environment.compute)
+  }
   const scientificInputs = scientific
     ? resolved.task.managedInputs?.map((input) => input.inputFileVersionId)
     : undefined
@@ -196,13 +275,20 @@ export const prepareClaudeCandidate = async ({
     assertClaudeCandidateText(text)
   if (
     agent.backend !== 'claude-code' ||
-    !['workspace-only', 'notebook-python'].includes(harness.tools) ||
+    (!scientific && !compute && harness.tools !== 'workspace-only') ||
     environment.isolation !== 'directory-process' ||
-    (scientific
-      ? !environment.notebook ||
-        !scientificInputs?.length ||
+    (compute
+      ? !environment.compute ||
+        environment.notebook !== undefined ||
         environment.network !== 'provider-and-notebook-policy'
-      : environment.network !== 'provider-only')
+      : environment.compute !== undefined) ||
+    (!compute &&
+      (scientific
+        ? !environment.notebook ||
+          environment.notebook.runtime.language !== scientificLanguage ||
+          !scientificInputs?.length ||
+          environment.network !== 'provider-and-notebook-policy'
+        : environment.network !== 'provider-only'))
   )
     throw new Error('Unsupported Claude candidate profile')
   if (
@@ -296,7 +382,15 @@ export const prepareClaudeCandidate = async ({
   const gate = join(materialized.runtimeHome, 'tool-gate.cjs')
   await writeFile(
     gate,
-    gateSource(materialized.inputDir, materialized.outputDir, plugin, names, scientificInputs),
+    gateSource(
+      materialized.inputDir,
+      materialized.outputDir,
+      plugin,
+      names,
+      scientificInputs,
+      scientificLanguage,
+      compute ? true : undefined
+    ),
     {
       mode: 0o400,
       flag: 'wx'
@@ -413,7 +507,9 @@ export const prepareClaudeCandidate = async ({
                   materialized.outputDir,
                   plugin,
                   names,
-                  scientificInputs
+                  scientificInputs,
+                  scientificLanguage,
+                  compute ? true : undefined
                 )
               )
               .digest('hex')

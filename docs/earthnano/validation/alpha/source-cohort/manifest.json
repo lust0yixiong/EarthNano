@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "integrationSource": "0eba46d76",
+  "scope": "Actual local observer isolation red/green, same-runner cohort contracts, and original strict Linux environment rejection; not a completed hosted source comparison.",
+  "base": "c1e663279038c4bdba9d26ba9f3d0c5484ecf2c7",
+  "originalSourceRun": "https://github.com/lust0yixiong/EarthNano/actions/runs/39550509875",
+  "cancelledSourceRun": "https://github.com/lust0yixiong/EarthNano/actions/runs/39555261888",
+  "cancellationReason": "Actual independent-directory baseline observer load proved ERR_MODULE_NOT_FOUND before raw/runtime output; superseded by code fix, not cancelled for observation timeout.",
+  "rootValidation": {
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0,
+    "fullCompiledTypes": "passed"
+  },
+  "physicalJobs": 25,
+  "logicalReports": 32,
+  "linuxDeadline": "Eight original logical shards share 360 minutes; no separate logical 90-minute deadline. Original case/hook timeouts and strict complete-report checks retained.",
+  "nativeWorkflowUnchanged": true,
+  "files": [
+    {
+      "originalName": "SUMMARY.txt",
+      "archive": "SUMMARY.txt.gz",
+      "bytes": 5339,
+      "sha256": "533944beb05a8c6e05f4a231f1fba3e95d97c1a9922d2216b4d83db2855e1d1a",
+      "archiveSha256": "ec0a67239f1bcc0445aff433983edcf336226c7c4dc04b51c3da7344984f2a66"
+    },
+    {
+      "originalName": "unchanged-contracts-and-matrix.json",
+      "archive": "unchanged-contracts-and-matrix.json.gz",
+      "bytes": 8147,
+      "sha256": "1b5b0cf2eda4ac5c94576db09530cbb6e4f510d6f5f1f4b5bf00dfbe8e66b6cc",
+      "archiveSha256": "ba23fad0cb141d1ad8da9e4dc320f177353f6844737a310f8beda289095e33a8"
+    },
+    {
+      "originalName": "actual-planner-output.txt",
+      "archive": "actual-planner-output.txt.gz",
+      "bytes": 1882,
+      "sha256": "cd0059ef01f7796e7b56670d3c3ba774c829857d60de6b89bb7f2abb4427c819",
+      "archiveSha256": "d33a04557021fcf24391e1b34482a0812f15113d13dff99d571115f9cdae4d47"
+    },
+    {
+      "originalName": "observer-isolation/receipt.json",
+      "archive": "observer-isolation__receipt.json.gz",
+      "bytes": 2075,
+      "sha256": "7e74ac1d6ebb3e571c416f81a839de4c14c341cb0e11398a083efbe2c5c52865",
+      "archiveSha256": "b20bf95f77a5903b4daf05393a732066cdd8d4a239a339b23c147b3fcde18fc9"
+    },
+    {
+      "originalName": "observer-isolation/prove.mjs",
+      "archive": "observer-isolation__prove.mjs.gz",
+      "bytes": 2101,
+      "sha256": "b7d80f17b36758ea53bc54f250a0cd37b24fb7bd3df00c9710452329e9ac8c8f",
+      "archiveSha256": "5edd5823a7462aa8194c7f62bdeb30ef4b6e08aded6204f824ae73ecbee9e9d2"
+    },
+    {
+      "originalName": "observer-isolation/old/observer.mjs",
+      "archive": "observer-isolation__old__observer.mjs.gz",
+      "bytes": 1607,
+      "sha256": "0ffbc26d4ac8da2c17b254c39018103e963e4869f0a8fc86d21921fb39f9e67c",
+      "archiveSha256": "6b6cfb097bc8886388cd187e6cdea1495cc16a59cec4c893056cd53372e2c873"
+    },
+    {
+      "originalName": "observer-isolation/new/observer.mjs",
+      "archive": "observer-isolation__new__observer.mjs.gz",
+      "bytes": 1862,
+      "sha256": "19fce062a6f64b108507c9fa93b2951411fcc3a11676ee2dbb8bd5b1ead1fdbf",
+      "archiveSha256": "d2dabd457917d9b845874ffb929060eddb2e9f18851cf4e30fc94c2e4a13bfc6"
+    },
+    {
+      "originalName": "observer-isolation/cases-old/vitest.log",
+      "archive": "observer-isolation__cases-old__vitest.log.gz",
+      "bytes": 5196,
+      "sha256": "5a92165e17905d6f23167b5a8635d479890094467f6ec245a75f3bb99bd6d1b2",
+      "archiveSha256": "3c4f0bf1cba50965e90d1a0355f0fc96ea496e638f867ed85cb781e1688f7766"
+    },
+    {
+      "originalName": "observer-isolation/cases-new/vitest.log",
+      "archive": "observer-isolation__cases-new__vitest.log.gz",
+      "bytes": 148,
+      "sha256": "ce04ff98504cc71d6ac1b7b412f0b9d58ccfec8ec0fa0417e9aff94851034ee1",
+      "archiveSha256": "bdc7fd4d0e66cb4d9a89ac8726cdb3be7567ea585f0a8f29cd734cf2f8f3069c"
+    },
+    {
+      "originalName": "observer-isolation/cases-new/vitest.json",
+      "archive": "observer-isolation__cases-new__vitest.json.gz",
+      "bytes": 1216,
+      "sha256": "5e64853134863f87a7cf0d442e428c3bdcf0ae507da3d1e7879b6cb4f607aa71",
+      "archiveSha256": "14d32881134e5bf9b79738083a7f9f08385842d01034c3dbb32ea0a6f508373f"
+    },
+    {
+      "originalName": "observer-isolation/cases-new/runtime.json",
+      "archive": "observer-isolation__cases-new__runtime.json.gz",
+      "bytes": 1789,
+      "sha256": "bf65e0172512bc406cec3661b2270f713547dc735d517d4bc05c71c5ebd1e1e8",
+      "archiveSha256": "3685fbfa238b608ce7d5309637e5da412173b537aa6d8dced44cae60f51d1f0d"
+    },
+    {
+      "originalName": "observer-isolation/cases-new/case.test.mjs",
+      "archive": "observer-isolation__cases-new__case.test.mjs.gz",
+      "bytes": 315,
+      "sha256": "ecd2981f2b610d53eb55f5af28ee2972468360ec2380de8c63f0663aa53ed96a",
+      "archiveSha256": "0d033008ecb75efc93b72b24badf3d833c72164e443ca6ce4656dcaea5d4e1bf"
+    },
+    {
+      "originalName": "observer-isolation/obsolete-source-status-before-cancel.json",
+      "archive": "observer-isolation__obsolete-source-status-before-cancel.json.gz",
+      "bytes": 2837,
+      "sha256": "b27b1fb61776c7eba36e947f0de15c6be5bebe7753b714a8d857d0564d665fda",
+      "archiveSha256": "872a2f445938acb61994989a385c1c2a59e11b34eff7a9af2010c123049541f0"
+    },
+    {
+      "originalName": "root-focused-vitest.json",
+      "archive": "root-focused-vitest.json.gz",
+      "bytes": 18567,
+      "sha256": "99929d759294ebdfdb65c6dc68cf55a9d8f648a0ffa7e0e9794cd7ed43d8b06a",
+      "archiveSha256": "5771b01620455c3b1a2edc035d85862c367a55d6e04e7ddb19bd10f2c9fc62e5"
+    },
+    {
+      "originalName": "root-typecheck.log",
+      "archive": "root-typecheck.log.gz",
+      "bytes": 706,
+      "sha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "archiveSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "originalName": "pr17-linux-audit.json",
+      "archive": "pr17-linux-audit.json.gz",
+      "bytes": 3839312,
+      "sha256": "02f19f6641b96de83cf52e9e8bd79b2904fd004d5f96bc7be669d6d874ebeedf",
+      "archiveSha256": "16d67d6fbc64f891ee9229ad960249ddf75de883815c70409d2350cfb6b948f3"
+    }
+  ]
+}

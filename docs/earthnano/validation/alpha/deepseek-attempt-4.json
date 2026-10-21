@@ -1,0 +1,866 @@
+{
+  "status": "passed",
+  "optimizationState": "completed",
+  "resume": {
+    "runId": "6c5d1814-3899-451d-b374-47b657c5fabc",
+    "originalBudget": 24,
+    "stoppedAdmissions": 4,
+    "noCallsOnReopen": true,
+    "completedBeforeResume": [
+      "6ea69695-59e0-4331-bf8a-8ab83e372432",
+      "b0280080-b855-41db-85c7-5fb9bc187998"
+    ]
+  },
+  "live": true,
+  "progress": {
+    "runId": "6c5d1814-3899-451d-b374-47b657c5fabc",
+    "projectId": "cmvgu5qhl0000xjya2m5wt491",
+    "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+    "method": {
+      "mode": "parallel",
+      "k": 2,
+      "concurrency": 2
+    },
+    "state": "completed",
+    "stage": "completed",
+    "updatedAt": 1792510212038,
+    "executions": [
+      {
+        "executionId": "6ea69695-59e0-4331-bf8a-8ab83e372432",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "3279b6dc-4f02-4eb7-bcbb-3f6829e786cf"
+      },
+      {
+        "executionId": "b0280080-b855-41db-85c7-5fb9bc187998",
+        "role": "baseline",
+        "stageId": "base2",
+        "phase": "completed",
+        "sessionId": "9d5b4c66-97f1-47da-8e52-1931718d747d"
+      },
+      {
+        "executionId": "f0691290-f0e1-49b4-a54c-6ca34fc29bfa",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "cancelled",
+        "sessionId": "57fec16d-e367-486e-ae52-fdf1161fdaf8"
+      },
+      {
+        "executionId": "c05f8b6c-e080-40ae-9d9c-d4203f414833",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "cancelled",
+        "sessionId": "461cb09d-180f-460e-8931-928ab2f7caa3"
+      },
+      {
+        "executionId": "2323b15b-3cf3-4b33-a220-3f4b53231554",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "055c78d6-dba1-4249-a4f0-af20de43bbac"
+      },
+      {
+        "executionId": "fbf8e872-180a-4c72-9dac-305785a1bd4a",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "70ad7fe3-3252-453f-81b9-8770706fb1ae"
+      },
+      {
+        "executionId": "54f4bf49-6b03-43c0-90c2-9545f9939b36",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "a0e0244c-ca3b-4e45-abd5-94f7810f0443"
+      },
+      {
+        "executionId": "b427886f-817c-4796-aedf-2c63adf4ac42",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "f5036b30-a666-49f0-a241-455e66cf1b4b"
+      },
+      {
+        "executionId": "5ad3dec6-1902-46a2-955d-51df6c2095a2",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "e0d4ae3a-d4a4-45bc-9dad-b8a963ac3910"
+      },
+      {
+        "executionId": "8f467685-ef91-435f-89ac-b1c7dbc1f5de",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "146b4b2e-9b08-46d4-8c7c-f6e7fb999b02"
+      },
+      {
+        "executionId": "6e2d88ea-3722-4e4b-80c1-54009cac8064",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "b33d8d46-75ba-48e4-8cca-71babbe3d9ba"
+      },
+      {
+        "executionId": "b6964488-31c2-435e-80d5-eb195dd51249",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "cd362d5b-64cc-4f60-8c60-91ebc32433a5"
+      },
+      {
+        "executionId": "6a166d4c-5da2-4df3-952f-17848f5b4d85",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "9a0349d4-ed3b-4f2e-b5a0-ab1bdd1dcb71"
+      },
+      {
+        "executionId": "0df8a1e9-4141-420d-b8f3-1a9662043987",
+        "role": "candidate",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "350f72a6-4aed-4cf2-92f5-133d6c3fbe54"
+      },
+      {
+        "executionId": "f716ff12-4063-4a37-9b1f-aac686b506d3",
+        "role": "candidate",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "fe6d8697-2187-440b-82f5-4b2c0d8b8192"
+      },
+      {
+        "executionId": "0d4bffc1-6131-4150-952e-9b41d9b274e6",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "0bb261ee-ddd4-487b-92eb-d209b172dfcf"
+      },
+      {
+        "executionId": "b6058a75-d010-4a18-89d0-b97cb84301c4",
+        "role": "composer",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "6baea11e-10c2-4972-87f2-7916ee219b68"
+      },
+      {
+        "executionId": "6e93f876-b830-4b6f-be57-0234c929b8dc",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "82d1eb47-27bb-4a90-80c7-e2faff7e8a8c"
+      },
+      {
+        "executionId": "471d3678-9c24-45d8-926f-f6690dc4b527",
+        "role": "candidate",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "e5db7899-1aef-40a1-802d-291fc4abdf83"
+      },
+      {
+        "executionId": "ad88e084-3db1-4265-a097-ffea5783b65f",
+        "role": "selector",
+        "stageId": "select.agg2",
+        "phase": "completed",
+        "sessionId": "a47c6383-e925-4ea2-997b-7090a7c35f12"
+      },
+      {
+        "executionId": "8017d148-4b20-4903-9a0f-f5d038af138a",
+        "role": "reviewer",
+        "stageId": "semantic:e2feb1b0-a5c5-4438-8a63-0877817b4242",
+        "phase": "completed",
+        "sessionId": "48b54ea0-f372-4de6-b4dc-521c5ebb28f1"
+      },
+      {
+        "executionId": "9998161b-0914-4722-bedd-d400e7ab5763",
+        "role": "reviewer",
+        "stageId": "semantic:c44697a6-ea55-4e6f-b471-9f98d480009a",
+        "phase": "completed",
+        "sessionId": "d8dfc112-9f63-489b-95e6-2819c4e0777f"
+      }
+    ],
+    "budget": {
+      "limit": 24,
+      "admitted": 22,
+      "completed": 22,
+      "active": 0
+    },
+    "notebook": {
+      "source": {
+        "promptMessageId": "message-1792509977667-1"
+      },
+      "inputs": [
+        {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        }
+      ],
+      "runtime": {
+        "language": "python",
+        "runtimeId": "/opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+        "source": "external",
+        "provenance": "user-own",
+        "interpreterPath": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+        "version": "3.12.13"
+      }
+    },
+    "outcome": {
+      "artifact": {
+        "status": "passed",
+        "checks": [
+          {
+            "path": "research-results.json",
+            "pointer": "",
+            "artifactRef": {
+              "artifactId": "be483542-6061-4915-8e85-174bf3c54cae",
+              "versionId": "147018b1-d961-425f-b11b-489224e725c1",
+              "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+            },
+            "status": "pass",
+            "reason": "matched"
+          }
+        ],
+        "reviewId": "cmvguarhd0014xjznr38yi2s5"
+      },
+      "configuration": {
+        "status": "eligible",
+        "reasons": [],
+        "harnessRevisionRef": {
+          "id": "candidate:harness:aa600e46b1d22adbf24461bc64a44249d84f1649a76764435b4b7fbaf97d8572",
+          "version": "1",
+          "digest": "sha256:aa600e46b1d22adbf24461bc64a44249d84f1649a76764435b4b7fbaf97d8572"
+        }
+      }
+    },
+    "selection": {
+      "chosenLabel": "agg1",
+      "candidateCount": 2,
+      "trivial": false,
+      "fallback": false,
+      "reason": "Both candidates carry identical values (count 3, sum 12.0, mean 4.0) for the three-row measurements.csv, so neither has a fidelity defect; the decider is CONFORMANCE/serialization. Candidate A renders the JSON as multi-line pretty-printed code while B renders it as a compact single-line JSON object; formatting is an interpretive difference only, and both contain exactly the three numeric keys count, sum, mean with no extras. Candidate A's indented block is the cleaner, more inspectable standalone file form and adds no content; B is the closest runner-up, losing only on the less canonical rendering of the JSON artifact. Neither shows placeholders or extra artifacts."
+    },
+    "assessments": {
+      "baseline": {
+        "executionId": "8017d148-4b20-4903-9a0f-f5d038af138a",
+        "targetExecutionId": "6ea69695-59e0-4331-bf8a-8ab83e372432",
+        "reviewId": "cmvguajn6000yxjznmpu8t359",
+        "outcome": "pass",
+        "score": 95,
+        "rationale": "Criterion c1 is satisfied by the single published artifact research-results.json. Source comparison: the available measurements.csv (version 2c50af4e-6a6c-45a3-bfd1-f4555f252edc, checksum 2935c5f6..., digest sha256:04df7b3d...) contains a header row 'sample,value' and three data rows A,2 / B,4 / C,6, giving three observations. The artifact reports count 3, sum 12.0, and mean 4.0; sum 2+4+6 = 12 and 12/3 = 4.0, so all three values match an independent recomputation from the source. The artifact has the required numeric keys count, sum, mean and no extraneous content, and is the only artifact in artifacts.json. The source is marked available, so no content was inferred. Minor limitation (not a criterion failure): the artifact is a bare JSON data file with no computational trace, so it is verified only against independent recomputation, not against the execution that produced it. Score 95 reflects verified numeric correctness with that provenance limitation."
+      },
+      "candidate": {
+        "executionId": "9998161b-0914-4722-bedd-d400e7ab5763",
+        "targetExecutionId": "6e93f876-b830-4b6f-be57-0234c929b8dc",
+        "reviewId": "cmvguargv0012xjzn066aose7",
+        "outcome": "pass",
+        "score": 100,
+        "rationale": "The only target artifact is research-results.json (artifactRef be483542-6061-4915-8e85-174bf3c54cae / version 147018b1-d961-425f-b11b-489224e725c1, checksum 3ddb3947...1b0ece). The sole frozen criterion c1 requires the published report to give count, sum and arithmetic mean computed from the fixed source observations. The supplied source measurements.csv (checksum matches 2935c5f6...a4740) contains rows A,2 / B,4 / C,6, i.e. three observations 2, 4, 6. Independently recomputing: count = 3, sum = 2+4+6 = 12, arithmetic mean = 12/3 = 4.0. The artifact's JSON body contains exactly count: 3, sum: 12.0, mean: 4.0, all three numeric and matching the recomputation. Note that the task prompt's additional procedural instructions (listing runtimes, binding the external runtime, using the Notebook tools, replying with an exact sentence) are process requirements not captured in the frozen criteria, so they are not scored here; the available artifact evidence is limited to the published JSON, and no execution log or transcript was supplied to verify process steps."
+      }
+    }
+  },
+  "sourceArtifact": {
+    "artifactId": "9b7895f5-2c1c-4d32-8760-c5686e25b0af",
+    "versionId": "33f98703-e735-4656-81f1-0121886f8ec5",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792509986215-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "executionFacts": [
+    {
+      "executionId": "6ea69695-59e0-4331-bf8a-8ab83e372432",
+      "role": "baseline",
+      "stageId": "base1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "b0280080-b855-41db-85c7-5fb9bc187998",
+      "role": "baseline",
+      "stageId": "base2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "f0691290-f0e1-49b4-a54c-6ca34fc29bfa",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "c05f8b6c-e080-40ae-9d9c-d4203f414833",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "2323b15b-3cf3-4b33-a220-3f4b53231554",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "fbf8e872-180a-4c72-9dac-305785a1bd4a",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "54f4bf49-6b03-43c0-90c2-9545f9939b36",
+      "role": "proposer",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "b427886f-817c-4796-aedf-2c63adf4ac42",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "5ad3dec6-1902-46a2-955d-51df6c2095a2",
+      "role": "proposer",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8f467685-ef91-435f-89ac-b1c7dbc1f5de",
+      "role": "proposer",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "6e2d88ea-3722-4e4b-80c1-54009cac8064",
+      "role": "proposer",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "b6964488-31c2-435e-80d5-eb195dd51249",
+      "role": "candidate",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "6a166d4c-5da2-4df3-952f-17848f5b4d85",
+      "role": "candidate",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0df8a1e9-4141-420d-b8f3-1a9662043987",
+      "role": "candidate",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "f716ff12-4063-4a37-9b1f-aac686b506d3",
+      "role": "candidate",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "0d4bffc1-6131-4150-952e-9b41d9b274e6",
+      "role": "composer",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "b6058a75-d010-4a18-89d0-b97cb84301c4",
+      "role": "composer",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "6e93f876-b830-4b6f-be57-0234c929b8dc",
+      "role": "candidate",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "471d3678-9c24-45d8-926f-f6690dc4b527",
+      "role": "candidate",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "ad88e084-3db1-4265-a097-ffea5783b65f",
+      "role": "selector",
+      "stageId": "select.agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8017d148-4b20-4903-9a0f-f5d038af138a",
+      "role": "reviewer",
+      "stageId": "semantic:e2feb1b0-a5c5-4438-8a63-0877817b4242",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "9998161b-0914-4722-bedd-d400e7ab5763",
+      "role": "reviewer",
+      "stageId": "semantic:c44697a6-ea55-4e6f-b471-9f98d480009a",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    }
+  ],
+  "identicalOriginalSourceEvidence": {
+    "schemaVersion": 1,
+    "profile": "bounded-utf8-v1",
+    "inputs": [
+      {
+        "input": {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        },
+        "status": "available",
+        "content": "sample,value\nA,2\nB,4\nC,6\n",
+        "digest": "sha256:2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+      }
+    ],
+    "digest": "sha256:04df7b3d9215e64413954a1c7c8a695988fb75570619026b743509e7bdc10d1c"
+  },
+  "scientificRuns": [
+    {
+      "executionId": "6ea69695-59e0-4331-bf8a-8ab83e372432",
+      "role": "baseline",
+      "sessionId": "3279b6dc-4f02-4eb7-bcbb-3f6829e786cf",
+      "computationRunId": "notebook-run-1792509998288-2",
+      "producerRunId": "notebook-run-1792510000416-4",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "8d3d2e63-ee6e-4a51-bd8b-1c7f6d4c32fd",
+          "versionId": "ae68b64f-a401-42ee-941c-3473b3a045ef",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "b0280080-b855-41db-85c7-5fb9bc187998",
+      "role": "baseline",
+      "sessionId": "9d5b4c66-97f1-47da-8e52-1931718d747d",
+      "computationRunId": "notebook-run-1792509999720-3",
+      "producerRunId": "notebook-run-1792510001566-5",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "646e5ce4-b9c3-4957-899a-13c1bc7f4f0c",
+          "versionId": "87194461-d339-42c0-b586-5db52403e3f4",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "b6964488-31c2-435e-80d5-eb195dd51249",
+      "role": "candidate",
+      "sessionId": "cd362d5b-64cc-4f60-8c60-91ebc32433a5",
+      "computationRunId": "notebook-run-1792510128545-3",
+      "producerRunId": "notebook-run-1792510128545-3",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "ca56edb3-1b0e-424b-9ede-3c0b8e15d879",
+          "versionId": "9fbc4606-ead7-4856-bd41-725bd7b1e325",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "6a166d4c-5da2-4df3-952f-17848f5b4d85",
+      "role": "candidate",
+      "sessionId": "9a0349d4-ed3b-4f2e-b5a0-ab1bdd1dcb71",
+      "computationRunId": "notebook-run-1792510129010-4",
+      "producerRunId": "notebook-run-1792510129010-4",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "9d0ee95e-550d-421d-81c4-a7efcd004e6b",
+          "versionId": "2062d068-16e1-4484-9063-11db344c969b",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "0df8a1e9-4141-420d-b8f3-1a9662043987",
+      "role": "candidate",
+      "sessionId": "350f72a6-4aed-4cf2-92f5-133d6c3fbe54",
+      "computationRunId": "notebook-run-1792510142820-8",
+      "producerRunId": "notebook-run-1792510142820-8",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "8cd25461-1d40-4336-919a-e7c901e39541",
+          "versionId": "129b65d1-270c-4dbb-8cfb-81fe03ebf00a",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "f716ff12-4063-4a37-9b1f-aac686b506d3",
+      "role": "candidate",
+      "sessionId": "fe6d8697-2187-440b-82f5-4b2c0d8b8192",
+      "computationRunId": "notebook-run-1792510138526-5",
+      "producerRunId": "notebook-run-1792510140724-6",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "03a1e675-bb02-46b8-931f-79af1c733319",
+          "versionId": "ea004792-0ab7-45fe-8457-bd63b7ee46e2",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    },
+    {
+      "executionId": "6e93f876-b830-4b6f-be57-0234c929b8dc",
+      "role": "candidate",
+      "sessionId": "82d1eb47-27bb-4a90-80c7-e2faff7e8a8c",
+      "computationRunId": "notebook-run-1792510180877-11",
+      "producerRunId": "notebook-run-1792510180877-11",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "be483542-6061-4915-8e85-174bf3c54cae",
+          "versionId": "147018b1-d961-425f-b11b-489224e725c1",
+          "checksum": "3ddb39473c2445c55c3d531c32e3d4675babfefa04da9d6998764794db1b0ece"
+        }
+      ]
+    },
+    {
+      "executionId": "471d3678-9c24-45d8-926f-f6690dc4b527",
+      "role": "candidate",
+      "sessionId": "e5db7899-1aef-40a1-802d-291fc4abdf83",
+      "computationRunId": "notebook-run-1792510177239-9",
+      "producerRunId": "notebook-run-1792510177239-9",
+      "notebookPreviewReopenedWithoutRestart": true,
+      "taskSnapshotRef": {
+        "id": "candidate:task:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95",
+        "version": "1",
+        "digest": "sha256:28b97044c6597a885736f858b694914f3ed9df7fc47eaf16c5ef0a7a7e09cf95"
+      },
+      "environmentSpecRef": {
+        "id": "candidate:environment:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5",
+        "version": "1",
+        "digest": "sha256:6a3ac12d7c1cfbbf9bcf8df08190c994ff8681bde0bd5247d151a12e0e25a9b5"
+      },
+      "inputFiles": [
+        {
+          "inputFileVersionId": "2c50af4e-6a6c-45a3-bfd1-f4555f252edc",
+          "sourceKind": "upload-version",
+          "sourceFileId": "ad6497b4-f25c-4345-83a2-9c6120e809e9",
+          "sourceVersionNumber": 1,
+          "sourceCreatedAt": "2026-10-20T15:26:18.987Z",
+          "sourceProjectId": "cmvgu5qhl0000xjya2m5wt491",
+          "sourceSessionId": "ee727f48-e6f7-491b-bf01-c8671b6755dc",
+          "filename": "measurements.csv",
+          "contentType": "text/csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740",
+          "storageKey": "uploads/cmvgu5qhl0000xjya2m5wt491/ee727f48-e6f7-491b-bf01-c8671b6755dc/ad6497b4-f25c-4345-83a2-9c6120e809e9/versions/2c50af4e-6a6c-45a3-bfd1-f4555f252edc/content",
+          "association": "turn-attached"
+        }
+      ],
+      "artifacts": [
+        {
+          "artifactId": "26bf8c53-6439-47ac-90be-afab1748b2f4",
+          "versionId": "57e638ad-d821-40ae-87d6-8dfdda93c410",
+          "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+        }
+      ]
+    }
+  ],
+  "sameScientificTask": true,
+  "sourceVersionsPreserved": true,
+  "nativeNotebookProducersVerified": true,
+  "inputAccessEvidence": "Exact original source Versions attached to each Run; external Python file-access evidence may be partial. No complete dependency-proof claim.",
+  "reopened": true,
+  "noPaidReplay": true,
+  "sourceProducerVerified": true,
+  "ordinaryCoreVerified": true,
+  "independentReviewsReopened": true,
+  "acceptancePassed": true,
+  "provider": {
+    "requests": 133,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 22,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 1,
+    "upstreamRequests": 132,
+    "cancelledUpstreamRequests": 1,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 10,
+      "proposer": 58,
+      "candidate": 34,
+      "composer": 12,
+      "selector": 6,
+      "reviewer": 7
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "Read",
+      "Write",
+      "Edit",
+      "Skill",
+      "mcp__open-science-notebook__notebook_state"
+    ],
+    "usage": {
+      "input": 408933,
+      "cacheRead": 2050304,
+      "output": 52452,
+      "incompleteRequests": 1
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "5812df666a479d23ee4f7684c0449266f12f0238",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "b21fdd249faa11df80272aeb1aacf10c850e9d8e8d540166abd836cc566a9d43",
+      "out/main/index.js": "b220e99bb19d83497df078799286384ddbb5b5331d0a1d0c090ed12794c7f340",
+      "out/preload/index.js": "641791ec005a5e292ad0f6d4e9d8de2d966123f8919dd2ea4405b24700688a55",
+      "out/renderer/index.html": "1366c7a6eb424491c5a88eb205f2c175b87ba4c58db814f233217929a9d2499d"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

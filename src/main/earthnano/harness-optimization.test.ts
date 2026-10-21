@@ -1,6 +1,9 @@
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
+import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candidate-artifact'
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import { execFileSync } from 'node:child_process'
 import { randomUUID, createHash } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, stat, lstat, chmod, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
@@ -19,15 +22,27 @@ import { emptyExecutionState, ExecutionCore } from './execution-core'
 import {
   HarnessOptimizationBinding,
   runHarnessProcess,
-  type PersistentExecutionExport
+  type PersistentExecutionExport,
+  type HarnessOptimizationBindingOptions
 } from './harness-optimization'
 import type { ExecutionRequest, ExecutionHandle } from '../../shared/earthnano/execution-port'
 
 const roots: string[] = []
 const cores: ExecutionCore[] = []
+const writableFixture = async (path: string): Promise<void> => {
+  const entry = await lstat(path)
+  if (entry.isSymbolicLink()) return
+  if (entry.isDirectory()) {
+    await chmod(path, 0o700)
+    for (const child of await readdir(path)) await writableFixture(join(path, child))
+  } else await chmod(path, 0o600)
+}
 afterEach(async () => {
   cores.splice(0).forEach((core) => core.dispose())
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
+  for (const root of roots.splice(0)) {
+    await writableFixture(root)
+    await rm(root, { recursive: true, force: true })
+  }
 })
 const input: CandidateSnapshotInput = {
   task: {
@@ -59,13 +74,16 @@ const invocation = (role = 'proposer'): Record<string, unknown> => ({
   contextFiles: [{ path: 'context/harness/instructions.md', content: 'Original method' }]
 })
 const setup = async (
-  sourceInput: CandidateSnapshotInput = input
+  sourceInput: CandidateSnapshotInput = input,
+  materializeArtifact?: HarnessOptimizationBindingOptions['materializeArtifact'],
+  contextFileView?: true
 ): Promise<{
   root: string
   binding: HarnessOptimizationBinding
   snapshots: CandidateSnapshotStore
   core: ExecutionCore
   exportValue: PersistentExecutionExport
+  readState(): ReturnType<typeof emptyExecutionState>
 }> => {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-harness-binding-'))
   roots.push(root)
@@ -111,6 +129,7 @@ const setup = async (
     files: [{ path: 'result.txt', content: 'persisted', digest: checksum, artifactRef: ref }]
   }
   const binding = new HarnessOptimizationBinding({
+    ...(contextFileView ? { contextFileView } : {}),
     core,
     snapshots,
     input: sourceInput,
@@ -119,9 +138,10 @@ const setup = async (
     taskId: 't1',
     budgetRef: 'budget',
     timeoutMs: 2000,
-    exportResult: async (record) => ({ ...exportValue, executionId: record.executionId })
+    exportResult: async (record) => ({ ...exportValue, executionId: record.executionId }),
+    materializeArtifact
   })
-  return { root, binding, snapshots, core, exportValue }
+  return { root, binding, snapshots, core, exportValue, readState: () => structuredClone(state) }
 }
 
 describe('trusted Harness optimization binding', () => {
@@ -140,7 +160,8 @@ describe('trusted Harness optimization binding', () => {
     expect(resolved.invocation.mission).toContain('candidate A final output')
     expect(resolved.invocation.mission).toContain('candidate B final output')
     expect(resolved.invocation.mission).toContain('choice block and why format')
-    expect(resolved.invocation.mission).toContain('OUTPUT/selection.md')
+    expect(resolved.invocation.mission).toContain('selector-reply.md')
+    expect(resolved.invocation.mission).not.toContain('OUTPUT/selection.md')
     expect(resolved.invocation.mission).not.toContain('Emit the complete revised harness')
   })
   it('freezes role context separately while retaining the same research task across changed harnesses', async () => {
@@ -409,7 +430,7 @@ describe('trusted Harness optimization binding', () => {
 })
 
 describe('host-fixed scientific Harness capabilities', () => {
-  const scientific = (): CandidateSnapshotInput => ({
+  const scientific = (language: NotebookLanguage = 'python'): CandidateSnapshotInput => ({
     ...input,
     task: {
       prompt: 'Compute the original CSV mean in Notebook.',
@@ -427,48 +448,190 @@ describe('host-fixed scientific Harness capabilities', () => {
         }
       ]
     },
-    harness: { ...input.harness, tools: 'notebook-python' },
+    harness: { ...input.harness, tools: notebookToolsForLanguage(language) },
     environment: {
       isolation: 'directory-process',
       network: 'provider-and-notebook-policy',
       notebook: {
         runtime: {
-          language: 'python',
-          runtimeId: '/original/python',
-          interpreterPath: '/original/python',
+          language,
+          runtimeId: `/original/${language}`,
+          interpreterPath: `/original/${language}`,
           source: 'external',
           provenance: 'user-own'
         }
       }
     }
   })
-  it('retains one fixed task/runtime and the scientific profile through candidate harness edits', async () => {
-    const source = scientific(),
-      f = await setup(source)
-    const baseline = (await f.binding.dispatch(
+  it.each(['python', 'r'] as const)(
+    'retains the fixed %s task/runtime through candidate harness edits',
+    async (language) => {
+      const source = scientific(language),
+        f = await setup(source)
+      const baseline = (await f.binding.dispatch(
+        'freezeInvocation',
+        invocation('baseline')
+      )) as ExecutionRequest
+      const candidate = (await f.binding.dispatch('freezeInvocation', {
+        ...invocation('candidate'),
+        harnessFiles: [{ path: 'instructions.md', content: 'Revised guidance' }],
+        // Untrusted local fields cannot replace the host capabilities or sources.
+        environment: { notebook: { runtime: { runtimeId: '/attacker/python' } } },
+        task: { managedInputs: [] },
+        tools: 'arbitrary-shell'
+      })) as ExecutionRequest
+      const resolved = await f.snapshots.resolve(candidate)
+      expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
+      expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
+      expect(resolved.harness).toMatchObject({
+        tools: notebookToolsForLanguage(language),
+        instructions: 'Revised guidance'
+      })
+      expect(resolved.environment).toEqual(source.environment)
+      expect(resolved.task).toEqual(source.task)
+      expect(resolved.invocation.mission).toContain(
+        'Publish task deliverables using the original Artifact tools'
+      )
+    }
+  )
+  it('preserves the pre-R Python invocation receipt exactly', async () => {
+    const f = await setup(scientific())
+    const request = (await f.binding.dispatch(
       'freezeInvocation',
       invocation('baseline')
     )) as ExecutionRequest
-    const candidate = (await f.binding.dispatch('freezeInvocation', {
-      ...invocation('candidate'),
-      harnessFiles: [{ path: 'instructions.md', content: 'Revised guidance' }],
-      // Untrusted local fields cannot replace the host capabilities or sources.
-      environment: { notebook: { runtime: { runtimeId: '/attacker/python' } } },
-      task: { managedInputs: [] },
-      tools: 'arbitrary-shell'
-    })) as ExecutionRequest
-    const resolved = await f.snapshots.resolve(candidate)
-    expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
-    expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
-    expect(resolved.harness).toMatchObject({
-      tools: 'notebook-python',
-      instructions: 'Revised guidance'
-    })
-    expect(resolved.environment).toEqual(source.environment)
-    expect(resolved.task).toEqual(source.task)
-    expect(resolved.invocation.mission).toContain(
-      'Publish task deliverables using the original Artifact tools'
+    // Receipt captured on da658402e before the method lane changes (see retained red log).
+    expect(request.invocationRef?.digest).toBe(
+      'sha256:6dce830906359faf48bf62a40c8e2405f1bb5551c262d0147f58530c4f32695f'
     )
+  })
+  it('refuses completed scientific replay when source version, byte digest or input order really changes', async () => {
+    const base = scientific()
+    const source: CandidateSnapshotInput = {
+      ...base,
+      task: {
+        ...base.task,
+        managedInputs: [
+          base.task.managedInputs![0],
+          {
+            ...base.task.managedInputs![0],
+            sourceFileId: 'second-upload',
+            inputFileVersionId: 'second-version',
+            filename: 'second.csv'
+          }
+        ]
+      }
+    }
+    const f = await setup(source)
+    const original = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const record = await f.core.get(handle.executionId)
+    const { outputDigest, canonicalOutput } = await import('./output-checks')
+    const resume = (value: CandidateSnapshotInput): HarnessOptimizationBinding =>
+      new HarnessOptimizationBinding({
+        core: f.core,
+        snapshots: f.snapshots,
+        input: value,
+        projectId: original.projectId,
+        optimizationId: original.origin.optimizationId!,
+        taskId: 't1',
+        budgetRef: original.budgetRef,
+        timeoutMs: original.timeoutMs,
+        resumeRecords: [record],
+        resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+        exportResult: async (entry) => ({ ...f.exportValue, executionId: entry.executionId })
+      })
+    const keyReordered = JSON.parse(canonicalOutput(source)) as CandidateSnapshotInput
+    expect(await resume(keyReordered).dispatch('freezeInvocation', invocation('baseline'))).toEqual(
+      original
+    )
+    for (const change of ['version', 'bytes', 'order']) {
+      const inputs = source.task.managedInputs!.map((entry) => ({ ...entry }))
+      if (change === 'version') inputs[0].inputFileVersionId = 'new-version'
+      if (change === 'bytes') inputs[0].checksum = 'b'.repeat(64)
+      if (change === 'order') inputs.reverse()
+      const changed: CandidateSnapshotInput = {
+        ...source,
+        task: { ...source.task, managedInputs: inputs }
+      }
+      await expect(
+        resume(changed).dispatch('freezeInvocation', invocation('baseline'))
+      ).rejects.toThrow('identity changed')
+    }
+    expect(
+      (await resume(source).dispatch(
+        'freezeInvocation',
+        invocation('baseline')
+      )) as ExecutionRequest
+    ).toEqual(original)
+  })
+  it('reopens only the exact completed R stage and refuses changed language or runtime without another admission', async () => {
+    const originalInput = scientific('r'),
+      f = await setup(originalInput)
+    const original = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const record = await f.core.get(handle.executionId)
+    const { outputDigest } = await import('./output-checks')
+    const resumed = (source: CandidateSnapshotInput): HarnessOptimizationBinding =>
+      new HarnessOptimizationBinding({
+        core: f.core,
+        snapshots: f.snapshots,
+        input: source,
+        projectId: 'project',
+        optimizationId: original.origin.optimizationId!,
+        taskId: 't1',
+        budgetRef: original.budgetRef,
+        timeoutMs: original.timeoutMs,
+        resumeRecords: [record],
+        resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+        exportResult: async (entry) => ({ ...f.exportValue, executionId: entry.executionId })
+      })
+    const exact = resumed(structuredClone(originalInput))
+    expect(await exact.dispatch('freezeInvocation', invocation('baseline'))).toEqual(original)
+    expect(
+      ((await exact.dispatch('submit', { request: original })) as ExecutionHandle).executionId
+    ).toBe(handle.executionId)
+    for (const source of [
+      scientific('python'),
+      {
+        ...originalInput,
+        environment: {
+          ...originalInput.environment,
+          notebook: {
+            runtime: {
+              ...originalInput.environment.notebook!.runtime,
+              runtimeId: '/other/r',
+              interpreterPath: '/other/r'
+            }
+          }
+        }
+      }
+    ])
+      await expect(
+        resumed(source).dispatch('freezeInvocation', invocation('baseline'))
+      ).rejects.toThrow('identity changed')
+    const wrong = {
+      ...originalInput,
+      environment: {
+        ...originalInput.environment,
+        notebook: {
+          runtime: { ...originalInput.environment.notebook!.runtime, language: 'python' as const }
+        }
+      }
+    }
+    await expect(
+      resumed(wrong).dispatch('freezeInvocation', invocation('baseline'))
+    ).rejects.toThrow('language mismatch')
+    expect(f.binding.executionIds).toEqual([handle.executionId])
+    expect(Object.values(f.readState().budgets)[0]!.admitted).toBe(1)
   })
   it('rejects a foreign source Project before freezing or admitting scientific work', async () => {
     const source = scientific()
@@ -479,22 +642,439 @@ describe('host-fixed scientific Harness capabilities', () => {
     expect(freeze).not.toHaveBeenCalled()
     expect(f.binding.executionIds).toEqual([])
   })
-  it.each(['proposer', 'composer', 'selector', 'reflection'])(
-    'keeps %s textual despite the scientific source profile',
-    async (role) => {
-      const source = scientific(),
-        f = await setup(source)
-      const request = (await f.binding.dispatch(
-        'freezeInvocation',
-        invocation(role)
-      )) as ExecutionRequest
-      const resolved = await f.snapshots.resolve(request)
-      expect(resolved.harness.tools).toBe('workspace-only')
-      expect(resolved.environment).toEqual(input.environment)
-      expect(resolved.task).toEqual(source.task)
-      expect(resolved.invocation.mission).not.toContain(
-        'Publish task deliverables using the original Artifact tools'
-      )
+  it.each(
+    (['python', 'r'] as const).flatMap((language) =>
+      ['proposer', 'composer', 'selector', 'reflection'].map((role) => ({ language, role }))
+    )
+  )('keeps $role textual despite the $language source profile', async ({ language, role }) => {
+    const source = scientific(language),
+      f = await setup(source)
+    const request = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(request)
+    expect(resolved.harness.tools).toBe('workspace-only')
+    expect(resolved.environment).toEqual(input.environment)
+    expect(resolved.task).toEqual(source.task)
+    expect(resolved.invocation.mission).not.toContain(
+      'Publish task deliverables using the original Artifact tools'
+    )
+  })
+})
+
+it.each(['proposer', 'composer', 'selector', 'reflection'])(
+  'keeps empty-input Compute source identity through %s without granting Compute to method roles',
+  async (role) => {
+    const source: CandidateSnapshotInput = {
+      ...structuredClone(input),
+      task: { prompt: 'Original Compute task', files: [], managedInputs: [] },
+      harness: { ...input.harness, tools: 'notebook-compute' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        compute: {
+          sourceProjectId: 'project',
+          sourceSessionId: 'compute-source',
+          access: { enabledProviderIds: [], selectedProviderIds: [] },
+          hosts: []
+        }
+      }
+    }
+    const f = await setup(source)
+    const baseline = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )) as ExecutionRequest
+    const candidate = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation('candidate')
+    )) as ExecutionRequest
+    expect(candidate.taskSnapshotRef).toEqual(baseline.taskSnapshotRef)
+    expect(candidate.environmentSpecRef).toEqual(baseline.environmentSpecRef)
+    expect((await f.snapshots.resolve(candidate)).task).toEqual(source.task)
+    for (const request of [baseline, candidate])
+      expect(request.origin.sessionId).toBe('compute-source')
+    const method = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const resolved = await f.snapshots.resolve(method)
+    expect(method.origin.sessionId).toBe('compute-source')
+    expect(resolved.task).toEqual({ prompt: source.task.prompt, files: [] })
+    expect(resolved.environment).toEqual(input.environment)
+    expect(resolved.harness.tools).toBe('workspace-only')
+  }
+)
+
+it('materializes the complete original context package while keeping a large reflection prompt bounded', async () => {
+  const f = await setup(input, undefined, true)
+  const context = Array.from({ length: 40 }, (_, index) => ({
+    path: `rollouts/run-${String(index).padStart(2, '0')}.md`,
+    content: `Original readable evidence 科学 @opaque \`literal\` ${index}\n${'x'.repeat(12_000)}`
+  }))
+  const request = (await f.binding.dispatch('freezeInvocation', {
+    ...invocation('reflection'),
+    contextFiles: context
+  })) as ExecutionRequest
+  const resolved = await f.snapshots.resolve(request)
+  expect(resolved.invocation.contextFiles).toEqual(context)
+  expect(resolved.invocation.mission.length).toBeLessThan(12_000)
+  expect(resolved.invocation.mission).not.toContain('x'.repeat(100))
+  expect(resolved.invocation.mission).toContain('read-only files beneath INPUT')
+  const view = await f.snapshots.materialize({ executionId: 'context-view', refs: request })
+  for (const file of context) {
+    expect(await readFile(join(view.inputDir, file.path), 'utf8')).toBe(file.content)
+    expect((await stat(join(view.inputDir, file.path))).mode & 0o222).toBe(0)
+    expect(view.manifest).toContainEqual({
+      path: `workspace/inputs/${file.path}`,
+      digest: `sha256:${createHash('sha256').update(file.content).digest('hex')}`,
+      bytes: Buffer.byteLength(file.content)
+    })
+  }
+})
+
+it('reuses completed context-file requests exactly and rejects changed file bytes before admission', async () => {
+  const f = await setup(input, undefined, true)
+  const original = (await f.binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+  await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+  const record = await f.core.get(handle.executionId)
+  const { outputDigest } = await import('./output-checks')
+  const resumed = new HarnessOptimizationBinding({
+    core: f.core,
+    snapshots: f.snapshots,
+    input,
+    contextFileView: true,
+    projectId: original.projectId,
+    optimizationId: original.origin.optimizationId!,
+    taskId: 't1',
+    budgetRef: original.budgetRef,
+    timeoutMs: original.timeoutMs,
+    resumeRecords: [record],
+    resumeSlot: () => outputDigest(['baseline', 'inv1', 'inv1.a1', 1]),
+    exportResult: async (value) => ({ ...f.exportValue, executionId: value.executionId })
+  })
+  const request = (await resumed.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  expect(request).toEqual(original)
+  expect(await resumed.dispatch('submit', { request })).toMatchObject({
+    executionId: handle.executionId
+  })
+  expect(Object.values(f.readState().budgets)[0].admitted).toBe(1)
+  await expect(
+    resumed.dispatch('freezeInvocation', {
+      ...invocation('baseline'),
+      contextFiles: [{ path: 'context/harness/instructions.md', content: 'Changed evidence' }]
+    })
+  ).rejects.toThrow('identity changed')
+  expect(Object.values(f.readState().budgets)[0].admitted).toBe(1)
+})
+
+it('reuses only the exact completed original stage and refuses changed task or role context before replay', async () => {
+  const f = await setup()
+  const original = (await f.binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  const handle = (await f.binding.dispatch('submit', { request: original })) as ExecutionHandle
+  await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+  const record = await f.core.get(handle.executionId)
+  const { outputDigest } = await import('./output-checks')
+  const slot = outputDigest(['baseline', 'inv1', 'inv1.a1', 1])
+  const resumed = (source = input): HarnessOptimizationBinding =>
+    new HarnessOptimizationBinding({
+      contextFileView: true,
+      core: f.core,
+      snapshots: f.snapshots,
+      input: source,
+      projectId: original.projectId,
+      optimizationId: original.origin.optimizationId!,
+      taskId: 't1',
+      budgetRef: original.budgetRef,
+      timeoutMs: original.timeoutMs,
+      resumeRecords: [record],
+      resumeSlot: () => slot,
+      exportResult: async (value) => ({ ...f.exportValue, executionId: value.executionId })
+    })
+  const binding = resumed()
+  const reused = (await binding.dispatch(
+    'freezeInvocation',
+    invocation('baseline')
+  )) as ExecutionRequest
+  expect(reused).toEqual(original)
+  expect(await binding.dispatch('submit', { request: reused })).toEqual({
+    ...handle,
+    phase: 'completed'
+  })
+  expect(await binding.dispatch('readResult', { executionId: handle.executionId })).toMatchObject({
+    reused: true
+  })
+  expect(binding.executionIds).toEqual([handle.executionId])
+  await expect(
+    resumed({ ...input, task: { ...input.task, prompt: 'Changed scientific task' } }).dispatch(
+      'freezeInvocation',
+      invocation('baseline')
+    )
+  ).rejects.toThrow('identity changed')
+  await expect(
+    resumed().dispatch('freezeInvocation', {
+      ...invocation('baseline'),
+      contextFiles: [{ path: 'context/harness/instructions.md', content: 'Changed evidence' }]
+    })
+  ).rejects.toThrow('identity changed')
+  await expect(
+    binding.dispatch('submit', { request: { ...reused, role: 'candidate' } })
+  ).rejects.toThrow()
+})
+
+describe('version-backed binary binding', () => {
+  const binary = (f: Awaited<ReturnType<typeof setup>>): CandidateBinaryArtifactFile => {
+    const checksum = createHash('sha256')
+      .update(Buffer.from([137, 80, 78, 71, 0, 255]))
+      .digest('hex')
+    f.exportValue.artifacts[0]!.checksum = checksum
+    const file = {
+      path: 'plots/figure.png',
+      representation: 'binary' as const,
+      sizeBytes: 6,
+      contentType: 'image/png',
+      digest: `sha256:${checksum}`,
+      artifactRef: f.exportValue.artifacts[0]!
+    }
+    f.exportValue.files = [file]
+    return file
+  }
+  const admitted = async (
+    f: Awaited<ReturnType<typeof setup>>,
+    role = 'baseline'
+  ): Promise<string> => {
+    const request = (await f.binding.dispatch(
+      'freezeInvocation',
+      invocation(role)
+    )) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    return handle.executionId
+  }
+  it('preserves descriptors and materializes only the admitted completed original reference', async () => {
+    const materialize =
+      vi.fn<NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>>()
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    materialize.mockResolvedValue({ file, assetPath: '/isolated/opaque.png' })
+    const executionId = await admitted(f)
+    expect(
+      ((await f.binding.dispatch('readResult', { executionId })) as PersistentExecutionExport).files
+    ).toEqual([file])
+    expect(
+      await f.binding.dispatch('materializeArtifact', {
+        executionId,
+        artifactRef: file.artifactRef
+      })
+    ).toEqual({ file, assetPath: '/isolated/opaque.png' })
+    expect(materialize.mock.calls[0]![0].executionId).toBe(executionId)
+    expect(materialize.mock.calls[0]![2]?.aborted).toBe(false)
+    for (const args of [
+      { executionId: 'foreign', artifactRef: file.artifactRef },
+      { executionId, artifactRef: { ...file.artifactRef, versionId: 'different' } },
+      { executionId, artifactRef: file.artifactRef, targetPath: '/chosen/by/caller' }
+    ])
+      await expect(f.binding.dispatch('materializeArtifact', args)).rejects.toThrow()
+    expect(materialize).toHaveBeenCalledTimes(1)
+    materialize.mockResolvedValue({
+      file: { ...file, sizeBytes: 7 },
+      assetPath: '/isolated/wrong.png'
+    })
+    await expect(
+      f.binding.dispatch('materializeArtifact', { executionId, artifactRef: file.artifactRef })
+    ).rejects.toThrow()
+  })
+  it.each([false, true])(
+    'separates the original JSONL envelope while preserving binary payload validation (extra=%s)',
+    async (extra) => {
+      const materialize =
+        vi.fn<NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>>()
+      const f = await setup(input, materialize)
+      const file = binary(f)
+      const result = { file, assetPath: '/isolated/opaque.png' }
+      materialize.mockResolvedValue(result)
+      const executionId = await admitted(f)
+      const operation = runHarnessProcess({
+        binding: f.binding,
+        python: 'python3',
+        cwd: resolve('vendor/harness2'),
+        env: { PATH: process.env.PATH },
+        timeoutMs: 3000,
+        args: [
+          '-c',
+          [
+            'import json, sys',
+            'from harness2.core.earthnano_binding import JsonLineClient',
+            'client = JsonLineClient(sys.stdin, sys.stdout)',
+            'result = client.exchange("materializeArtifact", **json.loads(sys.argv[1]))',
+            'client.exchange("done", result=result)'
+          ].join('\n'),
+          JSON.stringify({
+            executionId,
+            artifactRef: file.artifactRef,
+            ...(extra ? { targetPath: '/chosen/by/caller' } : {})
+          })
+        ]
+      })
+      if (extra) {
+        await expect(operation).rejects.toThrow('did not complete')
+        expect(materialize).not.toHaveBeenCalled()
+      } else {
+        await expect(operation).resolves.toEqual(result)
+        expect(materialize).toHaveBeenCalledOnce()
+        expect(materialize.mock.calls[0]![0].executionId).toBe(executionId)
+        expect(materialize.mock.calls[0]![1]).toEqual(file.artifactRef)
+      }
     }
   )
+  it('refuses a role reply artifact as a scientific asset and rejects unknown context sources', async () => {
+    const materialize = vi.fn()
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    const executionId = await admitted(f, 'proposer')
+    await expect(
+      f.binding.dispatch('materializeArtifact', { executionId, artifactRef: file.artifactRef })
+    ).rejects.toThrow()
+    await expect(
+      f.binding.dispatch('freezeInvocation', {
+        ...invocation('selector'),
+        assets: [
+          { path: 'candidates/A/opaque.png', sourceExecutionId: executionId, artifact: file }
+        ]
+      })
+    ).rejects.toThrow()
+    await expect(
+      f.binding.dispatch('freezeInvocation', {
+        ...invocation('selector'),
+        assets: [
+          { path: 'candidates/A/opaque.png', sourceExecutionId: 'another-task', artifact: file }
+        ]
+      })
+    ).rejects.toThrow()
+    expect(materialize).not.toHaveBeenCalled()
+  })
+  it('binds assets to invocation identity while keeping private source identities out of the mission', async () => {
+    const f = await setup()
+    const file = binary(f)
+    const executionId = await admitted(f)
+    const asset = {
+      path: 'candidates/A/opaque.png',
+      sourceExecutionId: executionId,
+      artifact: file
+    }
+    const request = (await f.binding.dispatch('freezeInvocation', {
+      ...invocation('selector'),
+      assets: [asset]
+    })) as ExecutionRequest
+    const frozen = await f.snapshots.resolve(request)
+    expect(frozen.invocation.assets).toEqual([asset])
+    expect(frozen.invocation.mission).toContain('actual binary bytes')
+    expect(frozen.invocation.mission).not.toContain(executionId)
+    expect(frozen.invocation.mission).not.toContain(file.artifactRef.artifactId)
+    expect(frozen.invocation.mission).not.toContain(file.artifactRef.checksum)
+    for (const changed of [
+      { ...asset, artifact: { ...file, sizeBytes: 7 } },
+      { ...asset, path: 'context/harness/instructions.md' },
+      { ...asset, artifact: { ...file, content: 'fake PNG text' } }
+    ])
+      await expect(
+        f.binding.dispatch('freezeInvocation', { ...invocation('selector'), assets: [changed] })
+      ).rejects.toThrow()
+  })
+  it('aborts host materialization on stop and never returns a stopped asset', async () => {
+    let entered!: () => void
+    const pending = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    const materialize = vi.fn<
+      NonNullable<HarnessOptimizationBindingOptions['materializeArtifact']>
+    >(async (_record, _ref, signal) => {
+      entered()
+      await new Promise<void>((resolve) =>
+        signal!.addEventListener('abort', () => resolve(), { once: true })
+      )
+      return { file, assetPath: '/isolated/opaque.png' }
+    })
+    const f = await setup(input, materialize)
+    const file = binary(f)
+    const executionId = await admitted(f)
+    const operation = f.binding.dispatch('materializeArtifact', {
+      executionId,
+      artifactRef: file.artifactRef
+    })
+    const rejected = expect(operation).rejects.toThrow('stopped')
+    await pending
+    await f.binding.stop()
+    await rejected
+    expect(materialize.mock.calls[0]![2]!.aborted).toBe(true)
+  })
+  it('reuses the exact binary selector invocation and rejects another admitted source without replay', async () => {
+    const f = await setup()
+    const file = binary(f)
+    const firstId = await admitted(f)
+    const otherArgs = invocation('baseline')
+    Object.assign(otherArgs.invocation as Record<string, unknown>, {
+      label: 'other-baseline',
+      stageLabel: 'other-baseline'
+    })
+    const otherRequest = (await f.binding.dispatch(
+      'freezeInvocation',
+      otherArgs
+    )) as ExecutionRequest
+    const other = (await f.binding.dispatch('submit', { request: otherRequest })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(other.executionId)).phase).toBe('completed')
+    const asset = { path: 'candidates/A/opaque.png', sourceExecutionId: firstId, artifact: file }
+    const offered = { ...invocation('selector'), assets: [asset] }
+    const selected = (await f.binding.dispatch('freezeInvocation', offered)) as ExecutionRequest
+    const handle = (await f.binding.dispatch('submit', { request: selected })) as ExecutionHandle
+    await expect.poll(async () => (await f.core.get(handle.executionId)).phase).toBe('completed')
+    const records = await Promise.all(
+      [firstId, other.executionId, handle.executionId].map((id) => f.core.get(id))
+    )
+    const { outputDigest } = await import('./output-checks')
+    const slots = new Map(
+      records.map((record) => [
+        record.requestKey,
+        outputDigest([
+          record.request.role,
+          record.request.origin.stageId,
+          record.executionId === other.executionId ? 'other-baseline' : 'inv1.a1',
+          1
+        ])
+      ])
+    )
+    const resumed = new HarnessOptimizationBinding({
+      core: f.core,
+      snapshots: f.snapshots,
+      input,
+      projectId: selected.projectId,
+      optimizationId: selected.origin.optimizationId!,
+      taskId: 't1',
+      budgetRef: selected.budgetRef,
+      timeoutMs: selected.timeoutMs,
+      resumeRecords: records,
+      resumeSlot: (key) => slots.get(key),
+      exportResult: async (record) => ({ ...f.exportValue, executionId: record.executionId })
+    })
+    expect(await resumed.dispatch('freezeInvocation', offered)).toEqual(selected)
+    const before = f.readState()
+    await expect(
+      resumed.dispatch('freezeInvocation', {
+        ...offered,
+        assets: [{ ...asset, sourceExecutionId: other.executionId }]
+      })
+    ).rejects.toThrow('identity changed')
+    expect(f.readState()).toEqual(before)
+  })
 })

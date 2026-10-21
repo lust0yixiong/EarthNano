@@ -625,7 +625,7 @@ def run_task(
     work.mkdir(parents=True, exist_ok=True)
     summary_path = work / ("summary.json" if execution.legacy else "summary.port.json")
 
-    if execution.legacy and summary_path.is_file() and _resume(
+    if (execution.legacy or getattr(execution, "resume", False)) and summary_path.is_file() and _resume(
         summary_path, task_id, k, adapter, runs_root, modes, seed, tag, mode_libs, res
     ):
         return res

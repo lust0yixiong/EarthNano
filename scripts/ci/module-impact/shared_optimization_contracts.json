@@ -1,0 +1,54 @@
+{
+  "ownerPaths": [
+    "src/shared/earthnano/desktop-optimization.ts",
+    "src/shared/earthnano/execution-port.ts",
+    "src/shared/earthnano/execution-types.ts",
+    "src/shared/earthnano/execution-usage.test.ts",
+    "src/shared/earthnano/execution-usage.ts",
+    "src/shared/earthnano/notebook-profile.test.ts",
+    "src/shared/earthnano/notebook-profile.ts",
+    "src/shared/earthnano/optimization-input.ts",
+    "src/shared/earthnano/optimization-method.test.ts",
+    "src/shared/earthnano/optimization-method.ts",
+    "src/shared/earthnano/optimization-preview.test.ts",
+    "src/shared/earthnano/optimization-sweep.test.ts",
+    "src/shared/earthnano/optimization-sweep.ts",
+    "src/shared/earthnano/research-outcome.test.ts",
+    "src/shared/earthnano/research-outcome.ts",
+    "src/shared/earthnano/compute-profile.ts",
+    "src/shared/earthnano/compute-profile.test.ts",
+    "src/shared/earthnano/candidate-artifact.ts",
+    "src/shared/earthnano/candidate-artifact.test.ts"
+  ],
+  "interfacePaths": [
+    "src/shared/earthnano/desktop-optimization.ts",
+    "src/shared/earthnano/execution-port.ts",
+    "src/shared/earthnano/execution-types.ts",
+    "src/shared/earthnano/execution-usage.ts",
+    "src/shared/earthnano/notebook-profile.ts",
+    "src/shared/earthnano/optimization-input.ts",
+    "src/shared/earthnano/optimization-method.ts",
+    "src/shared/earthnano/optimization-sweep.ts",
+    "src/shared/earthnano/research-outcome.ts",
+    "src/shared/earthnano/compute-profile.ts",
+    "src/shared/earthnano/candidate-artifact.ts"
+  ],
+  "consumerModules": [],
+  "testFiles": {
+    "owner": [
+      "src/shared/earthnano/execution-usage.test.ts",
+      "src/shared/earthnano/notebook-profile.test.ts",
+      "src/shared/earthnano/optimization-method.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts",
+      "src/shared/earthnano/research-outcome.test.ts",
+      "src/shared/earthnano/compute-profile.test.ts",
+      "src/shared/earthnano/candidate-artifact.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "capabilityOverlays": [],
+  "fallbackCapability": "shared_contract",
+  "fullTestReason": "Execution, optimization and scientific evidence contracts are shared by main, renderer and retained owner adapters; retain complete validation."
+}

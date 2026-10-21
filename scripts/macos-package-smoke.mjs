@@ -1,3 +1,12 @@
+import {
+  assertPackagedLicenses,
+  configurePackageSmokeIdentity,
+  loadPackageSmokeIdentity,
+  packageSmokeIdentity,
+  packageArtifactPattern,
+  packageArtifactVersion,
+  readMacBundleExecutable
+} from './package-smoke-identity.mjs'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 import { spawn } from 'node:child_process'
@@ -16,7 +25,6 @@ import {
 import { authenticatePackagedAppEndpoint } from './packaged-web-service-auth.mjs'
 import { collectSmokeDiagnostics } from './package-smoke-diagnostics.mjs'
 
-const ARTIFACT_PATTERN = /^aipoch-open-science-(.+)-mac-(?:arm64|x64)\.(dmg|zip)$/
 const SMOKE_ROOT_PREFIX = 'open-science-macos-package-smoke-'
 const STARTUP_TIMEOUT_MS = 60_000
 
@@ -25,7 +33,7 @@ const delay = (milliseconds) =>
 
 const findArtifact = async (directory, extension) => {
   const matches = (await readdir(directory, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.endsWith(`.${extension}`))
+    .filter((entry) => entry.isFile() && packageArtifactPattern('mac', extension).test(entry.name))
     .map((entry) => join(directory, entry.name))
   if (matches.length !== 1) {
     throw new Error(
@@ -36,14 +44,22 @@ const findArtifact = async (directory, extension) => {
 }
 
 const artifactVersion = (artifact) => {
-  const match = basename(artifact).match(ARTIFACT_PATTERN)
-  if (!match) throw new Error(`Cannot derive the app version from macOS artifact: ${artifact}`)
-  return match[1]
+  return packageArtifactVersion(
+    artifact,
+    'mac',
+    basename(artifact).endsWith('.zip') ? 'zip' : 'dmg'
+  )
 }
 
 const findAppBundle = async (directory) => {
   const matches = (await readdir(directory, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory() && entry.name.endsWith('.app'))
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        entry.name.endsWith('.app') &&
+        (!packageSmokeIdentity().version ||
+          entry.name === `${packageSmokeIdentity().productName}.app`)
+    )
     .map((entry) => join(directory, entry.name))
   if (matches.length !== 1) {
     throw new Error(`Expected exactly one .app in ${directory}; found ${matches.length}.`)
@@ -130,9 +146,10 @@ const terminateSpawnedProcessGroup = (child) => {
 }
 
 const assertPackagedResources = async (appBundle) => {
+  const executableName = await readMacBundleExecutable(appBundle)
   const resources = join(appBundle, 'Contents', 'Resources')
   const paths = [
-    join(appBundle, 'Contents', 'MacOS', 'Open-Science'),
+    join(appBundle, 'Contents', 'MacOS', executableName),
     join(resources, 'app.asar'),
     join(resources, 'micromamba'),
     // electron-builder compiles build/icon.icon into the adaptive catalog and also emits an ICNS
@@ -151,6 +168,7 @@ const assertPackagedResources = async (appBundle) => {
     )
   ]
   for (const path of paths) await access(path)
+  await assertPackagedLicenses(resources)
   const prismaRoot = join(resources, 'backend', 'resources', 'prisma-client')
   const engines = await readdir(prismaRoot).catch(() => [])
   const nativeEngines = engines.filter(
@@ -212,7 +230,7 @@ const launchAndProbe = async ({ executable, expectedVersion, env, userDataRoot }
     if (!response.ok) throw new Error(`Packaged macOS bootstrap returned HTTP ${response.status}.`)
     const bootstrap = await response.json()
     if (
-      bootstrap.appName !== 'Open-Science' ||
+      bootstrap.appName !== packageSmokeIdentity().productName ||
       bootstrap.appVersion !== expectedVersion ||
       bootstrap.platform !== 'darwin'
     ) {
@@ -332,12 +350,15 @@ const parseArguments = (argv) => {
 
 const main = async () => {
   if (process.platform !== 'darwin') throw new Error('macOS package smoke requires macOS.')
+  configurePackageSmokeIdentity(await loadPackageSmokeIdentity())
   const options = parseArguments(process.argv.slice(2))
   const [dmg, zip] = await Promise.all([
     findArtifact(options.artifactDirectory, 'dmg'),
     findArtifact(options.artifactDirectory, 'zip')
   ])
   const expectedVersion = artifactVersion(dmg)
+  if (expectedVersion !== packageSmokeIdentity().version)
+    throw new Error('DMG version differs from source metadata')
   if (artifactVersion(zip) !== expectedVersion) {
     throw new Error('macOS DMG and ZIP versions do not match.')
   }

@@ -1,0 +1,122 @@
+{
+  "integrationSource": "b288c6801a7aee31ee82b16c5a4acacc81b76d62",
+  "ordinaryCancellationFixSource": "b288c6801a7aee31ee82b16c5a4acacc81b76d62",
+  "ordinaryCancellationOriginalAgentCommit": "29d912d57ffe7e0ada40427472fd068477a662ea",
+  "ordinaryOriginalCase": {
+    "redSource": "ff7443853",
+    "failed": 1,
+    "filtered": 20,
+    "case": "stop-during-submission",
+    "greenFiles": 4,
+    "greenPassed": 105,
+    "failedAfterFix": 0,
+    "skippedAfterFix": 0,
+    "fullCompiledTypes": "passed",
+    "unchangedPriorBinaryOwnerSha256": "7229e86f1b17dc88639f7dacc8c5ad6bc04e30e88f0c032ff8f2393de69c8601"
+  },
+  "isolatedSnapshotSource": "0354708fcb1bd0c5f8b8245ffe5603fcff63af87",
+  "isolatedSnapshotBranch": "feat/alpha-compute-snapshots",
+  "isolatedSnapshotWorktree": "alpha-public-sync",
+  "snapshotValidation": {
+    "files": 4,
+    "passed": 147,
+    "failed": 0,
+    "skipped": 0,
+    "fullCompiledTypes": "passed",
+    "eslint": "passed",
+    "diff": "passed",
+    "oldPythonSnapshotHashes": "original assertions unchanged and passed"
+  },
+  "snapshotInitialTypeTrial": "Runtime147 passed; initial full types found4 readonly fixture assignments. Test setup changed to Object.assign as existing adversarial fixtures; final types and runtime147 passed. Not a production red/green claim.",
+  "activation": "Snapshot-only commit is intentionally NOT in the integration branch yet. Candidate serializer still refusesCompute there until the real native Session/Job owner can be integrated and verified together. AgentC instructed to use actual freeze/resolve/materialize instead of synthetic materialized inputs.",
+  "remaining": [
+    "Actual Compute owner/native/Node/SQLite/multi-Turn Review tests and desktop/cold routing still in progress.",
+    "No real Compute DeepSeek, external SSH/Slurm, native package, Windows or publication acceptance is claimed."
+  ],
+  "files": [
+    {
+      "path": "ordinary__ordinary-original-red.json.gz",
+      "rawBytes": 12517,
+      "rawSha256": "df28d6bda2d015cdf4755b7ebe286fe3241e2b62021736ce710005108594fb0f",
+      "gzipBytes": 2857,
+      "gzipSha256": "56c8ecd2e92172416e5c8c4f023653807ba0d1dbba3fb41f20519740d3e8c49b"
+    },
+    {
+      "path": "ordinary__ordinary-original-red.log.gz",
+      "rawBytes": 8239,
+      "rawSha256": "bdf7256131ccc3d0ac6b313513d08f6cb3844374dec5fa78fee2e2e706abd834",
+      "gzipBytes": 2873,
+      "gzipSha256": "3817436603b25d0815422e70b84148540bac1fa809870743114a3ef98b9ad214"
+    },
+    {
+      "path": "ordinary__ordinary-original-green.json.gz",
+      "rawBytes": 36693,
+      "rawSha256": "828ba402278b9e1764b99a10b1e62799fd1239717392029d85a2cf783228ed05",
+      "gzipBytes": 4777,
+      "gzipSha256": "11a6d9d509ae8544aa0a92893a7869fa9ac08a79731780289825905d1a781f82"
+    },
+    {
+      "path": "ordinary__ordinary-original-green.log.gz",
+      "rawBytes": 5537,
+      "rawSha256": "053ef814b58204b7ac1a1409fb57dd80ec0c60075e284b4b6cadde218883a4a2",
+      "gzipBytes": 1546,
+      "gzipSha256": "5dd496191ca4f18481775e899f230340b408d93f2677db8735a34d08be6826c4"
+    },
+    {
+      "path": "ordinary__ordinary-original-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "snapshot__focused.json.gz",
+      "rawBytes": 63160,
+      "rawSha256": "4fc98e96d17b3dab8a976ddd1451300fa940e30f7d2b6a471657a19c86a4e2f1",
+      "gzipBytes": 6260,
+      "gzipSha256": "20e32eadca738fb514ec8106e6126959a0559656a6d3d6bd04b13b54f45c75bc"
+    },
+    {
+      "path": "snapshot__focused.log.gz",
+      "rawBytes": 1194,
+      "rawSha256": "526b2325a2b3fc57d7341ad8db2d42cbfa7bb7310149e9dd8ed96ba4edc57900",
+      "gzipBytes": 612,
+      "gzipSha256": "49f371f14dd0a272a45373b9be110ac49a78e0ccb58fd08058695359768a30ee"
+    },
+    {
+      "path": "snapshot__types.log.gz",
+      "rawBytes": 847,
+      "rawSha256": "f0a87affe561ad68ce9caebac4e460d365183c6c028e80abce240534e1d5d93e",
+      "gzipBytes": 318,
+      "gzipSha256": "2fe37f9beccd0dbc49968673d06f7a0b263bfe3fa7f8e0aa258d521631f31144"
+    },
+    {
+      "path": "snapshot__types-final.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "snapshot__lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "snapshot__final.json.gz",
+      "rawBytes": 63146,
+      "rawSha256": "33482dcc43cf4b5b1d20b46f587f4c848aaf4cc4557b78b6a161f6cf2d87a268",
+      "gzipBytes": 6216,
+      "gzipSha256": "5daa87e308e092c4bff8df204ae73743c8e5ebe15ec5135cfbaaaf69a60bf5ee"
+    },
+    {
+      "path": "snapshot__final.log.gz",
+      "rawBytes": 1288,
+      "rawSha256": "d2386823f75cfd9cc3f5083425df87cbb46b5f77df17977e1e88dec716a7baa3",
+      "gzipBytes": 656,
+      "gzipSha256": "be64d8a162d13200b1b263b5319bfd8e82fc254cb69fae3d9f740c84f0516c94"
+    }
+  ]
+}

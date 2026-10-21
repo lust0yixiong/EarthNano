@@ -48,7 +48,9 @@
     "src/main/reviewer/turn-evidence.test.ts",
     "src/main/reviewer/turn-evidence.ts",
     "src/main/reviewer/paged-preview-host.ts",
-    "src/main/reviewer/paged-preview-host.test.ts"
+    "src/main/reviewer/paged-preview-host.test.ts",
+    "src/main/earthnano/reviewer-execution-owner.test.ts",
+    "src/main/earthnano/reviewer-execution-owner.ts"
   ],
   "interfacePaths": [
     "src/main/reviewer/orchestrator.ts",
@@ -68,7 +70,8 @@
     "src/main/reviewer/scope.ts",
     "src/main/reviewer/stale-reviews.ts",
     "src/main/reviewer/turn-evidence.ts",
-    "src/main/reviewer/paged-preview-host.ts"
+    "src/main/reviewer/paged-preview-host.ts",
+    "src/main/earthnano/reviewer-execution-owner.ts"
   ],
   "consumerModules": [
     "workspace_runtime",
@@ -103,7 +106,8 @@
       "src/main/reviewer/reviewer-resilience.test.ts",
       "src/main/reviewer/rubric.test.ts",
       "src/main/reviewer/turn-evidence.test.ts",
-      "src/main/reviewer/paged-preview-host.test.ts"
+      "src/main/reviewer/paged-preview-host.test.ts",
+      "src/main/earthnano/reviewer-execution-owner.test.ts"
     ],
     "contract": [
       "src/main/reviewer/ipc.test.ts",

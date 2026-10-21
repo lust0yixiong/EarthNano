@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "base": "1ada7326e054aee1f9b1b5643ca703500356233e",
+  "scope": "Read-only original Session/host repository freeze and exact current identity/visibility validation; no Compute candidate/native/Job dispatch activated.",
+  "tests": {
+    "files": 3,
+    "passed": 58,
+    "failed": 0,
+    "skipped": 0
+  },
+  "fullCompiledTypes": "passed",
+  "lint": "passed",
+  "sourceFiles": [
+    {
+      "path": "src/main/earthnano/compute-context.ts",
+      "sha256": "0102f63eb223244c4ea56deaa7d49862a4d1204d91a514df25fe9760681f164f"
+    },
+    {
+      "path": "src/main/earthnano/compute-context.test.ts",
+      "sha256": "e7ab05abaa49686338a38228d123a5bb3873acc38a98abff42ae47e730f74be1"
+    }
+  ],
+  "limits": [
+    "Permission grants and owner/generation checks remain original service duties.",
+    "Reservation/persisted private Session projection and actual RPC/Job lifecycle wiring pending.",
+    "Source additions/selections do not silently change a frozen pool; revocation closes new work, not original internal cleanup."
+  ],
+  "files": [
+    {
+      "path": "source-context-focused.json.gz",
+      "rawBytes": 30837,
+      "rawSha256": "df585f06c8f84812a4fcb242569f8f7d5ef7ab7ffbdfcd6cadd906e34a46b8d8",
+      "gzipBytes": 3129,
+      "gzipSha256": "7ef661fd634dcab7f71cf41ff6ec2f6c6af414465a040c5267a5f000a7261956"
+    },
+    {
+      "path": "source-context-focused.log.gz",
+      "rawBytes": 124,
+      "rawSha256": "2aa808e35b48717b3d3a576a6ad1907c821ddae541d3401cff6cd231ca7aa40c",
+      "gzipBytes": 130,
+      "gzipSha256": "531cc12931cde17f1a9dab4dfbee93b47e0605db3b7e5b867467f19d964857de"
+    },
+    {
+      "path": "source-context-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "source-context-lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "source-context-format.log.gz",
+      "rawBytes": 91,
+      "rawSha256": "2cdc35821233e66bb7cb2230abdc9f09b72c2e274f91385533c2fabdca4ba54e",
+      "gzipBytes": 74,
+      "gzipSha256": "f340cc96db8b56baa11331eaa409834e63ea4fe5b747b39569e2e04b566966f0"
+    }
+  ]
+}

@@ -14,6 +14,11 @@ import type {
 
 const log = createLogger('background-result-delivery')
 
+/** Host authority is temporarily absent, not a failed delivery attempt. Never accepted from JSON. */
+export class BackgroundResultDeliveryUnavailableError extends Error {
+  readonly name = 'BackgroundResultDeliveryUnavailableError'
+}
+
 type DeliveryRepository = {
   register(source: BackgroundResultSourceRef): Promise<BackgroundResultDelivery>
   enqueue(source: BackgroundResultSourceRef): Promise<BackgroundResultDelivery | undefined>
@@ -483,6 +488,13 @@ class BackgroundResultDeliveryOwner {
       }
       if (await this.options.repository.areConsumed(allIds, sessionId).catch(() => false))
         return 'consumed'
+      if (error instanceof BackgroundResultDeliveryUnavailableError) {
+        // A target can retire after readiness or while reading an already saved continuation.
+        // Release only this exact claim; keep its correlation and original retry budget intact.
+        await this.options.repository.releaseClaim(allIds, claimToken)
+        this.publishDeliveryChanges(deliveries)
+        return 'queued'
+      }
       const state = await this.options.repository.failClaim(
         allIds,
         claimToken,

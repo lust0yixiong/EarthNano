@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "run": "https://github.com/lust0yixiong/EarthNano/actions/runs/39555053834",
+  "source": "c1e663279038c4bdba9d26ba9f3d0c5484ecf2c7",
+  "scope": "Four Unix native targets only; actual original build/package/resource/install/launch checks. Windows runtime/native and full source comparison remain pending. No release publication or Gatekeeper/notarization acceptance.",
+  "distribution": "unsigned-ci",
+  "receipts": [
+    {
+      "target": "mac-arm64",
+      "job": 119073095195,
+      "conclusion": "success",
+      "platform": "darwin",
+      "arch": "arm64",
+      "packages": [
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-mac-arm64.dmg",
+          "bytes": 286501692,
+          "sha256": "e0336f3bd1d48ae9f7519720b5b81c54cf16cc6076b1edabc782cfbc76e2f161"
+        },
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-mac-arm64.zip",
+          "bytes": 326995769,
+          "sha256": "bbb4ea7438643b2be1ed73f05c49d2e60126bbf8c651948828284f91169448b4"
+        }
+      ],
+      "databaseChecks": {
+        "freshInstall": "passed",
+        "legacyAdoption": "passed",
+        "reopen": "passed",
+        "specialPath": "passed"
+      }
+    },
+    {
+      "target": "mac-intel",
+      "job": 119073095283,
+      "conclusion": "success",
+      "platform": "darwin",
+      "arch": "x64",
+      "packages": [
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-mac-x64.dmg",
+          "bytes": 287638806,
+          "sha256": "6504ae5a2c76eeb9a947be0c866bd9b13926cd63d108c660a965d81b46e4c6f8"
+        },
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-mac-x64.zip",
+          "bytes": 329822674,
+          "sha256": "543bf3d77f8a1ed61c86f50c235c5d124d14202c9e86601a9778c5a4ad58d3e1"
+        }
+      ],
+      "databaseChecks": {
+        "freshInstall": "passed",
+        "legacyAdoption": "passed",
+        "reopen": "passed",
+        "specialPath": "passed"
+      }
+    },
+    {
+      "target": "linux-x64",
+      "job": 119073095340,
+      "conclusion": "success",
+      "platform": "linux",
+      "arch": "x64",
+      "packages": [
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage",
+          "bytes": 344201712,
+          "sha256": "5726614982b6ae8efbd2f1eed49b8c7b1d10114a0ebb1a4b66d4f53a94144f41"
+        },
+        {
+          "path": "dist/EarthNano_0.1.0-alpha.1_amd64.deb",
+          "bytes": 272735172,
+          "sha256": "821c147060726b4deac157895118f19bc292728e6560cdebe4d893563e6cdab9"
+        }
+      ],
+      "databaseChecks": {
+        "freshInstall": "passed",
+        "legacyAdoption": "passed",
+        "reopen": "passed",
+        "specialPath": "passed"
+      }
+    },
+    {
+      "target": "linux-arm64",
+      "job": 119073095406,
+      "conclusion": "success",
+      "platform": "linux",
+      "arch": "arm64",
+      "packages": [
+        {
+          "path": "dist/EarthNano-0.1.0-alpha.1-linux-arm64.AppImage",
+          "bytes": 337899853,
+          "sha256": "98e7c98f9105144041198d96074553a2e04b74cc11718d9bd2d4b45ac82deb76"
+        },
+        {
+          "path": "dist/EarthNano_0.1.0-alpha.1_arm64.deb",
+          "bytes": 253162780,
+          "sha256": "e2b3c0b906f2278d9fc5439ddda0fdb4a29ede7d3827a61dd23684ba83bbde96"
+        }
+      ],
+      "databaseChecks": {
+        "freshInstall": "passed",
+        "legacyAdoption": "passed",
+        "reopen": "passed",
+        "specialPath": "passed"
+      }
+    }
+  ],
+  "files": [
+    {
+      "originalName": "status-snapshot.json",
+      "archive": "status-snapshot.json.gz",
+      "bytes": 1506,
+      "sha256": "5073295f11d7895c5a9245aefd94ca42f48da4804d1b387b79e87944e921cff4",
+      "archiveSha256": "8f2a8f326f4a910f3b4bc6919e33fe03eeb886c67424427c1074f6b31441981d"
+    },
+    {
+      "originalName": "mac-arm64/job.json",
+      "archive": "mac-arm64__job.json.gz",
+      "bytes": 5426,
+      "sha256": "fc075ade5e9c7af07fbb9e10249ca7e3c8d5e616797956f5d8141fa84de79561",
+      "archiveSha256": "763caf2be31c137e26418e664b4d18585fb111e09462f4d5663d9bd3f5b67d8f"
+    },
+    {
+      "originalName": "mac-arm64/job.log",
+      "archive": "mac-arm64__job.log.gz",
+      "bytes": 330043,
+      "sha256": "929246ad7c4fac549f8eece262ea593822c47aa5b903326dfde0b8af906086dd",
+      "archiveSha256": "225c672810c1ee52f570da503a8da1438509d6dcd94b591b4a8396616a07f648"
+    },
+    {
+      "originalName": "mac-arm64/artifact-manifest.json",
+      "archive": "mac-arm64__artifact-manifest.json.gz",
+      "bytes": 2720969,
+      "sha256": "99f77824189cee7605916ffcbf66dea01fb5c33c72816d53b46911b729119672",
+      "archiveSha256": "6792aecb76d792e853d63d103a7de5889fe479439f64b525cc8d4c9b702e232b"
+    },
+    {
+      "originalName": "mac-arm64/database-migration-certification.json",
+      "archive": "mac-arm64__database-migration-certification.json.gz",
+      "bytes": 363,
+      "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "archiveSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "originalName": "mac-intel/job.json",
+      "archive": "mac-intel__job.json.gz",
+      "bytes": 5444,
+      "sha256": "5c322e5540475e02dc972b7253f7892d4bd9d8f116c85217c067e9bc5ad9f920",
+      "archiveSha256": "b8ae418f4dc369edb9d18db635ff19e96e4311b38df47d4a68045037713a2f2f"
+    },
+    {
+      "originalName": "mac-intel/job.log",
+      "archive": "mac-intel__job.log.gz",
+      "bytes": 331826,
+      "sha256": "a629ae5d417cb4dd257ad8dcc762110de4c28a9501d78c9cbdba65985a88a25c",
+      "archiveSha256": "84116e7e391a48c38bb752cffa42c92cdd77ddb33d81ebcf2f84e83954480b6e"
+    },
+    {
+      "originalName": "mac-intel/artifact-manifest.json",
+      "archive": "mac-intel__artifact-manifest.json.gz",
+      "bytes": 2653726,
+      "sha256": "f36e8a887f93552e75003824fe1c9a8a4bc57ba84538aa06ebc0cc7772ccc7df",
+      "archiveSha256": "3c761174bf7c274d7b1b1804312de4d93b421a489e45fb6e06a2e72b48c0020c"
+    },
+    {
+      "originalName": "mac-intel/database-migration-certification.json",
+      "archive": "mac-intel__database-migration-certification.json.gz",
+      "bytes": 363,
+      "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "archiveSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "originalName": "linux-x64/job.json",
+      "archive": "linux-x64__job.json.gz",
+      "bytes": 5438,
+      "sha256": "4501694524b00c63f674c9543659a21a315de29ea069f0eff1fb1d6cffb6019c",
+      "archiveSha256": "0e6ce7c3c8a1bb4e16ad0d399966820510b9aeb6001e79ea680b085924233802"
+    },
+    {
+      "originalName": "linux-x64/job.log",
+      "archive": "linux-x64__job.log.gz",
+      "bytes": 345742,
+      "sha256": "ccb19d6646cf3e6561159d3631a5a4d05b28827e14b1333ee064e46a084efb32",
+      "archiveSha256": "578c705022f84e0812ce789bc5c0155239014599ccc63084d59400f7e76a10ed"
+    },
+    {
+      "originalName": "linux-x64/artifact-manifest.json",
+      "archive": "linux-x64__artifact-manifest.json.gz",
+      "bytes": 2471476,
+      "sha256": "5192089418da5c4f76dcba47dc2da979174db6fb13d062224c00cc9b2c72790c",
+      "archiveSha256": "902c2d1c8ef7e692ce9b1f15621c26bb77f78671af53c75d721c4344cb842aed"
+    },
+    {
+      "originalName": "linux-x64/database-migration-certification.json",
+      "archive": "linux-x64__database-migration-certification.json.gz",
+      "bytes": 363,
+      "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "archiveSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "originalName": "linux-arm64/job.json",
+      "archive": "linux-arm64__job.json.gz",
+      "bytes": 5450,
+      "sha256": "b36c990112da73dbf938c249f7d582529ce235c9c25df3204f2692349dcad81e",
+      "archiveSha256": "ab605c24a0b254167570d84bf07d7de518be751e5c1aeefc163b29a1cf90583a"
+    },
+    {
+      "originalName": "linux-arm64/job.log",
+      "archive": "linux-arm64__job.log.gz",
+      "bytes": 366761,
+      "sha256": "3591c3303175a45754075cf6bd7fd58116d009ccb8f8361d38943f563bcb689b",
+      "archiveSha256": "331186cecad05f9cd8d529696153c49ef2a76722b8c032fd977f70c17f42439b"
+    },
+    {
+      "originalName": "linux-arm64/artifact-manifest.json",
+      "archive": "linux-arm64__artifact-manifest.json.gz",
+      "bytes": 2536550,
+      "sha256": "36140ec3ff3b4e5df469246fcf002dc59cc6fbd63ba8807aed35ef91a6f64293",
+      "archiveSha256": "dd01424a6e9b73e9b7d914b63db0125d90d6a7caefa045f732af391ebec90d3a"
+    },
+    {
+      "originalName": "linux-arm64/database-migration-certification.json",
+      "archive": "linux-arm64__database-migration-certification.json.gz",
+      "bytes": 363,
+      "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "archiveSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    }
+  ]
+}

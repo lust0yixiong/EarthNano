@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "command": "source",
+  "platform": "linux",
+  "node": "v24.22.0",
+  "error": "Dependency installation unavailable"
+}

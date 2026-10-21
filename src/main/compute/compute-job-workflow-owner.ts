@@ -1,3 +1,4 @@
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { randomUUID } from 'node:crypto'
 import { readdir, realpath } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
@@ -215,7 +216,12 @@ export class ComputeJobWorkflowOwner {
       timeoutSeconds?: number
       workspaceCwd?: string
     },
-    context: { sessionId: string; projectId: string; producerRunId?: string },
+    context: {
+      sessionId: string
+      projectId: string
+      producerRunId?: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<SubmitJobResult> {
     if (this.storageRoot)
@@ -357,7 +363,8 @@ export class ComputeJobWorkflowOwner {
       sessionId: context.sessionId,
       projectId: context.projectId,
       operation: 'submit_job' as const,
-      ownerId: host.id
+      ownerId: host.id,
+      ...(context.interactionPolicy ? { interactionPolicy: context.interactionPolicy } : {})
     }
 
     const requestApproval = async (willPersistUnencrypted: boolean): Promise<void> => {

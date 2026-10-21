@@ -5,6 +5,7 @@ import type { SettingsService } from './service'
 // for compatibility through T3.
 export type AcpSettingsCapabilities = Pick<
   SettingsService,
+  | 'getStoredSettings'
   | 'captureActiveAgentBackendSelection'
   | 'resolveAgentBackend'
   | 'resolveExplicitAgentBackend'

@@ -1,10 +1,27 @@
-import { randomUUID } from 'node:crypto'
+import type { NotebookLanguage } from '../../src/shared/notebook-language-contract'
+import { createHash, randomUUID } from 'node:crypto'
 import { createServer, type ServerResponse } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
 
-type Block = { type: string; name?: string; input?: Record<string, unknown>; content?: unknown }
+type Block = {
+  type: string
+  id?: string
+  tool_use_id?: string
+  name?: string
+  input?: Record<string, unknown>
+  content?: unknown
+}
+type ImageToolResult = {
+  role: string
+  toolUseId: string
+  path: string
+  mediaType: string
+  sizeBytes: number
+  sha256: string
+  sourceType: 'base64'
+}
 type Body = {
   model: string
   stream: boolean
@@ -90,11 +107,40 @@ const nested = (value: unknown, key: string): unknown => {
   return undefined
 }
 
+type RejectionReason =
+  | 'body-limit'
+  | 'input-shape'
+  | 'request-limit'
+  | 'upstream-http-400'
+  | 'upstream-http-429'
+  | 'upstream-http-5xx'
+  | 'upstream-http-other'
+  | 'upstream-body-missing'
+  | 'route-auth'
+  | 'fixture-error'
+
 /** Only model choices are substituted offline. Live mode forwards the same native Claude requests
  * to the explicitly authorized provider; no scientific tool or persistence response is fabricated. */
 export async function createEarthnanoMessagesProvider(
   live: boolean,
-  scientificOptimization = false
+  scientificOptimization = false,
+  pauseFirstProposer = false,
+  testOptions: {
+    /** Offline decision fixture only; live requests and tools remain untouched. */
+    scientificLanguage?: NotebookLanguage
+    /** Original Node/Compute decision fixture; live native requests are still forwarded verbatim. */
+    scientificCompute?: boolean
+    /** Native R binary fixture; production tools and immutable versions remain real. */
+    scientificBinary?: boolean
+    /** CSV + PNG desktop fixture; native input, Notebook and Artifact owners stay unchanged. */
+    scientificFigure?: boolean
+    keyFile?: string
+    upstreamFetch?: typeof fetch
+    /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
+    maxModelRequests?: number
+    /** Restore a previously frozen controlled loopback endpoint; fail if its port is occupied. */
+    loopbackPort?: number
+  } = {}
 ): Promise<{
   url: string
   token: string
@@ -103,14 +149,44 @@ export async function createEarthnanoMessagesProvider(
     rejected: number
     unsupportedTokenCountRequests: number
     rejectedRoutes: Record<string, number>
+    rejectionReasons: Partial<Record<RejectionReason, number>>
+    upstreamStatuses: Record<string, number>
     healthRequests: number
     nativeTitleRequests: number
+    pausedBeforeForward: number
+    upstreamRequests: number
+    cancelledUpstreamRequests: number
     roles: Record<string, number>
     toolNames: string[]
-    usage: { input: number; cacheRead: number; output: number }
+    imageToolResults?: ImageToolResult[]
+    usage: { input: number; cacheRead: number; output: number; incompleteRequests: number }
   }
   close(): Promise<void>
 }> {
+  const scientificLanguage = testOptions.scientificLanguage ?? 'python'
+  const scientificCompute = testOptions.scientificCompute === true
+  if (scientificCompute && (!scientificOptimization || testOptions.scientificBinary))
+    throw new Error('Compute acceptance requires its own original scientific profile')
+  if (scientificLanguage !== 'python' && scientificLanguage !== 'r')
+    throw new Error('Unsupported acceptance scientific language')
+  const scientificBinary = testOptions.scientificBinary === true
+  if (scientificBinary && (!scientificOptimization || scientificLanguage !== 'r'))
+    throw new Error('Binary scientific acceptance requires the original R Notebook profile')
+  const scientificFigure = testOptions.scientificFigure === true
+  if (
+    scientificFigure &&
+    (!scientificOptimization || (!scientificCompute && scientificLanguage !== 'r'))
+  )
+    throw new Error('Scientific figure acceptance requires the original R Notebook profile')
+  const publishFigure = scientificBinary || scientificFigure
+  const imageToolResults: ImageToolResult[] = []
+  const imageResultsSeen = new Set<string>()
+  const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
+  if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
+    throw new Error('Invalid bounded acceptance request limit')
+  const loopbackPort = testOptions.loopbackPort ?? 0
+  if (!Number.isSafeInteger(loopbackPort) || loopbackPort < 0 || loopbackPort > 65535)
+    throw new Error('Invalid controlled loopback port')
   const token = randomUUID(),
     controllers = new Set<AbortController>()
   const stats = {
@@ -118,18 +194,24 @@ export async function createEarthnanoMessagesProvider(
     rejected: 0,
     unsupportedTokenCountRequests: 0,
     rejectedRoutes: {} as Record<string, number>,
+    rejectionReasons: {} as Partial<Record<RejectionReason, number>>,
+    upstreamStatuses: {} as Record<string, number>,
     healthRequests: 0,
     nativeTitleRequests: 0,
+    pausedBeforeForward: 0,
+    upstreamRequests: 0,
+    cancelledUpstreamRequests: 0,
     roles: {} as Record<string, number>,
     toolNames: [] as string[],
-    usage: { input: 0, cacheRead: 0, output: 0 }
+    ...(scientificFigure ? { imageToolResults } : {}),
+    usage: { input: 0, cacheRead: 0, output: 0, incompleteRequests: 0 }
   }
   let key = ''
   if (live) {
     const keys = new Set(
-      (await readFile(process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')).match(
-        /\bsk-[A-Za-z0-9_-]+\b/g
-      ) ?? []
+      (
+        await readFile(testOptions.keyFile ?? process.env.EARTHNANO_LIVE_DEEPSEEK_KEY_FILE!, 'utf8')
+      ).match(/\bsk-[A-Za-z0-9_-]+\b/g) ?? []
     )
     if (keys.size !== 1) throw new Error('Expected one explicitly supplied API key')
     key = [...keys][0]
@@ -162,8 +244,10 @@ export async function createEarthnanoMessagesProvider(
       request.resume()
       return
     }
-    const reject = (): void => {
+    let failureReason: RejectionReason = 'route-auth'
+    const reject = (reason: RejectionReason = failureReason): void => {
       stats.rejected++
+      stats.rejectionReasons[reason] = (stats.rejectionReasons[reason] ?? 0) + 1
       const route = `${request.method} ${new URL(request.url ?? '/', 'http://localhost').pathname}`
       stats.rejectedRoutes[route] = (stats.rejectedRoutes[route] ?? 0) + 1
       if (!response.headersSent) response.writeHead(400)
@@ -176,20 +260,17 @@ export async function createEarthnanoMessagesProvider(
         request.headers.authorization !== `Bearer ${token}`
       )
         return reject()
+      failureReason = 'input-shape'
       const chunks: Buffer[] = []
       let size = 0
       for await (const chunk of request) {
         size += chunk.length
-        if (size > 1_000_000) return reject()
+        if (size > 1_000_000) return reject('body-limit')
         chunks.push(Buffer.from(chunk))
       }
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Body
-      if (
-        body.model !== 'deepseek-flash' ||
-        !body.stream ||
-        ++stats.requests > (scientificOptimization ? 160 : 120)
-      )
-        return reject()
+      if (body.model !== 'deepseek-flash' || !body.stream) return reject()
+      if (++stats.requests > maxModelRequests) return reject('request-limit')
       const userText = body.messages
         .filter((message) => message.role === 'user')
         .map((message) =>
@@ -212,9 +293,50 @@ export async function createEarthnanoMessagesProvider(
       const blocks = body.messages.flatMap((message) =>
         Array.isArray(message.content) ? message.content : []
       )
+      failureReason = 'fixture-error'
       for (const block of blocks)
         if (block.type === 'tool_use' && block.name && !stats.toolNames.includes(block.name))
           stats.toolNames.push(block.name)
+      if (scientificFigure) {
+        // Observe the actual native Read result sent back by Claude. Retain byte identity only;
+        // never log or persist base64 model payloads, and never fabricate a tool response.
+        for (const result of blocks.filter((block) => block.type === 'tool_result')) {
+          const call = blocks.find(
+            (block) =>
+              block.type === 'tool_use' && block.id === result.tool_use_id && block.name === 'Read'
+          )
+          if (
+            !call?.id ||
+            typeof call.input?.file_path !== 'string' ||
+            !Array.isArray(result.content)
+          )
+            continue
+          for (const [index, item] of result.content.entries()) {
+            const source = item?.type === 'image' ? item.source : undefined
+            if (source?.type !== 'base64' || typeof source.data !== 'string') continue
+            const identity = `${call.id}:${index}`
+            if (imageResultsSeen.has(identity)) continue
+            const bytes = Buffer.from(source.data, 'base64')
+            imageToolResults.push({
+              role,
+              toolUseId: call.id!,
+              path: call.input.file_path,
+              mediaType: source.media_type,
+              sourceType: 'base64',
+              sizeBytes: bytes.length,
+              sha256: createHash('sha256').update(bytes).digest('hex')
+            })
+            imageResultsSeen.add(identity)
+          }
+        }
+      }
+      // A deterministic cancellation seam before a paid request. It never substitutes a tool,
+      // scientific result or owner receipt; the real native client must disconnect on Stop.
+      if (pauseFirstProposer && role === 'proposer' && stats.pausedBeforeForward === 0) {
+        stats.pausedBeforeForward++
+        await new Promise<void>((resolve) => response.once('close', resolve))
+        return
+      }
       if (live) {
         const controller = new AbortController()
         controllers.add(controller)
@@ -225,19 +347,35 @@ export async function createEarthnanoMessagesProvider(
         try {
           body.max_tokens = Math.min(body.max_tokens ?? 2048, 2048)
           body.thinking = { type: 'disabled' }
-          const upstream = await fetch('https://api.deepseek.com/anthropic/v1/messages', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'anthropic-version': '2023-06-01',
-              authorization: `Bearer ${key}`
-            },
-            body: JSON.stringify(body),
-            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90_000)])
-          })
+          stats.upstreamRequests++
+          const upstream = await (testOptions.upstreamFetch ?? fetch)(
+            'https://api.deepseek.com/anthropic/v1/messages',
+            {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                authorization: `Bearer ${key}`
+              },
+              body: JSON.stringify(body),
+              signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90_000)])
+            }
+          )
+          stats.upstreamStatuses[upstream.status] =
+            (stats.upstreamStatuses[upstream.status] ?? 0) + 1
           if (!upstream.ok || !upstream.body) {
+            const reason: RejectionReason = !upstream.ok
+              ? upstream.status === 400
+                ? 'upstream-http-400'
+                : upstream.status === 429
+                  ? 'upstream-http-429'
+                  : upstream.status >= 500 && upstream.status <= 599
+                    ? 'upstream-http-5xx'
+                    : 'upstream-http-other'
+              : 'upstream-body-missing'
+            failureReason = reason
             await upstream.body?.cancel()
-            return reject()
+            return reject(reason)
           }
           response.writeHead(200, { 'content-type': 'text/event-stream' })
           let pending = '',
@@ -265,6 +403,15 @@ export async function createEarthnanoMessagesProvider(
           }
           stats.usage.output += output
           response.end()
+        } catch (error) {
+          if (controller.signal.aborted && response.destroyed) {
+            // The real client deliberately disconnected during Stop. Keep this separately from
+            // malformed/unauthorized requests; partial or missing token totals remain incomplete.
+            stats.cancelledUpstreamRequests++
+            stats.usage.incompleteRequests++
+            return
+          }
+          throw error
         } finally {
           controllers.delete(controller)
           response.off('close', disconnect)
@@ -288,6 +435,62 @@ export async function createEarthnanoMessagesProvider(
           if (!tool) throw new Error('Production scientific MCP tool unavailable')
           emit(response, body.model, { name: tool.name, input })
         }
+        if (scientificCompute) {
+          const control = blocks.filter(
+            (block) => block.type === 'tool_use' && block.name?.endsWith('repl_execute')
+          )
+          if (!control.length)
+            return call('repl_execute', {
+              code: "var earthnanoReceipt=await host.compute.create('ssh:fixture').submitJob('EarthNano controlled protocol fixture','printf protocol-workload',{outputs:['metrics.json','figure.png'],timeoutSeconds:30});console.log(JSON.stringify(earthnanoReceipt));"
+            })
+          const delivery = /Compute Job ([a-f0-9-]{36}) ended with status/.exec(userText)
+          if (!delivery) {
+            emit(response, body.model, {
+              text: 'Submission settled; await the original background result delivery.'
+            })
+            return
+          }
+          if (
+            !control.some(
+              (block) =>
+                typeof block.input?.code === 'string' &&
+                block.input.code.includes('earthnanoAnalyzed')
+            )
+          )
+            return call('repl_execute', {
+              code: `var earthnanoAnalyzed=await host.compute.create('ssh:fixture').attachJob(${JSON.stringify(delivery[1])}).result();if(!earthnanoAnalyzed.result_final)throw new Error('Compute result is not final');var earthnanoFs=require('node:fs');var earthnanoMetrics=earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('metrics.json')));earthnanoFs.writeFileSync('metrics-source.json',earthnanoMetrics,{flag:'wx'});var earthnanoValues=JSON.parse(earthnanoMetrics.toString('utf8')).values;var earthnanoSum=earthnanoValues.reduce((a,b)=>a+b,0);earthnanoFs.writeFileSync('research-results.json',JSON.stringify({count:earthnanoValues.length,sum:earthnanoSum,mean:earthnanoSum/earthnanoValues.length}),{flag:'wx'});${publishFigure ? "earthnanoFs.writeFileSync('measurements.png',earthnanoFs.readFileSync('../'+earthnanoAnalyzed.featured_files.find(p=>p.endsWith('figure.png'))),{flag:'wx'});" : ''}console.log('Derived from original harvested bytes');`
+            })
+          const producer = [...blocks]
+            .reverse()
+            .filter((block) => block.type === 'tool_result')
+            .find((block) => nested(block, 'activityKind') === 'notebook-run')
+          const runId = producer && nested(producer, 'activityId')
+          if (typeof runId !== 'string')
+            throw new Error('Original control producer identity missing')
+          const filenames = [
+            'research-results.json',
+            'metrics-source.json',
+            ...(publishFigure ? ['measurements.png'] : [])
+          ]
+          for (const filename of filenames) {
+            if (
+              !blocks.some(
+                (block) =>
+                  block.type === 'tool_use' &&
+                  block.name?.endsWith('write_artifact_file') &&
+                  block.input?.filename === filename
+              )
+            )
+              return call('write_artifact_file', {
+                filename,
+                mimeType: filename.endsWith('.png') ? 'image/png' : 'application/json',
+                source: { kind: 'localPath', path: filename },
+                producerRunId: runId
+              })
+          }
+          emit(response, body.model, { text: 'Original Compute result analysis complete.' })
+          return
+        }
         if (!called('list_notebook_runtimes')) return call('list_notebook_runtimes', {})
         if (
           role === 'ordinary' &&
@@ -298,12 +501,17 @@ export async function createEarthnanoMessagesProvider(
             blocks.filter((block) => block.type === 'tool_result'),
             'runtimes'
           ) as Array<{ language: string; source: string; runnable: boolean; runtimeId: string }>
-          const python = runtimes?.find(
+          const target = runtimes?.find(
             (runtime) =>
-              runtime.language === 'python' && runtime.source === 'external' && runtime.runnable
+              runtime.language === scientificLanguage &&
+              runtime.source === 'external' &&
+              runtime.runnable
           )
-          if (!python) throw new Error('Explicit Python interpreter unavailable')
-          return call('notebook_bind_runtime', { language: 'python', runtimeId: python.runtimeId })
+          if (!target) throw new Error('Explicit scientific interpreter unavailable')
+          return call('notebook_bind_runtime', {
+            language: scientificLanguage,
+            runtimeId: target.runtimeId
+          })
         }
         if (!called('notebook_execute')) {
           const inputs =
@@ -313,12 +521,35 @@ export async function createEarthnanoMessagesProvider(
           const source =
             inputs &&
             JSON.parse(inputs).find(
-              (input: { filename: string }) => input.filename === 'measurements.csv'
+              (input: { filename: string }) =>
+                input.filename === (scientificBinary ? 'measurements.rds' : 'measurements.csv')
             )
           if (!source) throw new Error('Uploaded scientific input unavailable')
           return call('notebook_execute', {
-            language: 'python',
-            code: `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
+            language: scientificLanguage,
+            code: scientificBinary
+              ? [
+                  `values <- readRDS(${JSON.stringify(source.notebookPath)})`,
+                  'report <- list(count=length(values), sum=sum(values), mean=mean(values))',
+                  "jsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)",
+                  "grDevices::png('measurements.png', width=480, height=320, type='cairo')",
+                  "graphics::plot(seq_along(values), values, type='b', xlab='Observation', ylab='Value')",
+                  'grDevices::dev.off()',
+                  'print(report)'
+                ].join('\n')
+              : scientificFigure
+                ? [
+                    `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value`,
+                    'report <- list(count=length(values), sum=sum(values), mean=mean(values))',
+                    "jsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)",
+                    "grDevices::png('measurements.png', width=480, height=320, type='cairo')",
+                    "graphics::plot(seq_along(values), values, type='b', xlab='Observation', ylab='Value')",
+                    'grDevices::dev.off()',
+                    'print(report)'
+                  ].join('\n')
+                : scientificLanguage === 'r'
+                  ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(report)`
+                  : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
           })
         }
         if (!called('write_artifact_file')) {
@@ -334,31 +565,93 @@ export async function createEarthnanoMessagesProvider(
             producerRunId: runId
           })
         }
+        if (
+          publishFigure &&
+          !blocks.some(
+            (block) =>
+              block.type === 'tool_use' &&
+              block.name?.endsWith('write_artifact_file') &&
+              block.input?.filename === 'measurements.png'
+          )
+        ) {
+          const runId = nested(
+            blocks.filter((block) => block.type === 'tool_result'),
+            'runId'
+          )
+          if (typeof runId !== 'string') throw new Error('Notebook producer identity missing')
+          return call('write_artifact_file', {
+            filename: 'measurements.png',
+            mimeType: 'image/png',
+            source: { kind: 'localPath', path: 'measurements.png' },
+            producerRunId: runId
+          })
+        }
         emit(response, body.model, { text: 'Research analysis complete.' })
         return
       }
       const input = /^INPUT: (.+)$/m.exec(userText)?.[1]?.trim(),
         output = /^OUTPUT: (.+)$/m.exec(userText)?.[1]?.trim()
       if (!input || !output) return reject()
-      if (blocks.some((block) => block.type === 'tool_use' && block.name === 'Write')) {
+      // Original Harness selection consumes the committed reply. Exercise that contract without
+      // a second model-written selection file; the original Session/Artifact owner retains it.
+      if (role === 'selector') {
+        if (scientificFigure) {
+          const paths = (await readdir(input, { recursive: true }))
+            .filter((path) => path.endsWith('.png'))
+            .sort()
+          if (!paths.length) throw new Error('Selector original binary INPUT assets unavailable')
+          for (const path of paths) {
+            const filePath = join(input, path)
+            const readCall = blocks.find(
+              (block) =>
+                block.type === 'tool_use' &&
+                block.name === 'Read' &&
+                block.input?.file_path === filePath
+            )
+            if (!readCall) {
+              if (!body.tools?.some((tool) => tool.name === 'Read'))
+                throw new Error('Native Read unavailable')
+              emit(response, body.model, { name: 'Read', input: { file_path: filePath } })
+              return
+            }
+            if (
+              !imageToolResults.some(
+                (result) => result.toolUseId === readCall.id && result.path === filePath
+              )
+            )
+              throw new Error('Native PNG Read did not return an actual image tool_result')
+          }
+        }
         emit(response, body.model, {
-          text:
-            role === 'selector'
-              ? '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
-              : 'Completed the requested work.'
+          text: scientificCompute
+            ? '```choice\nB\n```\n<why>Deterministic protocol selection after reading the original fixture assets; independent verification remains required.</why>'
+            : '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
         })
         return
       }
-      if (role === 'selector')
-        return write(
-          join(output, 'selection.md'),
-          '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
-        )
+      if (role === 'reflection') {
+        emit(response, body.model, {
+          text: scientificCompute
+            ? '<edits>Await the original complete Job delivery before analyzing harvested fixture bytes.</edits>\n<experience>\ncue: Controlled Compute protocol fixture\nlesson: A submission receipt is not completion. Use the original final result and preserve its producer identity.\nevidence: Baseline and candidate published version-bound reports through the original Compute continuation. This is protocol evidence, not remote science.\n</experience>'
+            : '<edits>Use the original fixed source and verify the arithmetic.</edits>\n<experience>\ncue: CSV aggregation\nlesson: Compute count, sum and mean from the fixed source using the original Notebook tools.\nevidence: Baseline and chosen candidate published version-bound reports for the same CSV.\n</experience>'
+        })
+        return
+      }
+      if (blocks.some((block) => block.type === 'tool_use' && block.name === 'Write')) {
+        emit(response, body.model, {
+          text: 'Completed the requested work.'
+        })
+        return
+      }
       if (role === 'proposer' || role === 'composer')
         return write(
           join(output, 'context/harness/instructions.md'),
           scientificOptimization
-            ? `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+            ? scientificCompute
+              ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json bytes with node:fs, copy those exact bytes to metrics-source.json without parsing/reformatting the copy, then compute count/sum/mean from its values and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish metrics-source.json, research-results.json and the requested PNG through write_artifact_file with localPath sources and the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
+              : scientificLanguage === 'r'
+                ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
+                : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
             : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
       if (role === 'reviewer') {
@@ -368,20 +661,65 @@ export async function createEarthnanoMessagesProvider(
           (file: { path: string }) =>
             file.path === (scientificOptimization ? 'research-results.json' : 'result.json')
         )
-        const value = JSON.parse(file.content),
-          pass = value.count === 3 && value.sum === 12 && value.mean === 4
+        const value = JSON.parse(file.content)
+        let expected = { count: 3, sum: 12, mean: 4 }
+        let metricsSource: { path: string; artifactRef: string; content: string } | undefined
+        if (scientificCompute) {
+          metricsSource = artifacts.find(
+            (file: { path: string }) => file.path === 'metrics-source.json'
+          )
+          if (!metricsSource || typeof metricsSource.content !== 'string')
+            throw new Error('Original metrics source Version unavailable for offline assessment')
+          const values = JSON.parse(metricsSource.content).values
+          if (
+            !Array.isArray(values) ||
+            !values.length ||
+            values.some((number: unknown) => typeof number !== 'number' || !Number.isFinite(number))
+          )
+            throw new Error('Invalid original metrics source values')
+          const sum = values.reduce((total: number, number: number) => total + number, 0)
+          expected = { count: values.length, sum, mean: sum / values.length }
+        } else if (scientificOptimization) {
+          // Only the offline model's decision is substituted. Recompute from the actual
+          // independently frozen source evidence, so a second task cannot pass using task one's CSV.
+          const sources = JSON.parse(await readFile(join(input, 'evidence/sources.json'), 'utf8'))
+          if (sources.inputs.length !== 1 || sources.inputs[0].status !== 'available')
+            throw new Error('Expected one available fixed CSV source for offline assessment')
+          const [header, ...rows] = sources.inputs[0].content.trim().split(/\r?\n/)
+          if (header !== 'sample,value') throw new Error('Unsupported acceptance CSV')
+          const values = rows.map((row: string) => Number(row.split(',')[1]))
+          if (!values.length || values.some((number: number) => !Number.isFinite(number)))
+            throw new Error('Invalid acceptance CSV values')
+          const sum = values.reduce((total: number, number: number) => total + number, 0)
+          expected = { count: values.length, sum, mean: sum / values.length }
+        }
+        const pass =
+          value.count === expected.count &&
+          value.sum === expected.sum &&
+          value.mean === expected.mean
         return write(
           join(output, 'assessment.json'),
           JSON.stringify({
             schemaVersion: 1,
             score: pass ? 100 : 0,
             outcome: pass ? 'pass' : 'flagged',
-            rationale: 'Recomputed arithmetic and checked the fixed result bytes.',
+            rationale: scientificCompute
+              ? 'Recomputed count, sum and mean from the published metrics-source.json Version; no visual or remote science claim.'
+              : 'Recomputed arithmetic and checked the fixed result bytes.',
             checks: plan.criteria.map((criterion: { id: string }) => ({
               criterionId: criterion.id,
               status: pass ? 'pass' : 'fail',
               evidence: [
-                { path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() }
+                { path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() },
+                ...(metricsSource
+                  ? [
+                      {
+                        path: metricsSource.path,
+                        artifactRef: metricsSource.artifactRef,
+                        quote: metricsSource.content.trim()
+                      }
+                    ]
+                  : [])
               ]
             }))
           })
@@ -393,7 +731,10 @@ export async function createEarthnanoMessagesProvider(
       reject()
     }
   })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(loopbackPort, '127.0.0.1', resolve)
+  })
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     token,

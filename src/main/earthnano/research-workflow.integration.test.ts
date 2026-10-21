@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: false } }))
 import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
-import { createResearchWorkflowFixture } from './research-workflow.test-fixture'
+import { createResearchWorkflowFixture } from '../../../test/earthnano/research-workflow'
 import { SessionRepository, loadSessionMutationAuthority } from '../session-persistence/repository'
 import { ReviewRepository } from '../reviewer/repository'
 import { NotebookRunRepository } from '../notebook/repository'

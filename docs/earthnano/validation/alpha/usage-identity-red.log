@@ -1,0 +1,69 @@
+
+ RUN  v4.1.11 /Users/yxmac_mini/Developer/EarthNano-worktrees/alpha-platform
+
+stdout | src/main/acp/runtime-coordinator.test.ts
+🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+ ❯ |default| src/main/acp/runtime-coordinator.test.ts (233 tests | 1 failed | 232 skipped) 63ms
+     × admits rich desktop Send through the boundary before native dispatch and observes durable start 62ms
+stdout | src/main/earthnano/ordinary-session-execution.integration.test.ts
+🌐 i18next is made possible by our own product, Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙
+
+ ❯ |process| src/main/earthnano/ordinary-session-execution.integration.test.ts (6 tests | 1 failed | 5 skipped) 1357ms
+   × runs native ordinary Send through shared Core and original durable evidence 1356ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |default| src/main/acp/runtime-coordinator.test.ts > AcpRuntimeCoordinator > admits rich desktop Send through the boundary before native dispatch and observes durable start
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "promptAttemptId": "prompt-attempt-1",
+      "promptMessageId": "prompt-1",
+-     "runtimeExecutionId": "turn-1",
+      "sessionId": "session-1",
+      "turnToken": "turn-1",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/main/acp/runtime-coordinator.test.ts:603:22
+    601|     durableAdmission.resolve()
+    602|     await started
+    603|     expect(admitted).toHaveBeenCalledWith(
+       |                      ^
+    604|       expect.objectContaining({
+    605|         sessionId: 'session-1',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |process| src/main/earthnano/ordinary-session-execution.integration.test.ts > runs native ordinary Send through shared Core and original durable evidence
+AssertionError: expected 'unknown' to be 'known' // Object.is equality
+
+Expected: "known"
+Received: "unknown"
+
+ ❯ runOrdinary src/main/earthnano/ordinary-session-execution.integration.test.ts:690:33
+    688|     // Exercise the actual coordinator's onPromptStarted observer, not…
+    689|     // identity. Only the original live runtime token may authorize th…
+    690|     expect(record.usage.status).toBe('known')
+       |                                 ^
+    691|     const originalUsage = readExecutionTurnUsage(original, record.iden…
+    692|     expect(originalUsage).toBeDefined()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 237 skipped (239)
+   Start at  23:55:28
+   Duration  5.01s (transform 4.00s, setup 573ms, import 2.83s, tests 1.42s, environment 0ms)
+

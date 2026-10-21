@@ -3,12 +3,14 @@ import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { LOCAL_RESOURCE_BUDGETS } from '../resource-budget'
 
 import {
   createCandidateSnapshotStore,
   type CandidateExecutionRefs,
   type CandidateSnapshotInput,
-  type CandidateSnapshotStore
+  type CandidateSnapshotStore,
+  type CandidateContextAsset
 } from './candidate-snapshot'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -62,14 +64,17 @@ const input = (): CandidateSnapshotInput => ({
   environment: { isolation: 'directory-process', network: 'provider-only' }
 })
 
-const fixture = async (): Promise<{ root: string; store: CandidateSnapshotStore }> => {
+const fixture = async (
+  materializeAsset?: Parameters<typeof createCandidateSnapshotStore>[0]['materializeAsset']
+): Promise<{ root: string; store: CandidateSnapshotStore }> => {
   const root = await fs.mkdtemp(join(tmpdir(), 'earthnano-candidates-'))
   roots.push(root)
   return {
     root,
     store: await createCandidateSnapshotStore({
       root: join(root, 'store'),
-      candidatesRoot: join(root, 'candidates')
+      candidatesRoot: join(root, 'candidates'),
+      ...(materializeAsset ? { materializeAsset } : {})
     })
   }
 }
@@ -89,6 +94,320 @@ const freeze = async (
 }
 const objectPath = (root: string, digest: string): string =>
   join(root, 'store/objects', `${digest.slice(7)}.json`)
+
+describe('immutable invocation context files', () => {
+  const context = [
+    { path: 'rollouts/base1.md', content: '遥感 🌍\r\n@source !`echo untouched`\n' },
+    { path: 'adoption.json', content: '{"chosen":"A"}\n' }
+  ]
+  it('preserves the exact legacy invocation envelope and digest when context files are absent', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const legacy = JSON.stringify({
+      kind: 'invocation',
+      value: {
+        harnessRevisionRef: {
+          digest: refs.harnessRevisionRef.digest,
+          id: refs.harnessRevisionRef.id,
+          version: refs.harnessRevisionRef.version
+        },
+        mission: input().task.prompt,
+        taskSnapshotRef: {
+          digest: refs.taskSnapshotRef.digest,
+          id: refs.taskSnapshotRef.id,
+          version: refs.taskSnapshotRef.version
+        }
+      },
+      version: 1
+    })
+    expect(await fs.readFile(objectPath(root, refs.invocationRef.digest), 'utf8')).toBe(legacy)
+    expect(refs.invocationRef.digest).toBe(
+      `sha256:${createHash('sha256').update(legacy).digest('hex')}`
+    )
+    expect((await store.resolve(refs)).invocation).not.toHaveProperty('contextFiles')
+  })
+
+  it('reopens complete context bytes and materializes them into the original readonly INPUT manifest', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const offered = structuredClone(context)
+    const invocationRef = await store.freezeInvocation({
+      ...(await store.resolve(refs)).invocation,
+      contextFiles: offered
+    })
+    offered[0].content = 'changed after freeze'
+    const reopened = await createCandidateSnapshotStore({
+      root: join(root, 'store'),
+      candidatesRoot: join(root, 'candidates')
+    })
+    const frozen = await reopened.resolve({ ...refs, invocationRef })
+    expect(frozen.task).toEqual(input().task)
+    expect(frozen.invocation.contextFiles).toEqual([...context].reverse())
+    expect(Object.isFrozen(frozen.invocation.contextFiles![0])).toBe(true)
+    const value = await reopened.materialize({
+      executionId: 'with-context',
+      refs: { ...refs, invocationRef }
+    })
+    for (const file of context) {
+      const path = join(value.inputDir, file.path)
+      expect(await fs.readFile(path)).toEqual(Buffer.from(file.content, 'utf8'))
+      expect(value.manifest).toContainEqual({
+        path: `workspace/inputs/${file.path}`,
+        bytes: Buffer.byteLength(file.content),
+        digest: `sha256:${createHash('sha256').update(file.content).digest('hex')}`
+      })
+      if (process.platform !== 'win32') expect((await fs.stat(path)).mode & 0o222).toBe(0)
+    }
+    expect(frozen.invocation.mission).toBe(input().task.prompt)
+    const reordered = await reopened.freezeInvocation({
+      ...frozen.invocation,
+      contextFiles: context
+    })
+    expect(reordered).toEqual(invocationRef)
+    const controller = new AbortController()
+    controller.abort()
+    await expect(
+      reopened.materialize({
+        executionId: 'cancelled-context',
+        refs: { ...refs, invocationRef },
+        signal: controller.signal
+      })
+    ).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual(['with-context'])
+  })
+
+  it.each([
+    [{ path: '../escape', content: 'x' }],
+    [{ path: '/absolute', content: 'x' }],
+    [{ path: 'CON.txt', content: 'x' }],
+    [{ path: 'data/SOURCE.txt', content: 'collision with task' }],
+    [{ path: 'notes.txt/nested', content: 'prefix collision with task' }],
+    [
+      { path: 'é.md', content: 'x' },
+      { path: 'e\u0301.md', content: 'y' }
+    ],
+    [{ path: 'valid.md', content: '\0' }],
+    [{ path: 'valid.md', content: '\ud800' }]
+  ])(
+    'rejects invalid or colliding context manifest %j before materialization',
+    async (...contextFiles) => {
+      const { root, store } = await fixture()
+      const refs = await freeze(store)
+      await expect(
+        store.freezeInvocation({ ...(await store.resolve(refs)).invocation, contextFiles })
+      ).rejects.toThrow()
+      expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+    }
+  )
+
+  it('rejects context collisions with binary assets and counts context against the existing aggregate budget before owner I/O', async () => {
+    const materializeAsset = vi.fn(async () => {
+      throw new Error('Must reject before owner I/O')
+    })
+    const { root, store } = await fixture(materializeAsset)
+    const refs = await freeze(store, { ...input(), task: { prompt: 'same task', files: [] } })
+    const invocation = (await store.resolve(refs)).invocation
+    const asset = (path: string): CandidateContextAsset => ({
+      path,
+      sourceExecutionId: 'source',
+      artifact: {
+        path: 'large.bin',
+        representation: 'binary',
+        sizeBytes: LOCAL_RESOURCE_BUDGETS.artifactFileBytes,
+        digest: `sha256:${'a'.repeat(64)}`,
+        artifactRef: { artifactId: 'a', versionId: 'v', checksum: 'a'.repeat(64) }
+      }
+    })
+    await expect(
+      store.freezeInvocation({
+        ...invocation,
+        contextFiles: context,
+        assets: [asset('ROLLOUTS/base1.md')]
+      })
+    ).rejects.toThrow('collide')
+    const invocationRef = await store.freezeInvocation({
+      ...invocation,
+      contextFiles: context,
+      assets: [asset('a.bin'), asset('b.bin')]
+    })
+    await expect(
+      store.materialize({ executionId: 'over-budget-context', refs: { ...refs, invocationRef } })
+    ).rejects.toThrow('Local resource turn budget exceeded')
+    expect(materializeAsset).not.toHaveBeenCalled()
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+  })
+})
+
+describe('version-bound binary invocation assets', () => {
+  const bytes = Buffer.from([0x89, 0, 0xff, 0x80])
+  const checksum = createHash('sha256').update(bytes).digest('hex')
+  const asset: CandidateContextAsset = {
+    path: 'context/candidates/A/opaque.bin',
+    sourceExecutionId: 'original-execution',
+    artifact: {
+      path: 'data.bin',
+      representation: 'binary',
+      sizeBytes: bytes.length,
+      contentType: 'application/octet-stream',
+      digest: `sha256:${checksum}`,
+      artifactRef: { artifactId: 'artifact', versionId: 'version-1', checksum }
+    }
+  }
+  const withAssets = async (
+    store: CandidateSnapshotStore,
+    refs: CandidateExecutionRefs,
+    assets: readonly CandidateContextAsset[] = [asset]
+  ): Promise<CandidateExecutionRefs> => ({
+    ...refs,
+    invocationRef: await store.freezeInvocation({
+      taskSnapshotRef: refs.taskSnapshotRef,
+      harnessRevisionRef: refs.harnessRevisionRef,
+      mission: input().task.prompt,
+      assets
+    })
+  })
+
+  it('keeps ordinary snapshot bytes while binding asset Version and source identity into invocation', async () => {
+    const { store } = await fixture()
+    const plainRefs = await freeze(store)
+    expect((await store.resolve(plainRefs)).invocation).not.toHaveProperty('assets')
+    const assetRefs = await withAssets(store, plainRefs)
+    expect(assetRefs.taskSnapshotRef).toEqual(plainRefs.taskSnapshotRef)
+    expect(assetRefs.harnessRevisionRef).toEqual(plainRefs.harnessRevisionRef)
+    expect(assetRefs.environmentSpecRef).toEqual(plainRefs.environmentSpecRef)
+    expect(assetRefs.invocationRef).not.toEqual(plainRefs.invocationRef)
+    const otherSource = await withAssets(store, plainRefs, [
+      { ...asset, sourceExecutionId: 'different-execution' }
+    ])
+    expect(otherSource.invocationRef).not.toEqual(assetRefs.invocationRef)
+    const otherVersion = await withAssets(store, plainRefs, [
+      {
+        ...asset,
+        artifact: {
+          ...asset.artifact,
+          artifactRef: { ...asset.artifact.artifactRef, versionId: 'version-2' }
+        }
+      }
+    ])
+    expect(otherVersion.invocationRef).not.toEqual(assetRefs.invocationRef)
+  })
+
+  it('copies exact owner bytes into readonly INPUT with the frozen digest and cancellation signal', async () => {
+    const materializeAsset = vi.fn(async () => ({
+      file: structuredClone(asset.artifact),
+      assetPath
+    }))
+    const { root, store } = await fixture(materializeAsset)
+    const assetPath = join(root, 'owner-asset.bin')
+    await fs.writeFile(assetPath, bytes)
+    const refs = await withAssets(store, await freeze(store))
+    const controller = new AbortController()
+    const value = await store.materialize({
+      executionId: 'binary',
+      refs,
+      signal: controller.signal
+    })
+    const path = join(value.inputDir, asset.path)
+    expect(await fs.readFile(path)).toEqual(bytes)
+    const mode = (await fs.stat(path)).mode
+    if (process.platform === 'win32') expect(mode & 0o222).toBe(0)
+    else expect(mode & 0o777).toBe(0o400)
+    expect(materializeAsset).toHaveBeenCalledExactlyOnceWith(asset, controller.signal)
+    expect(value.manifest).toContainEqual({
+      path: `workspace/inputs/${asset.path}`,
+      digest: asset.artifact.digest,
+      bytes: bytes.length
+    })
+    expect(value.snapshots.task).not.toHaveProperty('assets')
+  })
+
+  it.each(['file', 'turn'] as const)(
+    'rejects assets above the original %s budget before opening any original Version',
+    async (dimension) => {
+      const materializeAsset = vi.fn(async () => {
+        throw new Error('Oversized manifests must not open a Version')
+      })
+      const { root, store } = await fixture(materializeAsset)
+      const large = {
+        ...asset,
+        artifact: {
+          ...asset.artifact,
+          sizeBytes: LOCAL_RESOURCE_BUDGETS.artifactFileBytes + (dimension === 'file' ? 1 : 0)
+        }
+      }
+      const assets =
+        dimension === 'file'
+          ? [large]
+          : [0, 1, 2].map((index) => ({ ...large, path: `context/${index}.bin` }))
+      const refs = await withAssets(store, await freeze(store), assets)
+      await expect(store.materialize({ executionId: 'oversized', refs })).rejects.toThrow(
+        `Local resource ${dimension} budget exceeded`
+      )
+      expect(materializeAsset).not.toHaveBeenCalled()
+      expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+    }
+  )
+
+  it('refuses missing owners, malformed manifests and collisions with ordinary frozen inputs', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const invocation = {
+      taskSnapshotRef: refs.taskSnapshotRef,
+      harnessRevisionRef: refs.harnessRevisionRef,
+      mission: input().task.prompt
+    }
+    for (const assets of [
+      undefined,
+      [],
+      [asset, asset],
+      [{ ...asset, path: '../escape' }],
+      [{ ...asset, path: 'notes.txt' }],
+      [{ ...asset, sourceExecutionId: 'bad\nidentity' }],
+      [{ ...asset, artifact: { ...asset.artifact, content: 'fake bytes' } }]
+    ])
+      await expect(store.freezeInvocation({ ...invocation, assets } as never)).rejects.toThrow()
+    const assetRefs = await withAssets(store, refs)
+    await expect(
+      store.materialize({ executionId: 'missing-owner', refs: assetRefs })
+    ).rejects.toThrow('owner is unavailable')
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+  })
+
+  it.each(['changed-bytes', 'different-Version', 'symlink', 'hardlink', 'cancelled'] as const)(
+    'rejects %s before any native preparation can consume an asset',
+    async (kind) => {
+      let assetPath: string
+      const controller = new AbortController()
+      const callback = vi.fn(async () => {
+        if (kind === 'cancelled') controller.abort(new Error('Stopped asset preparation'))
+        return {
+          file:
+            kind === 'different-Version'
+              ? {
+                  ...asset.artifact,
+                  artifactRef: { ...asset.artifact.artifactRef, versionId: 'other' }
+                }
+              : asset.artifact,
+          assetPath
+        }
+      })
+      const { root, store } = await fixture(callback)
+      const original = join(root, 'owner-original.bin')
+      await fs.writeFile(original, kind === 'changed-bytes' ? Buffer.alloc(bytes.length) : bytes)
+      assetPath = join(root, 'owner-asset.bin')
+      if (kind === 'symlink') await fs.symlink(original, assetPath)
+      else if (kind === 'hardlink') await fs.link(original, assetPath)
+      else assetPath = original
+      const refs = await withAssets(store, await freeze(store))
+      await expect(
+        store.materialize({ executionId: 'rejected', refs, signal: controller.signal })
+      ).rejects.toThrow()
+      await expect(
+        fs.stat(join(root, 'candidates/rejected/workspace/inputs', asset.path))
+      ).rejects.toThrow()
+    }
+  )
+})
 
 describe('candidate immutable references', () => {
   it('freezes actual text and returns verified deeply frozen payloads after callers mutate their inputs', async () => {
@@ -445,6 +764,139 @@ const scientificInput = (): CandidateSnapshotInput => ({
   }
 })
 
+const computeInput = (count = 0): CandidateSnapshotInput => {
+  const original = scientificInput()
+  return {
+    ...original,
+    task: {
+      prompt: 'Run the original task on the selected Compute host.',
+      files: [],
+      managedInputs: Array.from({ length: count }, (_, i) => ({
+        ...original.task.managedInputs![0],
+        sourceFileId: `file-${i}`,
+        inputFileVersionId: `version-${i}`
+      }))
+    },
+    harness: { ...original.harness, tools: 'notebook-compute' },
+    environment: {
+      isolation: 'directory-process',
+      network: 'provider-and-notebook-policy',
+      compute: {
+        sourceProjectId: 'project',
+        sourceSessionId: 'source-session',
+        access: { enabledProviderIds: ['ssh:lab'], selectedProviderIds: [] },
+        hosts: [
+          {
+            id: 'host-original',
+            providerId: 'ssh:lab',
+            shape: 'direct_ssh',
+            executionMode: 'direct_ssh'
+          }
+        ]
+      }
+    }
+  }
+}
+
+describe('frozen original Compute control profile', () => {
+  it.each([0, 2])(
+    'freezes and materializes %i exact managed inputs without a data-language runtime',
+    async (count) => {
+      const { root, store } = await fixture()
+      const original = computeInput(count)
+      const first = await freeze(store, original)
+      const next = await freeze(store, {
+        ...original,
+        harness: { ...original.harness, instructions: 'Revised original Compute workflow.' }
+      })
+      expect(next.taskSnapshotRef).toEqual(first.taskSnapshotRef)
+      expect(next.environmentSpecRef).toEqual(first.environmentSpecRef)
+      expect(next.harnessRevisionRef).not.toEqual(first.harnessRevisionRef)
+      Object.assign(original.environment.compute!.hosts[0], { id: 'host-replacement' })
+      const reopened = await createCandidateSnapshotStore({
+        root: join(root, 'store'),
+        candidatesRoot: join(root, 'candidates')
+      })
+      const resolved = await reopened.resolve(first)
+      expect(resolved.environment.compute?.hosts[0].id).toBe('host-original')
+      expect(resolved.environment.compute?.access.selectedProviderIds).toEqual([])
+      expect(resolved.environment.notebook).toBeUndefined()
+      expect(resolved.task.managedInputs).toHaveLength(count)
+      expect(Object.isFrozen(resolved.environment.compute?.hosts)).toBe(true)
+      const materialized = await reopened.materialize({
+        executionId: `compute-${count}`,
+        refs: first
+      })
+      expect(await fs.readdir(materialized.inputDir)).toEqual([])
+      expect(materialized.snapshots).toEqual(resolved)
+    }
+  )
+
+  it('rejects mixed control, data-runtime, input and host authority before writing any object', async () => {
+    const { root, store } = await fixture()
+    const original = computeInput(1)
+    const foreign = structuredClone(original)
+    Object.assign(foreign.task.managedInputs![0], { sourceProjectId: 'foreign-project' })
+    for (const bad of [
+      { ...original, harness: { ...original.harness, tools: 'workspace-only' } },
+      { ...original, environment: scientificInput().environment },
+      {
+        ...original,
+        environment: { ...original.environment, notebook: scientificInput().environment.notebook }
+      },
+      { ...original, environment: { ...original.environment, network: 'provider-only' } },
+      {
+        ...original,
+        task: { ...original.task, files: [{ path: 'inline.txt', content: 'unmanaged' }] }
+      },
+      {
+        ...original,
+        environment: {
+          ...original.environment,
+          compute: { ...original.environment.compute, password: 'not-a-snapshot-field' }
+        }
+      },
+      foreign
+    ])
+      await expect(store.freeze(bad as CandidateSnapshotInput)).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'store/objects'))).toEqual([])
+  })
+
+  it('rejects crossed Compute Project and profile references on reopening', async () => {
+    const { store } = await fixture()
+    const original = await freeze(store, computeInput(1))
+    const foreign = computeInput(1)
+    Object.assign(foreign.environment, {
+      compute: { ...foreign.environment.compute!, sourceProjectId: 'foreign-project' }
+    })
+    Object.assign(foreign.task.managedInputs![0], { sourceProjectId: 'foreign-project' })
+    const other = await freeze(store, foreign)
+    await expect(
+      store.resolve({ ...other, environmentSpecRef: original.environmentSpecRef })
+    ).rejects.toThrow('another Project')
+    const text = await freeze(store)
+    await expect(
+      store.resolve({ ...original, environmentSpecRef: text.environmentSpecRef })
+    ).rejects.toThrow('Compute context')
+  })
+
+  it.each([0, 11])(
+    'retains the original non-Compute attachment bound for %i inputs',
+    async (count) => {
+      const { store } = await fixture()
+      const original = scientificInput()
+      Object.assign(original.task, {
+        managedInputs: Array.from({ length: count }, (_, i) => ({
+          ...original.task.managedInputs![0],
+          sourceFileId: `file-${i}`,
+          inputFileVersionId: `version-${i}`
+        }))
+      })
+      await expect(store.freeze(original)).rejects.toThrow()
+    }
+  )
+})
+
 describe('frozen original Notebook profile', () => {
   it('preserves exact old input tuples and runtime across revised harnesses and reopening', async () => {
     const { root, store } = await fixture()
@@ -488,5 +940,59 @@ describe('frozen original Notebook profile', () => {
     await expect(
       store.resolve({ ...scientific, environmentSpecRef: textual.environmentSpecRef })
     ).rejects.toThrow('fixed managed inputs')
+  })
+})
+
+describe('Notebook language/profile identity', () => {
+  it('retains exact pre-R Python snapshot identities', async () => {
+    const { store } = await fixture()
+    const refs = await store.freeze(scientificInput())
+    expect(refs.taskSnapshotRef.digest).toBe(
+      'sha256:c22deb32e4840733259a2888773a7f540245fa4c541eb75542f120b3b3cfdac1'
+    )
+    expect(refs.harnessRevisionRef.digest).toBe(
+      'sha256:ba655cc746f6c88ef4ad5b6677a6b6858754dbf1f7460fb26fce605a913222c1'
+    )
+    expect(refs.environmentSpecRef.digest).toBe(
+      'sha256:28a91c743fe77697cb7f1d783723c90c12e0dd2cd9fabc83fe5275108d752a46'
+    )
+  })
+  it('keeps one task across Python/R profiles but rejects profile/runtime crossover before writing', async () => {
+    const { root, store } = await fixture()
+    const python = scientificInput()
+    const r = {
+      ...python,
+      harness: { ...python.harness, tools: 'notebook-r' as const },
+      environment: {
+        ...python.environment,
+        notebook: {
+          runtime: {
+            ...python.environment.notebook!.runtime,
+            language: 'r' as const,
+            runtimeId: '/original/R',
+            interpreterPath: '/original/R',
+            version: '4.4.3'
+          }
+        }
+      }
+    }
+    for (const bad of [
+      { ...r, harness: python.harness },
+      { ...python, harness: r.harness }
+    ])
+      await expect(store.freeze(bad)).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'store/objects'))).toEqual([])
+    const pRefs = await freeze(store, python)
+    const rRefs = await freeze(store, r)
+    expect(pRefs.taskSnapshotRef).toEqual(rRefs.taskSnapshotRef)
+    expect(pRefs.environmentSpecRef).not.toEqual(rRefs.environmentSpecRef)
+    expect(pRefs.harnessRevisionRef).not.toEqual(rRefs.harnessRevisionRef)
+    expect((await store.resolve(rRefs)).environment.notebook?.runtime.language).toBe('r')
+    await expect(
+      store.resolve({ ...rRefs, environmentSpecRef: pRefs.environmentSpecRef })
+    ).rejects.toThrow('language')
+    await expect(
+      store.resolve({ ...pRefs, environmentSpecRef: rRefs.environmentSpecRef })
+    ).rejects.toThrow('language')
   })
 })

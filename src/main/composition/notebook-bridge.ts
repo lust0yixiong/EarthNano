@@ -1,3 +1,4 @@
+import type { TrustedControlPolicy } from '../earthnano/compute-candidate-ports'
 import { runtimeMetadata } from '../runtime-metadata'
 import { bindNotebookApprovals } from './notebook-approvals'
 import { ReviewRepository } from '../reviewer/repository'
@@ -78,6 +79,7 @@ export async function composeNotebookBridge({
   agentComputeService,
   agentsService,
   notebookRpcServerRef,
+  resolveControlPolicy,
   delegatedWork,
   modules,
   composition
@@ -109,6 +111,9 @@ export async function composeNotebookBridge({
   agentComputeService: AgentComputeService
   agentsService: AgentsService
   notebookRpcServerRef: { current?: NotebookLocalRpcServer }
+  resolveControlPolicy?(
+    binding: Parameters<Parameters<NotebookRuntimeService['setMcpRpcConnectionResolver']>[0]>[0]
+  ): Promise<TrustedControlPolicy | undefined>
   delegatedWork: ReturnType<typeof createProductionDelegatedWorkComposition>
   modules: ApplicationModuleBuilder
   composition: DiagnosticOperation
@@ -415,15 +420,15 @@ export async function composeNotebookBridge({
   // The RPC server needs the runtime service to dispatch to, and the runtime service needs the RPC
   // server's (lazily-started) connection for host.mcp() env injection — wire the second half here to
   // avoid a construction cycle.
-  notebookService.setMcpRpcConnectionResolver(
-    ({ sessionId, projectId, agentFrameId, attemptId, executionCwd }) =>
-      notebookRpcServer.issueControlConnection(
-        sessionId,
-        projectId,
-        agentFrameId,
-        attemptId ? { role: 'delegate', attemptId } : { role: 'main' },
-        executionCwd
-      )
+  notebookService.setMcpRpcConnectionResolver(async (binding) =>
+    notebookRpcServer.issueControlConnection(
+      binding.sessionId,
+      binding.projectId,
+      binding.agentFrameId,
+      binding.attemptId ? { role: 'delegate', attemptId: binding.attemptId } : { role: 'main' },
+      binding.executionCwd,
+      await resolveControlPolicy?.(binding)
+    )
   )
   return { notebookRpcServer, imageInputCompatibility }
 }

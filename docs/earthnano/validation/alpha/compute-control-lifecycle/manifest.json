@@ -1,0 +1,277 @@
+{
+  "source": "56c083b1b909026b2cfebc386acab3173bcc453b",
+  "parentBinaryPR20": "ce0e1d498b46ddea5867bb795c6fad63dafb28b5",
+  "originalControlCommit": "210bdc9726119d74b791fc0e0a5fe7e4db69243b",
+  "integratedControlCommit": "a93965238",
+  "originalLifecycleCommit": "620c096e3abfc0347a4510199efc9367009dad7f",
+  "integratedLifecycleCommit": "7652be31c",
+  "scope": "Integrated trusted control/approval and continuation infrastructure; Compute serializer, candidate Job owner, task/UI composition and actual DeepSeek acceptance not enabled or proven.",
+  "tests": {
+    "files": 18,
+    "passed": 1024,
+    "failed": 0,
+    "skipped": 0,
+    "compiledNodeSandboxWebTypes": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "completeOriginalHostGraphAndModuleOwnershipGuards": "passed"
+  },
+  "earlierArchitectureResult": {
+    "source": "620c096e3abfc0347a4510199efc9367009dad7f",
+    "total": 708,
+    "passed": 681,
+    "failed": 27,
+    "cause": "Missing exact module registrations; original guards retained. Integrated9newpaths registered in4existing owners, no exemptions or topology-rule changes."
+  },
+  "remaining": [
+    "Private persistent Compute owner and actual source/task/Core/Job/producer/Version/Review integration remain required.",
+    "Read-only review reproduced private-owner retirement between availability check and dispatch consuming retry budget with zero admission; separate fix in progress, no activation before verification.",
+    "Cancellation owner must not await readResult/context.signal to trigger cancellation; remote original Job settlement must govern cleanup.",
+    "No paid model, external SSH/Slurm, native build/install, Windows operation or publication performed by this validation."
+  ],
+  "protectedSourceByteProof": [
+    {
+      "path": "src/main/earthnano/execution-core.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "70053f9b13e6697de8c3efc134d2072cfe7cea5039000c339641c823a09b18e7"
+    },
+    {
+      "path": "src/main/earthnano/execution-scope.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "cf6d92b8cdadd6a109da487acb8d448746323fb5d3fa80c4bc45162bc33998f3"
+    },
+    {
+      "path": "src/main/tasks/task-runner.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "1e050eeff42ba0b9906bf56f1ac132eb7c96c753455ffbf3b5254ea097283862"
+    },
+    {
+      "path": "src/main/compute/job-repository.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "2f84145b20a3902f2751d19947da3f4abfd8b5e57b33ba957c6e4bdfe37216ca"
+    },
+    {
+      "path": "src/main/background-result-delivery/repository.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "ccfc7a025df806809e541ed73adb90175d986683b6b286d3516b56109295bc2a"
+    },
+    {
+      "path": "src/main/notebook/repository.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "b4cdba55e1e219769ea7b2ffbf8328ee52110aaa76ceadda9abd11237fa6d6a0"
+    },
+    {
+      "path": "src/main/host-layer-dependencies.architecture.test.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "026ada2bacc22c02e93150e87c16918d9349e6cd9eb10910c54140ce366cb430"
+    },
+    {
+      "path": "scripts/ci/audit-module-ownership.test.ts",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "a77f2c5a831a482a0bc87922ca22301da9b5692da9f1a5f2c646aa408b19345b"
+    },
+    {
+      "path": "scripts/ci/module-relationships.mjs",
+      "unchangedFromBinaryPR20": true,
+      "sha256": "e35cf885abf108a2d763dee3aa4a0b2a069e193b553922420c7a2cfbf7181e1f"
+    }
+  ],
+  "files": [
+    {
+      "path": "control-implementation__REPORT.md.gz",
+      "rawBytes": 8143,
+      "rawSha256": "f3bbc26dfeb8d77c9137fe774a27456b577624cd8bea2ec120ae171242889bf3",
+      "gzipBytes": 3708,
+      "gzipSha256": "7e45bcd446e6563a9dcd0efedc95d4b9b904bd1d8b7bb325279ed3b30ad01965"
+    },
+    {
+      "path": "control-implementation__green-final.json.gz",
+      "rawBytes": 135866,
+      "rawSha256": "85aa92ae5bf9b098ac655c91e3ad18baa19fb7e9ae2bd7220a4fce2c972acde8",
+      "gzipBytes": 16404,
+      "gzipSha256": "0518989590ed1b2cc5cffac1987c2c6ec8b62ab5c3df190386b1b6e44b599a43"
+    },
+    {
+      "path": "control-implementation__green-final.log.gz",
+      "rawBytes": 136,
+      "rawSha256": "a54c91898a967cd0a809820ed28cb80dfed06544a53e079c3c857dcd70a8e64e",
+      "gzipBytes": 137,
+      "gzipSha256": "eaffd2118155a01a1a45fc3cc49452978b69139fb4413e51fe00acd0f283ef47"
+    },
+    {
+      "path": "control-implementation__green-final-touched.json.gz",
+      "rawBytes": 36448,
+      "rawSha256": "51d76fe03f4c185b474f11804c119b1781384bf804affb348fa2606034a1470d",
+      "gzipBytes": 4905,
+      "gzipSha256": "16b40d7bc767ff656fc92584617188ca17e7ecd7ffc6a8ed13523a5678720813"
+    },
+    {
+      "path": "control-implementation__green-final-touched.log.gz",
+      "rawBytes": 144,
+      "rawSha256": "a565270b09e64065a002c3fcd494c8800a8f0bb5c0b0191a854fe52390192a39",
+      "gzipBytes": 142,
+      "gzipSha256": "758e13a737cf1e6c40875c88e4a87536df448fafba57031cfce19444e12933c2"
+    },
+    {
+      "path": "control-implementation__original-propagation.json.gz",
+      "rawBytes": 45482,
+      "rawSha256": "e8ed7b5d94514f70bba91fb9f3c22f47691a24dc50a36aea43c0995d17d4c623",
+      "gzipBytes": 4969,
+      "gzipSha256": "1c66dd14ca4f3d85ea118c9fa849fd772a7d3c68eb3aa0d8a9bd94292a2360af"
+    },
+    {
+      "path": "control-implementation__original-propagation.log.gz",
+      "rawBytes": 145,
+      "rawSha256": "f54d738cdc82761ada12f906400f5a75f98088324fc045050c3871526ca31a35",
+      "gzipBytes": 140,
+      "gzipSha256": "d0a385095cc91bf0a5a57062b68dd9f23637ba5f9a5ce2e17a7ef85ab702df32"
+    },
+    {
+      "path": "control-implementation__original-source-identities.json.gz",
+      "rawBytes": 328,
+      "rawSha256": "0fadc3e259928fd5bef1075940440eadd597a0d6b19c25407250f768867eba84",
+      "gzipBytes": 148,
+      "gzipSha256": "0b5c95872901e564d06fb0d61fa4b5d1cac069b471058295f73ab30429ceea30"
+    },
+    {
+      "path": "control-implementation__types-final-green.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "control-implementation__types-committed.log.gz",
+      "rawBytes": 451,
+      "rawSha256": "e81e5263bb5eb76243f4d2c078a9335f189331b367e4c06288ccb1bce10ce355",
+      "gzipBytes": 277,
+      "gzipSha256": "915260dc9400c7ddb0c439709a1b633a0ee98280df111475359ef3057173a584"
+    },
+    {
+      "path": "control-implementation__lint-committed.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "control-implementation__format-final.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "lifecycle__REPORT.md.gz",
+      "rawBytes": 6300,
+      "rawSha256": "f898b71c91fe7ec4fcf9dda14ab1d4a5b9b2381e0b5a21a52cd0a285dd4e1182",
+      "gzipBytes": 2786,
+      "gzipSha256": "71a8336082d3d01c859f06107d681fb520d7ed9d84dba71972dfc51118d97209"
+    },
+    {
+      "path": "lifecycle__final-focused.json.gz",
+      "rawBytes": 286348,
+      "rawSha256": "1169e7042240746863553288309823476442f950eed51da8ff8a88a92de6fdd5",
+      "gzipBytes": 24121,
+      "gzipSha256": "f0083c4acb29f07487302dbd235ef7f8b27598c4cef3aba7f03f0a8d9f8cd422"
+    },
+    {
+      "path": "lifecycle__final-focused.log.gz",
+      "rawBytes": 65063,
+      "rawSha256": "40416217577b595114e671dd5d4f8e618a6f14976f6113466a1edcecb6cd3aaf",
+      "gzipBytes": 5999,
+      "gzipSha256": "0a1075ecf5f361d3c1cc5c02f1d70a32212949da7e212031569594c48647120c"
+    },
+    {
+      "path": "lifecycle__final-compiled-types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "lifecycle__final-lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "lifecycle__final-format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    },
+    {
+      "path": "lifecycle__final-diffcheck.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "lifecycle__ownership-attribution.json.gz",
+      "rawBytes": 42801,
+      "rawSha256": "378dd98d38c2f1a380fb0872b0d5035646be55443cf4e60c8ca1aa63ba4b68a7",
+      "gzipBytes": 1810,
+      "gzipSha256": "0ab5d160d699a4be7db343a11c450aab7d2625723a73074e975719c279a9ab83"
+    },
+    {
+      "path": "lifecycle__ownership-attribution.log.gz",
+      "rawBytes": 951,
+      "rawSha256": "c78a9872e147a0ee034fd5d0820118943f3dbd81e3f53e11b4cbbddd7eeefdc0",
+      "gzipBytes": 241,
+      "gzipSha256": "749da8dab9f2d4245e2a33d046b33d529a49e37be26aae8d9d47a417085b03a1"
+    },
+    {
+      "path": "lifecycle__byteproof.json.gz",
+      "rawBytes": 3110,
+      "rawSha256": "38c6a3f185afd019689eed6495941c3cac9f0247719ef0ddf77ffbc4dc4c7140",
+      "gzipBytes": 1166,
+      "gzipSha256": "f1625336d831f17f6a90a922bf9dd5299b5de3ecc7453032e286dd15fb19df9e"
+    },
+    {
+      "path": "lifecycle__commit-receipt.json.gz",
+      "rawBytes": 2747,
+      "rawSha256": "3a94488ff82b02a517717211def70c0e5cfc0ca9ffb04a542558376c04b61bf7",
+      "gzipBytes": 959,
+      "gzipSha256": "7a16e50dc4308f3adc6848a2942de434c64adff00535bcf3a117178b9d3176e3"
+    },
+    {
+      "path": "integrated-control-lifecycle__focused.json.gz",
+      "rawBytes": 371450,
+      "rawSha256": "d15ae9f8595f597ea217025bb4562b2ef45a4fe368d5b19e0a6dbf2aa4a217a9",
+      "gzipBytes": 35956,
+      "gzipSha256": "73b3c2bf48c7e66df235d427114f4f217421f5d1566e65d9638957e3e6d1e962"
+    },
+    {
+      "path": "integrated-control-lifecycle__focused.log.gz",
+      "rawBytes": 3516,
+      "rawSha256": "6c6b2ed6b2436341af56618e50decf3726e12d62190534d916538de137a4ff66",
+      "gzipBytes": 1448,
+      "gzipSha256": "e5e11406d92fac953d181f2f32ba492cc5cfce4ea32d79fd1925d01a1ae75e3f"
+    },
+    {
+      "path": "integrated-control-lifecycle__types.log.gz",
+      "rawBytes": 706,
+      "rawSha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "gzipBytes": 248,
+      "gzipSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "path": "integrated-control-lifecycle__lint.log.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837"
+    },
+    {
+      "path": "integrated-control-lifecycle__format.log.gz",
+      "rawBytes": 66,
+      "rawSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzipBytes": 82,
+      "gzipSha256": "d64010ae55eaddf0a918163db8e4a6821b3d87a770c6df0154973888c7113c59"
+    }
+  ]
+}

@@ -479,7 +479,10 @@ describe('preload bridge — public surface inventory', () => {
       'officePreview.reportState',
       'optimization.get',
       'optimization.latest',
+      'optimization.previewSweep',
+      'optimization.resume',
       'optimization.start',
+      'optimization.startSweep',
       'optimization.stop',
       'packagePresentation.cancelTransfer',
       'packagePresentation.getState',
@@ -1911,7 +1914,7 @@ describe('preload bridge — sessions + agent-framework IPC channels', () => {
 })
 
 describe('desktop optimization preload protocol', () => {
-  it('forwards start/get/latest/stop over desktop-only typed channels', async () => {
+  it('forwards start/get/latest/stop/resume over desktop-only typed channels', async () => {
     const input = {
       projectId: 'p',
       sourceSessionId: 's',
@@ -1923,6 +1926,38 @@ describe('desktop optimization preload protocol', () => {
     }
     await api.optimization.start(input)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:start', input)
+    const sweep = {
+      projectId: 'p',
+      sourceSessionId: 's',
+      requestKey: 'sweep',
+      executionLimit: 40,
+      catalog: [
+        {
+          taskId: 'a',
+          domain: 'csv',
+          sourceSessionId: 'independent-source',
+          source: { kind: 'notebook' as const, promptMessageId: 'original' },
+          criteria: 'Verify'
+        }
+      ],
+      sweep: {
+        modes: ['parallel' as const, 'sequential' as const],
+        k: 1,
+        concurrency: 2,
+        stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+      }
+    }
+    await api.optimization.startSweep(sweep)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:startSweep', sweep)
+    const preview = {
+      projectId: sweep.projectId,
+      sourceSessionId: sweep.sourceSessionId,
+      catalog: sweep.catalog.map(({ taskId, domain }) => ({ taskId, domain })),
+      sweep: sweep.sweep
+    }
+    await api.optimization.previewSweep(preview)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:previewSweep', preview)
+
     const key = { projectId: 'p', sourceSessionId: 's', runId: 'run' }
     await api.optimization.get(key)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:get', key)
@@ -1933,5 +1968,7 @@ describe('desktop optimization preload protocol', () => {
     })
     await api.optimization.stop(key)
     expect(invokeMock).toHaveBeenLastCalledWith('optimization:stop', key)
+    await api.optimization.resume(key)
+    expect(invokeMock).toHaveBeenLastCalledWith('optimization:resume', key)
   })
 })

@@ -104,6 +104,11 @@ const inferDurableFinalizationMessageId = (
       return undefined
     }
   } else {
+    // A prepared Artifact handoff can precede Main's final runtime-event flush. While this exact
+    // prompt still owns the active run, its sole durable agent Message may only be commentary.
+    // Shared Session authority clears stale activeRun on restart; exact durable claims above and
+    // already-bound markers remain recoverable without guessing a Message from a live prefix.
+    if (session.activeRun?.promptMessageId === context.promptMessageId) return undefined
     const turnCandidates = path.slice(promptIndex + 1, turnEnd).filter(ownsRunOutput)
     if (turnCandidates.length !== 1) return undefined
     message = turnCandidates[0]

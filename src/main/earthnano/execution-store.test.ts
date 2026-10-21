@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { fstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -7,12 +7,33 @@ import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/e
 import { requestDigest } from './execution-contract'
 import { emptyExecutionState } from './execution-core'
 import { FileExecutionStore, recoverExecutionJournals } from './execution-store'
+const fsyncControl = vi.hoisted(() => ({
+  failure: undefined as Error | undefined,
+  target: 'directory' as 'file' | 'directory',
+  attempts: [] as Array<{ fd: number; directory: boolean }>
+}))
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof import('node:fs')>()
+  return {
+    ...actual,
+    fsyncSync: (fd: number): void => {
+      const directory = actual.fstatSync(fd).isDirectory()
+      fsyncControl.attempts.push({ fd, directory })
+      if (fsyncControl.failure && directory === (fsyncControl.target === 'directory'))
+        throw fsyncControl.failure
+      actual.fsyncSync(fd)
+    }
+  }
+})
 let root: string
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'execution-store-recovery-'))
 })
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  fsyncControl.failure = undefined
+  fsyncControl.attempts.length = 0
   rmSync(root, { recursive: true, force: true })
 })
 it('recovers only a provably dead PID lock and preserves the charged durable state', () => {
@@ -201,4 +222,68 @@ it('serializes concurrent recovery observers without duplicate reconciliation or
   expect(Object.values(JSON.parse(readFileSync(filename, 'utf8')).budgets)).toEqual([
     { limit: 1, admitted: 1 }
   ])
+})
+
+it.each(['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'])(
+  'publishes the flushed execution journal when Windows directory sync returns %s',
+  (code) => {
+    const store = new FileExecutionStore(join(root, 'windows-journal.json'))
+    const state = emptyExecutionState()
+    state.budgets.charged = { limit: 1, admitted: 1 }
+    fsyncControl.failure = Object.assign(new Error(code), { code })
+    fsyncControl.target = 'directory'
+    fsyncControl.attempts.length = 0
+    vi.stubGlobal('process', { ...process, platform: 'win32' })
+    try {
+      expect(() => store.commit(state)).not.toThrow()
+      expect(store.load().budgets.charged).toEqual({ limit: 1, admitted: 1 })
+      expect(fsyncControl.attempts.map(({ directory }) => directory)).toEqual([false, true])
+      expect(() => fstatSync(fsyncControl.attempts[1].fd)).toThrow()
+    } finally {
+      store.close()
+    }
+  }
+)
+it.each(['linux', 'darwin'])('propagates unsupported directory sync failures on %s', (platform) => {
+  const store = new FileExecutionStore(join(root, 'posix-journal.json'))
+  const failure = Object.assign(new Error('directory fsync failure'), { code: 'EPERM' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'directory'
+  vi.stubGlobal('process', { ...process, platform })
+  try {
+    expect(() => store.commit(emptyExecutionState())).toThrow(failure)
+  } finally {
+    store.close()
+  }
+})
+it('propagates unexpected Windows directory durability failures', () => {
+  const store = new FileExecutionStore(join(root, 'disk-error.json'))
+  const failure = Object.assign(new Error('directory I/O failure'), { code: 'EIO' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'directory'
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  try {
+    expect(() => store.commit(emptyExecutionState())).toThrow(failure)
+  } finally {
+    store.close()
+  }
+})
+it('never suppresses a Windows file flush failure or publishes the unflushed state', () => {
+  const filename = join(root, 'file-error.json')
+  const store = new FileExecutionStore(filename)
+  const previous = emptyExecutionState()
+  previous.budgets.existing = { limit: 1, admitted: 1 }
+  store.commit(previous)
+  const failure = Object.assign(new Error('file fsync failure'), { code: 'EPERM' })
+  fsyncControl.failure = failure
+  fsyncControl.target = 'file'
+  fsyncControl.attempts.length = 0
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  try {
+    expect(() => store.commit(emptyExecutionState())).toThrow(failure)
+    expect(store.load()).toEqual(previous)
+    expect(fsyncControl.attempts.map(({ directory }) => directory)).toEqual([false])
+  } finally {
+    store.close()
+  }
 })

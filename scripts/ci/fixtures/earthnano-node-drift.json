@@ -1,0 +1,30 @@
+{
+  "runId": 39456512139,
+  "baseline": {
+    "jobId": 118745034231,
+    "artifactId": 12282812402,
+    "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "node": "v24.21.0",
+    "image": "ubuntu24:20261012.334.1",
+    "stage": "tests",
+    "status": 0,
+    "passed": 18953,
+    "skipped": 295,
+    "failed": 0,
+    "artifactSha256": "16fa010aab3fdb5da76a3064714babf6c434deee22e32d5d218c8604ff1cfac7"
+  },
+  "candidate": {
+    "jobId": 118745034481,
+    "artifactId": 12281426766,
+    "source": "0c92a1b8e4c9c3bd28b5456e424e25918d418950",
+    "node": "v24.22.0",
+    "image": "ubuntu24:20261018.339.1",
+    "stage": "npm-ci",
+    "status": 1,
+    "unavailable": "Dependency installation unavailable",
+    "reason": "onnxruntime-node@1.24.3 install: ETIMEDOUT IPv4 / ENETUNREACH IPv6",
+    "testsStarted": false,
+    "artifactSha256": "75333df61f70b6a19fa5d123e6522048a995a65d2671d5ef50c3da9025652230"
+  },
+  "limitation": "Observed report excerpts; raw artifacts remain at the recorded GitHub artifact IDs. No candidate test result or matched-environment regression conclusion exists for this pair."
+}

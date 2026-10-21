@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "source": "4df93008e499941738d91dd75dc653fb033316b0",
+  "run": "https://github.com/lust0yixiong/EarthNano/actions/runs/39550528030",
+  "scope": "Linux x64 original packaging/install/resource/launch gates passed; macOS ARM full build failed with heap OOM; no claim for final Alpha or other jobs",
+  "files": [
+    {
+      "originalName": "linux-job.json",
+      "archive": "linux-job.json.gz",
+      "bytes": 5438,
+      "sha256": "4a4904f45eb4f9794df07b39bdc52431b1cf1985127df2126a31acddd7ce2a18",
+      "archiveSha256": "70207b99464caacb7d08a153ed5f88baaa2d9d4b6d1724fdedb084704fa00475"
+    },
+    {
+      "originalName": "linux-evidence-receipt.json",
+      "archive": "linux-evidence-receipt.json.gz",
+      "bytes": 3509,
+      "sha256": "577fbc86434ce0d15d1c48d9c926d7f6244fe7336abfad1ae0b8eacef4ee9887",
+      "archiveSha256": "7599d3b78721ffed1ded6be0bb80e0928412978d001cb6cbd878a56c3bcdacdb"
+    },
+    {
+      "originalName": "linux-evidence/test-results/native-evidence/artifact-manifest.json",
+      "archive": "linux-evidence__test-results__native-evidence__artifact-manifest.json.gz",
+      "bytes": 2471476,
+      "sha256": "6a9a7f77a7a396457457630e7a853006858286c74b2ad3dc915e90e29fb85e37",
+      "archiveSha256": "d5ab86c327e9aa4303b59dc44127a858267c5974f81cbfe1f587ad9e5299a45b"
+    },
+    {
+      "originalName": "linux-evidence/dist/database-migration-certification.json",
+      "archive": "linux-evidence__dist__database-migration-certification.json.gz",
+      "bytes": 363,
+      "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+      "archiveSha256": "c85d787fe39eff9a681bc465a8595e9ca832e0adcd2e94c02e51f50124cd391f"
+    },
+    {
+      "originalName": "linux.log",
+      "archive": "linux.log.gz",
+      "bytes": 343594,
+      "sha256": "72e9fa09fc35b279a576b9b0010f42cd025956bbf9de147a8ac5b7240c4379d1",
+      "archiveSha256": "469512ba11eb46d22426fa683c751777266c68ccf1490200c097cc70c0a1290b"
+    },
+    {
+      "originalName": "mac-arm64.log",
+      "archive": "mac-arm64.log.gz",
+      "bytes": 69251,
+      "sha256": "1b85b737114be375cb884bd5b8c60a5976113bbc37b683a0e17297bd67f8bd6b",
+      "archiveSha256": "1cd42dc386493df79fa020bbc971791ba2e71272fb35b7c9a66de50da9a1b6f2"
+    }
+  ]
+}

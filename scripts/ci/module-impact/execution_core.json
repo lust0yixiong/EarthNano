@@ -1,0 +1,41 @@
+{
+  "ownerPaths": [
+    "src/main/earthnano/candidate-snapshot.test.ts",
+    "src/main/earthnano/candidate-snapshot.ts",
+    "src/main/earthnano/execution-contract.ts",
+    "src/main/earthnano/execution-core.test.ts",
+    "src/main/earthnano/execution-core.ts",
+    "src/main/earthnano/execution-scope.ts",
+    "src/main/earthnano/execution-store.test.ts",
+    "src/main/earthnano/execution-store.ts",
+    "src/main/earthnano/execution-timeout.ts",
+    "src/main/earthnano/execution-turn-usage.test.ts",
+    "src/main/earthnano/execution-turn-usage.ts",
+    "src/main/earthnano/original-turn-usage.test.ts",
+    "src/main/earthnano/original-turn-usage.ts"
+  ],
+  "interfacePaths": [
+    "src/main/earthnano/candidate-snapshot.ts",
+    "src/main/earthnano/execution-contract.ts",
+    "src/main/earthnano/execution-core.ts",
+    "src/main/earthnano/execution-scope.ts",
+    "src/main/earthnano/execution-store.ts",
+    "src/main/earthnano/execution-timeout.ts",
+    "src/main/earthnano/execution-turn-usage.ts",
+    "src/main/earthnano/original-turn-usage.ts"
+  ],
+  "consumerModules": [],
+  "testFiles": {
+    "owner": [
+      "src/main/earthnano/candidate-snapshot.test.ts",
+      "src/main/earthnano/execution-core.test.ts",
+      "src/main/earthnano/execution-store.test.ts",
+      "src/main/earthnano/execution-turn-usage.test.ts",
+      "src/main/earthnano/original-turn-usage.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "capabilityOverlays": ["windows_sensitive", "e2e_regressions", "e2e_delegation"],
+  "fallbackCapability": "main_runtime"
+}

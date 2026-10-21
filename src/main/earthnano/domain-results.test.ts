@@ -1,8 +1,17 @@
 import { createHash } from 'node:crypto'
+import type {
+  CandidateArtifactFile,
+  CandidateTextArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
 import { describe, expect, it } from 'vitest'
 import { requestDigest } from './execution-contract'
 import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
-import { fixture, input, reflectionText } from './research-domain.test-fixture'
+import { fixture, input, reflectionText } from '../../../test/earthnano/research-domain'
+
+const actualText = (file: CandidateArtifactFile): CandidateTextArtifactFile => {
+  if ('representation' in file) throw new Error('Expected original reflection text fixture')
+  return file
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 async function setup() {
@@ -119,12 +128,31 @@ describe('experiment Library fixed-version provenance', () => {
       'selected execution configuration'
     )
   })
+  it('refuses binary descriptors as reflection evidence even when the committed reply advertises experience', async () => {
+    const f = await setup()
+    const exported = f.outputs.get(f.reflected[0]!.executionId)!
+    const original = actualText(exported.files[0]!)
+    original.artifactRef.checksum = original.digest.slice('sha256:'.length)
+    exported.files = [
+      {
+        path: original.path,
+        representation: 'binary',
+        sizeBytes: Buffer.byteLength(original.content),
+        contentType: 'application/octet-stream',
+        digest: original.digest,
+        artifactRef: original.artifactRef
+      }
+    ]
+    await expect(prepareDomainSummary(f.options)).rejects.toThrow(
+      'Reflection requires actual persisted UTF-8 text'
+    )
+  })
   it('allows native assistant prefaces when the owner preserves the entire same committed reply', async () => {
     const f = await setup()
     for (const record of f.reflected) {
       const exported = f.outputs.get(record.executionId)!
       exported.replyText = `I checked the evidence before reflecting.\n${reflectionText}\nReflection complete.`
-      exported.files[0]!.content = exported.replyText
+      actualText(exported.files[0]!).content = exported.replyText
       exported.files[0]!.digest =
         'sha256:' + createHash('sha256').update(exported.replyText).digest('hex')
     }
@@ -136,7 +164,7 @@ describe('experiment Library fixed-version provenance', () => {
     const text =
       '<experience>\ncue: superseded cue\nlesson: superseded lesson\nevidence: superseded evidence\n CUE : Row reconciliation\n Lesson : Verify all source rows\n Evidence : The adopted output reconciles all rows\n</experience>'
     exported.replyText = text
-    exported.files[0]!.content = text
+    actualText(exported.files[0]!).content = text
     exported.files[0]!.digest = 'sha256:' + createHash('sha256').update(text).digest('hex')
     await expect(prepareDomainSummary(f.options)).resolves.toHaveProperty('tasks.0.experience')
   })
@@ -242,7 +270,7 @@ describe('experiment Library fixed-version provenance', () => {
   })
   it('rejects a persisted experience block that differs from the original reply despite valid file checksums', async () => {
     const f = await setup()
-    const file = f.outputs.get(f.reflected[0]!.executionId)!.files[0]!
+    const file = actualText(f.outputs.get(f.reflected[0]!.executionId)!.files[0]!)
     file.content = file.content.replace('Verify all source rows', 'Skip source checking')
     file.digest = 'sha256:' + createHash('sha256').update(file.content).digest('hex')
     await expect(prepareDomainSummary(f.options)).rejects.toThrow('Reflection')

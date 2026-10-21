@@ -126,10 +126,15 @@ export async function prepareDomainSummary(options: {
     )
       throw new Error('Reflection version identity mismatch')
     const exported = await options.owners.exportResult(reflection)
+    const reflectionFiles = exported.files.map((file) => {
+      if ('representation' in file)
+        throw new Error('Reflection requires actual persisted UTF-8 text artifacts')
+      return file
+    })
     if (
       exported.executionId !== reflection.executionId ||
       canonicalOutput(exported.artifacts) !== canonicalOutput(reflection.evidence.artifacts) ||
-      exported.files.some(
+      reflectionFiles.some(
         (file) =>
           file.digest !== 'sha256:' + createHash('sha256').update(file.content).digest('hex') ||
           !exported.artifacts.some(
@@ -140,7 +145,7 @@ export async function prepareDomainSummary(options: {
       throw new Error('Reflection immutable export identity/checksum mismatch')
     const experienceBlock = (text: string): string | undefined =>
       /<experience>[\s\S]*?<\/experience>/.exec(text)?.[0]
-    const persisted = exported.files.filter((file) => file.path === 'reflection-reply.md')
+    const persisted = reflectionFiles.filter((file) => file.path === 'reflection-reply.md')
     const replyBlock = experienceBlock(exported.replyText)
     if (
       persisted.length !== 1 ||

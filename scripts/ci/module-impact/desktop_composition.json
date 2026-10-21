@@ -200,7 +200,10 @@
     "src/main/desktop-update-integration.test.ts",
     "src/main/desktop-update-integration.ts",
     "src/main/runtime-network-node.test.ts",
-    "src/main/composition/document-reading.architecture.test.ts"
+    "src/main/composition/document-reading.architecture.test.ts",
+    "src/main/composition/desktop-optimization.test.ts",
+    "src/main/composition/desktop-optimization.ts",
+    "src/main/composition/background-results.test.ts"
   ],
   "interfacePaths": [
     "src/main/app-lifecycle.ts",
@@ -264,7 +267,8 @@
     "src/main/desktop-recovery-readiness.ts",
     "src/main/desktop-runtime-info.ts",
     "src/main/desktop-startup-recovery.ts",
-    "src/main/desktop-update-integration.ts"
+    "src/main/desktop-update-integration.ts",
+    "src/main/composition/desktop-optimization.ts"
   ],
   "consumerModules": ["main_web_service"],
   "testFiles": {
@@ -374,7 +378,9 @@
       "src/main/desktop-update-integration.test.ts",
       "src/main/runtime-network-node.test.ts",
       "src/main/legacy-service-termination.test.ts",
-      "src/main/composition/document-reading.architecture.test.ts"
+      "src/main/composition/document-reading.architecture.test.ts",
+      "src/main/composition/desktop-optimization.test.ts",
+      "src/main/composition/background-results.test.ts"
     ],
     "contract": [
       "src/preload/index.test.ts",

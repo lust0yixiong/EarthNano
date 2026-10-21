@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .core import schedule, tree
 from .core.earthnano_binding import (
-    JsonLineClient, PlatformRequestFactory, PlatformResultReader, StdioExecutionPort,
+    binary_alias, JsonLineClient, PlatformRequestFactory, PlatformResultReader, StdioExecutionPort,
     safe_path, text_files,
 )
 from .core.execution_contract import ExecutionStopped
@@ -74,12 +74,12 @@ class EarthNanoAdapter:
         self.config, self.root, self.reader = config, root, reader
         self.substrate = TextSubstrate()
         self.base = root / "base-harness"
-        self.base.mkdir()
+        self.base.mkdir(exist_ok=config.get("resume", False))
         base = {item["path"]: item["content"] for item in text_files(config["baseHarnessFiles"])}
         validate_text_harness(base)
         tree.write_tree(TEXT_SURFACE, base, self.base, stubs=False)
         self.source = root / "source"
-        self.source.mkdir()
+        self.source.mkdir(exist_ok=config.get("resume", False))
         for entry in text_files(config["task"]["files"]):
             path = self.source / safe_path(entry["path"])
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ class EarthNanoAdapter:
             # Source identity only. The host's original Notebook owner stages these exact Versions.
             # This view cannot grant tools, resolve a host path, or choose a newer source Version.
             (self.source / "managed-inputs.json").write_text(
-                json.dumps(config["task"]["managedInputs"], ensure_ascii=False, indent=2) + "\n",
+                json.dumps(config["task"]["managedInputs"], ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
         channel = ChannelSpec("claude_cli", config["model"],
@@ -134,12 +134,44 @@ class EarthNanoAdapter:
     def delivered(self, run_dir):
         return bool(self.reader.view(run_dir)["files"])
 
+    def _binary_metadata(self, run_dir):
+        return [{"logicalPath": entry["path"], "asset": binary_alias(entry),
+                 "sizeBytes": entry["sizeBytes"], **({"contentType": entry["contentType"]}
+                 if "contentType" in entry else {})}
+                for entry in self.reader.view(run_dir)["files"]
+                if entry.get("representation") == "binary"]
+
     def deliverable_files(self, run_dir):
-        return {entry["path"]: entry["content"] for entry in self.reader.view(run_dir)["files"]}
+        files = {entry["path"]: entry["content"] for entry in self.reader.view(run_dir)["files"]
+                 if entry.get("representation") != "binary"}
+        binary = self._binary_metadata(run_dir)
+        if binary:
+            name = "binary-artifacts.metadata.json"
+            while name in files:
+                name = "_" + name
+            files[name] = json.dumps({"representation": "metadata-only",
+                "notice": "This is metadata, not a text conversion, rendering, verification or Review of the binary bytes. The actual original bytes are in raw/<asset>. Any generic context index claim that this metadata is a canonical rendering does not apply to these binary assets.",
+                "assets": binary}, ensure_ascii=False, sort_keys=True)
+        return files
 
     def deliverable_text(self, run_dir):
         return "\n\n".join(f"# {path}\n\n{content}" for path, content
                            in self.deliverable_files(run_dir).items())
+
+    deliverable_assets_reference_only = True
+
+    @staticmethod
+    def deliverable_assets_note(names):
+        return "Original binary assets for this candidate are in `{anon}/`: " + ", ".join(names) + ". Metadata is not their content or an assessment. Open the actual files using supported tools.\n"
+
+    @staticmethod
+    def deliverable_assets_line(shown):
+        return "    context/candidates/<id>/     original binary assets (" + shown + "), not rendered or verified evidence.\n"
+
+    def deliverable_assets(self, run_dir):
+        if not self._binary_metadata(run_dir):
+            return []
+        return self.reader.asset_paths(run_dir)
 
     def trajectory(self, run_dir, *, obs_trunc):
         # The platform projection is the complete readable turn; never inject Review verdicts.
@@ -186,9 +218,11 @@ def validate_managed_inputs(value):
 
 def validate_config(value):
     required = {"configVersion", "taskId", "task", "baseHarnessFiles", "workRoot", "model"}
-    optional = {"executionTimeoutMs", "rpcTimeoutMs", "method"}
+    optional = {"executionTimeoutMs", "rpcTimeoutMs", "method", "resume"}
     if not isinstance(value, dict) or required - value.keys() or value.keys() - required - optional:
         raise ValueError("Invalid EarthNano configuration fields")
+    if "resume" in value and value["resume"] is not True:
+        raise ValueError("Resume requires explicit true")
     if value["configVersion"] != 1:
         raise ValueError("Unsupported EarthNano configuration version")
     if not isinstance(value["taskId"], str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", value["taskId"]):
@@ -228,12 +262,13 @@ def validate_config(value):
 def run(config, client):
     config = validate_config(config)
     root = Path(config["workRoot"])
-    root.mkdir(mode=0o700)  # No cache resume or overwrite of a previous invocation's local view.
-    reader = PlatformResultReader(client, root / "results")
+    root.mkdir(mode=0o700, exist_ok=config.get("resume", False))
+    reader = PlatformResultReader(client, root / "results", resume=config.get("resume", False))
     adapter = EarthNanoAdapter(config, root, reader)
     execution = PortMethodExecution(StdioExecutionPort(client),
-                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"]),
+                                    PlatformRequestFactory(client, timeout_ms=config["executionTimeoutMs"], reader=reader),
                                     reader, poll_interval=0.02)
+    execution.resume = config.get("resume", False)
     prop = Proposer(adapter.spec.channels["proposer"], attempts=1)
     method = config["method"]
     mode = schedule.mode_token(method["mode"])
@@ -250,7 +285,10 @@ def run(config, client):
     changed = bool(chosen_tree and chosen_tree != base_tree)
     stages = result.modes.get(mode, {}).get("stages", [])
     return {
-        "status": result.status, "summary": result.to_dict(), "records": list(execution.records),
+        "status": "ok" if result.status == "skipped" else result.status,
+        "summary": result.to_dict(),
+        "records": (client.exchange("taskRecords", taskId=config["taskId"])
+                    if config.get("resume") else list(execution.records)),
         "chosenArtifacts": chosen["artifacts"] if chosen else [],
         "configurationChanged": changed,
         "fallbackStages": [stage["label"] for stage in stages if stage["fell_back"]],

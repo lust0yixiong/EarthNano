@@ -1,0 +1,19 @@
+{
+  "upstream": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "candidateHead": "30e5c784b1efc426896bb2af627a5576a0c1bed6",
+  "sourceControl": [
+    {
+      "path": "src/main/acp/session-capability-owner.ts",
+      "upstreamSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca",
+      "candidateSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca",
+      "byteIdentical": true
+    },
+    {
+      "path": "src/main/notebook/local-rpc-server.ts",
+      "upstreamSha256": "3fa48425983c7bb6eb866646e4fc7b0d940b5b52a31672ca9772f0561283d424",
+      "candidateSha256": "3fa48425983c7bb6eb866646e4fc7b0d940b5b52a31672ca9772f0561283d424",
+      "byteIdentical": true
+    }
+  ],
+  "nativeEvidenceLimitation": "The native logs do not retain actual temporary routing aliases. Native records show invalid notebook RPC tokens and a Notebook run recorded under another concurrent candidate Session. Deterministic original-owner control is required to establish the collision mechanism."
+}

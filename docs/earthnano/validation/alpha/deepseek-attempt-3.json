@@ -1,0 +1,403 @@
+{
+  "status": "failed",
+  "optimizationState": "failed",
+  "resume": {
+    "runId": "e450b07b-0328-421d-9826-70b0e22a988d",
+    "originalBudget": 24,
+    "stoppedAdmissions": 4,
+    "noCallsOnReopen": true,
+    "completedBeforeResume": [
+      "9fbfdc39-5e39-4040-92e2-f35246d9c83a",
+      "967c7f3d-3328-468e-be38-cf21b79cb97d"
+    ]
+  },
+  "live": true,
+  "progress": {
+    "runId": "e450b07b-0328-421d-9826-70b0e22a988d",
+    "projectId": "cmvgtdjiv0000xjmvhdc6zfrg",
+    "sourceSessionId": "39cad852-f3af-41d3-958b-2b85eb3ee3ca",
+    "method": {
+      "mode": "parallel",
+      "k": 2,
+      "concurrency": 2
+    },
+    "state": "failed",
+    "stage": "failed",
+    "updatedAt": 1792508833551,
+    "executions": [
+      {
+        "executionId": "9fbfdc39-5e39-4040-92e2-f35246d9c83a",
+        "role": "baseline",
+        "stageId": "base1",
+        "phase": "completed",
+        "sessionId": "a1e6d9aa-a920-48f1-871b-b89c44edf0e3"
+      },
+      {
+        "executionId": "967c7f3d-3328-468e-be38-cf21b79cb97d",
+        "role": "baseline",
+        "stageId": "base2",
+        "phase": "completed",
+        "sessionId": "07045fc8-218c-47a3-8460-c7372ce9f5f7"
+      },
+      {
+        "executionId": "8aaf6b2d-d8d6-4cd8-93f8-0ad0050f93c7",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "cancelled",
+        "sessionId": "68fc8f57-62cc-4372-b761-c891c8946ef2"
+      },
+      {
+        "executionId": "525d8b8b-24ab-4bc6-b92f-68fe149a49c9",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "cancelled",
+        "sessionId": "ee5f2b39-bb31-4533-8557-4276cf4485e4"
+      },
+      {
+        "executionId": "4951f365-bb83-4b9c-948f-9b8199062bec",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "afb4c75e-546b-43c9-82c6-1b5616d13fd4"
+      },
+      {
+        "executionId": "7deab581-847e-4020-9dc8-69f4869d4a88",
+        "role": "proposer",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "d1f82d20-17f2-46d4-a53c-596bc868f27f"
+      },
+      {
+        "executionId": "3af0e4e0-29b7-47bf-acb0-0b63c9be3802",
+        "role": "proposer",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "77702775-cdfc-4f5c-a350-cc5f99440c90"
+      },
+      {
+        "executionId": "c1a62902-2061-45ab-837d-2de1fcefac32",
+        "role": "proposer",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "b0455453-8629-46e8-8cf7-28e5e0e8b157"
+      },
+      {
+        "executionId": "ae8c46f4-1863-4fba-94a0-3542742b4f15",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "6abfd6f1-c3fb-4fb9-b7e5-04fdc3d81e1c"
+      },
+      {
+        "executionId": "b2fa803d-ce88-4bb0-853a-8467fddc17f6",
+        "role": "proposer",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "56814139-902b-481c-a7e2-a305ca109095"
+      },
+      {
+        "executionId": "c164aa6c-58a0-40d1-a3c4-1f6c0a4b4260",
+        "role": "candidate",
+        "stageId": "inv1",
+        "phase": "completed",
+        "sessionId": "2581131a-539a-4c60-a9f1-ffb6b9e98d45"
+      },
+      {
+        "executionId": "777a4df6-f0a3-4194-ae63-a56de95960c8",
+        "role": "candidate",
+        "stageId": "dom1",
+        "phase": "completed",
+        "sessionId": "4c0092da-4f56-4b19-a634-23a9c8688c19"
+      },
+      {
+        "executionId": "f00553b3-3d5a-40cc-8d9d-18ee18d09c69",
+        "role": "candidate",
+        "stageId": "inv2",
+        "phase": "completed",
+        "sessionId": "30b965aa-2659-4c1c-88f0-a091f0d47967"
+      },
+      {
+        "executionId": "19bb3ce0-9792-4533-9222-768f1d40dfb8",
+        "role": "candidate",
+        "stageId": "dom2",
+        "phase": "completed",
+        "sessionId": "9dd1039a-87e4-4eba-b5e8-a2aa1144066a"
+      },
+      {
+        "executionId": "8b3449f0-8907-4da4-973d-f7c944165e38",
+        "role": "composer",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "78de4fe5-106d-4e77-8d32-24a1cca58545"
+      },
+      {
+        "executionId": "8d062518-ef06-43ee-b2cf-42cdf309b58d",
+        "role": "composer",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "057d3383-06c9-4aa2-8e93-0b5346a69eb2"
+      },
+      {
+        "executionId": "dc94d6c4-976c-40fb-b72b-42f4b32e43a5",
+        "role": "candidate",
+        "stageId": "agg1",
+        "phase": "completed",
+        "sessionId": "fc3ae3e2-b3cf-43fe-b459-6af345f6ed57"
+      },
+      {
+        "executionId": "964c68c6-c8fe-4c90-a312-86b99cb457d9",
+        "role": "candidate",
+        "stageId": "agg2",
+        "phase": "completed",
+        "sessionId": "04a930d7-f782-419f-adff-501a971019ef"
+      },
+      {
+        "executionId": "9c4e6c0f-f5f9-46e8-bba5-6feec592a3ac",
+        "role": "selector",
+        "stageId": "select.agg2",
+        "phase": "completed",
+        "sessionId": "9a91e26b-bdb4-4ad4-8721-dc3ce04ae6b6"
+      }
+    ],
+    "budget": {
+      "limit": 24,
+      "admitted": 19,
+      "completed": 19,
+      "active": 0
+    },
+    "notebook": {
+      "source": {
+        "promptMessageId": "message-1792508662260-1"
+      },
+      "inputs": [
+        {
+          "sourceKind": "upload-version",
+          "sourceProjectId": "cmvgtdjiv0000xjmvhdc6zfrg",
+          "sourceSessionId": "39cad852-f3af-41d3-958b-2b85eb3ee3ca",
+          "sourceFileId": "eee0a506-ab40-46d8-93aa-2133b34c3901",
+          "inputFileVersionId": "3825bb9f-1540-4f04-b4c4-281b04162b69",
+          "filename": "measurements.csv",
+          "sizeBytes": 25,
+          "checksum": "2935c5f6f5db6fd400d4a7be6657929560db3fb07cd6d8817b6fb7a4cb8a4740"
+        }
+      ],
+      "runtime": {
+        "language": "python",
+        "runtimeId": "/opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/bin/python3.12",
+        "source": "external",
+        "provenance": "user-own",
+        "interpreterPath": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+        "version": "3.12.13"
+      }
+    },
+    "error": "Optimization or independent assessment failed. Inspect the recorded Sessions.",
+    "resumeAvailable": true
+  },
+  "sourceArtifact": {
+    "artifactId": "c6591c25-d284-4cde-af35-087c21e0347f",
+    "versionId": "01e98677-7907-4ec2-b040-17cb3297744d",
+    "checksum": "606157f1c19828bd4e84091b161c72703e4cdd9e01264572119c838309739ea6"
+  },
+  "notebookRuns": [
+    {
+      "runId": "notebook-run-1792508671248-1",
+      "kernelKind": "python",
+      "status": "completed"
+    }
+  ],
+  "executionFacts": [
+    {
+      "executionId": "9fbfdc39-5e39-4040-92e2-f35246d9c83a",
+      "role": "baseline",
+      "stageId": "base1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "967c7f3d-3328-468e-be38-cf21b79cb97d",
+      "role": "baseline",
+      "stageId": "base2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8aaf6b2d-d8d6-4cd8-93f8-0ad0050f93c7",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "525d8b8b-24ab-4bc6-b92f-68fe149a49c9",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "cancelled",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "4951f365-bb83-4b9c-948f-9b8199062bec",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "7deab581-847e-4020-9dc8-69f4869d4a88",
+      "role": "proposer",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "3af0e4e0-29b7-47bf-acb0-0b63c9be3802",
+      "role": "proposer",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "c1a62902-2061-45ab-837d-2de1fcefac32",
+      "role": "proposer",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "ae8c46f4-1863-4fba-94a0-3542742b4f15",
+      "role": "proposer",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "b2fa803d-ce88-4bb0-853a-8467fddc17f6",
+      "role": "proposer",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "c164aa6c-58a0-40d1-a3c4-1f6c0a4b4260",
+      "role": "candidate",
+      "stageId": "inv1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "777a4df6-f0a3-4194-ae63-a56de95960c8",
+      "role": "candidate",
+      "stageId": "dom1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "f00553b3-3d5a-40cc-8d9d-18ee18d09c69",
+      "role": "candidate",
+      "stageId": "inv2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "19bb3ce0-9792-4533-9222-768f1d40dfb8",
+      "role": "candidate",
+      "stageId": "dom2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8b3449f0-8907-4da4-973d-f7c944165e38",
+      "role": "composer",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "8d062518-ef06-43ee-b2cf-42cdf309b58d",
+      "role": "composer",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "dc94d6c4-976c-40fb-b72b-42f4b32e43a5",
+      "role": "candidate",
+      "stageId": "agg1",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "964c68c6-c8fe-4c90-a312-86b99cb457d9",
+      "role": "candidate",
+      "stageId": "agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    },
+    {
+      "executionId": "9c4e6c0f-f5f9-46e8-bba5-6feec592a3ac",
+      "role": "selector",
+      "stageId": "select.agg2",
+      "phase": "completed",
+      "cleanup": "confirmed"
+    }
+  ],
+  "acceptancePassed": false,
+  "provider": {
+    "requests": 98,
+    "rejected": 0,
+    "unsupportedTokenCountRequests": 0,
+    "rejectedRoutes": {},
+    "healthRequests": 19,
+    "nativeTitleRequests": 1,
+    "pausedBeforeForward": 1,
+    "upstreamRequests": 97,
+    "cancelledUpstreamRequests": 1,
+    "roles": {
+      "ordinary": 6,
+      "baseline": 11,
+      "proposer": 39,
+      "candidate": 31,
+      "composer": 9,
+      "selector": 2
+    },
+    "toolNames": [
+      "mcp__open-science-notebook__list_notebook_runtimes",
+      "mcp__open-science-notebook__notebook_bind_runtime",
+      "mcp__open-science-notebook__notebook_execute",
+      "mcp__open-science-artifacts__write_artifact_file",
+      "mcp__open-science-notebook__notebook_state",
+      "Read",
+      "Write",
+      "Edit",
+      "Skill"
+    ],
+    "usage": {
+      "input": 369052,
+      "cacheRead": 1530624,
+      "output": 34965,
+      "incompleteRequests": 1
+    }
+  },
+  "bounds": {
+    "apiRequests": 160,
+    "maxOutputTokensPerRequest": 2048,
+    "upstreamDeadlineMs": 90000,
+    "optimizationExecutions": 24
+  },
+  "runtime": {
+    "source": {
+      "head": "e934e2732acd3887708e46a227bac05b67388bb9",
+      "dirty": false
+    },
+    "bundleEntrypointSha256": {
+      "out/backend/index.cjs": "a688e623a1a9855eed8bccd8a236e2c5d45e14f8b8ddc027d14386c235034a11",
+      "out/main/index.js": "b220e99bb19d83497df078799286384ddbb5b5331d0a1d0c090ed12794c7f340",
+      "out/preload/index.js": "641791ec005a5e292ad0f6d4e9d8de2d966123f8919dd2ea4405b24700688a55",
+      "out/renderer/index.html": "1366c7a6eb424491c5a88eb205f2c175b87ba4c58db814f233217929a9d2499d"
+    },
+    "electron": "43.7.5",
+    "claude": "2.1.232",
+    "nodeRunner": "v26.0.0",
+    "model": "deepseek-flash",
+    "backend": "native Claude Code"
+  }
+}

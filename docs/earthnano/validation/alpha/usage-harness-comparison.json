@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "reviewedTestRenames": [],
+  "conclusion": "no-new-regressions",
+  "regressions": [],
+  "baselineFailures": [],
+  "baselineSkips": [],
+  "newSkips": [],
+  "candidateFailures": [],
+  "candidateSkips": [],
+  "limitation": "Baseline failures/skips remain unresolved evidence, not full acceptance. Equal failing statuses do not prove an identical cause.",
+  "counts": {
+    "baseline": 5,
+    "candidate": 66,
+    "added": 61
+  }
+}

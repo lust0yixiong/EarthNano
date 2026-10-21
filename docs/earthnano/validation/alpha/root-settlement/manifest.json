@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "source": "4e2bfd3f62390f7102178ec42bb3eac551fc322d",
+  "parent": "ef9639c43e88ac054b7b188f16cdbe8199ee33ac",
+  "originalSource": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "scope": "Fix and local proof for original delegation settlement lease cleanup when shared execution preparation rejects; not full Alpha or hosted/native acceptance.",
+  "cause": "Original settlement lease begins before host.prepare. A preparation rejection bypassed original dispatch cleanup and retained one real owner lease.",
+  "rootValidation": {
+    "focusedPassed": 273,
+    "failed": 0,
+    "skipped": 0,
+    "fullNodeSandboxWebTypes": "passed",
+    "originalUpstreamTestTitleExactlyOncePassed": true
+  },
+  "limitations": [
+    "External exact-source differential uses actual coordinator/boundary/settlement owner with stubbed native runtime and unrelated imports; no model or database.",
+    "Original and boundary-disabled controls reject in original native preparation; new-boundary variants reject in host.prepare. Results demonstrate cleanup difference, not identical failure cause.",
+    "Retained lease/session state is proven; no claim that later Send is blocked.",
+    "Prepared fix is separate from live ef source CI and c1e native CI."
+  ],
+  "files": [
+    {
+      "originalName": "review.txt",
+      "archive": "review.txt.gz",
+      "bytes": 7549,
+      "sha256": "710dd140e91b1e14b4fe33f4c0bf9f8b3a217443ac2685ad2a8b82680855fd3d",
+      "archiveSha256": "5e6b85908bbaea20e72da371a9d27704653bd61df1fa5a380b879cc01db8d721"
+    },
+    {
+      "originalName": "lease-rejection-repro.cjs",
+      "archive": "lease-rejection-repro.cjs.gz",
+      "bytes": 4884,
+      "sha256": "529d3c409e643c456cb3f6cefedecb14b1e6777a895127c0a56c450c441824cc",
+      "archiveSha256": "b3f6e5f07d8ed6c48a99ddca0cdf5ab143ae20b229c8cb8df928db6a240cefa5"
+    },
+    {
+      "originalName": "lease-rejection-results.json",
+      "archive": "lease-rejection-results.json.gz",
+      "bytes": 2199,
+      "sha256": "f1c30b89f8b933e596a8f2cf5b7fd310e7eb39c567a9ed808375efc1afb1ddb6",
+      "archiveSha256": "9b90d0215c797030e2cf46ed89f9bc204899305ff2a83f408a515777243e2a7f"
+    },
+    {
+      "originalName": "root-confirmed-repro.json",
+      "archive": "root-confirmed-repro.json.gz",
+      "bytes": 2199,
+      "sha256": "0668832fa57f68cb21b0e7baeafddba2b56d740e6cc433e5ff14dbcd51fa6a7d",
+      "archiveSha256": "f3fff4a399370ec0d44164be3e37f8e2b2b83005ead1efde74a39c5e8c99d62b"
+    },
+    {
+      "originalName": "lease-rejection-fixed-results.json",
+      "archive": "lease-rejection-fixed-results.json.gz",
+      "bytes": 3394,
+      "sha256": "34c8f56a3f6ab7b4a91171272840283c63db53daaa46325a928f069f4ebb3265",
+      "archiveSha256": "9f3527503c6a11c951de93af8d1c82ee2cb3034290f934e23e117ac9313a10f0"
+    },
+    {
+      "originalName": "coordinator-red.log",
+      "archive": "coordinator-red.log.gz",
+      "bytes": 2372,
+      "sha256": "5fb24db87c1f7cf6d2ec7352197381850fa1538fb56d8eb9162d42c9474b5ad7",
+      "archiveSha256": "720005d0df8a948648f0f9741263fa904be13fa857b78222e2ec02cd03f87c50"
+    },
+    {
+      "originalName": "root-focused-green.json",
+      "archive": "root-focused-green.json.gz",
+      "bytes": 93689,
+      "sha256": "a33971da7b960699e2b95d918050cfcbba50e486bdeb8a54fd2321663bea624d",
+      "archiveSha256": "030056c509db89cfcbbc416cb4e539f9cdc70a2d4da48c51533afacbacc9ad48"
+    },
+    {
+      "originalName": "root-types.log",
+      "archive": "root-types.log.gz",
+      "bytes": 706,
+      "sha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "archiveSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    }
+  ]
+}

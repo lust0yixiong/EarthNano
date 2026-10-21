@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "integrationSource": "4246f149c0b97094c7455a827a7740149dfb5928",
+  "scope": "Version-backed binary export, original method asset projection and real original RDS/PNG producer/Version acceptance; not final desktop model, Windows or full hosted acceptance",
+  "nodeLocal": "26.0.0",
+  "sourceCiNodePin": "24.22.0",
+  "originalPins": {
+    "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "harness2": "1cfe254e8d25b15f37048c3730134686abe60335"
+  },
+  "results": {
+    "rootFocused": {
+      "passed": 282,
+      "skippedPaidOptIns": 5,
+      "failed": 0
+    },
+    "fullNodeSandboxWebTypes": "passed",
+    "providerTests": {
+      "passed": 11,
+      "failed": 0
+    },
+    "realScientificCases": {
+      "passed": 3,
+      "skipped": 0,
+      "failed": 0
+    },
+    "paidOrUpstreamScientificRequests": 0,
+    "currentOriginalConsumerGenerator": "passed"
+  },
+  "records": [
+    {
+      "file": "joint-focused.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/joint-focused.json",
+      "bytes": 101005,
+      "sha256": "38539f604abd67e4b5b3003de19e47841465bed4f750aef835fbe415fcb89101",
+      "archiveSha256": "8317f1a0d9a8e0cf963ca6ad225f81f6f145ea874364a2c2eca3d5caf2fcb0cc"
+    },
+    {
+      "file": "joint-types.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/joint-types.log",
+      "bytes": 706,
+      "sha256": "3679c4f228b7ffbe9f421e431fb45d2742762ced5e1c51a6b9a6c0fbab53b52d",
+      "archiveSha256": "11bfe9ea0bc6ffeb9b5681db1497b63d628f908731c86680914e1ac13d9ebeff"
+    },
+    {
+      "file": "provider-focused.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/provider-real-focused.json",
+      "bytes": 3614,
+      "sha256": "9676206a7efa8883c076e4bf134fd0f829e666f78a5636372352c4103b5e8150",
+      "archiveSha256": "547ea9d29ecf2a00e38210b639ee47f61e0ddb341b1668e533cdcc6b309ba9c5"
+    },
+    {
+      "file": "consumer-index-proof.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/consumer-index-proof.json",
+      "bytes": 630,
+      "sha256": "4bfe99d42b117768e7c574b4eb74de539a2fbfc4d3e49d0493219ace065ed6e2",
+      "archiveSha256": "8970eb3fac587317426b7aa07e06b34ffc649313ad41f22f506d2151d46495f1"
+    },
+    {
+      "file": "method-summary.txt.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-rebase-diagnosis-20261021/method-current/SUMMARY.txt",
+      "bytes": 7737,
+      "sha256": "0892a93f37495e07930755ccde5d6b0e2e9cbb24a239e3c8f2e0f65845d8f4b3",
+      "archiveSha256": "b39fcfbde25241b0cb7b3ae377e5eb958fa2af594f9141ce04539267b4c0af0d"
+    },
+    {
+      "file": "method-text-byte-equivalence.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-rebase-diagnosis-20261021/method-current/text-byte-equivalence-by-stage.json",
+      "bytes": 1379,
+      "sha256": "8014b2d3dc10fb3a246cb7027d0645e6f3214ad56073684c2db7bb7b8796a384",
+      "archiveSha256": "7a462d3542e69eb9acee5e226b2f680b9cbfd84e5a75112322267f0a178b9493"
+    },
+    {
+      "file": "owner-summary.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/alpha-core-review-20261021/binary-owner-summary.json",
+      "bytes": 4376,
+      "sha256": "0a40022e3465e0ec865c08d29ddd43b75e3ef0bc9af2fc0aa0ff4e1706cde63d",
+      "archiveSha256": "184d34409dc5ebd6297ded3f3077fba8bff7c08570dc20c0b95ce1df7e559c0c"
+    },
+    {
+      "file": "scientific-acceptance-summary.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/r-binary-scientific-20261021/acceptance-summary.json",
+      "bytes": 4967,
+      "sha256": "78d06688183174bb7d583f36d11318e4aa8c4ddd8375a405a8edf562269dab14",
+      "archiveSha256": "40b958ea1bd0dbecda8c16bfa25da90767e960c221c8627818142189ce70ac4f"
+    },
+    {
+      "file": "scientific-all-three.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/r-binary-scientific-20261021/scientific-all-three.json",
+      "bytes": 1713,
+      "sha256": "34e374743b48cf420ce282d4abe4f46d9e1140668b4f452c23544acf9c01a41d",
+      "archiveSha256": "a88945b11c5935be219dfbd4ed0a003a80d6588597f1b79ca6b8e793c5deaa59"
+    },
+    {
+      "file": "r-binary-scientific.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/r-binary-scientific-20261021/r-binary-scientific.json",
+      "bytes": 476638,
+      "sha256": "b035072c1ab9f96a30e7637621f4dabc37971c423475201e06a1038dfcf9dd60",
+      "archiveSha256": "6f006edbeec96f9acdd86e1b45cff71fc2c6ffb481d64840ce42ba2bf560710f"
+    },
+    {
+      "file": "source-analysis-original-equivalence.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/r-binary-scientific-20261021/source-analysis-original-equivalence.json",
+      "bytes": 1088,
+      "sha256": "6646ec39550497230152d2162b1dccb55839729f6cda14a83ea1a220b9ed2d93",
+      "archiveSha256": "200170c2a81c76da378b1a2a01bfa566096845f8f4aaf9bf6aa35ab29a9dbaf0"
+    },
+    {
+      "file": "baseline-measurements.png",
+      "bytes": 4704,
+      "sha256": "86fb1fa02a89c5bb922925d9fdc46d26ca5b45fc2a914c77a71df8c0ca7e5c36"
+    },
+    {
+      "file": "candidate-measurements.png",
+      "bytes": 4704,
+      "sha256": "86fb1fa02a89c5bb922925d9fdc46d26ca5b45fc2a914c77a71df8c0ca7e5c36"
+    }
+  ]
+}

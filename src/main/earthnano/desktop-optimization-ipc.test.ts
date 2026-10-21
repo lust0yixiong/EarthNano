@@ -33,15 +33,18 @@ let api: DesktopOptimizationApi
 beforeEach(() => {
   handlers.clear()
   api = {
+    previewSweep: vi.fn().mockResolvedValue({ planDigest: 'safe' }),
+    startSweep: vi.fn().mockResolvedValue({ state: 'queued' }),
     start: vi.fn().mockResolvedValue({ state: 'queued' }),
     get: vi.fn().mockResolvedValue({ state: 'running' }),
     latest: vi.fn().mockResolvedValue(null),
-    stop: vi.fn().mockResolvedValue({ state: 'stopping' })
+    stop: vi.fn().mockResolvedValue({ state: 'stopping' }),
+    resume: vi.fn().mockResolvedValue({ state: 'queued' })
   }
   registerDesktopOptimizationIpcHandlers(api)
 })
-it('registers typed desktop start/get/latest/stop and forwards only their DTOs', async () => {
-  for (const operation of ['start', 'get', 'latest', 'stop'] as const) {
+it('registers typed desktop start/get/latest/stop/resume and forwards only their DTOs', async () => {
+  for (const operation of ['start', 'get', 'latest', 'stop', 'resume'] as const) {
     const dto =
       operation === 'start'
         ? request
@@ -51,6 +54,12 @@ it('registers typed desktop start/get/latest/stop and forwards only their DTOs',
     await handlers.get(`optimization:${operation}`)!(event(), dto)
     expect(api[operation]).toHaveBeenCalledWith(dto)
   }
+})
+it('resumes only a known run key and rejects replacement input, tools or budget fields', async () => {
+  const key = { projectId: 'p', sourceSessionId: 's', runId: 'r' }
+  for (const extra of [{ executionLimit: 128 }, { prompt: 'Replace task' }, { tools: 'all' }])
+    await expect(invokeDesktopOptimization(api, 'resume', { ...key, ...extra })).rejects.toThrow()
+  expect(api.resume).not.toHaveBeenCalled()
 })
 it('rejects missing/destroyed/subframe callers and does not invoke the manager', async () => {
   const missing = { ...event(), senderFrame: null } as unknown as IpcMainInvokeEvent
@@ -177,4 +186,105 @@ it.each([
     invokeDesktopOptimization(api, 'start', { ...request, ...options })
   ).rejects.toThrow()
   expect(api.start).not.toHaveBeenCalled()
+})
+
+const sweep = {
+  projectId: 'p',
+  sourceSessionId: 's',
+  requestKey: 'r',
+  executionLimit: 40,
+  catalog: [
+    {
+      taskId: 'a',
+      domain: 'csv',
+      sourceSessionId: 'own-source',
+      source: { kind: 'notebook', promptMessageId: 'original-prompt' },
+      criteria: 'Verify original data'
+    }
+  ],
+  sweep: {
+    modes: ['parallel', 'sequential'],
+    k: 1,
+    concurrency: 2,
+    stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+it('forwards typed startSweep with independent task sources through the same desktop-only caller boundary', async () => {
+  await handlers.get('optimization:startSweep')!(event(), sweep)
+  expect(api.startSweep).toHaveBeenCalledWith(sweep)
+  expect(api.start).not.toHaveBeenCalled()
+  await expect(
+    handlers.get('optimization:startSweep')!(
+      { ...event(), senderFrame: {} } as IpcMainInvokeEvent,
+      sweep
+    )
+  ).rejects.toThrow('Optimization request could not be completed')
+  expect(api.startSweep).toHaveBeenCalledOnce()
+})
+it('rejects malformed excluded source authority and masks raw sweep setup errors', async () => {
+  for (const source of [
+    { kind: 'notebook', promptMessageId: 'original-prompt', runtime: '/private/python' },
+    { kind: 'text', prompt: 'Task', files: [{ path: '../outside', content: 'x' }] }
+  ]) {
+    await expect(
+      invokeDesktopOptimization(api, 'startSweep', {
+        ...sweep,
+        catalog: [{ ...sweep.catalog[0], source }],
+        sweep: { ...sweep.sweep, stream: { ...sweep.sweep.stream, onlyTasks: ['unrelated'] } }
+      })
+    ).rejects.toThrow('Optimization request could not be completed')
+  }
+  expect(api.startSweep).not.toHaveBeenCalled()
+  vi.mocked(api.startSweep).mockRejectedValue(new Error('credential=synthetic-private-key'))
+  await expect(invokeDesktopOptimization(api, 'startSweep', sweep)).rejects.toThrow(
+    'Optimization request could not be completed. Check the selected model and runtime settings.'
+  )
+})
+
+const preview = {
+  projectId: 'p',
+  sourceSessionId: 's',
+  catalog: [{ taskId: 'a', domain: 'd' }],
+  sweep: {
+    modes: ['parallel'],
+    k: 1,
+    concurrency: 1,
+    stream: { seed: 0, onlyDomains: [], onlyTasks: [], maxTasks: null, workers: 1 }
+  }
+}
+it('forwards only strict identity-only preview DTOs over the top-frame desktop boundary', async () => {
+  await expect(handlers.get('optimization:previewSweep')!(event(), preview)).resolves.toEqual({
+    planDigest: 'safe'
+  })
+  expect(api.previewSweep).toHaveBeenCalledWith(preview)
+  for (const extra of [
+    { provider: 'SECRET' },
+    { prompt: 'SECRET' },
+    { files: [] },
+    { executionLimit: 512 }
+  ])
+    await expect(
+      invokeDesktopOptimization(api, 'previewSweep', { ...preview, ...extra })
+    ).rejects.toThrow('could not be completed')
+  await expect(
+    invokeDesktopOptimization(api, 'previewSweep', {
+      ...preview,
+      catalog: [{ ...preview.catalog[0], source: { kind: 'notebook' } }]
+    })
+  ).rejects.toThrow('could not be completed')
+  await expect(
+    handlers.get('optimization:previewSweep')!(
+      { ...event(), senderFrame: {} } as IpcMainInvokeEvent,
+      preview
+    )
+  ).rejects.toThrow('could not be completed')
+  expect(api.previewSweep).toHaveBeenCalledOnce()
+})
+it('redacts preview authorization, subprocess and provider-shaped errors', async () => {
+  vi.mocked(api.previewSweep).mockRejectedValue(
+    new Error('credential=SECRET https://SECRET@example.invalid')
+  )
+  await expect(invokeDesktopOptimization(api, 'previewSweep', preview)).rejects.toThrow(
+    /^Optimization request could not be completed\. Check the selected model and runtime settings\.$/
+  )
 })

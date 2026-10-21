@@ -1,3 +1,9 @@
+# EarthNano v0.1.0-alpha.1
+
+Dieser Entwicklungsstand integriert OpenScience und Harness². Die Alpha-Abnahme und Veröffentlichung stehen noch aus. Die folgende Originaldokumentation beschreibt das vorgelagerte Projekt; dessen Downloads und Leistungsangaben gelten nicht als Veröffentlichung oder Prüfergebnis von EarthNano.
+
+---
+
 <h1 align="center">AIPOCH Open-Science</h1>
 
 <p align="center">

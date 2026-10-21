@@ -19,8 +19,9 @@ for (const width of [1100, 390])
       buffer: Buffer.from('value\n1\n2\n')
     })
     await expect(page.getByText('values.csv', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
     await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
-    await expect(page.getByRole('status')).toContainText('Used 2 of 12 executions')
+    await expect(page.getByTestId('optimization-progress')).toContainText('Used 2 of 12 executions')
     await expect(
       page.getByText('Used 2 of 12 executions · 1 active', { exact: true })
     ).toBeInViewport({ ratio: 1 })
@@ -41,15 +42,25 @@ for (const width of [1100, 390])
     expect(
       await page.evaluate(
         () =>
-          (window as unknown as { optimizationFixture: { start: unknown[] } }).optimizationFixture
-            .start[0]
+          (window as unknown as { optimizationFixture: { sweeps: unknown[] } }).optimizationFixture
+            .sweeps[0]
       )
     ).toMatchObject({
       projectId: 'project',
       sourceSessionId: 'session',
-      prompt: 'Compute a synthetic CSV sum',
       executionLimit: 12,
-      files: [{ path: 'values.csv', content: 'value\n1\n2\n' }]
+      catalog: [
+        {
+          taskId: 'task-0001',
+          domain: 'research',
+          sourceSessionId: 'session',
+          source: {
+            kind: 'text',
+            prompt: 'Compute a synthetic CSV sum',
+            files: [{ path: 'values.csv', content: 'value\n1\n2\n' }]
+          }
+        }
+      ]
     })
     const polled = await page.evaluate(
       () => (window as unknown as { optimizationFixture: { get: number } }).optimizationFixture.get
@@ -71,7 +82,7 @@ for (const width of [1100, 390])
       await page.getByTestId('task-optimization-panel').evaluate((node) => node.scrollTop)
     ).toBe(scrolled)
     await page.getByRole('button', { name: 'Stop optimization', exact: true }).click()
-    await expect(page.getByRole('status')).toContainText('Cancelled')
+    await expect(page.getByTestId('optimization-progress')).toContainText('Cancelled')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 test('shows independent assessments, opens owner-backed views and resets on Session switch', async ({
@@ -82,6 +93,7 @@ test('shows independent assessments, opens owner-backed views and resets on Sess
   await page
     .getByLabel('Acceptance criteria (one per line)', { exact: true })
     .fill('The output is valid')
+  await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
   await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
   await expect(page.getByText('Baseline assessment', { exact: true })).toBeVisible()
   await expect(page.getByText('Candidate assessment', { exact: true })).toBeVisible()
@@ -107,6 +119,7 @@ test('keeps errors credential-free and hides unsupported web entry', async ({ pa
   await page
     .getByLabel('Acceptance criteria (one per line)', { exact: true })
     .fill('The output is valid')
+  await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
   await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Check the selected model')
   await expect(page.locator('body')).not.toContainText('synthetic-secret')
@@ -122,11 +135,12 @@ for (const mode of ['sequential', 'parallel']) {
     await page.getByLabel('Recursion parameter (k)', { exact: true }).fill('2')
     await page.getByLabel('Concurrent executions', { exact: true }).fill('2')
     const budget = page.getByLabel('Execution limit (includes two assessments)', { exact: true })
-    await expect(budget).toHaveValue('17')
+    await expect(budget).toHaveValue('12')
     await budget.fill('20')
     await page
       .getByLabel('Acceptance criteria (one per line)', { exact: true })
       .fill('The requested output is complete')
+    await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
     await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
     await expect(page.getByText('Selector comparison', { exact: true })).toBeVisible()
     await expect(
@@ -137,10 +151,10 @@ for (const mode of ['sequential', 'parallel']) {
     expect(
       await page.evaluate(
         () =>
-          (window as unknown as { optimizationFixture: { start: unknown[] } }).optimizationFixture
-            .start[0]
+          (window as unknown as { optimizationFixture: { sweeps: unknown[] } }).optimizationFixture
+            .sweeps[0]
       )
-    ).toMatchObject({ method: { mode, k: 2, concurrency: 2 }, executionLimit: 20 })
+    ).toMatchObject({ sweep: { modes: [mode], k: 2, concurrency: 2 }, executionLimit: 20 })
   })
 }
 
@@ -150,7 +164,7 @@ test('keeps domain admission scoped to each task and submits private JSON expect
   await page.goto('/task-optimization.html?complete')
   await page.getByText('Optimize task', { exact: true }).click()
   await page.getByLabel('Acceptance criteria (one per line)', { exact: true }).fill('Correct count')
-  await page.getByLabel('Domain experiment name (optional)', { exact: true }).fill('csv-count')
+  await page.getByLabel('Domain', { exact: true }).first().fill('csv-count')
   await page.getByRole('button', { name: 'Add next task', exact: true }).click()
   await page
     .getByLabel('Next task description 1', { exact: true })
@@ -162,7 +176,8 @@ test('keeps domain admission scoped to each task and submits private JSON expect
     page.getByLabel('Shared execution limit (all task assessments and reflections)', {
       exact: true
     })
-  ).toHaveValue('20')
+  ).toHaveValue('12')
+  await page.getByRole('button', { name: 'Preview task stream', exact: true }).click()
   await page.getByRole('button', { name: 'Start optimization', exact: true }).click()
   const results = page.getByTestId('domain-results')
   const tasks = results.locator('section')
@@ -173,21 +188,27 @@ test('keeps domain admission scoped to each task and submits private JSON expect
   await expect(
     page.getByText('Eligible for further configuration validation', { exact: true })
   ).toHaveCount(1)
-  await expect(page.getByRole('status')).not.toContainText('output-check-failed')
+  await expect(page.getByTestId('optimization-progress')).not.toContainText('output-check-failed')
   expect(
     await page.evaluate(
       () =>
-        (window as unknown as { optimizationFixture: { start: unknown[] } }).optimizationFixture
-          .start[0]
+        (window as unknown as { optimizationFixture: { sweeps: unknown[] } }).optimizationFixture
+          .sweeps[0]
     )
   ).toMatchObject({
     executionLimit: 20,
-    checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 3 } }],
-    domain: {
-      name: 'csv-count',
-      nextTasks: [
-        { prompt: 'Count the second data set', criteria: 'Correct second count', files: [] }
-      ]
-    }
+    catalog: [
+      {
+        taskId: 'task-0001',
+        domain: 'csv-count',
+        checks: [{ kind: 'json-value', path: 'result.json', pointer: '', expected: { count: 3 } }]
+      },
+      {
+        taskId: 'task-0002',
+        domain: 'csv-count',
+        criteria: 'Correct second count',
+        source: { kind: 'text', prompt: 'Count the second data set', files: [] }
+      }
+    ]
   })
 })

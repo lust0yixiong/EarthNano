@@ -1,3 +1,11 @@
+import {
+  assertPackagedLicenses,
+  configurePackageSmokeIdentity,
+  loadPackageSmokeIdentity,
+  packageSmokeIdentity,
+  packageArtifactPattern,
+  packageArtifactVersion
+} from './package-smoke-identity.mjs'
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 import { spawn } from 'node:child_process'
@@ -16,7 +24,6 @@ import {
 import { authenticatePackagedAppEndpoint } from './packaged-web-service-auth.mjs'
 import { collectSmokeDiagnostics } from './package-smoke-diagnostics.mjs'
 
-const APPIMAGE_PATTERN = /^aipoch-open-science-(.+)-linux-(?:x64|x86_64|arm64)\.AppImage$/
 const SMOKE_ROOT_PREFIX = 'open-science-linux-package-smoke-'
 const STARTUP_TIMEOUT_MS = 60_000
 const REQUIRED_LINUX_PRISMA_ENGINES = {
@@ -54,9 +61,7 @@ const readDaemonLogs = async (configRoot) => {
 }
 
 const appImageVersion = (path) => {
-  const match = basename(path).match(APPIMAGE_PATTERN)
-  if (!match) throw new Error(`Cannot derive the app version from AppImage: ${path}`)
-  return match[1]
+  return packageArtifactVersion(path, 'linux', 'AppImage')
 }
 
 const parsePackagedAppEndpoint = (output) => {
@@ -131,7 +136,7 @@ const findResourceRoot = async (executable, resolvedExecutable = executable) => 
     join(dirname(resolvedExecutable), 'resources'),
     join(bundleRoot, 'resources'),
     join(bundleRoot, 'usr', 'lib', 'open-science', 'resources'),
-    join(bundleRoot, 'usr', 'lib', 'Open-Science', 'resources')
+    join(bundleRoot, 'usr', 'lib', packageSmokeIdentity().productName, 'resources')
   ]
   for (const candidate of [...new Set(candidates)]) {
     if (await pathExists(join(candidate, 'app.asar'))) return candidate
@@ -144,6 +149,7 @@ const assertPackagedResources = async (
   resourceRoot = join(dirname(executable), 'resources'),
   arch = process.arch
 ) => {
+  await assertPackagedLicenses(resourceRoot)
   const requiredEngines = REQUIRED_LINUX_PRISMA_ENGINES[arch]
   if (!requiredEngines) throw new Error(`Unsupported Linux package architecture: ${arch}`)
   for (const path of packagedResourcePaths(executable, resourceRoot)) {
@@ -205,7 +211,7 @@ const launchAndProbe = async ({ resourceRoot, expectedVersion, env }) => {
     if (!response.ok) throw new Error(`Packaged Linux bootstrap returned HTTP ${response.status}.`)
     const bootstrap = await response.json()
     if (
-      bootstrap.appName !== 'Open-Science' ||
+      bootstrap.appName !== packageSmokeIdentity().productName ||
       bootstrap.appVersion !== expectedVersion ||
       bootstrap.platform !== 'linux'
     ) {
@@ -375,9 +381,16 @@ const parseArguments = (argv) => {
 
 const main = async () => {
   if (process.platform !== 'linux') throw new Error('Linux package smoke requires Linux.')
+  configurePackageSmokeIdentity(await loadPackageSmokeIdentity())
   const options = parseArguments(process.argv.slice(2))
-  const appImage = await findOne(options.artifactDirectory, APPIMAGE_PATTERN, 'Linux AppImage')
+  const appImage = await findOne(
+    options.artifactDirectory,
+    packageArtifactPattern('linux', 'AppImage'),
+    'Linux AppImage'
+  )
   const expectedVersion = appImageVersion(appImage)
+  if (expectedVersion !== packageSmokeIdentity().version)
+    throw new Error('AppImage version differs from source metadata')
   const root = await mkdtemp(join(process.env.RUNNER_TEMP || tmpdir(), SMOKE_ROOT_PREFIX))
   const baseEnv = {
     ...process.env,

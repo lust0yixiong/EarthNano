@@ -82,6 +82,75 @@ const binding = async (): Promise<never> => {
 }
 
 describe('Claude candidate lifecycle composition', () => {
+  it.each(['notebook-python', 'notebook-r', 'notebook-compute'] as const)(
+    'denies %s for a method role before provider binding or runtime construction',
+    async (tools) => {
+      const f = fixture()
+      f.request = { ...f.request, role: 'reviewer' }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools }
+      } as never)
+      const resolveBinding = vi.fn(binding)
+      const openOwner = vi.fn(async () => f.owner)
+      expect(
+        await createClaudeCandidateDriver({ ...f, binding: resolveBinding, openOwner }).execute(
+          f.request,
+          f.context
+        )
+      ).toMatchObject({ phase: 'failed', cleanup: 'confirmed' })
+      expect(resolveBinding).not.toHaveBeenCalled()
+      expect(openOwner).not.toHaveBeenCalled()
+      expect(f.snapshots.materialize).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['baseline', 'candidate'] as const)(
+    'passes the trusted %s Compute role to native preparation before opening the original owner',
+    async (role) => {
+      const f = fixture()
+      f.request = { ...f.request, role }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools: 'notebook-compute' }
+      } as never)
+      const openOwner = vi.fn(async () => f.owner)
+      expect(
+        await createClaudeCandidateDriver({ ...f, binding, openOwner }).execute(
+          f.request,
+          f.context
+        )
+      ).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+      expect(prepareClaudeCandidate).toHaveBeenLastCalledWith(expect.objectContaining({ role }))
+      expect(openOwner).toHaveBeenCalledOnce()
+      expect(f.owner.agent.prompt).toHaveBeenCalledOnce()
+    }
+  )
+
+  it.each(['baseline', 'candidate'] as const)(
+    'keeps %s R execution on the original ACP admission and physical retirement path',
+    async (role) => {
+      const f = fixture()
+      f.request = { ...f.request, role }
+      vi.mocked(f.snapshots.resolve).mockResolvedValue({
+        agent: { backend: 'claude-code' },
+        harness: { tools: 'notebook-r' }
+      } as never)
+      expect(
+        await createClaudeCandidateDriver({
+          ...f,
+          binding,
+          openOwner: async () => f.owner
+        }).execute(f.request, f.context)
+      ).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+      expect(f.context.identity).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: 'target-session', promptMessageId: 'target-prompt' })
+      )
+      expect(f.owner.agent.prompt).toHaveBeenCalledOnce()
+      expect(f.owner.shutdown).toHaveBeenCalledOnce()
+    }
+  )
+
   it('uses the ACP admission path and waits for physical owner shutdown', async () => {
     const f = fixture()
     const driver = createClaudeCandidateDriver({ ...f, binding, openOwner: async () => f.owner })
@@ -187,5 +256,52 @@ describe('Claude candidate lifecycle composition', () => {
     ).toMatchObject({ phase: 'failed', cleanup: 'confirmed' })
     expect(f.snapshots.materialize).not.toHaveBeenCalled()
     expect(openOwner).not.toHaveBeenCalled()
+  })
+})
+
+describe('durable original owner settlement boundary', () => {
+  it('persists the exact identity and outcome only after original shutdown confirms all resources', async () => {
+    const f = fixture()
+    let release!: (value: { reaped: boolean }) => void
+    f.owner.shutdown = vi.fn(
+      () =>
+        new Promise<{ reaped: boolean }>((resolve) => {
+          release = resolve
+        })
+    )
+    const ownerSettled = vi.fn(async () => undefined)
+    const pending = createClaudeCandidateDriver({
+      ...f,
+      binding,
+      openOwner: async () => f.owner,
+      ownerSettled
+    }).execute(f.request, f.context)
+    await vi.waitFor(() => expect(f.owner.shutdown).toHaveBeenCalledOnce())
+    expect(ownerSettled).not.toHaveBeenCalled()
+    release({ reaped: true })
+    expect(await pending).toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+    expect(ownerSettled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: f.request,
+        executionId: f.context.executionId,
+        outcome: expect.objectContaining({ phase: 'completed', cleanup: 'confirmed' })
+      })
+    )
+  })
+  it('writes no receipt for unknown retirement and fences failed durable persistence', async () => {
+    const f = fixture()
+    const ownerSettled = vi.fn(async () => undefined)
+    f.owner.shutdown = vi.fn(async () => ({ reaped: false }))
+    const options = { ...f, binding, openOwner: async () => f.owner, ownerSettled }
+    expect(await createClaudeCandidateDriver(options).execute(f.request, f.context)).toMatchObject({
+      cleanup: 'unknown'
+    })
+    expect(ownerSettled).not.toHaveBeenCalled()
+    f.owner.shutdown = vi.fn(async () => ({ reaped: true }))
+    ownerSettled.mockRejectedValueOnce(new Error('disk unavailable'))
+    expect(await createClaudeCandidateDriver(options).execute(f.request, f.context)).toMatchObject({
+      phase: 'completed',
+      cleanup: 'unknown'
+    })
   })
 })

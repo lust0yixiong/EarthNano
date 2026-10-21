@@ -1,0 +1,34 @@
+{
+  "commit": "c9d4c73df509a1935efeb22d6024606a046f057d",
+  "base": "30e5c784b",
+  "upstream": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "ownerSourceByteIdenticalAtBase": true,
+  "originalOwnerSourceSha256": "572c7b412a56e4842c322ef73f375f41dd0f476234c1bb973f0aa310a7f914ca",
+  "controls": {
+    "red": {
+      "command": "node node_modules/vitest/vitest.mjs run src/main/acp/session-capability-owner.test.ts src/main/acp/session-capability-handover.integration.test.ts --testNamePattern 'first-turn.*independent owners'",
+      "productionSource": "exact pinned original owner source; restored fixed source in finally",
+      "result": "5 failed,84 skipped",
+      "log": "/tmp/earthnano-capability-owner-routing-red.log"
+    },
+    "green": {
+      "command": "node node_modules/vitest/vitest.mjs run src/main/acp/session-capability-owner.test.ts src/main/acp/session-capability-handover.integration.test.ts src/main/acp/runtime-coordinator.test.ts",
+      "result": "322 passed",
+      "log": "/tmp/earthnano-capability-owner-routing-regression.log"
+    },
+    "types": {
+      "command": "node node_modules/typescript-native/bin/tsc --noEmit -p tsconfig.node.json --composite false",
+      "exitCode": 0,
+      "log": "/tmp/earthnano-capability-owner-routing-types.log"
+    },
+    "lint": {
+      "result": "0 errors,0 warnings",
+      "log": "/tmp/earthnano-capability-owner-routing-lint.log"
+    }
+  },
+  "limitations": [
+    "Native failure retained no provisional alias plaintext; deterministic owner/RPC controls prove mechanism rather than a captured collision receipt.",
+    "Canonical routing tests dispatch through real NotebookLocalRpcServer with bounded stub Notebook service; no actual kernel or provider process was started.",
+    "No build, paid calls, CI action or shared dependency mutation."
+  ]
+}

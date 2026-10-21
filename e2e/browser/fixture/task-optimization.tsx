@@ -8,132 +8,160 @@ import type {
   OptimizationProgress,
   StartDesktopOptimization
 } from '../../../src/shared/earthnano/desktop-optimization'
+import {
+  minimumSweepExecutions,
+  type PreviewDesktopSweep,
+  type StartDesktopSweep
+} from '../../../src/shared/earthnano/optimization-sweep'
 import { WEB_EVENT_SURFACE_ATTRIBUTE } from '../../../src/shared/web-event-connection'
 const params = new URLSearchParams(location.search)
 const calls: {
   start: StartDesktopOptimization[]
+  sweeps: StartDesktopSweep[]
+  previews: PreviewDesktopSweep[]
   get: number
   stop: number
   latest: string[]
   sessions: string[]
   reviews: string[]
-} = { start: [], get: 0, stop: 0, latest: [], sessions: [], reviews: [] }
+} = { start: [], sweeps: [], previews: [], get: 0, stop: 0, latest: [], sessions: [], reviews: [] }
 Object.assign(window, { optimizationFixture: calls })
 if (params.has('web')) document.documentElement.setAttribute(WEB_EVENT_SURFACE_ATTRIBUTE, 'true')
-const progress = (state: OptimizationProgress['state'] = 'running'): OptimizationProgress => ({
-  runId: 'fixture-run',
-  projectId: 'project',
-  sourceSessionId: 'session',
-  state,
-  stage: 'baseline',
-  ...(calls.start.at(-1)?.method ? { method: calls.start.at(-1)!.method } : {}),
-  budget: {
-    limit: calls.start.at(-1)?.executionLimit ?? 12,
-    admitted: state === 'completed' ? 9 : 2,
-    completed: state === 'completed' ? 9 : 1,
-    active: state === 'completed' ? 0 : 1
-  },
-  executions: [
-    {
-      executionId: 'baseline',
-      role: 'baseline',
-      phase: 'completed',
-      sessionId: 'baseline-session'
+const progress = (state: OptimizationProgress['state'] = 'running'): OptimizationProgress => {
+  const request = calls.sweeps.at(-1)
+  return {
+    runId: 'fixture-run',
+    projectId: 'project',
+    sourceSessionId: 'session',
+    state,
+    stage: 'baseline',
+    budget: {
+      limit: request?.executionLimit ?? 12,
+      admitted: state === 'completed' ? 9 : 2,
+      completed: state === 'completed' ? 9 : 1,
+      active: state === 'completed' ? 0 : 1
     },
-    { executionId: 'final', role: 'candidate', phase: 'completed', sessionId: 'candidate-session' }
-  ],
-  ...(calls.start.at(-1)?.domain
-    ? {
-        domain: {
-          name: calls.start.at(-1)!.domain!.name,
-          order: [
-            'first',
-            ...calls.start.at(-1)!.domain!.nextTasks.map((_, index) => `next-${index + 1}`)
-          ],
-          tasks:
-            state === 'completed'
-              ? [
-                  {
-                    taskId: 'first',
-                    outcome: {
-                      artifact: { status: 'passed' as const, checks: [] },
-                      configuration: { status: 'eligible' as const, reasons: [] }
-                    }
-                  },
-                  ...calls.start.at(-1)!.domain!.nextTasks.map((_, index) => ({
-                    taskId: `next-${index + 1}`,
-                    outcome: {
-                      artifact: {
-                        status: 'failed' as const,
-                        checks: [
-                          {
-                            path: 'result.json',
-                            pointer: '',
-                            status: 'fail' as const,
-                            reason: 'mismatch' as const
-                          }
-                        ]
-                      },
-                      configuration: {
-                        status: 'blocked' as const,
-                        reasons: ['output-check-failed']
-                      }
-                    }
-                  }))
-                ]
-              : [],
-          library: { scope: 'experiment' as const, entries: [], digest: 'fixture-library' }
-        },
-        ...(state === 'completed'
-          ? {
-              outcome: {
-                artifact: { status: 'passed' as const, checks: [] },
-                configuration: { status: 'eligible' as const, reasons: [] }
-              }
-            }
-          : {})
+    executions: [
+      {
+        executionId: 'baseline',
+        role: 'baseline',
+        phase: 'completed',
+        sessionId: 'baseline-session'
+      },
+      {
+        executionId: 'final',
+        role: 'candidate',
+        phase: 'completed',
+        sessionId: 'candidate-session'
       }
-    : {}),
-  updatedAt: 1,
-  ...(state === 'completed' && (calls.start.at(-1)?.method?.k ?? 1) > 1
-    ? {
-        selection: {
-          chosenLabel: calls.start.at(-1)?.method?.mode === 'parallel' ? 'agg2' : 'c2',
-          candidateCount: 2,
-          trivial: false,
-          fallback: false,
-          reason: 'Selected from the two fixed candidate outputs.'
-        }
-      }
-    : {}),
-  ...(state === 'completed'
-    ? {
-        assessments: {
-          baseline: {
-            executionId: 'review-a',
-            targetExecutionId: 'baseline',
-            reviewId: 'review-baseline',
-            outcome: 'pass',
-            score: 80,
-            rationale: 'Baseline satisfies the independent criteria.'
-          },
-          candidate: {
-            executionId: 'review-b',
-            targetExecutionId: 'final',
-            reviewId: 'review-candidate',
-            outcome: 'pass',
-            score: 80,
-            rationale: 'Candidate satisfies the same independent criteria.'
+    ],
+    ...(request
+      ? {
+          sweep: {
+            planDigest: 'sha256:' + 'a'.repeat(64),
+            modes: request.sweep.modes,
+            order: [...new Set(request.catalog.map((task) => task.domain))].map((domain) => ({
+              domain,
+              taskIds: request.catalog
+                .filter((task) => task.domain === domain)
+                .map((task) => task.taskId)
+            })),
+            domains: request.sweep.modes.flatMap((mode) =>
+              [...new Set(request.catalog.map((task) => task.domain))].map((domain) => ({
+                mode,
+                summary: {
+                  name: domain,
+                  order: request.catalog
+                    .filter((task) => task.domain === domain)
+                    .map((task) => task.taskId),
+                  library: { scope: 'experiment' as const, entries: [], digest: 'fixture-library' },
+                  tasks:
+                    state === 'completed'
+                      ? request.catalog
+                          .filter((task) => task.domain === domain)
+                          .map((task, index) => ({
+                            taskId: task.taskId,
+                            outcome: index
+                              ? {
+                                  artifact: {
+                                    status: 'failed' as const,
+                                    checks: [
+                                      {
+                                        path: 'result.json',
+                                        pointer: '',
+                                        status: 'fail' as const,
+                                        reason: 'mismatch' as const
+                                      }
+                                    ]
+                                  },
+                                  configuration: {
+                                    status: 'blocked' as const,
+                                    reasons: ['output-check-failed']
+                                  }
+                                }
+                              : {
+                                  artifact: { status: 'passed' as const, checks: [] },
+                                  configuration: { status: 'eligible' as const, reasons: [] }
+                                },
+                            selection: {
+                              chosenLabel: mode === 'parallel' ? 'agg2' : 'c2',
+                              candidateCount: request.sweep.k,
+                              trivial: request.sweep.k === 1,
+                              fallback: false,
+                              reason: 'Selected from the fixed candidate outputs.'
+                            },
+                            assessments: {
+                              baseline: {
+                                executionId: 'review-a',
+                                targetExecutionId: 'baseline',
+                                reviewId: 'review-baseline',
+                                outcome: 'pass' as const,
+                                score: 80,
+                                rationale: 'Baseline satisfies the independent criteria.'
+                              },
+                              candidate: {
+                                executionId: 'review-b',
+                                targetExecutionId: 'final',
+                                reviewId: 'review-candidate',
+                                outcome: 'pass' as const,
+                                score: 80,
+                                rationale: 'Candidate satisfies the same independent criteria.'
+                              }
+                            }
+                          }))
+                      : []
+                }
+              }))
+            )
           }
         }
-      }
-    : {})
-})
+      : {}),
+    updatedAt: 1
+  }
+}
 const api: DesktopOptimizationApi = {
-  start: async (request) => {
-    calls.start.push(request)
+  // UI fixture only. Scientific source ordering/filter semantics are verified against real Python
+  // in Main/native tests; this deterministic fixture has an unfiltered catalog.
+  previewSweep: async (request) => {
+    calls.previews.push(request)
+    return {
+      planDigest: 'sha256:' + 'a'.repeat(64),
+      modes: request.sweep.modes,
+      order: [...new Set(request.catalog.map((task) => task.domain))].map((domain) => ({
+        domain,
+        taskIds: request.catalog.filter((task) => task.domain === domain).map((task) => task.taskId)
+      })),
+      minimumExecutions: minimumSweepExecutions(request.sweep, request.catalog.length)
+    }
+  },
+  startSweep: async (request) => {
+    calls.sweeps.push(request)
     if (params.has('error')) throw new Error('synthetic-secret')
     return progress()
+  },
+  start: async (request) => {
+    calls.start.push(request)
+    throw new Error('New UI experiments require the shared sweep entry')
   },
   get: async () => {
     calls.get++
@@ -146,7 +174,8 @@ const api: DesktopOptimizationApi = {
   stop: async () => {
     calls.stop++
     return progress('cancelled')
-  }
+  },
+  resume: async () => progress('running')
 }
 export function Fixture(): React.JSX.Element {
   const [session, setSession] = useState('session')

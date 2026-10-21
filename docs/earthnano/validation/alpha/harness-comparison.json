@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "sources": {
+    "baseline": {
+      "kind": "baseline",
+      "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+      "tree": "edc756a4d03a2826a248115482084a176e60e751",
+      "scope": ".",
+      "digest": "37201c75f77453f75149411993c093cb85a00fed88a7b049fda79f596a8d87b1",
+      "licenseDigest": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "candidate": {
+      "kind": "candidate",
+      "commit": "5812df666a479d23ee4f7684c0449266f12f0238",
+      "tree": "01efe3542ad6009118f3a738315dde6b025f0e5e",
+      "scope": "vendor/harness2",
+      "digest": "8bb75edfa22df0713fe9aedbf8b4e83b7cd21d1c62a396172702ef05c452a57b",
+      "licenseDigest": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  },
+  "reviewedTestRenames": [],
+  "conclusion": "no-new-regressions",
+  "regressions": [],
+  "baselineFailures": [],
+  "baselineSkips": [],
+  "newSkips": [],
+  "candidateFailures": [],
+  "candidateSkips": [],
+  "limitation": "Baseline failures/skips remain unresolved evidence, not full acceptance. Equal failing statuses do not prove an identical cause.",
+  "counts": {
+    "baseline": 5,
+    "candidate": 63,
+    "added": 58
+  }
+}

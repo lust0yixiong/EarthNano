@@ -1521,9 +1521,11 @@ class AcpRuntimeCoordinator {
           return provenanceContext
         }
       : undefined
+    let originalDispatchStarted = false
     const dispatch = (
       observation?: AcpExecutionObservation
     ): ReturnType<AcpRuntime['sendPrompt']> => {
+      originalDispatchStarted = true
       activePrompt.observation = observation
       const prompt = Promise.resolve(settlementStart).then((leaseId) => {
         settlementLeaseId = leaseId
@@ -1594,6 +1596,7 @@ class AcpRuntimeCoordinator {
         attemptId: attempt.id,
         request: taskRequest,
         operation,
+        ...(attribution ? { attribution } : {}),
         runtimeReviewOwner,
         target: this.runtimeTargets.get(runtime),
         ownerCompletion,
@@ -1625,7 +1628,18 @@ class AcpRuntimeCoordinator {
           await this.cancelPrompt({ sessionId: request.sessionId })
         }
       })
-      .finally(cleanup)
+      .finally(async () => {
+        try {
+          if (!originalDispatchStarted) {
+            // Canonical preparation may reject before the original dispatch wrapper can end
+            // its already-started settlement lease. Join that exact baseline before releasing it.
+            settlementLeaseId = await settlementStart
+            await endRootTurn(false)
+          }
+        } finally {
+          cleanup()
+        }
+      })
   }
 
   async steerFollowUp(request: AcpSteerFollowUpRequest): Promise<AcpSteerFollowUpResult> {
@@ -2352,6 +2366,7 @@ class AcpRuntimeCoordinator {
                 sessionId,
                 promptMessageId: promptId,
                 promptAttemptId: attempt.id,
+                runtimeExecutionId: turnToken,
                 turnToken
               })
               this.delegatedWork?.rootExecutionStarted?.(sessionId, promptId, turnToken)

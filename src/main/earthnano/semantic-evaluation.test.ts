@@ -1,9 +1,18 @@
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 import { createHash, randomUUID } from 'node:crypto'
 import { chmod, lstat, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type {
+  ArtifactReference,
+  ExecutionRecord,
+  ExecutionRequest
+} from '../../shared/earthnano/execution-port'
+import type {
+  CandidateArtifactFile,
+  CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
 import {
   createCandidateSnapshotStore,
   type ResolvedCandidateSnapshots,
@@ -79,7 +88,12 @@ type Fixture = {
   setFault(value: FixtureFault): void
   options: Parameters<typeof evaluateOptimizationSemantics>[0]
 }
-async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<Fixture> {
+async function setup(
+  limit = 9,
+  baselineCount = 1,
+  scientific: false | true | 'r' = false,
+  outputFormat: 'text' | 'binary' | 'mixed' | 'candidate-binary' = 'text'
+): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-semantic-unit-'))
   roots.push(root)
   const snapshots = await createCandidateSnapshotStore({
@@ -118,15 +132,18 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
           }
         ]
       },
-      harness: { ...input.harness, tools: 'notebook-python' },
+      harness: {
+        ...input.harness,
+        tools: notebookToolsForLanguage(scientific === 'r' ? 'r' : 'python')
+      },
       environment: {
         isolation: 'directory-process',
         network: 'provider-and-notebook-policy',
         notebook: {
           runtime: {
-            language: 'python',
-            runtimeId: '/original/python',
-            interpreterPath: '/original/python',
+            language: scientific === 'r' ? 'r' : 'python',
+            runtimeId: scientific === 'r' ? '/original/r' : '/original/python',
+            interpreterPath: scientific === 'r' ? '/original/r' : '/original/python',
             source: 'external',
             provenance: 'user-own'
           }
@@ -196,7 +213,34 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
           versionId: randomUUID(),
           checksum: createHash('sha256').update(content).digest('hex')
         }
-        const files = [{ path, content, digest: semanticDigest(content), artifactRef: outputRef }]
+        const files: CandidateArtifactFile[] = [
+          { path, content, digest: semanticDigest(content), artifactRef: outputRef }
+        ]
+        const artifacts: ArtifactReference[] = [outputRef]
+        if (
+          !isReviewer &&
+          outputFormat !== 'text' &&
+          (outputFormat !== 'candidate-binary' || request.role === 'candidate')
+        ) {
+          const binary: CandidateBinaryArtifactFile = {
+            path: 'plot.png',
+            representation: 'binary',
+            sizeBytes: 7,
+            contentType: 'image/png',
+            digest: 'sha256:' + 'b'.repeat(64),
+            artifactRef: {
+              artifactId: randomUUID(),
+              versionId: randomUUID(),
+              checksum: 'b'.repeat(64)
+            }
+          }
+          if (outputFormat !== 'mixed') {
+            files.length = 0
+            artifacts.length = 0
+          }
+          files.push(binary)
+          artifacts.push(binary.artifactRef)
+        }
         if (isReviewer && fault === 'extra')
           files.push({
             path: 'unexpected.txt',
@@ -206,7 +250,7 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
           })
         results.set(context.executionId, {
           executionId: context.executionId,
-          artifacts: [outputRef],
+          artifacts,
           replyText: 'SOLVER_REVIEW_ANSWER_DO_NOT_EXPOSE',
           trajectoryText: 'SOLVER_TRAJECTORY_DO_NOT_EXPOSE',
           files
@@ -218,7 +262,7 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
             status: 'complete',
             scope: 'synthetic fixed version',
             text: 'not a semantic result',
-            artifacts: [outputRef],
+            artifacts,
             references: [],
             limitations: []
           },
@@ -277,10 +321,26 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
   })
   const committed: Array<Parameters<PersistentCandidateOwners['commitSemanticReview']>[0]> = []
   const owners = {
+    readSemanticSourceEvidence: vi.fn(async () => ({
+      schemaVersion: 1,
+      profile: 'bounded-utf8-v1',
+      inputs: [
+        {
+          input: input.task.managedInputs?.[0],
+          status: 'available',
+          content: 'value\n1\n2\n3\n',
+          digest: semanticDigest('value\n1\n2\n3\n')
+        }
+      ],
+      digest: semanticDigest('fixed-source-manifest')
+    })),
     exportResult: vi.fn(async (record: ExecutionRecord) => {
       const value = structuredClone(results.get(record.executionId)!)
-      if (fault === 'tamper' && record.request.role !== 'reviewer')
-        value.files[0]!.content += 'changed'
+      if (fault === 'tamper' && record.request.role !== 'reviewer') {
+        const file = value.files[0]!
+        if (!('content' in file)) throw new Error('Expected original text artifact fixture')
+        file.content += 'changed'
+      }
       return value
     }),
     readReviews: vi.fn(async () => [
@@ -329,6 +389,28 @@ async function setup(limit = 9, baselineCount = 1, scientific = false): Promise<
 }
 
 describe('fixed reference assessment for multiple original baselines', () => {
+  it('retains all original per-Turn semantic Review IDs for both fixed targets', async () => {
+    const f = await setup(10, 2)
+    f.owners.commitSemanticReview = async (value) => ({
+      reviewId: `review-${value.target.executionId}-initial`,
+      reviewIds: [
+        `review-${value.target.executionId}-initial`,
+        `review-${value.target.executionId}-analysis`
+      ],
+      outcome: value.document.outcome
+    })
+    const result = await evaluateOptimizationSemantics(f.options)
+    for (const target of [result.baseline, result.candidate])
+      expect(target).toMatchObject({
+        reviewId: `review-${target.targetExecutionId}-initial`,
+        reviewIds: [
+          `review-${target.targetExecutionId}-initial`,
+          `review-${target.targetExecutionId}-analysis`
+        ]
+      })
+    expect(f.admissions).toHaveLength(2)
+  })
+
   it('evaluates base1 even when another reference precedes it in the execution projection', async () => {
     const f = await setup(10, 2)
     const result = await evaluateOptimizationSemantics({
@@ -366,6 +448,55 @@ describe('strict grounded semantic assessment parser', () => {
       { id: 'c2', text: 'two' }
     ])
   })
+  it.each([
+    {
+      path: 'values.json',
+      content: '{"values":[2,4,6],"literal":"a\\nb"}\n',
+      quote: '"values":[2,4,6],"literal":"a\\nb"'
+    },
+    {
+      path: 'values.csv',
+      content: 'sample,value\r\n"A,quoted",2\r\nB,4\r\n',
+      quote: '"A,quoted",2\r\nB,4'
+    },
+    {
+      path: 'analysis.ts',
+      content: 'const value = "遥感 🌍";\nconsole.log(value);\n',
+      quote: '"遥感 🌍";\nconsole.log(value)'
+    }
+  ])(
+    'accepts actual $path body quotes after one JSON round trip and rejects wrapper or double-escaped substitutes',
+    ({ path, content, quote }) => {
+      const target: PersistentCandidateFile = {
+        path,
+        content,
+        digest: semanticDigest(content),
+        artifactRef: {
+          artifactId: 'body-artifact',
+          versionId: 'body-version',
+          checksum: createHash('sha256').update(content).digest('hex')
+        }
+      }
+      // The source package is JSON, but its decoded content is still the exact original file text.
+      const [decoded] = JSON.parse(JSON.stringify([target])) as PersistentCandidateFile[]
+      const assessment = document([decoded!])
+      for (const check of assessment.checks) check.evidence[0]!.quote = quote
+      expect(parseSemanticAssessment(JSON.stringify(assessment), [target], criteria)).toEqual(
+        assessment
+      )
+      for (const invalid of [
+        JSON.stringify(quote),
+        JSON.stringify(quote).slice(1, -1),
+        '"artifactId":"body-artifact"'
+      ]) {
+        const forged = structuredClone(assessment)
+        forged.checks[0]!.evidence[0]!.quote = invalid
+        expect(() => parseSemanticAssessment(JSON.stringify(forged), [target], criteria)).toThrow(
+          'existing exact artifact version'
+        )
+      }
+    }
+  )
   it.each([
     'score',
     'extra',
@@ -445,6 +576,8 @@ describe('independent semantic execution', () => {
       expect(context.invocation.mission).not.toContain('@')
       expect(context.invocation.mission).not.toContain('`')
       expect(context.invocation.mission).toContain('EarthNano execution role: reviewer.')
+      expect(context.invocation.mission).toContain('JSON, CSV and source-code artifact bodies')
+      expect(context.invocation.mission).toContain('after parsing assessment.json once')
     }
   })
   it('fails instead of falling back when the shared ninth admission is refused', async () => {
@@ -574,5 +707,84 @@ it('assesses scientific outputs as fixed textual evidence without Notebook or ma
     expect(
       reviewer.task.files.find((entry) => entry.path === 'evidence/task.json')?.content
     ).toContain('old-version')
+  }
+})
+
+it.each([true, 'r'] as const)(
+  'supplies identical original sources only to workspace-only assessors for profile %s',
+  async (language) => {
+    const f = await setup(9, 1, language)
+    await evaluateOptimizationSemantics(f.options)
+    const evidence = f.reviewerInputs.map((reviewer) =>
+      JSON.parse(reviewer.task.files.find((item) => item.path === 'evidence/sources.json')!.content)
+    )
+    expect(evidence[0]).toEqual(evidence[1])
+    expect(evidence[0].inputs[0].content).toBe('value\n1\n2\n3\n')
+    expect(f.committed.every((entry) => entry.sourceEvidence?.digest === evidence[0].digest)).toBe(
+      true
+    )
+    expect(
+      f.reviewerInputs.every(
+        (reviewer) =>
+          !reviewer.task.managedInputs &&
+          reviewer.harness.tools === 'workspace-only' &&
+          !reviewer.environment.notebook &&
+          reviewer.environment.network === 'provider-only'
+      )
+    ).toBe(true)
+  }
+)
+
+it('rejects changed source evidence before admitting either independent assessment', async () => {
+  const f = await setup(9, 1, true)
+  vi.mocked(f.owners.readSemanticSourceEvidence).mockImplementationOnce(async () => ({
+    schemaVersion: 1,
+    profile: 'bounded-utf8-v1',
+    inputs: [],
+    digest: semanticDigest('different')
+  }))
+  await expect(evaluateOptimizationSemantics(f.options)).rejects.toThrow('source evidence differs')
+  expect(f.admissions).toHaveLength(0)
+})
+
+it.each(['binary', 'candidate-binary'] as const)(
+  'rejects binary-only targets before either independent reviewer is admitted: %s',
+  async (outputFormat) => {
+    const f = await setup(9, 1, false, outputFormat)
+    await expect(evaluateOptimizationSemantics(f.options)).rejects.toThrow(
+      'Binary-only work product is not assessable'
+    )
+    expect(f.admissions).toHaveLength(0)
+    expect(f.committed).toHaveLength(0)
+  }
+)
+
+it('allows exact text quotes beside binary metadata and marks binary content unavailable', async () => {
+  const binary: CandidateBinaryArtifactFile = {
+    path: 'plot.png',
+    representation: 'binary',
+    sizeBytes: 7,
+    contentType: 'image/png',
+    digest: 'sha256:' + 'b'.repeat(64),
+    artifactRef: { artifactId: 'plot', versionId: 'plot-v1', checksum: 'b'.repeat(64) }
+  }
+  expect(parseSemanticAssessment(document(), [file, binary], criteria)).toEqual(document())
+  const forged = document()
+  forged.checks[0]!.evidence[0] = {
+    path: binary.path,
+    artifactRef: binary.artifactRef,
+    quote: 'metadata'
+  }
+  expect(() => parseSemanticAssessment(forged, [file, binary], criteria)).toThrow(
+    'Binary artifact content is unavailable'
+  )
+  const f = await setup(9, 1, false, 'mixed')
+  await evaluateOptimizationSemantics(f.options)
+  expect(f.admissions).toHaveLength(2)
+  for (const input of f.reviewerInputs) {
+    expect(input.task.prompt).toContain('Their content is unavailable and has not been examined')
+    expect(input.harness.instructions).toContain(
+      'do not claim that binary contents or scientific correctness were verified'
+    )
   }
 })

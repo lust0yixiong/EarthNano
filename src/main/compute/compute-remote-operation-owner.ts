@@ -1,3 +1,4 @@
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { randomUUID } from 'node:crypto'
 import { stat as fsStat, mkdir, mkdtemp, rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -205,7 +206,11 @@ export class ComputeRemoteOperationOwner {
     intent: string,
     loginShell = true,
     timeoutSeconds?: number,
-    context?: { sessionId: string; projectId: string },
+    context?: {
+      sessionId: string
+      projectId: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<ExecResult> {
     const host = await this.repository.get(providerId)
@@ -232,7 +237,8 @@ export class ComputeRemoteOperationOwner {
             sessionId: context.sessionId,
             projectId: context.projectId,
             operation: 'call_command' as const,
-            ownerId: host.id
+            ownerId: host.id,
+            ...(context.interactionPolicy ? { interactionPolicy: context.interactionPolicy } : {})
           },
           signal
         )
@@ -314,7 +320,11 @@ export class ComputeRemoteOperationOwner {
     providerId: string,
     remotePath: string,
     dest: DownloadDest,
-    context?: { sessionId: string; projectId: string },
+    context?: {
+      sessionId: string
+      projectId: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<LocalFile> {
     const host = await this.repository.get(providerId)
@@ -354,7 +364,8 @@ export class ComputeRemoteOperationOwner {
           sessionId: context.sessionId,
           projectId: context.projectId,
           operation: 'download',
-          ownerId: host.id
+          ownerId: host.id,
+          ...(context.interactionPolicy ? { interactionPolicy: context.interactionPolicy } : {})
         },
         signal
       )

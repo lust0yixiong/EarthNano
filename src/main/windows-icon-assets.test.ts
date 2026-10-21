@@ -19,30 +19,30 @@ type IcoEntry = {
 const APP_ICON_SIZES = [16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128, 256]
 const TRAY_ICON_SIZES = [16, 20, 24, 32, 40, 48, 64, 256]
 const LIGHT_SMALL_FRAME_HASHES = {
-  16: '675b21c3d91b53ead0e72d876ad53746a391301b0a43a600b4e9b6ec8c30a77d',
-  20: 'c406447697d977439c06f6d92eddadd4d446396ffaf7846b481f12c9a1ad6df8',
-  24: '7192f1e7cf44201876589cf4552f27279a4f3e29901bc8f852ebd7e28906e1b1'
+  16: '6a96e54c3f0fcfb8da6dc4aec6f38fa89718a6539d563cab8a74dd331bfa490b',
+  20: 'acaf758b3baf594ff52d8d45598f94b3d5de90a9b9cd2676a9010f8e3d3e4ae7',
+  24: '4b09ac208997f36902b1f002120b0f0671615affc61ed260c052519c862c5d2e'
 }
 const DARK_SMALL_FRAME_HASHES = {
-  16: '675b21c3d91b53ead0e72d876ad53746a391301b0a43a600b4e9b6ec8c30a77d',
-  20: 'c406447697d977439c06f6d92eddadd4d446396ffaf7846b481f12c9a1ad6df8',
-  24: '7192f1e7cf44201876589cf4552f27279a4f3e29901bc8f852ebd7e28906e1b1'
+  16: '6a96e54c3f0fcfb8da6dc4aec6f38fa89718a6539d563cab8a74dd331bfa490b',
+  20: 'acaf758b3baf594ff52d8d45598f94b3d5de90a9b9cd2676a9010f8e3d3e4ae7',
+  24: '4b09ac208997f36902b1f002120b0f0671615affc61ed260c052519c862c5d2e'
 }
 const ICON_ASSETS = [
   {
     relativePath: 'build/icon.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'c6bf59ed2c2d0f0a96a27ae997493dc36fdd3cddb07793f66c938b665cf2568d'
+    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
   },
   {
     relativePath: 'resources/icon-light.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'c6bf59ed2c2d0f0a96a27ae997493dc36fdd3cddb07793f66c938b665cf2568d'
+    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
   },
   {
     relativePath: 'resources/icon-dark.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'c6bf59ed2c2d0f0a96a27ae997493dc36fdd3cddb07793f66c938b665cf2568d'
+    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
   },
   {
     relativePath: 'resources/tray-light.ico',
