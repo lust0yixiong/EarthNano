@@ -4,6 +4,10 @@ import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
 import type { ClaudeCandidateDriverOptions } from './claude-candidate-driver'
 import type { CandidateSnapshotStore } from './candidate-snapshot'
 import type { SemanticSourceEvidence } from './semantic-source-evidence'
+import type {
+  CandidateArtifactFile,
+  CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
 
 export interface SemanticCriterion {
   id: string
@@ -36,11 +40,17 @@ export interface PersistentCandidateResult {
   artifacts: ArtifactReference[]
   replyText: string
   trajectoryText: string
-  files: PersistentCandidateFile[]
+  files: CandidateArtifactFile[]
 }
 export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
+  /** Host-only exact Version projection; callers never select a destination path. */
+  materializeArtifact?(
+    record: ExecutionRecord,
+    artifactRef: ArtifactReference,
+    signal?: AbortSignal
+  ): Promise<{ file: CandidateBinaryArtifactFile; assetPath: string }>
   readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
   readSemanticSourceEvidence(input: {
     target: ExecutionRecord
