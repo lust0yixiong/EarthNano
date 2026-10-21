@@ -88,4 +88,16 @@
 
 同一构建的实际桌面 Python 科研流程通过普通 Send→原 sweep 的基线/候选→独立评估→Stop→重开→续跑，20/24 admissions、59 次本地 fixture 请求、零上游 API；原固定来源、producer、Version 和 Review 均核对。白底 master 已复看，最终发布包对应关系仍需验证。
 
-证据和失败原文共 169 份 gzip，逐字节 roundtrip 与摘要核对、实际 API key 匹配为零，见 [原始记录](validation/alpha/compute-owner-desktop/manifest.json)。当前 Compute owner fixture 注入 submit/harvest；这只证明原生/Node/SQLite/外层 owner 整合，不能冒称原完整 dispatcher/reaper 或外部 SSH/Slurm，更不是 DeepSeek 调用。后续以原连接/运输端口验证完整服务链，保留原 Project/private grant 与字段保护条件，禁止 auto-once/明文放行；然后开展真实模型验证、PR 和最终 Unix 包验收。
+证据和失败原文共 169 份 gzip，逐字节 roundtrip 与摘要核对、实际 API key 匹配为零，见 [原始记录](validation/alpha/compute-owner-desktop/manifest.json)。该阶段 Compute owner fixture 注入 submit/harvest，只证明原生/Node/SQLite/外层 owner 整合，不证明原完整 dispatcher/reaper、外部 SSH/Slurm 或 DeepSeek 调用。后续完整服务链的进展如下。
+
+## 原完整 Compute 服务链及 context 文件
+
+原桌面 sweep → Harness² 原 k=2 方法 → 同一 Core/Claude owner → 原 Node control → 原 ComputeService、queue/dispatcher/poller/harvest → 原后台投递与第二 Turn → 原 producer/ArtifactVersion/Review，现已通过完整离线验证。18/24 次接纳、8 次 Job、76 次本地 fixture 请求、零上游请求；重开没有重复模型调用或提交。每次保存实际采集的 `metrics-source.json` 原字节、数值报告与 PNG Version，独立数值审阅从原 source Version 重算；producer、Session、Job 与版本均核对。原 Project/private grant 与字段保护条件保持，无 grant/保护不可用时原服务拒绝，无 auto-once 或明文放行。外部运输连接和本地字段加密器仍是 fixture，无 SSH、Slurm、OS keychain 或远端科研结论。
+
+联调发现的融合缺口已经按原接口处理：仅省略原方法配置中的 Compute 可选空 managed-input manifest，Core 冻结任务仍保留真实空集合，Python/R 非空约束不变；来源 Session 从可信冻结上下文恢复；文本方法角色保持原 workspace-only 权限。测试 PNG 的错误 IDAT CRC 单独修复且真实 decoder 预检通过，失败原文保留，未改生产图像校验。
+
+真实反思曾因融合层将全部原 context 嵌入 mission，形成约 547 KB 提示而失败。`6eec8d4fe` 现沿同一不可变 invocation 契约新增可选 `contextFiles`，完整字节材料化到只读 INPUT；任务、context 和二进制资产共同接受原路径、冲突、资源预算及 manifest 检查，原方法的 `context/foo` 对应 `INPUT/foo`。新 single/domain/sweep 共用一个 binding，旧 journal 按原表示重建，继续要求完整 invocationRef 相同。原 Session/轨迹不裁剪，Harness² 原 Python 方法不改。Library 回归现通过真实 native Read 读取经验文件并核对完整字节，保留原精确阶段与预算断言。
+
+context/snapshot/native preparation 4 文件 160/160、共用 binding/resume/method 3 文件 99/99、离线 Compute/provider 2 文件 21/21，通过完整 Node/sandbox/Web compiled types、lint、格式及 derived-consumer 检查。分组重叠，不相加；完整普通生命周期结果以原始报告为准。该次离线 Compute 是提交调用层改造前的工作树，不能称干净源码真实模型验收。
+
+前三次实际 DeepSeek 尝试分别保留为中断/失败。第三次 132 次 HTTP 请求全部成功，但反思提示过长、候选独立审阅正确 flagged，没有配置推广；受控任务现明确发布原 metrics-source Version，数值与评分要求不变。修复后的干净源码真实模型验收仍待执行，通过前不提交“验证通过”的 Compute PR。代理请求数不是生产费用账本，PNG 字节/Read 不证明图像语义正确，当前 host composition 也不代替 GUI 或最终安装包。原始红绿及失败见 [完整服务链记录](validation/alpha/compute-original-workflow/manifest.json)。Windows 全部按用户决定留至 [0.2-Alpha](WINDOWS_0_2_ALPHA.md)。
