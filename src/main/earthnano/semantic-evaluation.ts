@@ -13,28 +13,14 @@ import type {
   PersistentCandidateOwners,
   PersistentCandidateFile,
   PersistentCandidateResult
-} from './persistent-candidate-owner'
+} from './candidate-owner-contract'
 
-export interface SemanticCriterion {
-  id: string
-  text: string
-}
-export interface SemanticAssessmentEvidence {
-  path: string
-  artifactRef: ArtifactReference
-  quote: string
-}
-export interface SemanticAssessmentDocument {
-  schemaVersion: 1
-  score: number
-  outcome: 'pass' | 'flagged'
-  rationale: string
-  checks: Array<{
-    criterionId: string
-    status: 'pass' | 'warn' | 'fail'
-    evidence: SemanticAssessmentEvidence[]
-  }>
-}
+export type {
+  SemanticCriterion,
+  SemanticAssessmentEvidence,
+  SemanticAssessmentDocument
+} from './candidate-owner-contract'
+import type { SemanticCriterion, SemanticAssessmentDocument } from './candidate-owner-contract'
 export const semanticAssessmentSchema = {
   type: 'object',
   additionalProperties: false,

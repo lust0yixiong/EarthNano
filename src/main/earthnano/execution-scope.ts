@@ -1,10 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { ExecutionIdentity, ExecutionRequest } from '../../shared/earthnano/execution-port'
-import type { ExecutionContext, ExecutionCore } from './execution-core'
+import type { ExecutionContext, ScopedExecutionPort } from './execution-contract'
 
 /** Main-process capability. It is never accepted from renderer payloads or restored from JSON. */
 export interface ExecutionScope {
-  readonly core: ExecutionCore
+  readonly core: ScopedExecutionPort
   readonly request: ExecutionRequest
   readonly context: ExecutionContext
   identity(): ExecutionIdentity

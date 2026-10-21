@@ -7,14 +7,21 @@ import type {
   ExecutionRecord,
   ExecutionRequest,
   ExecutionRole
-} from '../../shared/earthnano/execution-port'
-import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
-import { requestDigest, validateRecord, validateRequest } from './execution-contract'
-import { outputDigest } from './output-checks'
+} from '../../src/shared/earthnano/execution-port'
+import {
+  createCandidateSnapshotStore,
+  type CandidateSnapshotInput
+} from '../../src/main/earthnano/candidate-snapshot'
+import {
+  requestDigest,
+  validateRecord,
+  validateRequest
+} from '../../src/main/earthnano/execution-contract'
+import { outputDigest } from '../../src/main/earthnano/output-checks'
 import type {
   PersistentCandidateOwners,
   PersistentCandidateResult
-} from './persistent-candidate-owner'
+} from '../../src/main/earthnano/persistent-candidate-owner'
 
 export const input: CandidateSnapshotInput = {
   task: {

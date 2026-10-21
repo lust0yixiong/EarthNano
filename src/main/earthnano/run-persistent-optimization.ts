@@ -1,10 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
-import {
-  normalizeOptimizationArtifactInputs,
-  type OptimizationArtifactInput
-} from '../../shared/earthnano/optimization-input'
+import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
 import {
   normalizeOptimizationMethod,
   MAX_OPTIMIZATION_EXECUTIONS,
@@ -14,12 +11,10 @@ import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import {
   normalizeOutputChecks,
   normalizeOptimizationDomain,
-  type OutputCheckSpec,
-  type OptimizationDomainSpec,
   type ResearchOutcome,
   type DomainOptimizationSummary
 } from '../../shared/earthnano/research-outcome'
-import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
+import { createCandidateSnapshotStore } from './candidate-snapshot'
 import {
   createClaudeCandidateDriver,
   type ClaudeCandidateDriverOptions
@@ -68,6 +63,7 @@ import {
   type PersistentCandidateOwnersOptions
 } from './persistent-candidate-owner'
 import type { ResolvedOptimizationSweep } from './sweep-contract'
+import type { OptimizationTaskInput } from './optimization-task-contract'
 import {
   MAX_SWEEP_EXECUTIONS,
   type OptimizationSweepSummary
@@ -85,16 +81,8 @@ export interface PersistentOptimizationProgress {
   sweep?: OptimizationSweepSummary
 }
 
-export interface PersistentSingleOptimizationOptions {
+export interface PersistentSingleOptimizationOptions extends OptimizationTaskInput {
   sweep?: never
-  /** Existing project identity in the original OpenScience repositories. */
-  projectId: string
-  sourceSessionId?: string
-  sourcePromptMessageId?: string
-  taskId: string
-  input: CandidateSnapshotInput
-  /** Host-verified immutable source provenance; never an authority to read files. */
-  inputArtifacts?: OptimizationArtifactInput[]
   /** New exclusive run directory; an existing directory requires explicit resume. */
   workRoot: string
   /** Explicit user continuation of this exact run; never automatic or a budget increase. */
@@ -109,10 +97,6 @@ export interface PersistentSingleOptimizationOptions {
   /** Overall execution deadline, including independent assessments; cleanup is always awaited. */
   timeoutMs?: number
   signal?: AbortSignal
-  /** Fixed before optimization; never forwarded to proposer/composer. */
-  semanticCriteria?: string
-  checks?: OutputCheckSpec[]
-  domain?: OptimizationDomainSpec
   /** Projection of committed execution facts, including reviewer admissions. */
   onProgress?: (progress: PersistentOptimizationProgress) => void
 }

@@ -1,3 +1,4 @@
+import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate-owner-ports'
 import { createRequire } from 'node:module'
 import { chmod, lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -160,6 +161,12 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       })
     })
     let owners = createPersistentCandidateOwners({
+      ...createCandidateOwnerTestPorts({
+        dataRoot: root,
+        configRoot,
+        getClient: async () => client,
+        repository: sessions
+      }),
       dataRoot: root,
       configRoot,
       getClient: async () => client,
@@ -323,6 +330,12 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     const calls = provider.stats.requests
     expect(await owners.shutdown()).toEqual({ reaped: true })
     owners = createPersistentCandidateOwners({
+      ...createCandidateOwnerTestPorts({
+        dataRoot: root,
+        configRoot,
+        getClient: async () => client,
+        repository: sessions
+      }),
       dataRoot: root,
       configRoot,
       getClient: async () => client,

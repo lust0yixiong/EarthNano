@@ -1,3 +1,4 @@
+import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate-owner-ports'
 import { createServer, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { createRequire } from 'node:module'
@@ -471,7 +472,12 @@ async function exercise(
   const native = createRequire(import.meta.url).resolve(
     `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`
   )
-  const ownerOptions = { dataRoot, configRoot, getClient: async () => client }
+  const ownerOptions = {
+    dataRoot,
+    configRoot,
+    getClient: async () => client,
+    ...createCandidateOwnerTestPorts({ dataRoot, configRoot, getClient: async () => client })
+  }
   let bindingAttempts = 0
   const runOptions: PersistentOptimizationOptions = {
     projectId: project.id,
@@ -866,6 +872,7 @@ async function exercise(
   const reopened = createProjectDbClient(configRoot)
   const owners = await createPersistentCandidateOwners({
     ...ownerOptions,
+    ...createCandidateOwnerTestPorts({ dataRoot, configRoot, getClient: async () => reopened }),
     getClient: async () => reopened
   })
   const journal = new FileExecutionStore(

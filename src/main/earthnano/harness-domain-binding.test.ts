@@ -8,7 +8,7 @@ import type {
 import { emptyExecutionState, ExecutionCore, type ExecutionContext } from './execution-core'
 import { HarnessDomainBinding } from './harness-domain-binding'
 import { createHarnessBindingV2Identity, harnessBindingV2Slot } from './harness-binding-v2'
-import { fixture, input } from './research-domain.test-fixture'
+import { fixture, input } from '../../../test/earthnano/research-domain'
 
 const invocation = (taskId: string, retryOfExecutionId = ''): Record<string, unknown> => ({
   invocation: {

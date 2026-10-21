@@ -225,7 +225,25 @@
     "src/main/acp/auto-operation-policy.test.ts",
     "src/main/acp/auto-operation-policy.ts",
     "src/main/acp/runtime-activity-port.ts",
-    "src/main/acp/runtime-contract.ts"
+    "src/main/acp/runtime-contract.ts",
+    "src/main/acp/artifact-publication-recovery.integration.test.ts",
+    "src/main/acp/claude-candidate-preparation.integration.test.ts",
+    "src/main/acp/claude-candidate-preparation.test.ts",
+    "src/main/acp/claude-candidate-preparation.ts",
+    "src/main/acp/claude-deepseek-live.integration.test.ts",
+    "src/main/acp/earthnano-execution-driver.test.ts",
+    "src/main/acp/earthnano-execution-driver.ts",
+    "src/main/acp/execution-boundary-port.ts",
+    "src/main/acp/notebook-binding.ts",
+    "src/main/acp/task-prompt-execution.ts",
+    "src/main/earthnano/acp-execution-boundary.test.ts",
+    "src/main/earthnano/acp-execution-boundary.ts",
+    "src/main/earthnano/execution-usage-contract.test.ts",
+    "src/main/earthnano/ordinary-session-execution.integration.test.ts",
+    "src/main/earthnano/private-session-admission.integration.test.ts",
+    "src/main/earthnano/session-execution-host-port.ts",
+    "src/main/earthnano/session-execution-host.test.ts",
+    "src/main/earthnano/session-execution-host.ts"
   ],
   "interfacePaths": [
     "src/main/acp/agent-process.ts",
@@ -268,7 +286,15 @@
     "src/main/acp/side-chat-relay-owner.ts",
     "src/main/acp/task-agent-port.ts",
     "src/main/acp/workspace-path.ts",
-    "src/main/acp/approved-handoff-outcome.ts"
+    "src/main/acp/approved-handoff-outcome.ts",
+    "src/main/acp/claude-candidate-preparation.ts",
+    "src/main/acp/earthnano-execution-driver.ts",
+    "src/main/acp/execution-boundary-port.ts",
+    "src/main/acp/notebook-binding.ts",
+    "src/main/acp/task-prompt-execution.ts",
+    "src/main/earthnano/acp-execution-boundary.ts",
+    "src/main/earthnano/session-execution-host-port.ts",
+    "src/main/earthnano/session-execution-host.ts"
   ],
   "consumerModules": [
     "reviewer_orchestrator",
@@ -396,7 +422,17 @@
       "src/main/acp/auto-operation-adapter.test.ts",
       "src/main/acp/auto-operation-broker.test.ts",
       "src/main/acp/auto-operation-inventory.test.ts",
-      "src/main/acp/auto-operation-policy.test.ts"
+      "src/main/acp/auto-operation-policy.test.ts",
+      "src/main/acp/artifact-publication-recovery.integration.test.ts",
+      "src/main/acp/claude-candidate-preparation.integration.test.ts",
+      "src/main/acp/claude-candidate-preparation.test.ts",
+      "src/main/acp/claude-deepseek-live.integration.test.ts",
+      "src/main/acp/earthnano-execution-driver.test.ts",
+      "src/main/earthnano/acp-execution-boundary.test.ts",
+      "src/main/earthnano/execution-usage-contract.test.ts",
+      "src/main/earthnano/ordinary-session-execution.integration.test.ts",
+      "src/main/earthnano/private-session-admission.integration.test.ts",
+      "src/main/earthnano/session-execution-host.test.ts"
     ],
     "contract": [
       "src/main/agent-framework/app-mcp-names.test.ts",

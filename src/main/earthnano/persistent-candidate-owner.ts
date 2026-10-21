@@ -1,6 +1,5 @@
-import { readSemanticSourceVersions, type SemanticSourceEvidence } from './semantic-source-evidence'
+import { readSemanticSourceVersions } from './semantic-source-evidence'
 import { readOriginalExecutionUsage } from './execution-turn-usage'
-import type { CandidateSnapshotStore } from './candidate-snapshot'
 import { createAcpNotebookBinding } from '../acp/notebook-binding'
 import { ConversationPermissionGrantStore } from '../acp/permission-broker'
 import type { NotebookRuntimeService } from '../notebook/runtime-service'
@@ -25,7 +24,7 @@ import { constants, realpathSync } from 'node:fs'
 import { lstat, open, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { PrismaClient } from '@prisma/client'
-import type { ArtifactReference, ExecutionRecord, Ref } from '../../shared/earthnano/execution-port'
+import type { ExecutionRecord, Ref } from '../../shared/earthnano/execution-port'
 import type { NewCheck, ReviewWithChecks } from '../../shared/reviewer'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import {
@@ -47,26 +46,20 @@ import { ArtifactRunRegistry } from '../artifacts/run-registry'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
 import { resolveDataRoot } from '../storage-root'
 import { ProjectRepository } from '../projects/repository'
-import { ManagedFileIndexRepository } from '../project-files/repository'
 import { ReviewRepository } from '../reviewer/repository'
-import { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
-import { SessionProjectionRepository } from '../session-persistence/projection'
+import type { SessionPersistenceCommands } from '../session-persistence/coordinator'
+import type { SettingsRepository } from '../settings/repository'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
 import { RuntimeSessionOwner } from '../session-persistence/runtime-session-owner'
-import { UploadRepository } from '../uploads/repository'
 import type { ClaudeCandidateDriverOptions, ClaudeCandidateOwner } from './claude-candidate-driver'
 import {
   parseSemanticAssessment,
   semanticCriteria,
   semanticDigest,
-  semanticCanonical,
-  type SemanticAssessmentDocument
+  semanticCanonical
 } from './semantic-evaluation'
 import { validateRecord, requestDigest } from './execution-contract'
-import {
-  normalizeOutputChecks,
-  type OutputCheckSpec
-} from '../../shared/earthnano/research-outcome'
+import { normalizeOutputChecks } from '../../shared/earthnano/research-outcome'
 import { checkOutputFiles, outputDigest } from './output-checks'
 
 export interface PersistentCandidateNotebookOptions {
@@ -78,55 +71,31 @@ export interface PersistentCandidateOwnersOptions {
   dataRoot: string
   notebook?: PersistentCandidateNotebookOptions
   /** Share the application's original Session persistence and serialization authority. */
-  sessionPersistence?: {
+  sessionPersistence: {
     repository: SessionRepository
-    coordinator: SessionPersistenceCoordinator
+    coordinator: Pick<
+      SessionPersistenceCommands,
+      'mutateRuntimeSession' | 'assertSessionAvailable' | 'saveSession' | 'admitTaskTurn'
+    >
   }
+  /** Read the original Settings owner without creating another document repository. */
+  settings: Pick<SettingsRepository, 'getSettings'>
   /** Database initialization/migration remains the host's responsibility. */
   configRoot: string
   getClient(): Promise<PrismaClient>
   /** Optional instrumentation of the existing runtime, never an alternative result authority. */
   runtimeFactory?(options: AcpRuntimeOptions): AcpRuntime
 }
-export interface PersistentCandidateFile {
-  path: string
-  content: string
-  digest: string
-  artifactRef: ArtifactReference
-}
-export interface PersistentCandidateResult {
-  executionId: string
-  artifacts: ArtifactReference[]
-  replyText: string
-  trajectoryText: string
-  files: PersistentCandidateFile[]
-}
-export interface PersistentCandidateOwners {
-  openOwner: ClaudeCandidateDriverOptions['openOwner']
-  exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
-  readReviews(record: ExecutionRecord): Promise<ReviewWithChecks[]>
-  readSemanticSourceEvidence(input: {
-    target: ExecutionRecord
-    snapshots: CandidateSnapshotStore
-    signal?: AbortSignal
-  }): Promise<SemanticSourceEvidence>
-  commitDeterministicReview?(input: {
-    target: ExecutionRecord
-    checks: OutputCheckSpec[]
-    signal?: AbortSignal
-  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
-  commitSemanticReview(input: {
-    target: ExecutionRecord
-    assessment: ExecutionRecord
-    criteria: string
-    criteriaDigest: string
-    document: SemanticAssessmentDocument
-    sourceEvidence?: SemanticSourceEvidence
-    snapshots?: CandidateSnapshotStore
-    signal?: AbortSignal
-  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
-  shutdown(): Promise<{ reaped: boolean }>
-}
+export type {
+  PersistentCandidateFile,
+  PersistentCandidateResult,
+  PersistentCandidateOwners
+} from './candidate-owner-contract'
+import type {
+  PersistentCandidateFile,
+  PersistentCandidateResult,
+  PersistentCandidateOwners
+} from './candidate-owner-contract'
 const filenamePrefix = 'candidate-output--'
 const logicalPath = (path: string): string => {
   if (
@@ -221,22 +190,8 @@ export function createPersistentCandidateOwners(
     getClient: options.getClient
   })
   const compatibility = new ArtifactRepository(options.dataRoot)
-  const uploads = new UploadRepository(options.dataRoot, { getClient: options.getClient })
-  const index = new ManagedFileIndexRepository(
-    options.getClient,
-    options.dataRoot,
-    versions,
-    uploads
-  )
-  const sessions =
-    options.sessionPersistence?.repository ??
-    new SessionRepository(
-      options.configRoot,
-      {},
-      new SessionProjectionRepository(options.getClient)
-    )
-  const coordinator =
-    options.sessionPersistence?.coordinator ?? new SessionPersistenceCoordinator(sessions, index)
+  const sessions = options.sessionPersistence.repository
+  const coordinator = options.sessionPersistence.coordinator
   const reviews = new ReviewRepository(options.getClient, { snapshotStorageRoot: options.dataRoot })
   const load = async (projectId: string, sessionId: string): Promise<PersistedChatSession> => {
     const result = await loadSessionMutationAuthority(sessions, projectId, sessionId)
@@ -564,6 +519,8 @@ export function createPersistentCandidateOwners(
           dataRoot: options.dataRoot,
           configRoot: options.configRoot,
           getClient: options.getClient,
+          settings: options.settings,
+          versions,
           flush: (sessionId, promptId) => runtimeSessions.flush(sessionId, promptId)
         })
       })

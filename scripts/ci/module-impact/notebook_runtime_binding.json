@@ -11,7 +11,8 @@
     "src/main/notebook/runtime-target.ts",
     "src/main/notebook/shell-runtime.test.ts",
     "src/main/notebook/shell-runtime.ts",
-    "src/main/notebook/windows-runtime-binding.ts"
+    "src/main/notebook/windows-runtime-binding.ts",
+    "src/main/notebook/host-binding-permit.test.ts"
   ],
   "interfacePaths": [
     "src/main/notebook/configured-shell-runtime.ts",
@@ -25,7 +26,8 @@
       "src/main/notebook/configured-shell-runtime.test.ts",
       "src/main/notebook/managed-runtime-guard.test.ts",
       "src/main/notebook/managed-runtime-relocation.test.ts",
-      "src/main/notebook/shell-runtime.test.ts"
+      "src/main/notebook/shell-runtime.test.ts",
+      "src/main/notebook/host-binding-permit.test.ts"
     ],
     "contract": [
       "src/preload/index.test.ts",

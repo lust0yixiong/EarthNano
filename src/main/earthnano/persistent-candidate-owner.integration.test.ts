@@ -13,6 +13,7 @@ import { composeAcpRuntimeSessionOwners } from '../acp/runtime-session-compositi
 import { createProjectDbClient, migrateApplicationDatabase } from '../projects/prisma-client'
 import { ReviewRepository } from '../reviewer/repository'
 import { loadSessionMutationAuthority, SessionRepository } from '../session-persistence/repository'
+import { SettingsRepository } from '../settings/repository'
 import { SessionPersistenceCoordinator } from '../session-persistence/coordinator'
 import { ManagedFileIndexRepository } from '../project-files/repository'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
@@ -175,9 +176,8 @@ it
       dataRoot: root,
       configRoot,
       getClient: async () => client,
-      ...(scenario === 'shared-session-hydration'
-        ? { sessionPersistence: { repository, coordinator } }
-        : {}),
+      settings: new SettingsRepository(configRoot),
+      sessionPersistence: { repository, coordinator },
       ...(scenario === 'pre-admission-rejection'
         ? {
             runtimeFactory: (options) => {
@@ -755,6 +755,8 @@ it
     expect(await owners.shutdown()).toEqual({ reaped: true })
     // A new factory must resolve originals without its predecessor's volatile maps or candidate cwd.
     owners = createPersistentCandidateOwners({
+      settings: new SettingsRepository(configRoot),
+      sessionPersistence: { repository, coordinator },
       dataRoot: root,
       configRoot,
       getClient: async () => client

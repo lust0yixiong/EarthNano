@@ -4,7 +4,7 @@ import {
   type OutputCheckSpec,
   type OutputCheckResult
 } from '../../shared/earthnano/research-outcome'
-import type { PersistentCandidateFile } from './persistent-candidate-owner'
+import type { PersistentCandidateFile } from './candidate-owner-contract'
 
 export const canonicalOutput = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(canonicalOutput).join(',')}]`

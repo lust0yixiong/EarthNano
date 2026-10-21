@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { requestDigest } from './execution-contract'
 import { prepareDomainSummary, type DomainMethodResult } from './domain-results'
-import { fixture, input, reflectionText } from './research-domain.test-fixture'
+import { fixture, input, reflectionText } from '../../../test/earthnano/research-domain'
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Preserve the exact inferred composite fixture type for adversarial mutations.
 async function setup() {

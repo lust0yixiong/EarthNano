@@ -11,7 +11,11 @@
     "src/main/reviewer/scope-snapshot.ts",
     "src/main/reviewer/scope.test.ts",
     "src/main/reviewer/scope.ts",
-    "src/main/reviewer/stale-reviews.ts"
+    "src/main/reviewer/stale-reviews.ts",
+    "src/main/earthnano/original-turn-evidence.test.ts",
+    "src/main/earthnano/original-turn-evidence.ts",
+    "src/main/earthnano/semantic-source-evidence.test.ts",
+    "src/main/earthnano/semantic-source-evidence.ts"
   ],
   "interfacePaths": [
     "src/main/reviewer/artifact-digest.ts",
@@ -20,14 +24,18 @@
     "src/main/reviewer/host-sdk.ts",
     "src/main/reviewer/scope-snapshot.ts",
     "src/main/reviewer/scope.ts",
-    "src/main/reviewer/stale-reviews.ts"
+    "src/main/reviewer/stale-reviews.ts",
+    "src/main/earthnano/original-turn-evidence.ts",
+    "src/main/earthnano/semantic-source-evidence.ts"
   ],
   "testFiles": {
     "owner": [
       "src/main/reviewer/artifact-digest.test.ts",
       "src/main/reviewer/artifact-version-review.test.ts",
       "src/main/reviewer/scope-snapshot.test.ts",
-      "src/main/reviewer/scope.test.ts"
+      "src/main/reviewer/scope.test.ts",
+      "src/main/earthnano/original-turn-evidence.test.ts",
+      "src/main/earthnano/semantic-source-evidence.test.ts"
     ],
     "contract": [
       "src/main/application-command-composition.test.ts",

@@ -8,6 +8,7 @@ import type {
   TrustedDelegatedExecutionOwner
 } from '../acp/execution-boundary-port'
 import { ExecutionCore, type ExecutionContext } from './execution-core'
+import type { ScopedExecutionPort } from './execution-contract'
 import {
   currentExecutionScope,
   findOwnedExecutionScope,
@@ -64,7 +65,7 @@ export function createAcpExecutionBoundary({
   delegatedOwner?: TrustedDelegatedExecutionOwner
 }): AcpExecutionBoundary {
   type Entry = {
-    core: ExecutionCore
+    core: ScopedExecutionPort
     executionId: string
     owned: boolean
     nativeActive: boolean
