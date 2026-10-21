@@ -24,7 +24,7 @@ import {
   type ComputeConnectionLease
 } from '@aipoch/compute/node'
 import type { DownloadDest } from '../../shared/remote-fs'
-import type { ComputeApprovalBroker } from './compute-approval-broker'
+import { ComputeApprovalBroker } from './compute-approval-broker'
 
 import type { ResolvedSshTarget, SshRunner } from '@aipoch/compute/node'
 import { runScpTransfer, runScpUpload, type ScpRunner } from '@aipoch/compute/node'
@@ -131,6 +131,25 @@ const makeOwner = (
   )
 
 describe('ComputeRemoteOperationOwner.callCommand', () => {
+  it('propagates noninteractive policy into the original broker before acquiring remote transport', async () => {
+    const broadcast = vi.fn(() => {
+      throw new Error('Unexpected approval UI')
+    })
+    const acquire = vi.fn()
+    const broker = new ComputeApprovalBroker({ generateId: () => 'unexpected', broadcast })
+    const { repo } = makeRepo()
+    const service = new ComputeRemoteOperationOwner({ acquire }, repo, broker)
+    await expect(
+      service.callCommand('ssh:biowulf', 'true', 'fixture', true, undefined, {
+        sessionId: 'private',
+        projectId: 'project',
+        interactionPolicy: 'deny-unresolved'
+      })
+    ).rejects.toMatchObject({ computeCallError: { error_code: 'approval_denied' } })
+    expect(broadcast).not.toHaveBeenCalled()
+    expect(acquire).not.toHaveBeenCalled()
+  })
+
   it('distinguishes failure to acquire a connection from an unconfirmed command', async () => {
     const acquire = vi.fn(async () => {
       throw new ComputeConnectionError('host_unreachable')
@@ -2021,4 +2040,40 @@ describe('ComputeRemoteOperationOwner.download (session-cache)', () => {
     expect(brokerRequest).not.toHaveBeenCalled()
     expect(scpCopy).not.toHaveBeenCalled()
   })
+})
+
+it('propagates noninteractive download approval before opening remote transport or local cache', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'compute-private-download-'))
+  try {
+    const broadcast = vi.fn(() => {
+      throw new Error('Unexpected approval UI')
+    })
+    const acquire = vi.fn()
+    const broker = new ComputeApprovalBroker({ generateId: () => 'unexpected', broadcast })
+    const { repo } = makeRepo()
+    const service = new ComputeRemoteOperationOwner(
+      { acquire },
+      repo,
+      broker,
+      root,
+      new SessionCacheOwner(root)
+    )
+    await expect(
+      service.download(
+        'ssh:biowulf',
+        '/data/result.csv',
+        { kind: 'session-cache' },
+        {
+          sessionId: 'private',
+          projectId: 'project',
+          interactionPolicy: 'deny-unresolved'
+        }
+      )
+    ).rejects.toMatchObject({ code: 'download_denied' })
+    expect(broadcast).not.toHaveBeenCalled()
+    expect(acquire).not.toHaveBeenCalled()
+    expect(await readdir(root)).toEqual([])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

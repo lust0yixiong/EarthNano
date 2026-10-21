@@ -1,3 +1,4 @@
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type {
   ComputeExecutionMode,
   ComputeHost,
@@ -196,7 +197,11 @@ export class ComputeService {
     intent: string,
     loginShell = true,
     timeoutSeconds?: number,
-    context?: { sessionId: string; projectId: string },
+    context?: {
+      sessionId: string
+      projectId: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<ExecResult> {
     return this.remoteOperations.callCommand(
@@ -214,7 +219,11 @@ export class ComputeService {
     providerId: string,
     remotePath: string,
     dest: DownloadDest,
-    context?: { sessionId: string; projectId: string },
+    context?: {
+      sessionId: string
+      projectId: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<LocalFile> {
     return this.remoteOperations.download(providerId, remotePath, dest, context, signal)
@@ -233,7 +242,12 @@ export class ComputeService {
       timeoutSeconds?: number
       workspaceCwd?: string
     },
-    context: { sessionId: string; projectId: string; producerRunId?: string },
+    context: {
+      sessionId: string
+      projectId: string
+      producerRunId?: string
+      interactionPolicy?: ExecutionRequest['interactionPolicy']
+    },
     signal?: AbortSignal
   ): Promise<SubmitJobResult> {
     const release = this.dependencies.admitSessionWork?.(context.projectId, context.sessionId)

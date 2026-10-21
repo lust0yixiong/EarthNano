@@ -163,6 +163,102 @@ const runGate = (root: string, tool: string, args: object): string => {
 describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate preparation', () => {
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0xff])
 
+  const computeFixture = async (): Promise<Awaited<ReturnType<typeof fixture>>> => {
+    const f = await fixture()
+    // Serializer admission belongs to its original owner; exercise this preparation boundary
+    // directly with the shared typed snapshot while that owner is integrated independently.
+    const resolved: ResolvedCandidateSnapshots = {
+      ...f.resolved,
+      harness: { ...f.resolved.harness, tools: 'notebook-compute' },
+      environment: {
+        isolation: 'directory-process',
+        network: 'provider-and-notebook-policy',
+        compute: {
+          sourceProjectId: 'project',
+          sourceSessionId: 'source',
+          access: { enabledProviderIds: ['ssh:host'], selectedProviderIds: ['ssh:host'] },
+          hosts: [
+            {
+              id: 'host-row',
+              providerId: 'ssh:host',
+              shape: 'direct_ssh',
+              executionMode: 'direct_ssh'
+            }
+          ]
+        }
+      }
+    }
+    return { ...f, resolved, materialized: { ...f.materialized, snapshots: resolved } }
+  }
+
+  it.each(['baseline', 'candidate'] as const)(
+    'allows only original foreground Compute control and Artifact publishing for %s',
+    async (role) => {
+      const f = await computeFixture()
+      await prepareClaudeCandidate({ ...f, role })
+      const gate = (tool: string, args: object): string => runGate(f.materialized.root, tool, args)
+      expect(
+        gate('mcp__open_science_notebook__repl_execute', {
+          code: 'await host.compute.listHosts()',
+          background: false,
+          timeoutMs: 1000
+        })
+      ).toBe('ask')
+      expect(gate('mcp__open-science-notebook__repl_execute', { code: 'await host.help()' })).toBe(
+        'ask'
+      )
+      expect(
+        gate('mcp__open_science_artifacts__write_artifact_file', {
+          producerRunId: 'original-producer',
+          localPath: 'report.json'
+        })
+      ).toBe('ask')
+      for (const args of [
+        { code: 'true', background: true },
+        { code: 'true', language: 'python' },
+        { code: 'true', timeoutMs: 0 }
+      ])
+        expect(gate('mcp__open_science_notebook__repl_execute', args)).toBe('deny')
+      for (const tool of ['notebook_execute', 'notebook_bind_runtime', 'manage_packages'])
+        expect(gate('mcp__open_science_notebook__' + tool, { code: 'true' })).toBe('deny')
+      expect(gate('Shell', { command: 'true' })).toBe('deny')
+      expect(
+        gate('mcp__open_science_artifacts__write_artifact_file', { localPath: 'report.json' })
+      ).toBe('deny')
+    }
+  )
+
+  it.each([
+    undefined,
+    'task',
+    'proposer',
+    'composer',
+    'selector',
+    'reflection',
+    'reviewer'
+  ] as const)(
+    'fails closed for Compute without the original task execution role (%s)',
+    async (role) => {
+      const f = await computeFixture()
+      await expect(prepareClaudeCandidate({ ...f, role })).rejects.toThrow(
+        'original baseline or candidate execution role'
+      )
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
+
+  it('does not add Compute control to existing workspace or Python/R native policies', async () => {
+    for (const profile of [false, true, 'r'] as const) {
+      const f = await fixture([], profile)
+      await prepareClaudeCandidate(f)
+      expect(
+        runGate(f.materialized.root, 'mcp__open_science_notebook__repl_execute', {
+          code: 'await host.compute.listHosts()'
+        })
+      ).toBe('deny')
+    }
+  })
+
   it('verifies frozen binary assets and allows native Read of their private copies', async () => {
     const f = await fixture([], false, png)
     await prepareClaudeCandidate(f)

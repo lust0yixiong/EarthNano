@@ -16,7 +16,7 @@ import type {
 import { writeArtifactFileForCurrentRun } from '../artifacts/mcp-server'
 import { createArtifactSaveFixture } from '../artifacts/save-test-fixtures'
 import { decodeDataPath } from '../storage/data-path'
-import type { ComputeApprovalBroker } from './compute-approval-broker'
+import { ComputeApprovalBroker } from './compute-approval-broker'
 import {
   ComputeJobWorkflowOwner,
   createComputeArtifactResolver,
@@ -1857,3 +1857,37 @@ describe('ComputeJobWorkflowOwner.submitJob - harvest safety', () => {
 })
 
 configureTestRuntimeMetadata()
+
+it('propagates noninteractive Job approval to the original broker before Job rows or remote dispatch', async () => {
+  const runner = makeFakeRunner({
+    exitCode: 0,
+    stdout: '',
+    stderr: '',
+    truncated: false,
+    timedOut: false
+  })
+  const { repo: jobRepo, createCalls } = makeJobRepo()
+  const { repo: hostRepo } = makeRepo()
+  const broadcast = vi.fn(() => {
+    throw new Error('Unexpected approval UI')
+  })
+  const broker = new ComputeApprovalBroker({ generateId: () => 'unexpected', broadcast })
+  const service = makeOwner(runner, hostRepo, broker, jobRepo)
+  await expect(
+    service.submitJob(
+      'ssh:biowulf',
+      'fixture',
+      'true',
+      {},
+      {
+        sessionId: 'private',
+        projectId: 'project',
+        producerRunId: 'producer',
+        interactionPolicy: 'deny-unresolved'
+      }
+    )
+  ).rejects.toMatchObject({ computeCallError: { error_code: 'approval_denied' } })
+  expect(broadcast).not.toHaveBeenCalled()
+  expect(createCalls).not.toHaveBeenCalled()
+  expect(runner.run).not.toHaveBeenCalled()
+})

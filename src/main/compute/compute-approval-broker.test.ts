@@ -1145,3 +1145,121 @@ describe('ComputeApprovalBroker — download operation', () => {
     expect(broadcastCount).toBe(0)
   })
 })
+
+describe('ComputeApprovalBroker noninteractive execution policy', () => {
+  it.each(['call_command', 'submit_job', 'download'] as const)(
+    'denies unresolved %s without allocating UI, timer, id or grant',
+    async (operation) => {
+      const broadcast = vi.fn(),
+        setTimer = vi.fn(),
+        generateId = vi.fn(),
+        remember = vi.fn()
+      const resolve = vi.fn(async () => undefined)
+      const broker = new ComputeApprovalBroker({
+        broadcast,
+        setTimer,
+        generateId,
+        permissionGrants: { resolve, remember } as never
+      })
+      const request =
+        operation === 'call_command'
+          ? makeRequest()
+          : operation === 'submit_job'
+            ? makeJobRequest()
+            : makeDownloadRequest()
+      await expect(
+        broker.requestWithContext(request, {
+          sessionId: 'private',
+          projectId: 'project',
+          operation,
+          ownerId: 'host-row',
+          interactionPolicy: 'deny-unresolved'
+        })
+      ).resolves.toBe('deny')
+      expect(resolve).toHaveBeenCalledExactlyOnceWith({
+        sessionId: 'private',
+        projectId: 'project',
+        operation,
+        providerId: 'ssh:biowulf'
+      })
+      expect(broadcast).not.toHaveBeenCalled()
+      expect(setTimer).not.toHaveBeenCalled()
+      expect(generateId).not.toHaveBeenCalled()
+      expect(remember).not.toHaveBeenCalled()
+    }
+  )
+
+  it('reuses only the actual Session grant and current host, never a source Session grant', async () => {
+    const resolve = vi.fn(
+      async ({ sessionId }: { sessionId: string }): Promise<'session' | 'project' | undefined> =>
+        sessionId === 'source' ? 'session' : undefined
+    )
+    const broadcast = vi.fn(),
+      remember = vi.fn(),
+      setTimer = vi.fn()
+    const isProviderCurrent = vi.fn(async () => true)
+    const broker = new ComputeApprovalBroker({
+      broadcast,
+      generateId: () => 'unused',
+      setTimer,
+      isProviderCurrent,
+      permissionGrants: { resolve, remember } as never
+    })
+    const context = {
+      projectId: 'project',
+      operation: 'call_command' as const,
+      ownerId: 'host-row',
+      interactionPolicy: 'deny-unresolved' as const
+    }
+    await expect(
+      broker.requestWithContext(makeRequest(), { ...context, sessionId: 'private' })
+    ).resolves.toBe('deny')
+    await expect(
+      broker.requestWithContext(makeRequest(), { ...context, sessionId: 'source' })
+    ).resolves.toBe('session')
+    isProviderCurrent.mockResolvedValue(false)
+    await expect(
+      broker.requestWithContext(makeRequest(), { ...context, sessionId: 'source' })
+    ).resolves.toBe('deny')
+    expect(isProviderCurrent).toHaveBeenCalledWith({
+      providerId: 'ssh:biowulf',
+      ownerId: 'host-row'
+    })
+    resolve.mockResolvedValue('project')
+    isProviderCurrent.mockResolvedValue(true)
+    await expect(
+      broker.requestWithContext(makeRequest(), { ...context, sessionId: 'private' })
+    ).resolves.toBe('project')
+    expect(broadcast).not.toHaveBeenCalled()
+    expect(setTimer).not.toHaveBeenCalled()
+    expect(remember).not.toHaveBeenCalled()
+  })
+
+  it('denies explicit plaintext persistence even with a broad existing grant', async () => {
+    const broadcast = vi.fn(),
+      setTimer = vi.fn(),
+      generateId = vi.fn(),
+      remember = vi.fn()
+    const resolve = vi.fn(async () => 'global')
+    const broker = new ComputeApprovalBroker({
+      broadcast,
+      setTimer,
+      generateId,
+      permissionGrants: { resolve, remember } as never
+    })
+    await expect(
+      broker.requestWithContext(makeJobRequest({ willPersistUnencrypted: true }), {
+        sessionId: 'private',
+        projectId: 'project',
+        operation: 'submit_job',
+        ownerId: 'host-row',
+        interactionPolicy: 'deny-unresolved'
+      })
+    ).resolves.toBe('deny')
+    expect(resolve).not.toHaveBeenCalled()
+    expect(broadcast).not.toHaveBeenCalled()
+    expect(setTimer).not.toHaveBeenCalled()
+    expect(generateId).not.toHaveBeenCalled()
+    expect(remember).not.toHaveBeenCalled()
+  })
+})

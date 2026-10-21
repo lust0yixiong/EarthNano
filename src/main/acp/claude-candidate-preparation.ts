@@ -10,10 +10,17 @@ import type {
   MaterializedCandidate,
   ResolvedCandidateSnapshots
 } from '../earthnano/candidate-snapshot'
-import type { EffectiveConfiguration } from '../../shared/earthnano/execution-port'
+import type {
+  EffectiveConfiguration,
+  ExecutionRequest
+} from '../../shared/earthnano/execution-port'
 import type { ResolvedProvider } from '../settings/provider-env'
 import type { AcpRuntimeOptions } from './runtime-contract'
 import { notebookLanguageForTools } from '../../shared/earthnano/notebook-profile'
+import {
+  isComputeToolsProfile,
+  normalizeFrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import { readOpenFileChunks } from '../bounded-file-io'
 import { assertWithinResourceBudget } from '../resource-budget'
@@ -170,11 +177,12 @@ const gateSource = (
   plugin: string,
   names: string[],
   scientificInputs?: readonly string[],
-  scientificLanguage?: NotebookLanguage
+  scientificLanguage?: NotebookLanguage,
+  compute?: true
 ): string => `
 const fs = require('node:fs');
 const path = require('node:path');
-const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs, scientificLanguage })};
+const roots = ${JSON.stringify({ input, output, plugin, names, scientificInputs, scientificLanguage, compute })};
 const inside = (root, target) => { const rel=path.relative(root,target); return rel==='' || (rel!=='..' && !rel.startsWith('..'+path.sep) && !path.isAbsolute(rel)); };
 const checked = target => {
   if (!path.isAbsolute(target)) throw Error('Absolute path required');
@@ -201,8 +209,11 @@ process.stdin.on('end', ()=>{
     const scientific = roots.scientificInputs;
     const mcp = /^(?:mcp__open_science_notebook__|mcp__open-science-notebook__)(notebook_execute|notebook_state|list_notebook_runtimes)$/.exec(tool);
     const artifact = /^(?:mcp__open_science_artifacts__|mcp__open-science-artifacts__)write_artifact_file$/.test(tool);
-    if (scientific && (mcp || artifact)) {
-      if (mcp?.[1]==='notebook_execute') {
+    const control = roots.compute && /^(?:mcp__open_science_notebook__|mcp__open-science-notebook__)repl_execute$/.test(tool);
+    if ((scientific && (mcp || artifact)) || (roots.compute && (control || artifact))) {
+      if (control) {
+        if(Object.keys(args).some(key=>!['code','background','timeoutMs'].includes(key)) || typeof args.code!=='string' || (args.background!==undefined && args.background!==false) || (args.timeoutMs!==undefined && (!Number.isSafeInteger(args.timeoutMs) || args.timeoutMs<=0))) throw Error('Outside frozen Compute control profile');
+      } else if (mcp?.[1]==='notebook_execute') {
         if(Object.keys(args).some(key=>!['code','cellId','language','background','kernelSkillIds','artifactVersionInputs'].includes(key)) || typeof args.code!=='string' || (roots.scientificLanguage==='r' ? args.language!=='r' : args.language!==undefined && args.language!=='python') || (args.background!==undefined && args.background!==false) || (args.kernelSkillIds!==undefined && (!Array.isArray(args.kernelSkillIds) || args.kernelSkillIds.length)) || (args.artifactVersionInputs!==undefined && (!Array.isArray(args.artifactVersionInputs) || args.artifactVersionInputs.some(id=>!scientific.includes(id))))) throw Error('Outside frozen scientific language profile');
       } else if (artifact && (typeof args.producerRunId!=='string' || !args.producerRunId)) throw Error('Notebook producer required');
       decision='ask';
@@ -229,11 +240,13 @@ export const prepareClaudeCandidate = async ({
   resolved,
   materialized,
   binding,
+  role,
   sourceEnv = process.env
 }: {
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
   binding: ClaudeCandidateBinding
+  role?: ExecutionRequest['role']
   sourceEnv?: NodeJS.ProcessEnv
 }): Promise<PreparedClaudeCandidate> => {
   if (process.platform === 'win32')
@@ -241,6 +254,12 @@ export const prepareClaudeCandidate = async ({
   const { agent, harness, environment, invocation } = resolved
   const scientificLanguage = notebookLanguageForTools(harness.tools)
   const scientific = scientificLanguage !== undefined
+  const compute = isComputeToolsProfile(harness.tools)
+  if (compute) {
+    if (role !== 'baseline' && role !== 'candidate')
+      throw new Error('Compute tools require an original baseline or candidate execution role')
+    normalizeFrozenComputeContext(environment.compute)
+  }
   const scientificInputs = scientific
     ? resolved.task.managedInputs?.map((input) => input.inputFileVersionId)
     : undefined
@@ -253,14 +272,20 @@ export const prepareClaudeCandidate = async ({
     assertClaudeCandidateText(text)
   if (
     agent.backend !== 'claude-code' ||
-    (!scientific && harness.tools !== 'workspace-only') ||
+    (!scientific && !compute && harness.tools !== 'workspace-only') ||
     environment.isolation !== 'directory-process' ||
-    (scientific
-      ? !environment.notebook ||
-        environment.notebook.runtime.language !== scientificLanguage ||
-        !scientificInputs?.length ||
+    (compute
+      ? !environment.compute ||
+        environment.notebook !== undefined ||
         environment.network !== 'provider-and-notebook-policy'
-      : environment.network !== 'provider-only')
+      : environment.compute !== undefined) ||
+    (!compute &&
+      (scientific
+        ? !environment.notebook ||
+          environment.notebook.runtime.language !== scientificLanguage ||
+          !scientificInputs?.length ||
+          environment.network !== 'provider-and-notebook-policy'
+        : environment.network !== 'provider-only'))
   )
     throw new Error('Unsupported Claude candidate profile')
   if (
@@ -360,7 +385,8 @@ export const prepareClaudeCandidate = async ({
       plugin,
       names,
       scientificInputs,
-      scientificLanguage
+      scientificLanguage,
+      compute ? true : undefined
     ),
     {
       mode: 0o400,
@@ -479,7 +505,8 @@ export const prepareClaudeCandidate = async ({
                   plugin,
                   names,
                   scientificInputs,
-                  scientificLanguage
+                  scientificLanguage,
+                  compute ? true : undefined
                 )
               )
               .digest('hex')

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AgentComputeService, type RawComputeService } from '../compute/agent-compute-service'
 
 import { NotebookLocalRpcServer } from './local-rpc-server'
 
@@ -450,5 +451,287 @@ describe('capabilitiesCall RPC', () => {
     const releasedAttempt = await callCapabilities(control)
     expect(releasedAttempt.response.status).toBe(401)
     expect(releasedAttempt.payload).toEqual({ error: 'Invalid notebook RPC token.' })
+  })
+})
+
+describe('trusted Compute control policy', () => {
+  const rpc = async (
+    connection: RpcConnection,
+    method: string,
+    params: object = {}
+  ): Promise<{ status: number; payload: unknown }> => {
+    const response = await fetch(connection.endpoint, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ method, params })
+    })
+    return { status: response.status, payload: await response.json() }
+  }
+  const methods = new Set(['computeCall', 'capabilitiesCall', 'hostSdkHelp', 'execute', 'invented'])
+
+  it.each(['main', 'delegate'] as const)(
+    'intersects the %s control token with original methods and keeps other namespaces closed',
+    async (role) => {
+      server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+        transport: 'tcp',
+        computeService: {} as never,
+        connectorService: {} as never,
+        agentsService: {} as never,
+        hostModel: {
+          isLlmAvailable: async () => true,
+          isCurrentModelAvailable: async () => true,
+          isListModelsAvailable: async () => true
+        } as never
+      })
+      const connection = await server.issueControlConnection(
+        'private',
+        'project',
+        'root-frame-private',
+        role === 'delegate' ? { role, attemptId: 'attempt' } : { role },
+        undefined,
+        {
+          allowedMethods: methods,
+          interactionPolicy: 'deny-unresolved',
+          assertComputeHostCurrent: async () => {}
+        }
+      )
+      const projected = await callCapabilities(connection)
+      expect(projected.payload).toMatchObject({
+        result: {
+          compute: true,
+          mcp: false,
+          agents: false,
+          llm: false,
+          currentModel: false,
+          listModels: false,
+          artifacts: false,
+          sessions: false,
+          delegate: false
+        }
+      })
+      for (const method of ['mcpCall', 'agentsCall', 'llmCall', 'artifactsCall', 'execute']) {
+        expect((await rpc(connection, method)).status).toBe(403)
+      }
+      expect((await rpc(connection, 'invented')).status).toBe(404)
+      expect((await callHostSdkHelp(connection, 'compute')).response.status).toBe(200)
+      connection.release()
+      expect((await rpc(connection, 'capabilitiesCall')).status).toBe(401)
+    }
+  )
+
+  it('uses the original Agent facade with token identity, invocation producer and policy over socket JSON', async () => {
+    const callCommand = vi.fn<RawComputeService['callCommand']>(async () => ({
+      exit_code: 0,
+      stdout: '',
+      stderr: '',
+      truncated: false
+    }))
+    const submitJob = vi.fn<RawComputeService['submitJob']>(async () => ({
+      job_id: 'job',
+      provider_id: 'ssh:host',
+      status: 'submitted',
+      remote_workdir: '/fixture'
+    }))
+    const compute = new AgentComputeService(
+      {
+        list: async () => [{ providerId: 'ssh:host' }],
+        callCommand,
+        submitJob
+      } as never,
+      { getEnabled: () => ['ssh:host'], getSelected: () => ['ssh:host'] }
+    )
+    server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+      transport: 'tcp',
+      computeService: compute
+    })
+    const assertComputeHostCurrent = vi.fn(async () => {})
+    const connection = await server.issueControlConnection(
+      'private',
+      'project',
+      'root-frame-private',
+      undefined,
+      undefined,
+      {
+        allowedMethods: methods,
+        interactionPolicy: 'deny-unresolved',
+        assertComputeHostCurrent
+      }
+    )
+    const end = connection.beginControlInvocation({
+      turnId: 'turn',
+      controlInvocationGeneration: 1,
+      toolInvocationId: 'real-producer'
+    })
+    const forged = {
+      provider_id: 'ssh:host',
+      sessionId: 'source',
+      projectId: 'foreign',
+      producerRunId: 'fake-producer',
+      interactionPolicy: 'interactive'
+    }
+    expect(
+      (
+        await rpc(connection, 'computeCall', {
+          ...forged,
+          op: 'call_command',
+          cmd: 'true',
+          intent: 'fixture'
+        })
+      ).status
+    ).toBe(200)
+    expect(
+      (
+        await rpc(connection, 'computeCall', {
+          ...forged,
+          op: 'submit_job',
+          command: 'true',
+          intent: 'fixture'
+        })
+      ).status
+    ).toBe(200)
+    const context = {
+      sessionId: 'private',
+      projectId: 'project',
+      producerRunId: 'real-producer',
+      interactionPolicy: 'deny-unresolved'
+    }
+    expect(callCommand.mock.calls[0][5]).toEqual(context)
+    expect(submitJob.mock.calls[0][4]).toEqual(context)
+    expect(assertComputeHostCurrent.mock.calls).toEqual([['ssh:host'], ['ssh:host']])
+    end()
+    connection.release()
+  })
+
+  it('never substitutes a successor control invocation after a source check awaits', async () => {
+    const callCommand = vi.fn()
+    server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+      transport: 'tcp',
+      computeService: { callCommand } as never
+    })
+    let release!: () => void
+    let entered!: () => void
+    const checking = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    const allowed = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const connection = await server.issueControlConnection(
+      'private',
+      'project',
+      'root-frame-private',
+      undefined,
+      undefined,
+      {
+        allowedMethods: methods,
+        interactionPolicy: 'deny-unresolved',
+        assertComputeHostCurrent: async () => {
+          entered()
+          await allowed
+        }
+      }
+    )
+    const end = connection.beginControlInvocation({
+      turnId: 'first',
+      controlInvocationGeneration: 1,
+      toolInvocationId: 'old-producer'
+    })
+    const response = rpc(connection, 'computeCall', { op: 'call_command', provider_id: 'ssh:host' })
+    await checking
+    end()
+    connection.beginControlInvocation({
+      turnId: 'second',
+      controlInvocationGeneration: 2,
+      toolInvocationId: 'new-producer'
+    })
+    release()
+    expect((await response).status).toBe(409)
+    expect(callCommand).not.toHaveBeenCalled()
+    connection.release()
+  })
+
+  it('does not accept a model-provided interaction policy on an ordinary control token', async () => {
+    const callCommand = vi.fn<AgentComputeService['callCommand']>(async () => ({
+      exit_code: 0,
+      stdout: '',
+      stderr: '',
+      truncated: false
+    }))
+    server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+      transport: 'tcp',
+      computeService: { callCommand } as never
+    })
+    const connection = await server.issueControlConnection(
+      'ordinary',
+      'project',
+      'root-frame-ordinary'
+    )
+    expect(
+      (
+        await rpc(connection, 'computeCall', {
+          op: 'call_command',
+          provider_id: 'ssh:host',
+          interactionPolicy: 'deny-unresolved'
+        })
+      ).status
+    ).toBe(200)
+    expect(callCommand.mock.calls[0][0]).not.toHaveProperty('interactionPolicy')
+    connection.release()
+  })
+
+  it('rejects source-host invalidation and token retirement while a trusted source check awaits', async () => {
+    const callCommand = vi.fn()
+    server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+      transport: 'tcp',
+      computeService: { callCommand } as never
+    })
+    let release!: () => void
+    let entered!: () => void
+    const checking = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    const allowed = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const connection = await server.issueControlConnection(
+      'private',
+      'project',
+      'root-frame-private',
+      undefined,
+      undefined,
+      {
+        allowedMethods: methods,
+        interactionPolicy: 'deny-unresolved',
+        assertComputeHostCurrent: async () => {
+          entered()
+          await allowed
+        }
+      }
+    )
+    const response = rpc(connection, 'computeCall', { op: 'call_command', provider_id: 'ssh:host' })
+    await checking
+    connection.revoke()
+    release()
+    expect((await response).status).toBe(401)
+    expect(callCommand).not.toHaveBeenCalled()
+    const denied = await server.issueControlConnection(
+      'private',
+      'project',
+      'root-frame-private',
+      undefined,
+      undefined,
+      {
+        allowedMethods: methods,
+        interactionPolicy: 'deny-unresolved',
+        assertComputeHostCurrent: async () => {
+          throw new Error('Original source host is no longer enabled')
+        }
+      }
+    )
+    expect(
+      (await rpc(denied, 'computeCall', { op: 'call_command', provider_id: 'ssh:host' })).status
+    ).toBe(500)
+    expect(callCommand).not.toHaveBeenCalled()
+    denied.release()
   })
 })

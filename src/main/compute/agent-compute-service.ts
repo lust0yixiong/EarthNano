@@ -1,3 +1,4 @@
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type {
   ComputeHost,
   ComputeHostDetails,
@@ -25,6 +26,7 @@ type AgentComputeContext = Readonly<{
   sessionId: string
   projectId: string
   producerRunId?: string
+  interactionPolicy?: ExecutionRequest['interactionPolicy']
 }>
 
 type AgentComputeLifecycle = Readonly<{

@@ -1,3 +1,4 @@
+import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type {
   ComputeApprovalDecision,
   ComputeApprovalOperation,
@@ -21,6 +22,8 @@ export type ComputeApprovalContext = {
   // Immutable ComputeHost row id captured with the request. Provider ids are reusable, so this
   // distinguishes a deleted host from a later host created with the same SSH alias.
   ownerId?: string
+  // Trusted execution policy; never inferred from model-provided approval data.
+  interactionPolicy?: ExecutionRequest['interactionPolicy']
 }
 
 type ComputeApprovalBrokerDeps = {
@@ -121,6 +124,9 @@ export class ComputeApprovalBroker {
     }
     if (this.globalCancellationActive) return Promise.resolve('deny')
     if (context && this.cancellingSessions.has(context.sessionId)) return Promise.resolve('deny')
+    // Grant resolution happens in requestWithContext. An unresolved noninteractive request
+    // must not allocate a card, timer, or remembered decision (including plaintext disclosure).
+    if (context?.interactionPolicy === 'deny-unresolved') return Promise.resolve('deny')
     const id = this.deps.generateId()
     const providerId = info.provider_id
     const request = { id, ...info }
@@ -264,6 +270,7 @@ export class ComputeApprovalBroker {
     ) {
       return 'deny'
     }
+    if (ctx.interactionPolicy === 'deny-unresolved') return 'deny'
     const decision = await this.request(info, ctx, signal)
 
     if ((this.providerGenerations.get(providerId) ?? 0) !== providerGeneration) return 'deny'
