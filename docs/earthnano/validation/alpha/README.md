@@ -136,3 +136,5 @@ Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/3946459
 见 [本轮范围与所有尝试](../../ALPHA_CATALOG.md)。`catalog/manifest.json` 记录 105 份原始文件的压缩前/存储 SHA-256，涵盖三次浏览器、三次原生离线、首次 DeepSeek、原源码控制及最终检查；gzip 解压后为原字节。`catalog/source-and-checks.json` 另存固定源码/四构建入口相同的对照与最终检查范围。原始失败的 JSON、Session/journal 与日志保留，未挑选付费高分重跑。
 
 首次 DeepSeek 两来源双模式 k1 通过：40/48 核心接纳、210 本地/209 上游请求，零拒绝、1 上游取消、用量不完整1项。生产覆盖38/40；API/美元未知。两来源同任务/固定版本/实际 Notebook producer/6个独立评审、停止/重开零重放通过。单任务 k2 的本轮原生验证为离线；更广 Alpha 与平台打包未因此完成。
+
+Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordinary journal 的原路径到短路径映射。只缩短归档文件名，gzip 存储字节、解压后的原始字节及两组 SHA-256 均保持不变；`catalog/manifest.json` 指向现有短路径。保留证据中的历史文件名通过映射追溯。
