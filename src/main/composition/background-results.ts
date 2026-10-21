@@ -17,7 +17,10 @@ import {
   hasSavedAgentResultContinuation
 } from '../background-result-delivery/continuation'
 import { NotebookRunResultDeliveryAdapter } from '../background-result-delivery/notebook-adapter'
-import { BackgroundResultDeliveryOwner } from '../background-result-delivery/owner'
+import {
+  BackgroundResultDeliveryOwner,
+  BackgroundResultDeliveryUnavailableError
+} from '../background-result-delivery/owner'
 import { BackgroundResultDeliveryRepository } from '../background-result-delivery/repository'
 import {
   resolveBackgroundResultSources,
@@ -45,7 +48,9 @@ export function routeCandidateContinuations(
     sendContinuation(request) {
       const dispatch = resolveCandidateDelivery(request.sessionId).then((route) => {
         if (route.kind === 'private-unavailable')
-          throw new Error('Private result delivery owner is unavailable')
+          throw new BackgroundResultDeliveryUnavailableError(
+            'Private result delivery owner is unavailable'
+          )
         return (route.kind === 'private' ? route.target : ordinary).sendContinuation(request)
       })
       const admitted = dispatch.then((value) => value.admitted)
@@ -56,7 +61,10 @@ export function routeCandidateContinuations(
     },
     async isContinuationSaved(request) {
       const route = await resolveCandidateDelivery(request.sessionId)
-      if (route.kind === 'private-unavailable') return false
+      if (route.kind === 'private-unavailable')
+        throw new BackgroundResultDeliveryUnavailableError(
+          'Private result delivery owner is unavailable'
+        )
       return (route.kind === 'private' ? route.target : ordinary).isContinuationSaved(request)
     },
     async canStartSessionTurn(sessionId) {

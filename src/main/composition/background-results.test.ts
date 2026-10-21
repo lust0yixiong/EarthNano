@@ -108,7 +108,9 @@ describe('original background result continuation routing', () => {
     const resolve = vi.fn<ResolveCandidateDelivery>(async () => ({ kind: 'private-unavailable' }))
     const routed = routeCandidateContinuations(ordinary, resolve)
     expect(await routed.canStartSessionTurn('private')).toBe(false)
-    expect(await routed.isContinuationSaved(request)).toBe(false)
+    await expect(routed.isContinuationSaved(request)).rejects.toThrow(
+      'Private result delivery owner is unavailable'
+    )
     const dispatch = routed.sendContinuation(request)
     await expect(dispatch.admitted).rejects.toThrow('Private result delivery owner is unavailable')
     await expect(dispatch.result).rejects.toThrow('Private result delivery owner is unavailable')

@@ -6,6 +6,8 @@ import type { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BackgroundResultDeliveryOwner } from './owner'
+import { routeCandidateContinuations } from '../composition/background-results'
+import type { CandidateContinuationTarget } from '../earthnano/compute-candidate-ports'
 
 import type {
   BackgroundResultDelivery,
@@ -106,6 +108,160 @@ describe('BackgroundResultDeliveryRepository', () => {
       owner.dispose()
       replacement?.dispose()
       vi.restoreAllMocks()
+    }
+  })
+
+  it.each(['send', 'saved-before', 'saved-after'] as const)(
+    'preserves the original pending claim without spending retry budget when its private owner retires at %s',
+    async (stage) => {
+      const source = localRun(`availability-${stage}`)
+      await repository.enqueue(source)
+      const continuationMessageId = `continuation-${stage}`
+      if (stage === 'saved-before') {
+        const prior = await repository.claimPending(source.sessionId, {
+          token: 'prior',
+          expiresAt: Date.now() + 60_000,
+          limit: 1
+        })
+        await repository.prepareContinuation(
+          prior.map((row) => row.id),
+          'prior',
+          continuationMessageId
+        )
+        await repository.releaseClaim(
+          prior.map((row) => row.id),
+          'prior'
+        )
+      }
+      let live = true,
+        retire = true,
+        saved = false
+      const ordinary = {
+        canStartSessionTurn: vi.fn(() => {
+          throw new Error('Ordinary readiness must not run')
+        }),
+        isContinuationSaved: vi.fn(async () => {
+          throw new Error('Ordinary saved lookup must not run')
+        }),
+        sendContinuation: vi.fn(() => {
+          throw new Error('Ordinary dispatch must not run')
+        })
+      } satisfies CandidateContinuationTarget
+      const privateTarget = {
+        canStartSessionTurn: vi.fn(() => true),
+        isContinuationSaved: vi.fn(async () => saved),
+        sendContinuation: vi.fn<CandidateContinuationTarget['sendContinuation']>((request) => {
+          saved = true
+          if (retire && stage === 'saved-after') live = false
+          return {
+            admitted: Promise.resolve(),
+            result: Promise.resolve({
+              stopReason: 'end_turn',
+              continuationMessageId: request.continuationMessageId
+            })
+          }
+        })
+      } satisfies CandidateContinuationTarget
+      const claimPending = repository.claimPending.bind(repository)
+      const claim = vi.spyOn(repository, 'claimPending').mockImplementation(async (...args) => {
+        const rows = await claimPending(...args)
+        // Readiness was accepted while live; original durable claim admission can await SQL.
+        if (retire && stage === 'saved-before') live = false
+        return rows
+      })
+      const resolveSources = vi.fn(async (rows: readonly BackgroundResultDelivery[]) => {
+        if (retire && stage === 'send') live = false
+        return rows.map((row) => ({
+          delivery: row,
+          availability: 'terminal' as const,
+          activity: { ...row, active: false, needsAttention: false },
+          outcome: { sourceKind: 'local-run' as const, runId: row.sourceId, resultSummary: '42' }
+        }))
+      })
+      const failClaim = vi.spyOn(repository, 'failClaim')
+      const owner = new BackgroundResultDeliveryOwner({
+        repository,
+        resolveSources,
+        waitForAuthoritiesReady: async () => {},
+        ...routeCandidateContinuations(ordinary, async () =>
+          live ? { kind: 'private', target: privateTarget } : { kind: 'private-unavailable' }
+        ),
+        createId: () => continuationMessageId
+      })
+      try {
+        const attempts = stage === 'saved-after' ? 1 : 3
+        for (let i = 0; i < attempts; i++) {
+          live = true
+          await expect(owner.drainSession(source.sessionId)).resolves.toBe('queued')
+          expect(await repository.findBySource(source)).toMatchObject({
+            state: 'pending',
+            attemptCount: 0,
+            ...(stage !== 'saved-before' ? { continuationMessageId } : {})
+          })
+        }
+        expect(failClaim).not.toHaveBeenCalled()
+        if (stage === 'saved-before') expect(resolveSources).not.toHaveBeenCalled()
+        expect(privateTarget.sendContinuation).toHaveBeenCalledTimes(
+          stage === 'saved-after' ? 1 : 0
+        )
+        expect(ordinary.sendContinuation).not.toHaveBeenCalled()
+        expect(ordinary.isContinuationSaved).not.toHaveBeenCalled()
+        expect(ordinary.canStartSessionTurn).not.toHaveBeenCalled()
+        // Recovered original authority either dispatches the unsent message once or recognizes
+        // the already saved continuation; it must never duplicate the admitted saved-after turn.
+        retire = false
+        live = true
+        await expect(owner.drainSession(source.sessionId)).resolves.toBe('consumed')
+        expect(privateTarget.sendContinuation).toHaveBeenCalledOnce()
+        expect(await repository.findBySource(source)).toMatchObject({
+          state: 'consumed',
+          attemptCount: 0,
+          continuationMessageId
+        })
+      } finally {
+        owner.dispose()
+        claim.mockRestore()
+        failClaim.mockRestore()
+      }
+    }
+  )
+
+  it('retains the original failure budget for an ordinary error with unavailable wording', async () => {
+    const source = localRun('ordinary-unavailable-wording')
+    await repository.enqueue(source)
+    const failClaim = vi.spyOn(repository, 'failClaim')
+    const owner = new BackgroundResultDeliveryOwner({
+      repository,
+      waitForAuthoritiesReady: async () => {},
+      resolveSources: async (rows) =>
+        rows.map((row) => ({
+          delivery: row,
+          availability: 'terminal' as const,
+          activity: { ...row, active: false, needsAttention: false },
+          outcome: { sourceKind: 'local-run' as const, runId: row.sourceId, resultSummary: '42' }
+        })),
+      ...routeCandidateContinuations({
+        canStartSessionTurn: () => true,
+        isContinuationSaved: async () => false,
+        sendContinuation: () => {
+          throw new Error('Private result delivery owner is unavailable')
+        }
+      })
+    })
+    try {
+      for (const attemptCount of [1, 2, 3]) {
+        await expect(owner.drainSession(source.sessionId)).resolves.toBe(
+          attemptCount === 3 ? 'needs-attention' : 'queued'
+        )
+        expect(await repository.findBySource(source)).toMatchObject({
+          state: attemptCount === 3 ? 'needs-attention' : 'pending',
+          attemptCount
+        })
+      }
+      expect(failClaim).toHaveBeenCalledTimes(3)
+    } finally {
+      owner.dispose()
+      failClaim.mockRestore()
     }
   })
 
