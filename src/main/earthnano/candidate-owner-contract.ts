@@ -1,9 +1,14 @@
 import type { ArtifactReference, ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { ReviewWithChecks } from '../../shared/reviewer'
-import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
+import type {
+  CommittedReviewReferences,
+  OutputCheckSpec
+} from '../../shared/earthnano/research-outcome'
 import type { ClaudeCandidateDriverOptions } from './claude-candidate-driver'
 import type { CandidateSnapshotStore } from './candidate-snapshot'
 import type { SemanticSourceEvidence } from './semantic-source-evidence'
+import type { NotebookRuntimeService } from '../notebook/runtime-service'
+import type { ResolveCandidateDelivery, TrustedControlPolicy } from './compute-candidate-ports'
 import type {
   CandidateArtifactFile,
   CandidateBinaryArtifactFile
@@ -44,6 +49,10 @@ export interface PersistentCandidateResult {
 }
 export interface PersistentCandidateOwners {
   openOwner: ClaudeCandidateDriverOptions['openOwner']
+  resolveCandidateDelivery?: ResolveCandidateDelivery
+  resolveControlPolicy?(
+    binding: Parameters<Parameters<NotebookRuntimeService['setMcpRpcConnectionResolver']>[0]>[0]
+  ): Promise<TrustedControlPolicy | undefined>
   exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult>
   /** Host-only exact Version projection; callers never select a destination path. */
   materializeArtifact?(
@@ -61,7 +70,7 @@ export interface PersistentCandidateOwners {
     target: ExecutionRecord
     checks: OutputCheckSpec[]
     signal?: AbortSignal
-  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
+  }): Promise<CommittedReviewReferences & { outcome: 'pass' | 'flagged' }>
   commitSemanticReview(input: {
     target: ExecutionRecord
     assessment: ExecutionRecord
@@ -71,6 +80,6 @@ export interface PersistentCandidateOwners {
     sourceEvidence?: SemanticSourceEvidence
     snapshots?: CandidateSnapshotStore
     signal?: AbortSignal
-  }): Promise<{ reviewId: string; outcome: 'pass' | 'flagged' }>
+  }): Promise<CommittedReviewReferences & { outcome: 'pass' | 'flagged' }>
   shutdown(): Promise<{ reaped: boolean }>
 }
