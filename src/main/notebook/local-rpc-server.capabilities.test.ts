@@ -1,3 +1,5 @@
+import { once } from 'node:events'
+import { request as httpRequest, type ClientRequest, type Server } from 'node:http'
 import type { ComputeHost } from '@aipoch/compute'
 import { ComputeService } from '../compute/compute-service'
 import type { ComputeHostRepository } from '../compute/repository'
@@ -719,6 +721,127 @@ describe('trusted Compute control policy', () => {
     }
   )
 
+  it.each(
+    (['scoped', 'ordinary'] as const).flatMap((policy) =>
+      (['none', 'none-to-current', 'replaced', 'ended', 'current'] as const).map((timing) => ({
+        policy,
+        timing
+      }))
+    )
+  )(
+    'binds $policy Compute submission to the invocation before its $timing body',
+    async ({ policy, timing }) => {
+      const submitJob = vi.fn<RawComputeService['submitJob']>(async () => ({
+        job_id: 'job',
+        provider_id: 'ssh:host',
+        status: 'submitted',
+        remote_workdir: '/fixture'
+      }))
+      const compute = new AgentComputeService(
+        { list: async () => [{ providerId: 'ssh:host' }], submitJob } as never,
+        { getEnabled: () => ['ssh:host'], getSelected: () => ['ssh:host'] }
+      )
+      server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
+        transport: 'tcp',
+        computeService: compute
+      })
+      const connection = await server.issueControlConnection(
+        'private',
+        'project',
+        'root-frame-private',
+        undefined,
+        undefined,
+        policy === 'scoped'
+          ? {
+              allowedMethods: methods,
+              interactionPolicy: 'deny-unresolved',
+              assertComputeHostCurrent: async () => {}
+            }
+          : undefined
+      )
+      let end: (() => void) | undefined
+      if (!['none', 'none-to-current'].includes(timing))
+        end = connection.beginControlInvocation({
+          turnId: 'initial',
+          controlInvocationGeneration: 1,
+          toolInvocationId: 'initial-producer'
+        })
+      const underlying = (server as unknown as { server?: Server }).server
+      if (!underlying) throw new Error('Expected the local RPC server to be listening')
+      const accepted = once(underlying, 'request')
+      const payload = JSON.stringify({
+        method: 'computeCall',
+        params: {
+          op: 'submit_job',
+          provider_id: 'ssh:host',
+          command: 'true',
+          intent: 'fixture',
+          producerRunId: 'forged',
+          interactionPolicy: 'interactive'
+        }
+      })
+      let request!: ClientRequest
+      const outcome = new Promise<number>((resolve, reject) => {
+        request = httpRequest(
+          connection.endpoint,
+          {
+            method: 'POST',
+            headers: {
+              authorization: `Bearer ${connection.token}`,
+              'content-type': 'application/json',
+              'content-length': Buffer.byteLength(payload)
+            }
+          },
+          (response) => {
+            response.resume()
+            resolve(response.statusCode ?? 500)
+          }
+        )
+        request.once('error', reject)
+      })
+      try {
+        request.write(payload.slice(0, -1))
+        await accepted
+        // Node's request event proves the original server has captured its pre-body invocation.
+        if (timing === 'ended' || timing === 'replaced') end?.()
+        if (timing === 'none-to-current' || timing === 'replaced')
+          end = connection.beginControlInvocation({
+            turnId: 'successor',
+            controlInvocationGeneration: 2,
+            toolInvocationId: 'successor-producer'
+          })
+        request.end(payload.slice(-1))
+        const status = await outcome
+        const permitted = policy === 'ordinary' || timing === 'current'
+        const producer =
+          timing === 'current'
+            ? 'initial-producer'
+            : ['none-to-current', 'replaced'].includes(timing)
+              ? 'successor-producer'
+              : undefined
+        expect({
+          status,
+          producers: submitJob.mock.calls.map((call) => call[4]?.producerRunId)
+        }).toEqual({
+          status: permitted ? 200 : ['none', 'none-to-current'].includes(timing) ? 403 : 409,
+          producers: permitted ? [producer] : []
+        })
+        if (permitted)
+          expect(submitJob.mock.calls[0][4]).toEqual({
+            sessionId: 'private',
+            projectId: 'project',
+            producerRunId: producer,
+            ...(policy === 'scoped' ? { interactionPolicy: 'deny-unresolved' } : {})
+          })
+      } finally {
+        request.destroy()
+        await outcome.catch(() => undefined)
+        end?.()
+        connection.release()
+      }
+    }
+  )
+
   it('never substitutes a successor control invocation after a source check awaits', async () => {
     const callCommand = vi.fn()
     server = new NotebookLocalRpcServer({ execute: vi.fn() } as never, {
@@ -825,12 +948,18 @@ describe('trusted Compute control policy', () => {
         }
       }
     )
+    const end = connection.beginControlInvocation({
+      turnId: 'turn',
+      controlInvocationGeneration: 1,
+      toolInvocationId: 'producer'
+    })
     const response = rpc(connection, 'computeCall', { op: 'call_command', provider_id: 'ssh:host' })
     await checking
     connection.revoke()
     release()
     expect((await response).status).toBe(401)
     expect(callCommand).not.toHaveBeenCalled()
+    end()
     const denied = await server.issueControlConnection(
       'private',
       'project',
@@ -845,10 +974,16 @@ describe('trusted Compute control policy', () => {
         }
       }
     )
+    const endDenied = denied.beginControlInvocation({
+      turnId: 'denied',
+      controlInvocationGeneration: 2,
+      toolInvocationId: 'denied-producer'
+    })
     expect(
       (await rpc(denied, 'computeCall', { op: 'call_command', provider_id: 'ssh:host' })).status
     ).toBe(500)
     expect(callCommand).not.toHaveBeenCalled()
+    endDenied()
     denied.release()
   })
 })
