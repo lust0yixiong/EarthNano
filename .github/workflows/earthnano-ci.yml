@@ -2,7 +2,7 @@ name: EarthNano CI
 
 on:
   pull_request:
-    branches: [main, feat/alpha-*]
+    branches: [main, feat/alpha-*, fix/alpha-*]
   push:
     branches: [main, ci/earthnano-native]
   workflow_dispatch:

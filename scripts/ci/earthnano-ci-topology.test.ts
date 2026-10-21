@@ -530,7 +530,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
     ).toBe(0)
   })
   it('runs stacked Alpha PRs without widening permissions, push or automatic native triggers', () => {
-    expect(workflow.on.pull_request.branches).toEqual(['main', 'feat/alpha-*'])
+    expect(workflow.on.pull_request.branches).toEqual(['main', 'feat/alpha-*', 'fix/alpha-*'])
     expect(workflow.on.push.branches).toEqual(['main', 'ci/earthnano-native'])
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.on.pull_request_target).toBeUndefined()

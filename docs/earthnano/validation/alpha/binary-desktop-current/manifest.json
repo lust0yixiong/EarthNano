@@ -570,7 +570,31 @@
       "rawSha256": "6d7dcbba1c7da02ee84e0b4aa4090385e25d9cd2b9ddc3312402f39c7f94f707",
       "gzipBytes": 4128,
       "gzipSha256": "f6d0217d9bb300fcaa8b8da71aa1dd5c1302472661ce757104f4d111bd183f2c"
+    },
+    {
+      "path": "stacked-pr-topology.json.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/stacked-pr-topology.json",
+      "rawBytes": 9239,
+      "rawSha256": "3b1b881a8d969ed112cbfd04f6c7eaf8a4cd6cbea517051b48630f9769cc9c11",
+      "gzipBytes": 1515,
+      "gzipSha256": "d245c8f97d16b4b0e137cd60aece46a3dfadd3d2df22af28885e665918522674"
+    },
+    {
+      "path": "stacked-pr-topology.log.gz",
+      "sourceFile": "/Users/yxmac_mini/Developer/EarthNano-validation/binary-current-20261021/stacked-pr-topology.log",
+      "rawBytes": 121,
+      "rawSha256": "66d18aa8c358dc0d23d8ec443858f5b26b200b75cdda5e26fcacd2d993a3ac22",
+      "gzipBytes": 128,
+      "gzipSha256": "9363011bd8517a01cc2937726a2db51606eebd111c3d945ff8e38c57796ee499"
     }
   ],
-  "independentSourceReview": "binary-final-review.md.gz and exactpatch/hash receipts; no proven seriousblocking regressions, signal limit explicit."
+  "independentSourceReview": "binary-final-review.md.gz and exactpatch/hash receipts; no proven seriousblocking regressions, signal limit explicit.",
+  "stackedPrCi": {
+    "change": "Include fix/alpha-* PR bases so binary/core stacked PRs receive the same strict Unix/Harness source gate.",
+    "topologyTests": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
 }
