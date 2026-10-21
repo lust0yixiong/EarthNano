@@ -10,7 +10,10 @@ vi.mock('../desktop-surface-declarations', () => ({
   registerDesktopOptimizationIpcHandlers: vi.fn()
 }))
 import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
-import { createComputeWorkflowFixture } from '../../../test/earthnano/compute-workflow'
+import {
+  createComputeWorkflowFixture,
+  type ComputeWorkflowFixture
+} from '../../../test/earthnano/compute-workflow'
 import { createEarthnanoMessagesProvider } from '../../../e2e/fixtures/earthnano-messages-provider'
 import {
   createDesktopSweepOptions,
@@ -32,6 +35,8 @@ import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { runPersistentOptimization } from './run-persistent-optimization'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { StartDesktopSweep } from '../../shared/earthnano/optimization-sweep'
+import type { OptimizationProgress } from '../../shared/earthnano/desktop-optimization'
+import type { ExecutionState } from './execution-core'
 
 configureTestRuntimeMetadata()
 
@@ -49,6 +54,19 @@ const sourcePrompt = [
 
 it('runs the frozen Compute task through original desktop sweep, Harness k=2 and independent reviews', async () => {
   const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
+  const retainedReportPath = process.env.EARTHNANO_COMPUTE_RESUME_REPORT
+  const retained = retainedReportPath
+    ? (JSON.parse(await readFile(retainedReportPath, 'utf8')) as {
+        sourceSha: string
+        fixtureRoot: string
+        live: boolean
+        progress: OptimizationProgress
+        journal: ExecutionState
+        transport: ComputeWorkflowFixture['transport']['calls']
+        provider: Awaited<ReturnType<typeof createEarthnanoMessagesProvider>>['stats']
+      })
+    : undefined
+  if (retained) expect(retained.live).toBe(live)
   const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
   const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()
   if (live && dirty) throw new Error('Live Compute acceptance requires a clean source commit')
@@ -63,12 +81,15 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     ['-c', 'import sys;print(sys.executable)'],
     { encoding: 'utf8' }
   ).trim()
+  const modelRequestsRemaining = 240 - (retained?.provider.requests ?? 0)
+  if (!Number.isSafeInteger(modelRequestsRemaining) || modelRequestsRemaining <= 0)
+    throw new Error('Original controlled model-request budget is exhausted')
   const provider = await createEarthnanoMessagesProvider(live, true, false, {
     scientificCompute: true,
     scientificFigure: true,
     // Independent transport ceiling for this full k=2 experiment, including original retries and
     // both reviewers. It never raises the Core admission budget or resumes a failed experiment.
-    maxModelRequests: 240,
+    maxModelRequests: modelRequestsRemaining,
     ...(process.env.EARTHNANO_DEEPSEEK_KEY_FILE
       ? { keyFile: process.env.EARTHNANO_DEEPSEEK_KEY_FILE }
       : {})
@@ -77,6 +98,11 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     sourceSha,
     dirty: Boolean(dirty),
     live,
+    controlledModelRequestBudget: {
+      limit: 240,
+      previouslyUsed: retained?.provider.requests ?? 0,
+      remainingBeforeRun: modelRequestsRemaining
+    },
     native: {
       executablePath,
       nativeVersion,
@@ -106,7 +132,20 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       vi.unstubAllEnvs()
     }
   })
-  const f = await createComputeWorkflowFixture({ mode: 'authorized', sourcePrompt })
+  const f = await createComputeWorkflowFixture({
+    mode: 'authorized',
+    sourcePrompt,
+    ...(retained ? { reopenRoot: retained.fixtureRoot } : {})
+  })
+  if (retained)
+    report.resumedFrom = {
+      sourceSha: retained.sourceSha,
+      reportPath: retainedReportPath,
+      runId: retained.progress.runId,
+      budget: retained.progress.budget,
+      originalTransport: retained.transport,
+      originalProvider: retained.provider
+    }
   report.fixtureRoot = f.root
   vi.stubEnv('OPEN_SCIENCE_E2E_STORAGE_ROOT', f.configRoot)
   expect(resolveConfigRoot()).toBe(f.configRoot)
@@ -278,10 +317,21 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     catalog: request.catalog.map(({ taskId, domain }) => ({ taskId, domain }))
   })
   expect(provider.stats.requests).toBe(0)
-  expect(await f.client.computeJob.count()).toBe(0)
+  const previousJobs = retained
+    ? Object.values(retained.journal.records).filter((record) =>
+        ['baseline', 'candidate'].includes(record.request.role)
+      ).length
+    : 0
+  expect(await f.client.computeJob.count()).toBe(previousJobs)
   request.previewPlanDigest = preview.planDigest
-  await f.start()
-  const started = await manager.startSweep(request)
+  if (!retained) await f.start()
+  const started = retained
+    ? await manager.resume({
+        projectId: f.projectId,
+        sourceSessionId: f.sourceSessionId,
+        runId: retained.progress.runId
+      })
+    : await manager.startSweep(request)
   const key = { projectId: f.projectId, sourceSessionId: f.sourceSessionId, runId: started.runId }
   owned.key = key
   await vi.waitFor(
@@ -326,6 +376,20 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   const taskRecords = records.filter((record) =>
     ['baseline', 'candidate'].includes(record.request.role)
   )
+  if (retained) {
+    expect(taskRecords).toEqual(
+      Object.values(retained.journal.records).filter((record) =>
+        ['baseline', 'candidate'].includes(record.request.role)
+      )
+    )
+    expect(
+      records
+        .filter((record) => !retained.journal.records[record.executionId])
+        .every((record) => record.request.role === 'reviewer')
+    ).toBe(true)
+    expect(Object.keys(provider.stats.roles).every((role) => role === 'reviewer')).toBe(true)
+    expect(f.transport.calls).toEqual([])
+  }
   expect(new Set(taskRecords.map((record) => record.request.taskSnapshotRef.digest)).size).toBe(1)
   expect(new Set(taskRecords.map((record) => record.request.environmentSpecRef.digest)).size).toBe(
     1
@@ -407,7 +471,10 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
       throw new Error('Original metrics source Version missing')
     expect(jobs[0].remote_workdir).toEqual(expect.any(String))
     const transportMetricsPath = join(jobs[0].remote_workdir!, 'metrics.json')
-    expect(f.transport.calls).toContainEqual({ kind: 'download', path: transportMetricsPath })
+    expect(retained?.transport ?? f.transport.calls).toContainEqual({
+      kind: 'download',
+      path: transportMetricsPath
+    })
     expect(Buffer.from(source.content, 'utf8')).toEqual(await readFile(transportMetricsPath))
     const result = exported.files.find((file) => file.path === 'research-results.json')
     if (!result || !('content' in result)) throw new Error('Original text report missing')
@@ -429,7 +496,11 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   expect(summary?.assessments?.candidate.outcome).toBe('pass')
   expect(summary?.outcome?.artifact.status).toBe('passed')
   expect(summary?.experience?.reflectionExecutionId).toEqual(expect.any(String))
-  expect(provider.stats.imageToolResults?.some((result) => result.role === 'selector')).toBe(true)
+  expect(
+    (retained?.provider ?? provider.stats).imageToolResults?.some(
+      (result) => result.role === 'selector'
+    )
+  ).toBe(true)
   expect(f.approvalId).not.toHaveBeenCalled()
   expect(f.approvalBroadcast).not.toHaveBeenCalled()
   expect(await f.grants.list()).toHaveLength(1)

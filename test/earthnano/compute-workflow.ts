@@ -1,8 +1,18 @@
 import { createRequire } from 'node:module'
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
-import { chmod, lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { vi } from 'vitest'
 import sharp from 'sharp'
 import { createComputeExecution } from '@aipoch/compute/node'
@@ -97,6 +107,8 @@ export interface ComputeWorkflowFixture {
 export async function createComputeWorkflowFixture(options: {
   mode: ComputeWorkflowMode
   sourcePrompt?: string
+  /** Reopen only this fixture's normally closed temporary root; never reseed persisted facts. */
+  reopenRoot?: string
 }): Promise<ComputeWorkflowFixture> {
   const { mode, sourcePrompt } = options
   const png = Buffer.from(
@@ -106,17 +118,27 @@ export async function createComputeWorkflowFixture(options: {
   // Validate the fixture with a real decoder before native/provider work. A PNG signature alone
   // cannot prove its compressed chunks/CRCs are valid for an external image API.
   await sharp(png).raw().toBuffer()
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-compute-workflow-')))
+  const root = await realpath(
+    options.reopenRoot ?? (await mkdtemp(join(tmpdir(), 'earthnano-compute-workflow-')))
+  )
+  if (
+    options.reopenRoot &&
+    (dirname(root) !== (await realpath(tmpdir())) ||
+      !basename(root).startsWith('earthnano-compute-workflow-'))
+  )
+    throw new Error('Reopen requires an original controlled Compute fixture root')
   initDataRoot(root)
   const configRoot = join(root, 'config')
-  await mkdir(configRoot)
+  if (!options.reopenRoot) await mkdir(configRoot)
   const client = createProjectDbClient(configRoot)
-  await migrateApplicationDatabase(client)
+  if (!options.reopenRoot) await migrateApplicationDatabase(client)
   const projectId = 'compute-project',
     sourceSessionId = 'compute-source'
-  await client.project.create({
-    data: { id: projectId, name: 'Original local Compute owner fixture' }
-  })
+  if (!options.reopenRoot)
+    await client.project.create({
+      data: { id: projectId, name: 'Original local Compute owner fixture' }
+    })
+  else await client.project.findUniqueOrThrow({ where: { id: projectId } })
   const sessions = new SessionRepository(configRoot)
   const ports = createCandidateOwnerTestPorts({
     dataRoot: root,
@@ -139,37 +161,53 @@ export async function createComputeWorkflowFixture(options: {
             eventIds: []
           }
         ]
-  const source = await ports.sessionPersistence.coordinator.saveSession({
-    id: sourceSessionId,
-    projectId,
-    title: 'Source',
-    cwd: root,
-    status: 'idle',
-    messages,
-    ...(sourcePrompt === undefined
-      ? {}
-      : {
-          conversationGraph: createLinearConversationGraph({
-            sessionId: sourceSessionId,
-            messages,
-            frameworkId: 'claude-code',
-            createdAt: 1,
-            updatedAt: 1
-          })
-        }),
-    enabledComputeHosts: ['ssh:fixture'],
-    selectedComputeHosts: [],
-    createdAt: 1,
-    updatedAt: 1
-  })
+  const retained = options.reopenRoot
+    ? await loadSessionMutationAuthority(sessions, projectId, sourceSessionId)
+    : undefined
+  if (retained && retained.status !== 'found') throw new Error('Original source Session missing')
+  const source =
+    retained?.status === 'found'
+      ? retained.session
+      : await ports.sessionPersistence.coordinator.saveSession({
+          id: sourceSessionId,
+          projectId,
+          title: 'Source',
+          cwd: root,
+          status: 'idle',
+          messages,
+          ...(sourcePrompt === undefined
+            ? {}
+            : {
+                conversationGraph: createLinearConversationGraph({
+                  sessionId: sourceSessionId,
+                  messages,
+                  frameworkId: 'claude-code',
+                  createdAt: 1,
+                  updatedAt: 1
+                })
+              }),
+          enabledComputeHosts: ['ssh:fixture'],
+          selectedComputeHosts: [],
+          createdAt: 1,
+          updatedAt: 1
+        })
+  if (
+    options.reopenRoot &&
+    sourcePrompt !== undefined &&
+    !source.messages.some(
+      (message) => message.id === sourcePromptMessageId && message.content === sourcePrompt
+    )
+  )
+    throw new Error('Original source prompt changed; reopen refused')
   const hosts = new ComputeHostRepository(async () => client)
-  await hosts.create({
-    sshAlias: 'fixture',
-    displayName: 'Owned fixture',
-    executionMode: 'direct_ssh'
-  })
+  if (!options.reopenRoot)
+    await hosts.create({
+      sshAlias: 'fixture',
+      displayName: 'Owned fixture',
+      executionMode: 'direct_ssh'
+    })
   const remoteRoot = join(root, 'remote')
-  await hosts.updateScratchPinned('ssh:fixture', remoteRoot)
+  if (!options.reopenRoot) await hosts.updateScratchPinned('ssh:fixture', remoteRoot)
   const frozenCompute = await freezeComputeContext({ source, hosts })
   const registry = new EnabledComputeHostsRegistry()
   const hostAccess = new SessionEnabledComputeHostsOwner({
@@ -210,7 +248,7 @@ export async function createComputeWorkflowFixture(options: {
   const operations = new ComputeJobOperationRepository(async () => client, protection)
   const grants = await createPermissionGrantRegistry({ getClient: async () => client })
   const permissions = createComputePermissionGrantAdapter(grants)
-  if (mode !== 'no-grant')
+  if (mode !== 'no-grant' && !options.reopenRoot)
     await permissions.remember(
       {
         projectId,
@@ -347,10 +385,11 @@ export async function createComputeWorkflowFixture(options: {
     })
   })
   const mcpEntryPath = join(root, 'original-mcp.cjs')
-  await writeFile(
-    mcpEntryPath,
-    `const jiti=require(${JSON.stringify(createRequire(import.meta.url).resolve('jiti'))}).createJiti(__filename);(async()=>{const notebook=process.argv.includes('--open-science-notebook-mcp');const api=await jiti.import(notebook?${JSON.stringify(resolve('src/main/notebook/mcp-server.ts'))}:${JSON.stringify(resolve('src/main/artifacts/mcp-server.ts'))});await (notebook?api.runNotebookMcpServer():api.runArtifactMcpServer())})().catch(()=>process.exitCode=1);`
-  )
+  const mcpEntry = `const jiti=require(${JSON.stringify(createRequire(import.meta.url).resolve('jiti'))}).createJiti(__filename);(async()=>{const notebook=process.argv.includes('--open-science-notebook-mcp');const api=await jiti.import(notebook?${JSON.stringify(resolve('src/main/notebook/mcp-server.ts'))}:${JSON.stringify(resolve('src/main/artifacts/mcp-server.ts'))});await (notebook?api.runNotebookMcpServer():api.runArtifactMcpServer())})().catch(()=>process.exitCode=1);`
+  if (options.reopenRoot) {
+    if ((await readFile(mcpEntryPath, 'utf8')) !== mcpEntry)
+      throw new Error('Original native fixture entry changed; reopen refused')
+  } else await writeFile(mcpEntryPath, mcpEntry)
   const routing = createDesktopCandidateOwnerRouting(async () => {
     const release = acquireDataRootWriter()
     try {
@@ -451,7 +490,7 @@ export async function createComputeWorkflowFixture(options: {
         throw new AggregateError(failures, `Compute workflow evidence retained at ${root}`)
       // Opt-in acceptance reports may need original native/Session files after all real owners
       // close. Keeping their directory is not a resource reaping or remote cleanup attestation.
-      if (closeOptions?.preserveEvidence) {
+      if (closeOptions?.preserveEvidence || options.reopenRoot) {
         closed = true
         return
       }
