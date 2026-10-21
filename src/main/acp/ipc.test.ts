@@ -219,7 +219,7 @@ vi.mock('../earthnano/session-execution-host', () => ({
         async readResult({ error }) {
           return { phase: error === undefined ? 'completed' : 'failed', cleanup: 'confirmed' }
         },
-        close() {}
+        close: () => undefined
       }
     }
   })

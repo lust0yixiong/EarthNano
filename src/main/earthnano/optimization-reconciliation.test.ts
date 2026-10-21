@@ -70,10 +70,10 @@ const setup = async (): Promise<{
     filename,
     record,
     dispatch,
-    load: () => JSON.parse(readFileSync(filename, 'utf8'))
+    load: (): ExecutionState => JSON.parse(readFileSync(filename, 'utf8'))
   }
 }
-const reconcile = (root: string) =>
+const reconcile = (root: string): ReturnType<typeof reconcilePersistentOptimization> =>
   reconcilePersistentOptimization({
     workRoot: root,
     projectId: 'demo',
@@ -83,7 +83,7 @@ const reconcile = (root: string) =>
 const persist = (
   f: Awaited<ReturnType<typeof setup>>,
   phase: 'completed' | 'failed' | 'cancelled' = 'completed'
-) =>
+): ReturnType<typeof persistCandidateOwnerSettlement> =>
   persistCandidateOwnerSettlement(f.root, {
     request: f.record.request,
     executionId: f.record.executionId,
@@ -177,7 +177,8 @@ it('refuses early, wrong-request, wrong-owner, damaged and replaced witnesses', 
   ]) {
     const modified = { ...original, ...change }
     if (!('digest' in change)) {
-      const { digest: _digest, ...payload } = modified
+      const payload = { ...modified }
+      delete payload.digest
       modified.digest = outputDigest(payload)
     }
     writeResumeJson(path, modified)
