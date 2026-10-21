@@ -30,6 +30,43 @@ import type { SessionPersistenceCommands } from '../session-persistence/coordina
 import { createDefaultSessionRepository } from '../session-persistence/ipc'
 import { resolveConfigRoot, resolveDataRoot } from '../storage-root'
 
+import type {
+  CandidateContinuationTarget,
+  ResolveCandidateDelivery
+} from '../earthnano/compute-candidate-ports'
+
+/** Reuse the original delivery owner; a known private Session never falls back to ordinary Send. */
+export function routeCandidateContinuations(
+  ordinary: CandidateContinuationTarget,
+  resolveCandidateDelivery?: ResolveCandidateDelivery
+): CandidateContinuationTarget {
+  if (!resolveCandidateDelivery) return ordinary
+  return {
+    sendContinuation(request) {
+      const dispatch = resolveCandidateDelivery(request.sessionId).then((route) => {
+        if (route.kind === 'private-unavailable')
+          throw new Error('Private result delivery owner is unavailable')
+        return (route.kind === 'private' ? route.target : ordinary).sendContinuation(request)
+      })
+      const admitted = dispatch.then((value) => value.admitted)
+      const result = dispatch.then((value) => value.result)
+      void admitted.catch(() => undefined)
+      void result.catch(() => undefined)
+      return { admitted, result }
+    },
+    async isContinuationSaved(request) {
+      const route = await resolveCandidateDelivery(request.sessionId)
+      if (route.kind === 'private-unavailable') return false
+      return (route.kind === 'private' ? route.target : ordinary).isContinuationSaved(request)
+    },
+    async canStartSessionTurn(sessionId) {
+      const route = await resolveCandidateDelivery(sessionId)
+      if (route.kind === 'private-unavailable') return false
+      return (route.kind === 'private' ? route.target : ordinary).canStartSessionTurn(sessionId)
+    }
+  }
+}
+
 export async function composeBackgroundResults({
   applicationEvents,
   resolveSessionAgentTarget,
@@ -39,6 +76,7 @@ export async function composeBackgroundResults({
   getNotebookCommands,
   getJobRepository,
   getHostRepository,
+  resolveCandidateDelivery,
   modules
 }: {
   applicationEvents: ApplicationEvents
@@ -54,6 +92,7 @@ export async function composeBackgroundResults({
   >['capability']['commands']
   getJobRepository: () => import('../compute/job-repository').ComputeJobRepository
   getHostRepository: () => import('../compute/repository').ComputeHostRepository
+  resolveCandidateDelivery?: ResolveCandidateDelivery
   modules: ApplicationModuleBuilder
 }): Promise<{
   backgroundResultDeliveryRepository: BackgroundResultDeliveryRepository
@@ -109,6 +148,126 @@ export async function composeBackgroundResults({
           ).filter((entry): entry is readonly [string, JobSummary] => entry !== undefined)
         )
     })
+  const continuationTarget: CandidateContinuationTarget = {
+    sendContinuation: (request: {
+      sessionId: string
+      text: string
+      deliveryIds: readonly string[]
+      continuationMessageId: string
+    }) => {
+      let settleAdmitted!: () => void
+      let rejectAdmission!: (error: unknown) => void
+      let admissionSettled = false
+      const admitted = new Promise<void>((resolve, reject) => {
+        settleAdmitted = () => {
+          if (admissionSettled) return
+          admissionSettled = true
+          resolve()
+        }
+        rejectAdmission = (error) => {
+          if (admissionSettled) return
+          admissionSettled = true
+          reject(error)
+        }
+      })
+      const result = (async () => {
+        try {
+          const runtime = runtimeRef.current
+          if (!runtime) throw new Error('Agent runtime is unavailable for result delivery.')
+          const projectId = await getSessionPersistenceCoordinator().sessionProjectId(
+            request.sessionId
+          )
+          if (!projectId) throw new Error('Background result delivery Session is unavailable.')
+          let session = await getSessionPersistenceCoordinator().loadSessionForContinuation(
+            projectId,
+            request.sessionId
+          )
+          const agentTarget = await resolveSessionAgentTarget(session)
+          if (
+            agentTarget &&
+            shouldPersistSessionAgentConfiguration(session.agentConfiguration, agentTarget)
+          ) {
+            session = await getSessionPersistenceCoordinator().saveSession({
+              ...session,
+              agentConfiguration: toSessionAgentConfiguration(agentTarget)
+            })
+          }
+          if (!runtime.hasLiveSession(session.projectId, session.id) || agentTarget) {
+            await runtime.resumeSession({
+              sessionId: session.id,
+              cwd: session.cwd,
+              projectId: session.projectId,
+              ...(session.permissionProfile
+                ? { permissionProfile: session.permissionProfile }
+                : {}),
+              memoryEnabled: session.memoryEnabled !== false,
+              ...(session.agentFrameworkId
+                ? { previousFrameworkId: session.agentFrameworkId }
+                : {}),
+              ...(session.agentBackendId ? { previousBackendId: session.agentBackendId } : {}),
+              ...(session.specialistId ? { specialistId: session.specialistId } : {}),
+              ...(session.specialistBindingPending === true
+                ? { specialistBindingPending: true }
+                : {}),
+              ...(session.providerSessionId
+                ? { providerSessionId: session.providerSessionId }
+                : {}),
+              ...(session.providerContinuityToken
+                ? { providerContinuityToken: session.providerContinuityToken }
+                : {}),
+              ...(agentTarget ? { agentTarget } : {})
+            })
+          }
+          const response = await runtime.sendApplicationPrompt(
+            buildAgentResultContinuationPrompt(session, {
+              sessionId: request.sessionId,
+              text: request.text,
+              continuationMessageId: request.continuationMessageId
+            }),
+            {
+              kind: 'application',
+              feature: 'background-results',
+              purpose: 'agent-result-delivery',
+              deliveryKey: `agent-result-delivery:${request.continuationMessageId}`,
+              deliveryIds: [...request.deliveryIds]
+            },
+            undefined,
+            (prompt) => {
+              void prompt.then(settleAdmitted, rejectAdmission)
+              setImmediate(settleAdmitted)
+            }
+          )
+          settleAdmitted()
+          return {
+            stopReason: response.stopReason,
+            continuationMessageId: request.continuationMessageId
+          }
+        } catch (error) {
+          rejectAdmission(error)
+          throw error
+        }
+      })()
+      return { admitted, result }
+    },
+    isContinuationSaved: async (request: {
+      sessionId: string
+      continuationMessageId: string
+      deliveryIds: readonly string[]
+    }) => {
+      const projectId = await getSessionPersistenceCoordinator().sessionProjectId(request.sessionId)
+      if (!projectId) return false
+      const saved = await getSessionPersistenceCoordinator().loadSessionForContinuation(
+        projectId,
+        request.sessionId
+      )
+      const messages = [...(saved.conversationGraph?.messages ?? []), ...saved.messages]
+      return hasSavedAgentResultContinuation(messages, request)
+    },
+    canStartSessionTurn: (sessionId: string) => {
+      const runtime = runtimeRef.current
+      return runtime ? !runtime.getState().promptInFlightSessionIds.includes(sessionId) : false
+    }
+  }
   const backgroundResultDelivery: BackgroundResultDeliveryOwner = await modules.add(
     {
       repository: backgroundResultDeliveryRepository,
@@ -127,126 +286,7 @@ export async function composeBackgroundResults({
           }))
         }
       },
-      sendContinuation: (request: {
-        sessionId: string
-        text: string
-        deliveryIds: readonly string[]
-        continuationMessageId: string
-      }) => {
-        let settleAdmitted!: () => void
-        let rejectAdmission!: (error: unknown) => void
-        let admissionSettled = false
-        const admitted = new Promise<void>((resolve, reject) => {
-          settleAdmitted = () => {
-            if (admissionSettled) return
-            admissionSettled = true
-            resolve()
-          }
-          rejectAdmission = (error) => {
-            if (admissionSettled) return
-            admissionSettled = true
-            reject(error)
-          }
-        })
-        const result = (async () => {
-          try {
-            const runtime = runtimeRef.current
-            if (!runtime) throw new Error('Agent runtime is unavailable for result delivery.')
-            const projectId = await getSessionPersistenceCoordinator().sessionProjectId(
-              request.sessionId
-            )
-            if (!projectId) throw new Error('Background result delivery Session is unavailable.')
-            let session = await getSessionPersistenceCoordinator().loadSessionForContinuation(
-              projectId,
-              request.sessionId
-            )
-            const agentTarget = await resolveSessionAgentTarget(session)
-            if (
-              agentTarget &&
-              shouldPersistSessionAgentConfiguration(session.agentConfiguration, agentTarget)
-            ) {
-              session = await getSessionPersistenceCoordinator().saveSession({
-                ...session,
-                agentConfiguration: toSessionAgentConfiguration(agentTarget)
-              })
-            }
-            if (!runtime.hasLiveSession(session.projectId, session.id) || agentTarget) {
-              await runtime.resumeSession({
-                sessionId: session.id,
-                cwd: session.cwd,
-                projectId: session.projectId,
-                ...(session.permissionProfile
-                  ? { permissionProfile: session.permissionProfile }
-                  : {}),
-                memoryEnabled: session.memoryEnabled !== false,
-                ...(session.agentFrameworkId
-                  ? { previousFrameworkId: session.agentFrameworkId }
-                  : {}),
-                ...(session.agentBackendId ? { previousBackendId: session.agentBackendId } : {}),
-                ...(session.specialistId ? { specialistId: session.specialistId } : {}),
-                ...(session.specialistBindingPending === true
-                  ? { specialistBindingPending: true }
-                  : {}),
-                ...(session.providerSessionId
-                  ? { providerSessionId: session.providerSessionId }
-                  : {}),
-                ...(session.providerContinuityToken
-                  ? { providerContinuityToken: session.providerContinuityToken }
-                  : {}),
-                ...(agentTarget ? { agentTarget } : {})
-              })
-            }
-            const response = await runtime.sendApplicationPrompt(
-              buildAgentResultContinuationPrompt(session, {
-                sessionId: request.sessionId,
-                text: request.text,
-                continuationMessageId: request.continuationMessageId
-              }),
-              {
-                kind: 'application',
-                feature: 'background-results',
-                purpose: 'agent-result-delivery',
-                deliveryKey: `agent-result-delivery:${request.continuationMessageId}`,
-                deliveryIds: [...request.deliveryIds]
-              },
-              undefined,
-              (prompt) => {
-                void prompt.then(settleAdmitted, rejectAdmission)
-                setImmediate(settleAdmitted)
-              }
-            )
-            settleAdmitted()
-            return {
-              stopReason: response.stopReason,
-              continuationMessageId: request.continuationMessageId
-            }
-          } catch (error) {
-            rejectAdmission(error)
-            throw error
-          }
-        })()
-        return { admitted, result }
-      },
-      isContinuationSaved: async (request: {
-        sessionId: string
-        continuationMessageId: string
-        deliveryIds: readonly string[]
-      }) => {
-        const projectId = await getSessionPersistenceCoordinator().sessionProjectId(
-          request.sessionId
-        )
-        if (!projectId) return false
-        const saved = await getSessionPersistenceCoordinator().loadSessionForContinuation(
-          projectId,
-          request.sessionId
-        )
-        const messages = [...(saved.conversationGraph?.messages ?? []), ...saved.messages]
-        return hasSavedAgentResultContinuation(messages, request)
-      },
-      canStartSessionTurn: (sessionId: string) => {
-        const runtime = runtimeRef.current
-        return runtime ? !runtime.getState().promptInFlightSessionIds.includes(sessionId) : false
-      },
+      ...routeCandidateContinuations(continuationTarget, resolveCandidateDelivery),
       onChanged: (event: ProjectBackgroundActivityChangedEvent) =>
         applicationEvents.publish('background-result-delivery:changed', event)
     },

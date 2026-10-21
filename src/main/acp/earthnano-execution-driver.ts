@@ -41,6 +41,9 @@ export interface PreparedAcpExecution {
   /** Atomically verifies the original prompt/token still owns cancellation before dispatching it.
    * Must not dispatch against another turn, even if this turn completed before this callback ran. */
   cancelOwnedPrompt(dispatch: () => Promise<void>): Promise<void>
+  /** Cancels only this admitted execution's original background/continuation work and joins settlement.
+   * This acknowledgment is not a cleanup attestation; readResult retains that responsibility. */
+  cancelOwnedBackground?(): Promise<void>
   /** Waits for original Session/Artifact/Review result commits, including prompt rejection paths.
    * Reads pinned versions from those owners; prompt(): void and cwd are never result evidence. */
   readResult(settlement: AcpPromptSettlement): Promise<AcpExecutionOwnerResult>
@@ -133,13 +136,36 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
     let providerAccepted = false
     let cancellation: Promise<void> | undefined
     let cancellationError: unknown
+    let backgroundCancellationError: unknown
     const cancelOwned = (): Promise<void> => {
       // Before admission another desktop turn may own this Session. Never cancel it.
-      if (!admitted || settled) return Promise.resolve()
+      if (!admitted || (settled && !plan.cancelOwnedBackground)) return Promise.resolve()
       if (cancellation) return cancellation
-      const pending = withPhysicalCancellation(() =>
-        plan.cancelOwnedPrompt(() => agent.cancelPrompt(prompt.sessionId))
-      )
+      const pending = withPhysicalCancellation(async () => {
+        if (!plan.cancelOwnedBackground)
+          return plan.cancelOwnedPrompt(() => agent.cancelPrompt(prompt.sessionId))
+        const promptCancellation = Promise.resolve().then(() =>
+          !settled ? plan.cancelOwnedPrompt(() => agent.cancelPrompt(prompt.sessionId)) : undefined
+        )
+        const backgroundCancellation = Promise.resolve().then(async () => {
+          try {
+            await plan.cancelOwnedBackground!()
+            backgroundCancellationError = undefined
+          } catch (error) {
+            backgroundCancellationError =
+              error ?? new Error('Owned background cancellation failed without an error value')
+            throw backgroundCancellationError
+          }
+        })
+        const results = await Promise.allSettled([promptCancellation, backgroundCancellation])
+        const errors = results
+          .filter((result) => result.status === 'rejected')
+          .map((result) => result.reason)
+        if (errors.length)
+          throw errors.length === 1
+            ? errors[0]
+            : new AggregateError(errors, 'Owned cancellation failed')
+      })
       cancellation = pending
       void pending.catch((error: unknown) => {
         cancellationError = error
@@ -189,16 +215,31 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
       promptError = error
     } finally {
       settled = true
-      context.signal.removeEventListener('abort', cancel)
     }
     await cancellation?.catch(() => undefined)
     try {
       const result = await plan.readResult({
         promptError,
         signal: context.signal,
-        cancellationRequested: context.signal.aborted,
-        cancellationError
+        get cancellationRequested() {
+          return context.signal.aborted
+        },
+        get cancellationError() {
+          return cancellationError
+        }
       })
+      // Cancellation can begin while readResult is waiting for original Job/continuation facts.
+      await cancellation?.catch(() => undefined)
+      if (backgroundCancellationError !== undefined) {
+        return {
+          phase: 'failed',
+          cleanup: 'unknown',
+          error: {
+            code: 'owned-background-cancellation-failed',
+            message: message(backgroundCancellationError)
+          }
+        }
+      }
       if (result.identity) context.identity(result.identity)
       if (result.phase === 'completed' && !admitted) {
         return {
@@ -240,6 +281,8 @@ export const createAcpExecutionDriver = ({ agent, resolver }: DriverOptions): Ex
             : { code: 'owner-result-unavailable', message: message(error) }
       }
     } finally {
+      await cancellation?.catch(() => undefined)
+      context.signal.removeEventListener('abort', cancel)
       releaseCancellation?.()
     }
   }

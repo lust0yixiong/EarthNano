@@ -519,6 +519,106 @@ describe('AcpRuntimeCoordinator', () => {
     }
   })
 
+  it('passes only original application attribution through the real coordinator into an owned second-Turn boundary', async () => {
+    const { ExecutionCore, emptyExecutionState } = await import('../earthnano/execution-core')
+    const fixtures = await import('../../../contracts/execution/fixtures.json')
+    const outside = new AsyncResource('background-result-delivery-callback')
+    let fake!: ReturnType<typeof createFakeRuntime>
+    const coordinator = new AcpRuntimeCoordinator((callbacks) => {
+      fake = createFakeRuntime({ frameworkId: 'claude-code', sessionIds: ['private'], callbacks })
+      return fake.runtime
+    })
+    let executionId: string | undefined
+    const attribution = {
+      kind: 'application' as const,
+      feature: 'background-results' as const,
+      purpose: 'agent-result-delivery' as const,
+      deliveryKey: 'agent-result-delivery:continuation',
+      deliveryIds: ['durable-delivery']
+    }
+    const owned = vi.fn((input: AcpExecutionDispatch) => input.attribution === attribution)
+    const prepare = vi.fn(async () => {
+      throw new Error('Private continuation must not create a new Core')
+    })
+    const boundary = createAcpExecutionBoundary({
+      host: { prepare },
+      applicationOwner: {
+        projectId: 'demo',
+        sourceSessionId: 'source',
+        ownsExecution: (id) => id === executionId,
+        ownsSession: (id) => id === 'private',
+        ownsTurn: (value) => value?.promptMessageId === 'continuation',
+        ownsApplicationDispatch: owned
+      }
+    })
+    const boundaryDispatch = vi.spyOn(boundary, 'execute')
+    coordinator.setExecutionBoundary(boundary)
+    let state = emptyExecutionState()
+    const core = new ExecutionCore(
+      {
+        load: () => structuredClone(state),
+        commit: (value) => {
+          state = structuredClone(value)
+        }
+      },
+      {
+        async execute(_request, context) {
+          executionId = context.executionId
+          context.identity({ sessionId: 'private', promptMessageId: 'initial' })
+          await coordinator.sendPrompt({
+            sessionId: 'private',
+            text: 'original initial',
+            permissionPrompts: 'none',
+            provenanceContext: { promptMessageId: 'initial' }
+          })
+          expect(boundaryDispatch.mock.calls[0][0]).not.toHaveProperty('attribution')
+          await outside.runInAsyncScope(async () => {
+            expect(currentExecutionScope()).toBeUndefined()
+            await coordinator.sendApplicationPrompt(
+              {
+                sessionId: 'private',
+                text: 'original result',
+                permissionPrompts: 'none',
+                provenanceContext: { promptMessageId: 'continuation' }
+              },
+              attribution
+            )
+          })
+          expect(owned).toHaveBeenCalledOnce()
+          expect(owned.mock.calls[0][0].attribution).toBe(attribution)
+          expect(fake.runtime.sendApplicationPrompt).toHaveBeenCalledWith(
+            expect.objectContaining({ sessionId: 'private' }),
+            attribution,
+            expect.any(Object)
+          )
+          expect(prepare).not.toHaveBeenCalled()
+          return { phase: 'completed', cleanup: 'confirmed' }
+        }
+      }
+    )
+    core.configureBudget('demo', 'trial', 1)
+    try {
+      const request = structuredClone(
+        fixtures.valid
+      ) as import('../../shared/earthnano/execution-port').ExecutionRequest
+      const handle = await core.submit({
+        ...request,
+        origin: { kind: 'interactive', sessionId: 'source' },
+        interactionPolicy: 'deny-unresolved'
+      })
+      const record = await core.waitForTerminal(handle.executionId)
+      expect(record.phase, record.error?.message).toBe('completed')
+      expect(record.identity.promptMessageId).toBe('initial')
+      expect(record.identity.turnToken).toBe('turn-1')
+      expect(Object.values(state.records)).toHaveLength(1)
+      expect(Object.values(state.budgets)[0].admitted).toBe(1)
+      await core.settle()
+    } finally {
+      core.dispose()
+      outside.emitDestroy()
+    }
+  })
+
   it.each(['shutdownForQuit', 'shutdownForUpdateGate'] as const)(
     'waits for canonical owner settlement and preserves unknown cleanup at %s',
     async (operation) => {

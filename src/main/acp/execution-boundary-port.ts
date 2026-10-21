@@ -1,5 +1,6 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
 import type { AcpPromptRequest, AcpRuntimeState, AcpSessionAgentTarget } from '../../shared/acp'
+import type { MessageAttribution } from '../../shared/session-message-contract'
 import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/execution-port'
 
 export interface AcpExecutionObservation {
@@ -34,6 +35,8 @@ export interface AcpExecutionDispatch {
   attemptId: string
   request: AcpPromptRequest
   operation: 'sendPrompt' | 'sendAppContinuation' | 'sendApplicationPrompt'
+  /** Original main-owned application attribution, never an authorization supplied by model JSON. */
+  attribution?: MessageAttribution
   runtimeReviewOwner: 'task' | 'renderer'
   target?: AcpSessionAgentTarget
   ownerCompletion?: AcpExecutionOwnerCompletion

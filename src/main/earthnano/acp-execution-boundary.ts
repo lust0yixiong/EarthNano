@@ -1,10 +1,12 @@
 import type { PromptResponse } from '@agentclientprotocol/sdk'
+import { isAgentResultDeliveryAttribution } from '../../shared/session-persistence'
 import type { AcpRuntimeState } from '../../shared/acp'
 import type { ExecutionIdentity, ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type {
   AcpExecutionBoundary,
   AcpExecutionDispatch,
   AcpExecutionObservation,
+  TrustedApplicationExecutionOwner,
   TrustedDelegatedExecutionOwner
 } from '../acp/execution-boundary-port'
 import { ExecutionCore, type ExecutionContext } from './execution-core'
@@ -59,11 +61,15 @@ const observation = (
 /** The sole ACP model-dispatch authority. Hosts describe original facts and resources only. */
 export function createAcpExecutionBoundary({
   host,
-  delegatedOwner
+  delegatedOwner,
+  applicationOwner
 }: {
   host: SessionExecutionHost
   delegatedOwner?: TrustedDelegatedExecutionOwner
+  applicationOwner?: TrustedApplicationExecutionOwner
 }): AcpExecutionBoundary {
+  if (delegatedOwner && applicationOwner)
+    throw new Error('Execution boundary requires one trusted turn owner')
   type Entry = {
     core: ScopedExecutionPort
     executionId: string
@@ -86,17 +92,43 @@ export function createAcpExecutionBoundary({
 
   return {
     async execute(input) {
-      const inherited = delegatedOwner
-        ? findOwnedExecutionScope(delegatedOwner)
+      const applicationTurnOwner =
+        input.operation === 'sendApplicationPrompt' ? applicationOwner : undefined
+      const trustedOwner = applicationTurnOwner ?? delegatedOwner
+      const inherited = trustedOwner
+        ? findOwnedExecutionScope(trustedOwner)
         : currentExecutionScope()
-      if (delegatedOwner && !inherited)
-        throw new Error('Delegated dispatch has no active shared execution owner')
+      if (trustedOwner && !inherited)
+        throw new Error(
+          `${applicationTurnOwner ? 'Application' : 'Delegated'} dispatch has no active shared execution owner`
+        )
+      if (
+        applicationOwner &&
+        !trustedOwner &&
+        (!inherited || findOwnedExecutionScope(applicationOwner) !== inherited)
+      )
+        throw new Error('Private application runtime has no active owned initial execution')
       if (inherited) {
         const record = await inherited.core.get(inherited.context.executionId)
         if (!['preparing', 'running'].includes(record.phase))
           throw new Error('Execution scope is no longer active')
         const identity = inherited.identity()
-        if (delegatedOwner) {
+        if (applicationTurnOwner) {
+          const promptMessageId = input.request.provenanceContext?.promptMessageId
+          if (
+            input.operation !== 'sendApplicationPrompt' ||
+            !isAgentResultDeliveryAttribution(input.attribution) ||
+            !promptMessageId ||
+            input.attribution.deliveryKey !== `agent-result-delivery:${promptMessageId}` ||
+            identity.sessionId !== input.request.sessionId ||
+            !applicationTurnOwner.ownsSession(input.request.sessionId) ||
+            !applicationTurnOwner.ownsTurn(input.request.provenanceContext) ||
+            !applicationTurnOwner.ownsApplicationDispatch(input)
+          )
+            throw new Error(
+              'Application dispatch does not match its original private result delivery owner'
+            )
+        } else if (delegatedOwner) {
           if (
             !delegatedOwner.ownsSession(input.request.sessionId) ||
             !delegatedOwner.ownsTurn(input.request.provenanceContext) ||
@@ -124,24 +156,33 @@ export function createAcpExecutionBoundary({
         }
         add(input.request.sessionId, entry)
         try {
-          const observer = delegatedOwner
+          let trustedAdmission = false
+          const observer = trustedOwner
             ? {
                 admitted(value: ExecutionIdentity) {
                   if (
                     value.sessionId !== input.request.sessionId ||
                     value.promptMessageId !== input.request.provenanceContext?.promptMessageId
                   )
-                    throw new Error('Delegated admission does not match its exact owned turn')
-                  // Original delegation records per-turn identity; mission identity stays immutable.
+                    throw new Error(
+                      `${applicationTurnOwner ? 'Application' : 'Delegated'} admission does not match its exact owned turn`
+                    )
+                  trustedAdmission = true
+                  // Original owners record per-turn identity; mission identity stays immutable.
                   inherited.context.running()
                   inherited.context.emit('session-admitted')
                 },
                 providerAccepted() {
+                  if (applicationTurnOwner && !trustedAdmission)
+                    throw new Error('Application provider acceptance preceded Session admission')
                   inherited.context.emit('provider-accepted')
                 }
               }
             : observation(inherited.context, input, {})
-          return await withExecutionScope(inherited, () => input.dispatch(observer))
+          const response = await withExecutionScope(inherited, () => input.dispatch(observer))
+          if (applicationTurnOwner && !trustedAdmission)
+            throw new Error('Application dispatch completed without original Session admission')
+          return response
         } finally {
           entry.nativeActive = false
           void inherited.core

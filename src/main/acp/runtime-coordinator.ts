@@ -1596,6 +1596,7 @@ class AcpRuntimeCoordinator {
         attemptId: attempt.id,
         request: taskRequest,
         operation,
+        ...(attribution ? { attribution } : {}),
         runtimeReviewOwner,
         target: this.runtimeTargets.get(runtime),
         ownerCompletion,

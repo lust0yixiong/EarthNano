@@ -527,6 +527,186 @@ describe('opt-in ACP ExecutionCore adapter', () => {
     )
   })
 
+  it('keeps the single cancellation owner live after the initial turn and joins owned background settlement', async () => {
+    const s = setup()
+    const background = deferred(),
+      result = deferred()
+    s.plan.cancelOwnedBackground = vi.fn(async () => background.promise)
+    s.outcome.phase = 'cancelled'
+    s.outcome.resourceCleanup = {
+      confirmed: true,
+      evidence: 'Fixture original resource owner attested owned remote Jobs and Session retirement'
+    }
+    vi.mocked(s.plan.readResult).mockImplementation(async () => {
+      await result.promise
+      return s.outcome
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    const settlement = vi.mocked(s.plan.readResult).mock.calls[0][0]
+    const cancel = s.core.cancel(h.executionId)
+    await vi.waitFor(() => expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce())
+    expect(settlement.signal.aborted).toBe(false) // Original owner acknowledgment precedes abort.
+    expect(s.plan.cancelOwnedPrompt).not.toHaveBeenCalled()
+    expect(s.runtime.cancelPrompt).not.toHaveBeenCalled()
+    expect((await s.core.get(h.executionId)).phase).toBe('running')
+    background.resolve()
+    await cancel
+    expect(settlement.signal.aborted).toBe(true)
+    expect(settlement.cancellationRequested).toBe(true)
+    await s.core.cancel(h.executionId)
+    expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce()
+    result.resolve()
+    expect(await finished(s.core, h.executionId)).toMatchObject({
+      phase: 'cancelled',
+      cleanup: 'confirmed'
+    })
+  })
+  it('cancels owned background work at the same deadline after native completion without upgrading a late cleanup witness', async () => {
+    const s = setup(),
+      background = deferred(),
+      result = deferred()
+    s.plan.cancelOwnedBackground = vi.fn(async () => background.promise)
+    vi.mocked(s.plan.readResult).mockImplementation(async () => {
+      await result.promise
+      return s.outcome
+    })
+    const h = await s.core.submit({ ...request(), timeoutMs: 1000 })
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    const record = await finished(s.core, h.executionId)
+    expect(record).toMatchObject({
+      phase: 'interrupted',
+      cleanup: 'unknown',
+      error: { code: 'timeout' }
+    })
+    await vi.waitFor(() => expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce())
+    expect(s.runtime.cancelPrompt).not.toHaveBeenCalled()
+    expect(await s.core.settle(5)).toBe(false)
+    background.resolve()
+    result.resolve()
+    expect(await s.core.settle()).toBe(true)
+    expect((await s.core.get(h.executionId)).cleanup).toBe('unknown')
+    await expect(s.core.submit(request('after-timeout'))).rejects.toMatchObject({
+      code: 'cleanup-unconfirmed'
+    })
+  })
+  it('retains a failed background cancellation even when the local result owner reports completion', async () => {
+    const s = setup(),
+      result = deferred()
+    const failure = new Error('Remote settlement unavailable')
+    s.plan.cancelOwnedBackground = vi.fn(async () => {
+      throw failure
+    })
+    vi.mocked(s.plan.readResult).mockImplementation(async () => {
+      await result.promise
+      return s.outcome
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    await expect(s.core.cancel(h.executionId)).rejects.toBe(failure)
+    const settlement = vi.mocked(s.plan.readResult).mock.calls[0][0]
+    expect(settlement.cancellationError).toBe(failure)
+    expect(settlement.signal.aborted).toBe(false)
+    result.resolve()
+    expect(await finished(s.core, h.executionId)).toMatchObject({
+      phase: 'failed',
+      cleanup: 'unknown',
+      error: { code: 'owned-background-cancellation-failed' }
+    })
+    expect(s.runtime.cancelPrompt).not.toHaveBeenCalled()
+  })
+  it('does not treat background cancellation acknowledgment as resource cleanup evidence', async () => {
+    const s = setup(),
+      result = deferred()
+    s.plan.cancelOwnedBackground = vi.fn(async () => undefined)
+    delete s.outcome.resourceCleanup
+    s.outcome.phase = 'cancelled'
+    vi.mocked(s.plan.readResult).mockImplementation(async () => {
+      await result.promise
+      return s.outcome
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    await s.core.cancel(h.executionId)
+    result.resolve()
+    expect(await finished(s.core, h.executionId)).toMatchObject({
+      phase: 'cancelled',
+      cleanup: 'unknown'
+    })
+    await expect(s.core.submit(request('after-unconfirmed-background'))).rejects.toMatchObject({
+      code: 'cleanup-unconfirmed'
+    })
+  })
+  it('joins pending background cancellation when the original result owner rejects', async () => {
+    const s = setup(),
+      background = deferred(),
+      result = deferred()
+    s.plan.cancelOwnedBackground = vi.fn(async () => background.promise)
+    vi.mocked(s.plan.readResult).mockImplementation(async () => {
+      await result.promise
+      throw new Error('Original result owner unavailable')
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.readResult).toHaveBeenCalledOnce())
+    const cancellation = s.core.cancel(h.executionId)
+    await vi.waitFor(() => expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce())
+    result.resolve()
+    expect(await s.core.settle(5)).toBe(false)
+    expect((await s.core.get(h.executionId)).phase).toBe('running')
+    background.resolve()
+    await cancellation
+    expect(await finished(s.core, h.executionId)).toMatchObject({
+      phase: 'failed',
+      cleanup: 'unknown',
+      error: { code: 'owner-result-unavailable' }
+    })
+    expect(await s.core.settle()).toBe(true)
+  })
+  it('joins both cancellation branches even when the prompt cancellation throws synchronously', async () => {
+    const s = setup(),
+      prompt = deferred(),
+      background = deferred()
+    const failure = new Error('Exact prompt cancellation refused')
+    vi.mocked(s.plan.cancelOwnedPrompt).mockImplementation(() => {
+      throw failure
+    })
+    s.plan.cancelOwnedBackground = vi.fn(async () => background.promise)
+    s.runtime.sendPromptObserved.mockImplementation(async (_r, accepted, admitted) => {
+      await admitted?.()
+      accepted()
+      await prompt.promise
+    })
+    const h = await s.core.submit(request())
+    await vi.waitFor(async () => expect((await s.core.get(h.executionId)).phase).toBe('running'))
+    const cancelled = s.core.cancel(h.executionId)
+    void cancelled.catch(() => undefined)
+    await vi.waitFor(() => expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce())
+    expect((await s.core.get(h.executionId)).cancellationRequested).toBe(false)
+    background.resolve()
+    await expect(cancelled).rejects.toBe(failure)
+    prompt.resolve()
+    await finished(s.core, h.executionId)
+    expect(s.plan.cancelOwnedPrompt).toHaveBeenCalledOnce()
+  })
+  it('does not cancel any background resources before its own admission, including a late admission commit', async () => {
+    const s = setup(),
+      admission = deferred()
+    s.plan.cancelOwnedBackground = vi.fn(async () => undefined)
+    vi.mocked(s.plan.admit).mockImplementation(async () => {
+      await admission.promise
+      return provenance
+    })
+    s.outcome.phase = 'cancelled'
+    const h = await s.core.submit(request())
+    await vi.waitFor(() => expect(s.plan.admit).toHaveBeenCalledOnce())
+    await s.core.cancel(h.executionId)
+    expect(s.plan.cancelOwnedBackground).not.toHaveBeenCalled()
+    admission.resolve()
+    await finished(s.core, h.executionId)
+    expect(s.plan.cancelOwnedBackground).toHaveBeenCalledOnce()
+    expect(s.plan.cancelOwnedPrompt).toHaveBeenCalledOnce()
+  })
+
   it('rejects admission provenance that names another prompt before provider acceptance', async () => {
     const s = setup()
     vi.mocked(s.plan.admit).mockResolvedValue({ promptMessageId: 'other-prompt' })
