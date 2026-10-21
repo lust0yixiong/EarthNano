@@ -2800,7 +2800,13 @@ describe('AcpRuntimeCoordinator', () => {
     expect(onProviderPromptAccepted).not.toHaveBeenCalled()
   })
 
-  it('reports completed user and application-owned root turns to delegated settlement watching', async () => {
+  it.each([
+    [
+      'reports completed user and application-owned root turns to delegated settlement watching',
+      false
+    ],
+    ['reports original root turn settlement exactly once through the execution boundary', true]
+  ] as const)('%s', async (_name, boundary) => {
     const rootTurnEnded = vi.fn(async () => undefined)
     const rootExecutionStarted = vi.fn()
     let settlementLease = 0
@@ -2821,12 +2827,17 @@ describe('AcpRuntimeCoordinator', () => {
       rootTurnStarted,
       rootTurnEnded
     }
+    let outcome: { stopReason: string } | Error = { stopReason: 'end_turn' }
     const coordinator = new AcpRuntimeCoordinator(
       (callbacks) =>
         createFakeRuntime({
           frameworkId: 'codex',
           sessionIds: ['session-1'],
-          callbacks
+          callbacks,
+          prompt: async () => {
+            if (outcome instanceof Error) throw outcome
+            return outcome
+          }
         }).runtime,
       {},
       '',
@@ -2837,6 +2848,13 @@ describe('AcpRuntimeCoordinator', () => {
       undefined,
       delegatedWork
     )
+    if (boundary)
+      coordinator.setExecutionBoundary({
+        execute: (input) =>
+          input.dispatch({ admitted: () => undefined, providerAccepted: () => undefined }),
+        cancel: async (_sessionId, original) => original(),
+        settle: async () => true
+      })
     const session = await coordinator.createSession()
 
     await coordinator.sendPrompt({
@@ -2893,7 +2911,114 @@ describe('AcpRuntimeCoordinator', () => {
       'root-prompt'
     ])
     expect(new Set(rootExecutionStarted.mock.calls.map((call) => call[2])).size).toBe(3)
+    outcome = { stopReason: 'cancelled' }
+    await coordinator.sendPrompt({
+      sessionId: session.sessionId,
+      text: 'cancelled turn',
+      provenanceContext: { promptMessageId: 'cancelled-prompt' }
+    })
+    const failure = new Error('native preparation failed')
+    outcome = failure
+    await expect(
+      coordinator.sendPrompt({
+        sessionId: session.sessionId,
+        text: 'failed turn',
+        provenanceContext: { promptMessageId: 'failed-prompt' }
+      })
+    ).rejects.toBe(failure)
+    expect(rootTurnEnded).toHaveBeenCalledTimes(5)
+    expect(rootTurnEnded).toHaveBeenNthCalledWith(4, {
+      sessionId: session.sessionId,
+      originatingPromptId: 'cancelled-prompt',
+      clean: false,
+      leaseId: 'settlement-lease-4'
+    })
+    expect(rootTurnEnded).toHaveBeenNthCalledWith(5, {
+      sessionId: session.sessionId,
+      originatingPromptId: 'failed-prompt',
+      clean: false,
+      leaseId: 'settlement-lease-5'
+    })
   })
+
+  it.each([false, true])(
+    'ends the exact original settlement lease after boundary preparation rejects (deferred baseline: %s)',
+    async (deferredBaseline) => {
+      const baseline = createDeferred<string | undefined>()
+      const rootTurnStarted = vi.fn(async () =>
+        deferredBaseline ? baseline.promise : 'rejected-settlement-lease'
+      )
+      const rootTurnEnded = vi.fn(async () => undefined)
+      const delegatedWork: RootDelegatedWorkControl = {
+        pendingPermissions: () => [],
+        subscribe: () => () => undefined,
+        respondToPermission: async () => false,
+        setPermissionProfile: async () => undefined,
+        stopSession: async () => undefined,
+        stopAll: async () => undefined,
+        shutdown: async () => undefined,
+        shutdownForQuit: async () => undefined,
+        shutdownForUpdateGate: async () => undefined,
+        deleteSession: async () => undefined,
+        deleteProject: async () => undefined,
+        rootTurnStarted,
+        rootTurnEnded
+      }
+      let created!: ReturnType<typeof createFakeRuntime>
+      const coordinator = new AcpRuntimeCoordinator(
+        (callbacks) => {
+          created = createFakeRuntime({
+            frameworkId: 'codex',
+            sessionIds: ['session-1'],
+            callbacks
+          })
+          return created.runtime
+        },
+        {},
+        '',
+        undefined,
+        undefined,
+        undefined,
+        {},
+        undefined,
+        delegatedWork
+      )
+      const failure = new Error('Original Session is unavailable')
+      const prepare = vi.fn(async () => {
+        throw failure
+      })
+      coordinator.setExecutionBoundary(createAcpExecutionBoundary({ host: { prepare } }))
+      const session = await coordinator.createSession()
+      let settled = false
+      const prompt = coordinator
+        .sendPrompt({
+          sessionId: session.sessionId,
+          text: 'prepare safely',
+          provenanceContext: { promptMessageId: 'rejected-prompt' }
+        })
+        .finally(() => {
+          settled = true
+        })
+      void prompt.catch(() => undefined)
+      await vi.waitFor(() => expect(prepare).toHaveBeenCalledOnce())
+      expect(rootTurnStarted).toHaveBeenCalledOnce()
+      expect(created.sendPrompt).not.toHaveBeenCalled()
+      if (deferredBaseline) {
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        expect(settled).toBe(false)
+        expect(rootTurnEnded).not.toHaveBeenCalled()
+        baseline.resolve('rejected-settlement-lease')
+      }
+      await expect(prompt).rejects.toBe(failure)
+      expect(rootTurnEnded).toHaveBeenCalledExactlyOnceWith({
+        sessionId: session.sessionId,
+        originatingPromptId: 'rejected-prompt',
+        clean: false,
+        leaseId: 'rejected-settlement-lease'
+      })
+      await coordinator.waitForSessionInteractionRelease(session.sessionId)
+    }
+  )
 
   it.each(['cancel', 'handoff', 'delete'] as const)(
     'does not dispatch a root turn superseded by %s while its settlement baseline loads',
