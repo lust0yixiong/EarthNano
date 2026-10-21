@@ -28,6 +28,14 @@
 
 ## 运行时基线与实际验收
 
-原 `createProductionProvisioner.provisionR` 已在 `/tmp/earthnano-r-original-provision-20261021` 隔离供给 R4.4.3/jsonlite2.0.0；原发现返回 canonical interpreter/runtime ID `/private/tmp/earthnano-r-original-provision-20261021/runtime/envs/default-r/bin/R`，Rscript 为其 sibling。原 r_loop.R 和协议探针通过；11 个供给源码文件与固定 OpenScience pin 相同。该准备不等于应用/Core/Artifact/Review 已接通；全证据将随本轮保存。新增测试使用原 env prefix，保持普通用户 runtime/config 不变。
+先前在 `/tmp/earthnano-r-original-provision-20261021` 的隔离供给和探针记录，随临时目录清理已不可复核；不能作为本轮当前验收证据。2026-10-21 重新检查确认旧依赖链接失效，找到的另一份依赖缺失五项原生二进制，只可用于静态检查。现按原锁文件、完整安装流程和原 `createProductionProvisioner.provisionR` 在持久验证目录重建。必须重新取得原发现返回的 canonical interpreter/runtime ID、原 r_loop.R 探针和实际应用/Core/Artifact/Review 的日志后，才记录对应通过。新增测试使用隔离 env prefix，保持普通用户 runtime/config 不变。
 
 先做合同红绿和原 R 同环境基线，再做有界离线 provider +真实原 kernel/Artifact/RPC 的科研流程。离线完整通过才启动有界 DeepSeek，不因随机模型响应或高分反复付费。旧 Python 单任务及逐任务来源路径须有适用回归。所有失败、辅助脚本误设、跳过条件、runtime/源码/build身份和用量缺失如实保存；hosted CI 的账户限制不等于源码通过，也不阻止本地其余 Alpha 工作。
+
+### 重建期间可复核的预检
+
+固定 Harness² pin 的原 5 项 unittest 和 EarthNano vendor 的 72 项 unittest 在同一 Python3.12.13 下全部通过；原清单比较结果为 `no-new-regressions`，新增 67 项，没有跳过。这是离线方法回归，不证明 R kernel 或真实模型效果。新增 Main 调用关系使 derived-consumer 索引过期，按原生成器更新后检查通过。
+
+旧依赖的 manager 测试启动因文件读取 `errno -70` 在收集前失败；类型检查另有七项原模块声明缺失。两者均不能记为功能测试通过。审查同时发现 legacy 单任务恢复会丢失 R 语言；修复从冻结 profile 恢复 R 并核对 runtime 语言，Python 保留旧无字段 DTO，回归测试待新环境执行。
+
+现有白底图标的 ICNS 解包与尺寸检查通过（ICNS 最高 1024px），不等于已完成原生包外观验收。以上原始记录、失败、摘要与证据范围见 [预检清单](validation/alpha/r/preflight/manifest.json)；该目录不含 R 原生或 DeepSeek 验收通过声明。

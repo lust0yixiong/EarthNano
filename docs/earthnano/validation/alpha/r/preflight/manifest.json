@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "scope": "R preflight only. Fixed original Harness inventory and candidate inventory, derived-consumer generation, static dependency failures, and existing icon format inspection. No R kernel/Core/native/DeepSeek acceptance is established by these receipts. manager-resume-red.log failed before test collection due filesystem read errno -70; it is not an assertion red result.",
+  "credentialScan": "actual authorized key tokens absent from all decompressed receipt bytes",
+  "files": [
+    {
+      "path": "harness-baseline.json.gz",
+      "sourceBytes": 1387,
+      "sourceSha256": "7f9b4af1cb3b5bf8ef949ad9bdf9a71f9bf0d92f5f285250a9fa082365618448",
+      "storedSha256": "ce40773d830400aa57e78351df2a8d9ccf01602acddf9b7de1678306f7bf0135",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-candidate.json.gz",
+      "sourceBytes": 11965,
+      "sourceSha256": "075b3893c2ca30ba1299674937fd17b0c9416f5e05f5b0bdd8dac5fe6d8087af",
+      "storedSha256": "7de5236128750c279e16fd1b7315af14b4b36d6c3f117555b62c51820e40ae14",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-comparison.json.gz",
+      "sourceBytes": 454,
+      "sourceSha256": "4f93d48bea5a4ee4f81d70ac70599a8b00b06f47e20eb65bc452a943990dbf43",
+      "storedSha256": "9d5db391f5895f94d023dc85788bbc386543ba5e1e984941377421fbd36998ec",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-baseline.log.gz",
+      "sourceBytes": 1861,
+      "sourceSha256": "fd997f788e46763a3e66f4441a4cf4557aaf46103246299cf188c5732b0a6aeb",
+      "storedSha256": "2473792be49219b0bd831d13cf9e192d6f2286b8928894bf2c599e614e4a02dc",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-candidate.log.gz",
+      "sourceBytes": 18096,
+      "sourceSha256": "aacf729e9177dc59ee791dca801a59a54894579b5120f734a8a75e20dd2f9201",
+      "storedSha256": "07f1a6b7855760de878791138b9bd52f9093577768d11490fa154f6b16cfd98b",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-baseline.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "storedSha256": "20c148978dbd3180469fa3f43c2076f7a1f97fe430474622903cf1c2954751c0",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-candidate.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "storedSha256": "20c148978dbd3180469fa3f43c2076f7a1f97fe430474622903cf1c2954751c0",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-clone.log.gz",
+      "sourceBytes": 101,
+      "sourceSha256": "bce8482b6e6552c765e8125a4cc1ca3076aae5d7f644ef0da5cc622505af13e6",
+      "storedSha256": "abc81c43ce1635cd659f12dff8e93cd1e93ea9074bf593396e02acb80a6f679a",
+      "compression": "gzip"
+    },
+    {
+      "path": "harness-checkout.log.gz",
+      "sourceBytes": 38,
+      "sourceSha256": "9a1c5d9ddc6253f9e13c366294fc484a5088e16038993dd162faa0148027c2ef",
+      "storedSha256": "ba5f963ca970d1a8790a6beecd50e9e8735208672b7fd2f35df652b2760a4b57",
+      "compression": "gzip"
+    },
+    {
+      "path": "manager-resume-red.log.gz",
+      "sourceBytes": 852,
+      "sourceSha256": "58932ff274bf695e0a2ff021d1eae0c7162b1e9711be571eda15fa0d8b16e52a",
+      "storedSha256": "572a4072e3a257fabcb7f1a21838458fe5f7ce414f059c8e54c526b4d34d96fd",
+      "compression": "gzip"
+    },
+    {
+      "path": "types-node-static.log.gz",
+      "sourceBytes": 1189,
+      "sourceSha256": "53b8c766a24e3b4a6a9f24b00d5c8af4aa1f81de7bcd8778ce9bc07f9b85a4cf",
+      "storedSha256": "bb5fec018bfec0012816ec121eec80bbc59de7502dec566cb7f6071c5605a5b4",
+      "compression": "gzip"
+    },
+    {
+      "path": "types-node-static.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "storedSha256": "e90a5df1e4731c80807cd1158a710d9d52313a7930921de3488037d616dbf3ac",
+      "compression": "gzip"
+    },
+    {
+      "path": "module-consumers.log.gz",
+      "sourceBytes": 68,
+      "sourceSha256": "3c21a4fbe00ddb68ff8cb963d196dddfdb02e364fb59e78e29d535f21d532078",
+      "storedSha256": "086d88d3c98678d35277cbe7f767ba2028e5eaddb7ae120d49a91fa0381a4048",
+      "compression": "gzip"
+    },
+    {
+      "path": "module-consumers.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "storedSha256": "e90a5df1e4731c80807cd1158a710d9d52313a7930921de3488037d616dbf3ac",
+      "compression": "gzip"
+    },
+    {
+      "path": "module-consumers-generate.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "module-consumers-green.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "module-consumers-green.exit.gz",
+      "sourceBytes": 2,
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "storedSha256": "20c148978dbd3180469fa3f43c2076f7a1f97fe430474622903cf1c2954751c0",
+      "compression": "gzip"
+    },
+    {
+      "path": "icon-inspection/dimensions.log.gz",
+      "sourceBytes": 449,
+      "sourceSha256": "a3aaeac1c5d45ad49474c14b9e1f10ec09388247c65fe9a949310af9b13e34ae",
+      "storedSha256": "97374e7ac3b74c4f3c9101544394bea71a5e7b90ff4797b2f2f68bd5c9e71e4c",
+      "compression": "gzip"
+    },
+    {
+      "path": "icon-inspection/iconutil.log.gz",
+      "sourceBytes": 0,
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedSha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "compression": "gzip"
+    },
+    {
+      "path": "icon-inspection/source-sha256.txt.gz",
+      "sourceBytes": 336,
+      "sourceSha256": "3af738e0f9e59c2d12697c1fcbbc9a967985915d99830f9b976ee6b419be3a54",
+      "storedSha256": "f997231d780a2847e8110e6ca63fe4386c396cd87f461924c0111485fc2d30c8",
+      "compression": "gzip"
+    }
+  ]
+}
