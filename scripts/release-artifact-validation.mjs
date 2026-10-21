@@ -20,6 +20,26 @@ export function artifactHash(file, algorithm, encoding = 'hex') {
   }
 }
 
+// Stable tooling keeps its original default. Alpha publication requires an explicitly numbered
+// release matching the selected channel; unordered Nightlies are not published Alpha versions.
+export function validateReleaseVersion(version, channel = 'latest') {
+  if (!['latest', 'alpha'].includes(channel))
+    throw new Error(`Unsupported release channel: ${channel}`)
+  const pattern =
+    channel === 'alpha'
+      ? /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-alpha\.(0|[1-9]\d*)$/
+      : /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+  const match = typeof version === 'string' ? pattern.exec(version) : null
+  if (
+    !match ||
+    (channel === 'alpha' && !match.slice(1).every((part) => Number.isSafeInteger(Number(part))))
+  ) {
+    throw new Error(
+      `Invalid ${channel === 'latest' ? 'stable' : channel} release version: ${version}`
+    )
+  }
+}
+
 export function validateArtifactName(name, version, allowLegacyNames = false) {
   // EarthNano changes the published product filename. Retain the original release family for
   // historical manifests and upstream tooling; both families use the same version/path checks.

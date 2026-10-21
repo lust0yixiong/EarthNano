@@ -1,19 +1,23 @@
 // Merge the two per-arch macOS update feeds (arm64-mac.yml + x64-mac.yml) into a single
-// latest-mac.yml that lists both arch zips. This is the feed the installed app actually polls: its
-// app-update.yml ships the default `latest` channel, so on macOS electron-updater fetches
-// `latest-mac.yml`, then MacUpdater.filterFilesForArch picks the entry whose url contains `arm64`
-// (arm64 + Rosetta) or the other one (Intel x64). Emitting one combined feed avoids the arm64/x64
+// channel-mac.yml that lists both arch zips (default channel: latest). The caller must match the
+// channel embedded in app-update.yml; Alpha callers explicitly select --channel alpha.
+// MacUpdater.filterFilesForArch picks the entry whose url contains arm64 (including Rosetta) or
+// the Intel x64 entry. Emitting one combined feed avoids the two native architecture
 // runners colliding on the same filename, without the per-arch `${arch}-mac.yml` channel scheme that
 // left field apps polling a filename the pipeline never published.
 //
-// Usage: node scripts/merge-mac-feed.mjs [dir]   (dir defaults to cwd)
+// Usage: node scripts/merge-mac-feed.mjs [dir] [--channel latest|alpha]   (dir defaults to cwd)
 // An entirely non-mac directory may be skipped. Any partial mac publication fails closed.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { dump, load } from 'js-yaml'
-import { validateUpdateFeed } from './release-artifact-validation.mjs'
+import { validateReleaseVersion, validateUpdateFeed } from './release-artifact-validation.mjs'
 
-const dir = process.argv[2] ?? '.'
+const dir = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '.'
+const channelIndex = process.argv.indexOf('--channel')
+const channel = channelIndex === -1 ? 'latest' : process.argv[channelIndex + 1]
+if (!['latest', 'alpha'].includes(channel))
+  throw new Error(`Unsupported release channel: ${channel}`)
 const names = ['arm64-mac.yml', 'x64-mac.yml']
 if (!names.every((name) => existsSync(join(dir, name)))) {
   if (readdirSync(dir).some((name) => /-mac(?:-|\.)/.test(name))) {
@@ -24,6 +28,7 @@ if (!names.every((name) => existsSync(join(dir, name)))) {
 }
 const feeds = names.map((name) => load(readFileSync(join(dir, name), 'utf8')))
 const version = feeds[0].version
+if (channel === 'alpha') validateReleaseVersion(version, channel)
 const files = feeds.map((feed, index) => {
   validateUpdateFeed(feed, dir, version, process.argv.includes('--metadata-only'))
   const suffix = index === 0 ? '-mac-arm64.zip' : '-mac-x64.zip'
@@ -47,5 +52,5 @@ const yml = dump(
   },
   { lineWidth: -1 }
 )
-writeFileSync(join(dir, 'latest-mac.yml'), yml)
+writeFileSync(join(dir, `${channel}-mac.yml`), yml)
 process.stdout.write(yml)

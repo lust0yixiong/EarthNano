@@ -303,10 +303,10 @@ jobs:
 
       # Stapling repackaged the zip (new bytes), so the build-time feed — written over the PRE-staple
       # zip — now carries a stale sha512/size that would fail the updater's signature check. The build
-      # runs the default `latest` channel, so it emits `latest-mac.yml` per arch; drop that stale copy
+      # emits its configured channel feed per arch; drop that stale copy
       # and regenerate a per-arch intermediate `${arch}-mac.yml` from the stapled zip (recompute sha512
       # base64 + size, minimal zip-only feed, no blockmap -> full-zip mac updates for v1). The publish
-      # job merges the two arch intermediates into the single `latest-mac.yml` the updater polls.
+      # job merges the two arch intermediates into the configured channel feed the updater polls.
       # Derived purely from the final stapled zip in this unpublished run.
       - name: Regenerate mac update feed
         if: steps.gate.outputs.enabled == 'true'
@@ -314,10 +314,14 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          rm -f mac/latest-mac.yml
           node -e '
             const fs = require("fs"), crypto = require("crypto"), path = require("path");
             const arch = process.env.ARCH;
+            const config = require("js-yaml").load(fs.readFileSync("electron-builder.yml", "utf8"));
+            const publish = Array.isArray(config.publish) ? config.publish[0] : config.publish;
+            const channel = publish?.channel ?? "latest";
+            if (!["latest", "alpha"].includes(channel)) throw new Error(`Unsupported release channel: ${channel}`);
+            fs.rmSync(path.join("mac", `${channel}-mac.yml`), { force: true });
             const zips = fs.readdirSync("mac").filter((f) => f.endsWith(`-mac-${arch}.zip`));
             if (zips.length !== 1) {
               console.error(`::error::expected exactly one mac-${arch} zip, found ${zips.length}`);

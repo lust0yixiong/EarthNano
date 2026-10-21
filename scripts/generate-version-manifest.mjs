@@ -10,8 +10,10 @@
 //                 (default: dist-assets)
 //     outputPath  positional or env OUTPUT      where to write version.json (default: <dir>/version.json)
 //     VERSION       required  release version without a leading 'v' (e.g. 0.1.2)
-//     CDN_BASE_URL  required  public base URL used to build each download url
-//     S3_PREFIX     required  path prefix inside the bucket (e.g. open-science)
+//     UPDATE_CHANNEL optional latest (default) or alpha; alpha requires matching alpha.N version
+//     ASSET_BASE_URL required for alpha: exact EarthNano /releases/download/v<VERSION> URL
+//     CDN_BASE_URL  stable only required  public base URL used to build each download url
+//     S3_PREFIX     stable only required  path prefix inside the bucket (e.g. open-science)
 //     NOTES         optional  legacy release notes input (GitHub Release body)
 //     NOTES_DIR     optional  directory of already-condensed <locale>.md release notes; en.md required
 //     RELEASE_DATE  optional  ISO timestamp (GitHub Release published_at)
@@ -23,6 +25,7 @@ import { load } from 'js-yaml'
 import {
   artifactHash,
   validateArtifactName,
+  validateReleaseVersion,
   validateUpdateFeed
 } from './release-artifact-validation.mjs'
 
@@ -99,15 +102,37 @@ export function buildManifest({
   releaseDate,
   cdnBase,
   prefix,
+  channel = 'latest',
+  assetBaseUrl,
   metadataOnly = false,
   requireComplete = false,
   allowLegacyNames = false
 }) {
-  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
-    throw new Error(`Invalid stable release version: ${version}`)
+  validateReleaseVersion(version, channel)
+  // Alpha assets belong to this repository's immutable version tag, never the rolling channel or
+  // upstream stable CDN. Require the caller to name that destination; do not guess a URL.
+  if (channel === 'alpha') {
+    if (!requireComplete || metadataOnly || allowLegacyNames) {
+      throw new Error(
+        'Alpha manifests require complete, byte-verified artifacts without legacy backfill'
+      )
+    }
+    if (
+      assetBaseUrl !== `https://github.com/lust0yixiong/EarthNano/releases/download/v${version}`
+    ) {
+      throw new Error('Alpha assets require the exact EarthNano versioned release URL')
+    }
+  } else if (assetBaseUrl !== undefined) {
+    throw new Error('Explicit asset base URLs are only supported for the Alpha channel')
   }
   const sums = parseSha256Sums(readFileSync(join(dir, 'SHA256SUMS.txt'), 'utf8'))
-  const base = `${cdnBase}/${prefix}/releases/${version}`
+  const base = assetBaseUrl ?? `${cdnBase}/${prefix}/releases/${version}`
+  const feedNames = [
+    `${channel}.yml`,
+    `${channel}-linux.yml`,
+    `${channel}-linux-arm64.yml`,
+    `${channel}-mac.yml`
+  ]
 
   const downloads = {}
   for (const filename of readdirSync(dir)) {
@@ -131,8 +156,8 @@ export function buildManifest({
     if (downloads[key]) throw new Error(`Duplicate installer for ${key}`)
     downloads[key] = { url: `${base}/${filename}`, size: stat.size, sha256 }
   }
-  for (const filename of readdirSync(dir).filter((name) =>
-    /^(latest(?:-linux(?:-arm64)?)?|.*-mac)\.yml$/.test(name)
+  for (const filename of readdirSync(dir).filter(
+    (name) => feedNames.includes(name) || /-mac\.yml$/.test(name)
   )) {
     const feed = validateUpdateFeed(
       load(readFileSync(join(dir, filename), 'utf8')),
@@ -141,8 +166,8 @@ export function buildManifest({
       metadataOnly,
       allowLegacyNames
     )
-    if (filename === 'latest-linux.yml' || filename === 'latest-linux-arm64.yml') {
-      const arch = filename === 'latest-linux-arm64.yml' ? 'arm64' : 'x64'
+    if (filename === `${channel}-linux.yml` || filename === `${channel}-linux-arm64.yml`) {
+      const arch = filename === `${channel}-linux-arm64.yml` ? 'arm64' : 'x64'
       if (feed.files.some((file) => !keyForFile(file.url)?.startsWith(`linux-${arch}-`))) {
         throw new Error(`Wrong architecture in ${filename}`)
       }
@@ -150,14 +175,12 @@ export function buildManifest({
   }
   if (requireComplete) {
     for (const { key } of KEY_RULES) {
-      if (!downloads[key]) throw new Error(`Missing stable release installer: ${key}`)
+      if (!downloads[key])
+        throw new Error(
+          `Missing ${channel === 'latest' ? 'stable' : channel} release installer: ${key}`
+        )
     }
-    for (const name of [
-      'latest.yml',
-      'latest-linux.yml',
-      'latest-linux-arm64.yml',
-      'latest-mac.yml'
-    ]) {
+    for (const name of feedNames) {
       const feed = validateUpdateFeed(
         load(readFileSync(join(dir, name), 'utf8')),
         dir,
@@ -165,11 +188,11 @@ export function buildManifest({
         metadataOnly
       )
       const required =
-        name === 'latest-mac.yml'
+        name === `${channel}-mac.yml`
           ? ['-mac-arm64.zip', '-mac-x64.zip']
-          : name === 'latest.yml'
+          : name === `${channel}.yml`
             ? ['-win-x64-setup.exe']
-            : name === 'latest-linux-arm64.yml'
+            : name === `${channel}-linux-arm64.yml`
               ? ['-linux-arm64.AppImage', '_arm64.deb']
               : ['.AppImage', '_amd64.deb']
       for (const suffix of required) {
@@ -245,8 +268,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const version = process.env.VERSION
   const cdnBase = process.env.CDN_BASE_URL
   const prefix = process.env.S3_PREFIX
-  if (!version || !cdnBase || !prefix) {
-    console.error('[version-manifest] VERSION, CDN_BASE_URL and S3_PREFIX are required')
+  const channel = process.env.UPDATE_CHANNEL ?? 'latest'
+  const assetBaseUrl = process.env.ASSET_BASE_URL
+  if (!version || (channel === 'latest' && (!cdnBase || !prefix))) {
+    console.error(
+      '[version-manifest] VERSION is required; latest also requires CDN_BASE_URL and S3_PREFIX'
+    )
     process.exit(1)
   }
 
@@ -261,6 +288,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     releaseDate: process.env.RELEASE_DATE ?? '',
     cdnBase,
     prefix,
+    channel,
+    assetBaseUrl,
     metadataOnly: process.argv.includes('--metadata-only'),
     requireComplete: process.argv.includes('--require-complete'),
     allowLegacyNames: process.argv.includes('--backfill')

@@ -640,13 +640,8 @@ jobs:
             # Stable build with a Developer ID cert -> SIGN ONLY (notarize:false). Notarization +
             # stapling happens later in notarize-mac.yml, so this job never waits on Apple.
             #
-            # Update channel stays the default `latest`, so `channel: latest` is baked into
-            # app-update.yml and the mac updater polls the standard `latest-mac.yml`. arm64 and x64
-            # build on separate runners; each emits its own `latest-mac.yml` listing only its arch,
-            # which the publish job merges into a single `latest-mac.yml` carrying both arch zips
-            # (electron-updater's MacUpdater picks the right one by arch at download time). This avoids
-            # the per-arch `${arch}-mac.yml` scheme, which shipped an app-update.yml the mac updater
-            # never matched against the published feed names.
+            # electron-builder.yml supplies the installed update channel. Preserve its native
+            # feed below under a per-architecture name, then merge final ZIPs before publication.
             npx electron-builder ${{ matrix.eb_args }} "${eb_ver[@]}" --publish never \
               -c.mac.notarize=false
           else
@@ -672,16 +667,41 @@ jobs:
           AZURE_SIGNING_PUBLISHER: ${{ vars.AZURE_SIGNING_PUBLISHER }}
         run: ./scripts/ci/verify-windows-signature.ps1 -InstallerDir dist -CheckUnpacked
 
+      # Use the channel actually embedded by electron-builder. Historical configs without a
+      # channel keep latest; this fork's Alpha config must retain its real Alpha feeds.
+      - name: Resolve update feed channel
+        id: update_feed
+        shell: bash
+        env:
+          FEED_PLATFORM: ${{ matrix.platform }}
+          FEED_ARCH: ${{ matrix.bin_arch }}
+          FEED_NIGHTLY: ${{ inputs.nightly }}
+        run: |
+          node -e '
+            const fs = require("fs"), yaml = require("js-yaml");
+            const config = yaml.load(fs.readFileSync("electron-builder.yml", "utf8"));
+            const publish = Array.isArray(config.publish) ? config.publish[0] : config.publish;
+            const channel = publish?.channel ?? "latest";
+            if (!["latest", "alpha"].includes(channel)) throw new Error(`Unsupported release channel: ${channel}`);
+            const suffix = { mac: "-mac", win: "", linux: process.env.FEED_ARCH === "arm64" ? "-linux-arm64" : "-linux" }[process.env.FEED_PLATFORM];
+            if (suffix === undefined) throw new Error("Unknown native feed platform");
+            if (process.env.FEED_NIGHTLY !== "true" && !fs.existsSync(`dist/${channel}${suffix}.yml`)) {
+              throw new Error(`Missing native update feed: ${channel}${suffix}.yml`);
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `channel=${channel}\n`);
+          '
+
       # Keep each native feed unique even when notarization is skipped. The installed app still
-      # polls latest-mac.yml; only the publication job combines the two architecture artifacts.
+      # polls the configured channel; only the publication job combines the two architecture artifacts.
       - name: Preserve architecture-specific mac update feed
         if: ${{ matrix.platform == 'mac' }}
         shell: bash
         env:
           ARCH: ${{ matrix.bin_arch }}
+          UPDATE_CHANNEL: ${{ steps.update_feed.outputs.channel }}
         run: |
-          if [ -f dist/latest-mac.yml ]; then
-            mv dist/latest-mac.yml "dist/$ARCH-mac.yml"
+          if [ -f "dist/$UPDATE_CHANNEL-mac.yml" ]; then
+            mv "dist/$UPDATE_CHANNEL-mac.yml" "dist/$ARCH-mac.yml"
           elif [ "${{ inputs.nightly }}" != "true" ]; then
             echo "Missing macOS update feed" >&2
             exit 1
@@ -722,6 +742,6 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.blockmap
-            dist/latest*.yml
+            dist/${{ steps.update_feed.outputs.channel }}*.yml
             dist/*-mac.yml
           if-no-files-found: error
