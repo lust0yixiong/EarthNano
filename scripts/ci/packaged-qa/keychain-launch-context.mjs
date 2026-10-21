@@ -232,6 +232,23 @@ export function installKeychainLaunchContext({
         !(await ports.lstat(home)).isDirectory()
       )
         fail("fixture HOME is not a canonical directory");
+      // The native search-list writer does not create its Preferences parent.
+      // Validate each owned level before proceeding; never follow a foreign alias.
+      for (const directory of [
+        join(home, "Library"),
+        join(home, "Library/Preferences"),
+      ]) {
+        try {
+          await ports.mkdir(directory);
+        } catch (error) {
+          if (error.code !== "EEXIST") throw error;
+        }
+        if (
+          (await ports.realpath(directory)) !== directory ||
+          !(await ports.lstat(directory)).isDirectory()
+        )
+          fail("fixture Preferences parent is not a canonical directory");
+      }
       const mapped = ports.run(
         "/usr/bin/security",
         ["list-keychains", "-d", "user", "-s", vault],

@@ -122,7 +122,10 @@ function fixture(electronOverride) {
           assert.equal(args[3], "-s");
           assert.equal(args[4], VAULT);
           assert.equal(env.HOME, HOME);
-          state.mappings.set(env.HOME, [args[4]]);
+          // Actual hosted control 39653685174: exit 0 without persistence
+          // when the new HOME lacks the Preferences parent directory.
+          if (dirs.has(`${env.HOME}/Library/Preferences`))
+            state.mappings.set(env.HOME, [args[4]]);
           return { status: 0, signal: null, stdout: "" };
         }
         assert.equal(args.length, 3);
@@ -206,7 +209,12 @@ test("requires original isolated options and fixed package before any native ope
 });
 
 test("rejects canonical-path escapes before binding a search list", async () => {
-  for (const path of [FIXTURE, HOME]) {
+  for (const path of [
+    FIXTURE,
+    HOME,
+    `${HOME}/Library`,
+    `${HOME}/Library/Preferences`,
+  ]) {
     const f = fixture();
     f.state.aliases.set(path, "/foreign/path");
     install(f);
