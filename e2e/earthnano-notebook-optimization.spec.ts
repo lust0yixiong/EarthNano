@@ -5,6 +5,7 @@ import { isAbsolute, join, relative } from 'node:path'
 import { expect } from '@playwright/test'
 import { isArtifactNotebookProducer } from '../src/shared/artifact-provenance'
 import type { PersistedChatSession } from '../src/shared/session-persistence'
+import type { CandidateInvocation } from '../src/main/earthnano/candidate-snapshot'
 import type { ExecutionState } from '../src/main/earthnano/execution-core'
 import type { ExecutionRecord } from '../src/shared/earthnano/execution-types'
 import { sanitizeAcpTurnTokenUsage } from '../src/shared/acp'
@@ -18,6 +19,9 @@ const language = process.env.EARTHNANO_NOTEBOOK_LANGUAGE ?? 'python'
 if (language !== 'python' && language !== 'r')
   throw new Error('Explicit supported Notebook language required')
 const computationMarker = language === 'r' ? 'read.csv' : 'statistics'
+const binaryAcceptance = process.env.EARTHNANO_E2E_BINARY === '1'
+if (binaryAcceptance && language !== 'r') throw new Error('Binary desktop acceptance requires R')
+const artifactCount = binaryAcceptance ? 2 : 1
 const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
 const resumeAcceptance = process.env.EARTHNANO_E2E_RESUME === '1'
 const dualModeAcceptance = process.env.EARTHNANO_E2E_SWEEP === '1'
@@ -54,7 +58,8 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
   )
   test.setTimeout(900_000)
   const provider = await createEarthnanoMessagesProvider(live, true, resumeAcceptance, {
-    scientificLanguage: language
+    scientificLanguage: language,
+    ...(binaryAcceptance ? { scientificFigure: true } : {})
   })
   let report: object = { status: 'failed', live, language }
   let acceptancePassed = false
@@ -181,10 +186,16 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       mimeType: 'text/csv',
       buffer: Buffer.from('sample,value\nA,2\nB,4\nC,6\n')
     })
-    const prompt =
+    const textPrompt =
       language === 'r'
         ? 'Analyze the attached measurements.csv with the Notebook R tools using explicit language r. List runtimes and bind the enabled external R runtime. Read the uploaded CSV using read.csv, calculate row count, sum and arithmetic mean with base R. Save research-results.json with numeric keys count, sum, mean using jsonlite::write_json(auto_unbox=TRUE). Publish this exact local file using write_artifact_file with the Notebook producerRunId. Do not use native Bash or native Write, and do not create extra artifacts. After successful publication reply: Research analysis complete.'
         : 'Analyze the attached measurements.csv with the Notebook Python tools. List runtimes and bind the enabled external Python runtime. Read the uploaded CSV, calculate row count, sum and arithmetic mean using Python csv and statistics. Save research-results.json with numeric keys count, sum, mean. Publish this exact local file using write_artifact_file with the Notebook producerRunId. Do not use native Bash or native Write, and do not create extra artifacts. After successful publication reply: Research analysis complete.'
+    const prompt = binaryAcceptance
+      ? textPrompt.replace(
+          'Do not use native Bash or native Write, and do not create extra artifacts.',
+          "Also save measurements.png using grDevices::png(type='cairo') and plot the observations. Publish this exact PNG using write_artifact_file with the same actual Notebook producerRunId. Publish only the JSON report and PNG. Do not use native Bash or native Write."
+        )
+      : textPrompt
     await submitPromptViaUi(page, prompt)
     await expect(
       page
@@ -206,9 +217,9 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       )
     await expect
       .poll(async () => (await loadSource())?.artifacts?.length, { timeout: 30_000 })
-      .toBe(1)
+      .toBe(artifactCount)
     const source = (await loadSource())!,
-      artifact = source.artifacts![0]
+      artifact = source.artifacts!.find((entry) => entry.name === 'research-results.json')!
     expect(artifact).toMatchObject({
       name: 'research-results.json',
       artifactId: expect.any(String),
@@ -265,12 +276,61 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
             })),
         { timeout: 30_000 }
       )
-      .toEqual([{ phase: 'completed', cleanup: 'confirmed', artifacts: 1 }])
+      .toEqual([{ phase: 'completed', cleanup: 'confirmed', artifacts: artifactCount }])
     console.info('Scientific workflow: ordinary Core verified')
     const ordinaryRecord = (await readOrdinary()).flatMap((state) =>
       Object.values(state.records)
     )[0]
     verifyOriginalUsage(ordinaryRecord, (await loadSource())!)
+    if (binaryAcceptance) {
+      expect(source.artifacts!.map((entry) => entry.name).sort()).toEqual([
+        'measurements.png',
+        'research-results.json'
+      ])
+      expect(
+        notebookRuns.some((run) => run.script.includes("grDevices::png('measurements.png'"))
+      ).toBe(true)
+      for (const output of source.artifacts!) {
+        expect(ordinaryRecord.evidence.artifacts).toContainEqual({
+          artifactId: output.artifactId,
+          versionId: output.versionId,
+          checksum: output.sha256
+        })
+        const producer = await page.evaluate(
+          (request) => window.api.artifacts.getVersionProvenance(request),
+          {
+            projectId,
+            appSessionId: source.id,
+            artifactId: output.artifactId!,
+            versionId: output.versionId!
+          }
+        )
+        if ('failure' in producer)
+          throw new Error('Ordinary ArtifactVersion provenance unavailable')
+        expect(producer.contentStatus).toMatchObject({ state: 'available' })
+        expect(isArtifactNotebookProducer(producer.evidence.producer)).toBe(true)
+        const runId = isArtifactNotebookProducer(producer.evidence.producer)
+          ? producer.evidence.producer.producer_run_id
+          : undefined
+        expect(notebookRuns.find((run) => run.runId === runId)).toMatchObject({
+          kernelKind: language,
+          status: 'completed',
+          inputFiles: expect.arrayContaining([
+            expect.objectContaining({
+              sourceFileId: source.messages.find(
+                (message) => message.role === 'user' && message.content === prompt
+              )!.uploads![0].id,
+              inputFileVersionId: source.messages.find(
+                (message) => message.role === 'user' && message.content === prompt
+              )!.uploads![0].versionId,
+              checksum: source.messages.find(
+                (message) => message.role === 'user' && message.content === prompt
+              )!.uploads![0].sha256
+            })
+          ])
+        })
+      }
+    }
     // Only the explicitly interactive ordinary task receives test-user approvals.
     await page.removeLocatorHandler(page.getByTestId('permission-card'))
     const panel = page.getByTestId('task-optimization-panel')
@@ -724,67 +784,211 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         computation,
         `Notebook computation for ${record.request.origin.kind === 'optimization' ? record.request.origin.stageId : record.executionId}`
       ).toBeDefined()
-      expect(record.evidence.artifacts).toHaveLength(1)
-      const output = record.evidence.artifacts[0]
-      const producer = await page.evaluate(
-        (request) => window.api.artifacts.getVersionProvenance(request),
-        {
-          projectId,
-          appSessionId: record.identity.sessionId!,
-          artifactId: output.artifactId,
-          versionId: output.versionId
-        }
-      )
-      if ('failure' in producer) throw new Error('Published ArtifactVersion provenance unavailable')
-      expect(producer).toMatchObject({
-        contentStatus: { state: 'available' },
-        evidence: { producer: { state: 'available', producer_run_id: expect.any(String) } }
-      })
-      const producerRunId = isArtifactNotebookProducer(producer.evidence.producer)
-        ? producer.evidence.producer.producer_run_id
-        : undefined
-      const producingRun = runs.find(
-        (run) =>
-          run.runId === producerRunId &&
-          run.kernelKind === language &&
-          run.status === 'completed' &&
-          run.inputFiles?.some(
-            (input) =>
-              input.sourceFileId === originalUpload.id &&
-              input.inputFileVersionId === originalUpload.versionId &&
-              input.checksum === originalUpload.sha256
-          )
-      )
-      expect(
-        producingRun,
-        'Artifact producer is an original completed Run in the frozen language and this same fixed-input Session'
-      ).toBeDefined()
-      const preview = await page.evaluate(
-        async ({ projectId, sessionId }) => {
-          const session = (await window.api.sessions.loadAll()).sessions.find(
-            (entry) => entry.id === sessionId
-          )!
-          return window.api.notebook.state({
-            projectId,
-            sessionId,
-            workspaceCwd: session.cwd ?? ''
+      expect(record.evidence.artifacts).toHaveLength(artifactCount)
+      if (binaryAcceptance)
+        expect(computation!.script).toContain("grDevices::png('measurements.png'")
+      const artifactProducers: Array<{
+        output: ExecutionRecord['evidence']['artifacts'][number]
+        producerRunId: string | undefined
+        notebookPreviewReopenedWithoutRestart: true
+      }> = []
+      if (binaryAcceptance) {
+        const session = usageSessions.find((entry) => entry.id === record.identity.sessionId)!
+        expect(session.artifacts!.map((entry) => entry.name).sort()).toEqual([
+          'measurements.png',
+          'research-results.json'
+        ])
+        for (const output of session.artifacts!)
+          expect(record.evidence.artifacts).toContainEqual({
+            artifactId: output.artifactId,
+            versionId: output.versionId,
+            checksum: output.sha256
           })
-        },
-        { projectId, sessionId: record.identity.sessionId! }
-      )
-      expect(preview.runs.some((run) => run.runId === producerRunId)).toBe(true)
+      }
+      for (const output of record.evidence.artifacts) {
+        const producer = await page.evaluate(
+          (request) => window.api.artifacts.getVersionProvenance(request),
+          {
+            projectId,
+            appSessionId: record.identity.sessionId!,
+            artifactId: output.artifactId,
+            versionId: output.versionId
+          }
+        )
+        if ('failure' in producer)
+          throw new Error('Published ArtifactVersion provenance unavailable')
+        expect(producer).toMatchObject({
+          contentStatus: { state: 'available' },
+          evidence: { producer: { state: 'available', producer_run_id: expect.any(String) } }
+        })
+        const producerRunId = isArtifactNotebookProducer(producer.evidence.producer)
+          ? producer.evidence.producer.producer_run_id
+          : undefined
+        const producingRun = runs.find(
+          (run) =>
+            run.runId === producerRunId &&
+            run.kernelKind === language &&
+            run.status === 'completed' &&
+            run.inputFiles?.some(
+              (input) =>
+                input.sourceFileId === originalUpload.id &&
+                input.inputFileVersionId === originalUpload.versionId &&
+                input.checksum === originalUpload.sha256
+            )
+        )
+        expect(
+          producingRun,
+          'Artifact producer is an original completed Run in the frozen language and this same fixed-input Session'
+        ).toBeDefined()
+        const preview = await page.evaluate(
+          async ({ projectId, sessionId }) => {
+            const session = (await window.api.sessions.loadAll()).sessions.find(
+              (entry) => entry.id === sessionId
+            )!
+            return window.api.notebook.state({
+              projectId,
+              sessionId,
+              workspaceCwd: session.cwd ?? ''
+            })
+          },
+          { projectId, sessionId: record.identity.sessionId! }
+        )
+        expect(preview.runs.some((run) => run.runId === producerRunId)).toBe(true)
+        artifactProducers.push({
+          output,
+          producerRunId,
+          notebookPreviewReopenedWithoutRestart: true
+        })
+      }
       scientificRuns.push({
         executionId: record.executionId,
         role: record.request.role,
         sessionId: record.identity.sessionId,
         computationRunId: computation!.runId,
-        producerRunId,
+        producerRunId: artifactProducers[0].producerRunId,
         notebookPreviewReopenedWithoutRestart: true,
+        ...(binaryAcceptance ? { artifactProducers } : {}),
         taskSnapshotRef: record.request.taskSnapshotRef,
         environmentSpecRef: record.request.environmentSpecRef,
         inputFiles: computation!.inputFiles,
         artifacts: record.evidence.artifacts
       })
+    }
+    if (binaryAcceptance) {
+      const assetEvidence: Array<{
+        executionId: string
+        role: string
+        asset: NonNullable<CandidateInvocation['assets']>[number]
+        inputPath: string
+        sizeBytes: number
+        sha256: string
+      }> = []
+      const selectorExecutions = completedRecords.filter(
+        (record) => record.request.role === 'selector'
+      )
+      if (!dualModeAcceptance) expect(selectorExecutions.length).toBeGreaterThan(0)
+      for (const record of completedRecords) {
+        const ref = record.request.invocationRef
+        const raw = await readFile(
+          join(
+            executionRoot!,
+            completed.runId,
+            'execution',
+            'snapshots',
+            'objects',
+            `${ref.digest.slice(7)}.json`
+          )
+        )
+        expect(`sha256:${createHash('sha256').update(raw).digest('hex')}`).toBe(ref.digest)
+        const invocation = JSON.parse(raw.toString('utf8')).value as CandidateInvocation
+        if (!invocation.assets) {
+          if (record.request.role === 'selector')
+            throw new Error('Selector binary invocation assets missing')
+          continue
+        }
+        expect(invocation.assets.length).toBeGreaterThan(0)
+        if (record.request.role === 'selector') expect(invocation.assets).toHaveLength(2)
+        for (const asset of invocation.assets) {
+          const original = methodJournal.records[asset.sourceExecutionId]
+          expect(original).toBeDefined()
+          expect(original.phase).toBe('completed')
+          expect(original.cleanup).toBe('confirmed')
+          expect(['baseline', 'candidate']).toContain(original.request.role)
+          expect(original.evidence.artifacts).toContainEqual(asset.artifact.artifactRef)
+          const sourceSession = usageSessions.find(
+            (entry) => entry.id === original.identity.sessionId
+          )!
+          expect(sourceSession.artifacts).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                name: 'measurements.png',
+                artifactId: asset.artifact.artifactRef.artifactId,
+                versionId: asset.artifact.artifactRef.versionId,
+                sha256: asset.artifact.artifactRef.checksum
+              })
+            ])
+          )
+          expect(asset.artifact).toMatchObject({
+            path: 'measurements.png',
+            representation: 'binary',
+            contentType: 'image/png'
+          })
+          expect(asset.artifact).not.toHaveProperty('content')
+          const inputPath = join(
+            executionRoot!,
+            completed.runId,
+            'execution',
+            'candidates',
+            record.executionId,
+            'workspace',
+            'inputs',
+            asset.path
+          )
+          const bytes = await readFile(inputPath)
+          expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
+          expect(bytes.length).toBe(asset.artifact.sizeBytes)
+          const sha256 = createHash('sha256').update(bytes).digest('hex')
+          expect(`sha256:${sha256}`).toBe(asset.artifact.digest)
+          expect(sha256).toBe(asset.artifact.artifactRef.checksum)
+          if (record.request.role === 'selector') {
+            expect(provider.stats.imageToolResults).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({
+                  role: 'selector',
+                  path: inputPath,
+                  mediaType: 'image/png',
+                  sourceType: 'base64',
+                  sizeBytes: bytes.length,
+                  sha256
+                })
+              ])
+            )
+          }
+          assetEvidence.push({
+            executionId: record.executionId,
+            role: record.request.role,
+            asset,
+            inputPath,
+            sizeBytes: bytes.length,
+            sha256
+          })
+        }
+      }
+      expect(assetEvidence.length).toBeGreaterThan(0)
+      if (!dualModeAcceptance) {
+        expect(provider.stats.imageToolResults?.length).toBeGreaterThan(0)
+        expect(assetEvidence.some((entry) => entry.role === 'proposer')).toBe(true)
+      }
+      // These facts prove transport/read identity, not a scientific or visual semantic verdict.
+      report = {
+        ...report,
+        binary: {
+          artifactCount,
+          assets: assetEvidence,
+          nativeImageToolResults: provider.stats.imageToolResults,
+          imageSemanticAssessment: 'not-performed'
+        }
+      }
     }
     report = {
       ...report,
@@ -914,7 +1118,19 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
         const sessions = await readSessionsForDiagnostics()
         await writeFile(
           testInfo.outputPath('final-scientific-sessions.json'),
-          JSON.stringify(sessions, null, 2)
+          JSON.stringify(
+            sessions,
+            binaryAcceptance
+              ? (key: string, value: unknown) => {
+                  // Keep Session identities and artifact facts, not native image payloads, in
+                  // external diagnostics. The actual Read receipts retain only size and digest.
+                  if (['images', 'image', 'rawOutput'].includes(key)) return undefined
+                  if (key === 'data' && typeof value === 'string') return undefined
+                  return value
+                }
+              : undefined,
+            2
+          )
         )
       } catch {
         // Failure to read diagnostics never changes the original failed acceptance result.

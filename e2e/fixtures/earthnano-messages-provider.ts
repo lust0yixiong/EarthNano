@@ -1,11 +1,27 @@
 import type { NotebookLanguage } from '../../src/shared/notebook-language-contract'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { createServer, type ServerResponse } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
 
-type Block = { type: string; name?: string; input?: Record<string, unknown>; content?: unknown }
+type Block = {
+  type: string
+  id?: string
+  tool_use_id?: string
+  name?: string
+  input?: Record<string, unknown>
+  content?: unknown
+}
+type ImageToolResult = {
+  role: string
+  toolUseId: string
+  path: string
+  mediaType: string
+  sizeBytes: number
+  sha256: string
+  sourceType: 'base64'
+}
 type Body = {
   model: string
   stream: boolean
@@ -102,6 +118,8 @@ export async function createEarthnanoMessagesProvider(
     scientificLanguage?: NotebookLanguage
     /** Native R binary fixture; production tools and immutable versions remain real. */
     scientificBinary?: boolean
+    /** CSV + PNG desktop fixture; native input, Notebook and Artifact owners stay unchanged. */
+    scientificFigure?: boolean
     keyFile?: string
     upstreamFetch?: typeof fetch
     /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
@@ -122,6 +140,7 @@ export async function createEarthnanoMessagesProvider(
     cancelledUpstreamRequests: number
     roles: Record<string, number>
     toolNames: string[]
+    imageToolResults?: ImageToolResult[]
     usage: { input: number; cacheRead: number; output: number; incompleteRequests: number }
   }
   close(): Promise<void>
@@ -132,6 +151,12 @@ export async function createEarthnanoMessagesProvider(
   const scientificBinary = testOptions.scientificBinary === true
   if (scientificBinary && (!scientificOptimization || scientificLanguage !== 'r'))
     throw new Error('Binary scientific acceptance requires the original R Notebook profile')
+  const scientificFigure = testOptions.scientificFigure === true
+  if (scientificFigure && (!scientificOptimization || scientificLanguage !== 'r'))
+    throw new Error('Scientific figure acceptance requires the original R Notebook profile')
+  const publishFigure = scientificBinary || scientificFigure
+  const imageToolResults: ImageToolResult[] = []
+  const imageResultsSeen = new Set<string>()
   const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
   if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
     throw new Error('Invalid bounded acceptance request limit')
@@ -149,6 +174,7 @@ export async function createEarthnanoMessagesProvider(
     cancelledUpstreamRequests: 0,
     roles: {} as Record<string, number>,
     toolNames: [] as string[],
+    ...(scientificFigure ? { imageToolResults } : {}),
     usage: { input: 0, cacheRead: 0, output: 0, incompleteRequests: 0 }
   }
   let key = ''
@@ -238,6 +264,39 @@ export async function createEarthnanoMessagesProvider(
       for (const block of blocks)
         if (block.type === 'tool_use' && block.name && !stats.toolNames.includes(block.name))
           stats.toolNames.push(block.name)
+      if (scientificFigure) {
+        // Observe the actual native Read result sent back by Claude. Retain byte identity only;
+        // never log or persist base64 model payloads, and never fabricate a tool response.
+        for (const result of blocks.filter((block) => block.type === 'tool_result')) {
+          const call = blocks.find(
+            (block) =>
+              block.type === 'tool_use' && block.id === result.tool_use_id && block.name === 'Read'
+          )
+          if (
+            !call?.id ||
+            typeof call.input?.file_path !== 'string' ||
+            !Array.isArray(result.content)
+          )
+            continue
+          for (const [index, item] of result.content.entries()) {
+            const source = item?.type === 'image' ? item.source : undefined
+            if (source?.type !== 'base64' || typeof source.data !== 'string') continue
+            const identity = `${call.id}:${index}`
+            if (imageResultsSeen.has(identity)) continue
+            const bytes = Buffer.from(source.data, 'base64')
+            imageToolResults.push({
+              role,
+              toolUseId: call.id!,
+              path: call.input.file_path,
+              mediaType: source.media_type,
+              sourceType: 'base64',
+              sizeBytes: bytes.length,
+              sha256: createHash('sha256').update(bytes).digest('hex')
+            })
+            imageResultsSeen.add(identity)
+          }
+        }
+      }
       // A deterministic cancellation seam before a paid request. It never substitutes a tool,
       // scientific result or owner receipt; the real native client must disconnect on Stop.
       if (pauseFirstProposer && role === 'proposer' && stats.pausedBeforeForward === 0) {
@@ -377,9 +436,19 @@ export async function createEarthnanoMessagesProvider(
                   'grDevices::dev.off()',
                   'print(report)'
                 ].join('\n')
-              : scientificLanguage === 'r'
-                ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(report)`
-                : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
+              : scientificFigure
+                ? [
+                    `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value`,
+                    'report <- list(count=length(values), sum=sum(values), mean=mean(values))',
+                    "jsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)",
+                    "grDevices::png('measurements.png', width=480, height=320, type='cairo')",
+                    "graphics::plot(seq_along(values), values, type='b', xlab='Observation', ylab='Value')",
+                    'grDevices::dev.off()',
+                    'print(report)'
+                  ].join('\n')
+                : scientificLanguage === 'r'
+                  ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(report)`
+                  : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
           })
         }
         if (!called('write_artifact_file')) {
@@ -396,7 +465,7 @@ export async function createEarthnanoMessagesProvider(
           })
         }
         if (
-          scientificBinary &&
+          publishFigure &&
           !blocks.some(
             (block) =>
               block.type === 'tool_use' &&
@@ -425,6 +494,33 @@ export async function createEarthnanoMessagesProvider(
       // Original Harness selection consumes the committed reply. Exercise that contract without
       // a second model-written selection file; the original Session/Artifact owner retains it.
       if (role === 'selector') {
+        if (scientificFigure) {
+          const paths = (await readdir(input, { recursive: true }))
+            .filter((path) => path.endsWith('.png'))
+            .sort()
+          if (!paths.length) throw new Error('Selector original binary INPUT assets unavailable')
+          for (const path of paths) {
+            const filePath = join(input, path)
+            const readCall = blocks.find(
+              (block) =>
+                block.type === 'tool_use' &&
+                block.name === 'Read' &&
+                block.input?.file_path === filePath
+            )
+            if (!readCall) {
+              if (!body.tools?.some((tool) => tool.name === 'Read'))
+                throw new Error('Native Read unavailable')
+              emit(response, body.model, { name: 'Read', input: { file_path: filePath } })
+              return
+            }
+            if (
+              !imageToolResults.some(
+                (result) => result.toolUseId === readCall.id && result.path === filePath
+              )
+            )
+              throw new Error('Native PNG Read did not return an actual image tool_result')
+          }
+        }
         emit(response, body.model, {
           text: '```choice\nB\n```\n<why>Both finals satisfy the frozen research input.</why>'
         })
@@ -447,7 +543,7 @@ export async function createEarthnanoMessagesProvider(
           join(output, 'context/harness/instructions.md'),
           scientificOptimization
             ? scientificLanguage === 'r'
-              ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+              ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
               : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
             : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
