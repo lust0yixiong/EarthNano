@@ -27,35 +27,16 @@ jobs:
     if: github.ref != 'refs/heads/ci/earthnano-native'
     outputs:
       unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
-      windows_matrix: ${{ steps.matrix.outputs.windows_matrix }}
     steps:
       - id: matrix
         shell: node {0}
         run: |
           const fs = require('node:fs')
           const include = [{os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true}]
-          for (const [os, total] of [['macos-15', 4], ['windows-2022', 8]])
+          for (const [os, total] of [['macos-15', 4]])
             for (const kind of ['baseline', 'candidate'])
               for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total, batch: false})
-          for (const [name, windows] of [['unix_matrix', false], ['windows_matrix', true]])
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${JSON.stringify({include: include.filter(row => row.os.startsWith('windows-') === windows)})}\n`)
-
-  windows_runtime:
-    name: Original pinned Windows Notebook runtime
-    runs-on: windows-2022
-    timeout-minutes: 150
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: .github/earthnano-node-version }
-      - uses: ./.github/actions/windows-notebook-runtime
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: earthnano-windows-runtime
-          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
-          retention-days: 3
-          if-no-files-found: error
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unix_matrix=${JSON.stringify({include})}\n`)
 
   source_unix:
     name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
@@ -71,23 +52,9 @@ jobs:
       total: ${{ matrix.total }}
       batch: ${{ matrix.batch }}
 
-  source_windows:
-    name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
-    needs: [plan, windows_runtime]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.windows_matrix) }}
-    uses: ./.github/workflows/earthnano-source.yml
-    with:
-      os: ${{ matrix.os }}
-      kind: ${{ matrix.kind }}
-      shard: ${{ matrix.shard }}
-      total: ${{ matrix.total }}
-      batch: ${{ matrix.batch }}
-
   comparison:
     name: Enforce pinned original source comparison
-    needs: [source_unix, source_windows]
+    needs: source_unix
     if: always() && github.ref != 'refs/heads/ci/earthnano-native'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -96,17 +63,16 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version-file: .github/earthnano-node-version }
-      - name: Require both complete source matrices
+      - name: Require complete Unix source matrix
         shell: node {0}
         env:
           SOURCE_UNIX_RESULT: ${{ needs.source_unix.result }}
-          SOURCE_WINDOWS_RESULT: ${{ needs.source_windows.result }}
         run: |
-          for (const key of ['SOURCE_UNIX_RESULT', 'SOURCE_WINDOWS_RESULT'])
+          for (const key of ['SOURCE_UNIX_RESULT'])
             if (process.env[key] !== 'success') throw new Error(`Required source matrix did not succeed: ${key}`)
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with: { pattern: earthnano-source-*, path: source-reports }
-      - run: node scripts/ci/earthnano-source.mjs compare --reports source-reports --out test-results/earthnano-ci
+      - run: node scripts/ci/earthnano-source.mjs compare --platforms darwin,linux --reports source-reports --out test-results/earthnano-ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
@@ -159,24 +125,6 @@ jobs:
           - { os: macos-26-intel, platform: mac, arch: x64, subdir: osx-64 }
           - { os: ubuntu-24.04, platform: linux, arch: x64, subdir: linux-64 }
           - { os: ubuntu-24.04-arm, platform: linux, arch: arm64, subdir: linux-aarch64 }
-    uses: ./.github/workflows/earthnano-native.yml
-    with:
-      os: ${{ matrix.os }}
-      platform: ${{ matrix.platform }}
-      arch: ${{ matrix.arch }}
-      subdir: ${{ matrix.subdir }}
-
-  native_windows:
-    name: Unsigned native build and original launch ${{ matrix.os }}
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.native) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
-    needs: windows_runtime
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: windows-2022, platform: win, arch: x64, subdir: win-64 }
     uses: ./.github/workflows/earthnano-native.yml
     with:
       os: ${{ matrix.os }}

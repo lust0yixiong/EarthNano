@@ -9,6 +9,7 @@ import { compareHarnessReports } from './earthnano-harness-compare.mjs'
 import {
   compareInventories,
   compareReports,
+  comparisonPlatforms,
   exactElectronVersion,
   normalizeVitest,
   sourceTestInvocation,
@@ -70,6 +71,59 @@ const stages = (failed = false): Array<{ name: string; status: number; signal: n
     status: name === 'tests' && failed ? 1 : 0,
     signal: null
   }))
+const comparisonFixture = async (
+  platforms = ['darwin', 'linux', 'win32']
+): Promise<{ root: string; reports: string; out: string }> => {
+  const root = await mkdtemp(join(tmpdir(), 'earthnano-report-gate-'))
+  roots.push(root)
+  const reports = join(root, 'reports'),
+    out = join(root, 'out')
+  for (const platform of platforms)
+    for (const kind of ['baseline', 'candidate'])
+      for (let shard = 1; shard <= (platform === 'win32' ? 8 : 4); shard++) {
+        const dir = join(reports, `${platform}-${kind}-${shard}`)
+        await mkdir(dir, { recursive: true })
+        await writeFile(
+          join(dir, 'source-report.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            platform,
+            kind,
+            shard,
+            total: platform === 'win32' ? 8 : 4,
+            node: 'v24.0.0',
+            arch: 'x64',
+            electron: '43.7.5',
+            image: 'fixture:1',
+            lockDigest: 'b'.repeat(64),
+            pins: {
+              openScience: OPEN_SCIENCE_PIN,
+              harness: HARNESS_PIN,
+              harnessTree: HARNESS_TREE
+            },
+            profile: platform === 'win32' ? 'original-windows-full' : 'original-full',
+            source: kind === 'baseline' ? OPEN_SCIENCE_PIN : 'a'.repeat(40),
+            testRoot: '/source',
+            stages: stages(),
+            tests: normalizeVitest(rawReport(), '/source')
+          })
+        )
+        // Distinct per-shard assertion names mirror a real Vitest shard, not duplicate data.
+        const raw = rawReport()
+        ;(
+          raw.testResults as Array<{ assertionResults: Array<{ fullName: string }> }>
+        )[0].assertionResults[0].fullName = `${platform}-${shard}`
+        const report = JSON.parse(await readFile(join(dir, 'source-report.json'), 'utf8'))
+        report.tests = normalizeVitest(raw, '/source')
+        await writeFile(join(dir, 'source-report.json'), JSON.stringify(report))
+        await writeFile(join(dir, 'vitest.json'), JSON.stringify(raw))
+        await writeFile(
+          join(dir, 'runtime.json'),
+          JSON.stringify({ schemaVersion: 1, reason: 'passed', unhandledErrors: [] })
+        )
+      }
+  return { root, reports, out }
+}
 describe('EarthNano original-baseline gates', () => {
   it('requires the actual exact Electron binary; cached43.4 is not lock43.7.5', () => {
     const lock = { packages: { 'node_modules/electron': { version: '43.7.5' } } }
@@ -234,54 +288,7 @@ describe('EarthNano original-baseline gates', () => {
     await expect(verifyPins(process.cwd())).resolves.toMatchObject({ schemaVersion: 1 })
   })
   it('requires all original platform shards, matching environments and consistent source identity', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'earthnano-report-gate-'))
-    roots.push(root)
-    const reports = join(root, 'reports'),
-      out = join(root, 'out')
-    for (const platform of ['darwin', 'linux', 'win32'])
-      for (const kind of ['baseline', 'candidate'])
-        for (let shard = 1; shard <= (platform === 'win32' ? 8 : 4); shard++) {
-          const dir = join(reports, `${platform}-${kind}-${shard}`)
-          await mkdir(dir, { recursive: true })
-          await writeFile(
-            join(dir, 'source-report.json'),
-            JSON.stringify({
-              schemaVersion: 1,
-              platform,
-              kind,
-              shard,
-              total: platform === 'win32' ? 8 : 4,
-              node: 'v24.0.0',
-              arch: 'x64',
-              electron: '43.7.5',
-              image: 'fixture:1',
-              lockDigest: 'b'.repeat(64),
-              pins: {
-                openScience: OPEN_SCIENCE_PIN,
-                harness: HARNESS_PIN,
-                harnessTree: HARNESS_TREE
-              },
-              profile: platform === 'win32' ? 'original-windows-full' : 'original-full',
-              source: kind === 'baseline' ? OPEN_SCIENCE_PIN : 'a'.repeat(40),
-              testRoot: '/source',
-              stages: stages(),
-              tests: normalizeVitest(rawReport(), '/source')
-            })
-          )
-          // Distinct per-shard assertion names mirror a real Vitest shard, not duplicate data.
-          const raw = rawReport()
-          ;(
-            raw.testResults as Array<{ assertionResults: Array<{ fullName: string }> }>
-          )[0].assertionResults[0].fullName = `${platform}-${shard}`
-          const report = JSON.parse(await readFile(join(dir, 'source-report.json'), 'utf8'))
-          report.tests = normalizeVitest(raw, '/source')
-          await writeFile(join(dir, 'source-report.json'), JSON.stringify(report))
-          await writeFile(join(dir, 'vitest.json'), JSON.stringify(raw))
-          await writeFile(
-            join(dir, 'runtime.json'),
-            JSON.stringify({ schemaVersion: 1, reason: 'passed', unhandledErrors: [] })
-          )
-        }
+    const { reports, out } = await comparisonFixture()
     await expect(compareReports(reports, out)).resolves.toBeUndefined()
     expect(JSON.parse(await readFile(join(out, 'comparison.json'), 'utf8')).results).toHaveLength(3)
     for (const [field, changed] of [
@@ -362,6 +369,215 @@ describe('EarthNano original-baseline gates', () => {
     await rm(file)
     await expect(compareReports(reports, out)).rejects.toThrow('Missing/unavailable')
   })
+  it('requires explicit, known, unique nonempty comparison scope and retains three-platform defaults', () => {
+    expect(comparisonPlatforms()).toEqual(['darwin', 'linux', 'win32'])
+    expect(comparisonPlatforms('darwin,linux')).toEqual(['darwin', 'linux'])
+    for (const value of [
+      '',
+      'darwin,',
+      ',linux',
+      'darwin,darwin',
+      'darwin,unknown',
+      'darwin, linux'
+    ])
+      expect(() => comparisonPlatforms(value), value).toThrow(/platform/)
+  })
+  it('compares Unix reports only when explicitly selected, and keeps the CLI default strict', async () => {
+    const { reports, out } = await comparisonFixture(['darwin', 'linux'])
+    await expect(compareReports(reports, out)).rejects.toThrow('win32')
+    await expect(compareReports(reports, out, ['darwin', 'linux'])).resolves.toBeUndefined()
+    expect(
+      JSON.parse(await readFile(join(out, 'comparison.json'), 'utf8')).results.map(
+        (result: { platform: string }) => result.platform
+      )
+    ).toEqual(['darwin', 'linux'])
+    const invoke = (extra: string[]): ReturnType<typeof spawnSync> =>
+      spawnSync(
+        process.execPath,
+        [
+          'scripts/ci/earthnano-source.mjs',
+          'compare',
+          '--reports',
+          reports,
+          '--out',
+          out,
+          ...extra
+        ],
+        { encoding: 'utf8' }
+      )
+    expect(invoke(['--platforms', 'darwin,linux']).status).toBe(0)
+    expect(invoke([]).status).toBe(1)
+    for (const extra of [
+      ['--platforms'],
+      ['--platforms', ''],
+      ['--platforms', 'darwin,darwin'],
+      ['--platforms', 'other'],
+      ['--platforms', 'darwin,linux', '--platforms', 'win32']
+    ])
+      expect(invoke(extra).status, JSON.stringify(extra)).toBe(1)
+    for (const platforms of [[], ['darwin', 'darwin'], ['darwin', 'other'], ['darwin,linux']])
+      await expect(compareReports(reports, out, platforms)).rejects.toThrow(/platform/)
+  })
+  it('rejects reports outside the explicit scope rather than silently ignoring them', async () => {
+    const { reports, out } = await comparisonFixture()
+    await expect(compareReports(reports, out, ['darwin', 'linux'])).rejects.toThrow(
+      'outside selected platforms: win32'
+    )
+    // The same complete original data is still valid under the untouched three-platform default.
+    await expect(compareReports(reports, out)).resolves.toBeUndefined()
+  })
+  it.each([
+    ['darwin', 'baseline'],
+    ['darwin', 'candidate'],
+    ['linux', 'baseline'],
+    ['linux', 'candidate']
+  ])('still requires every original %s %s shard in the selected scope', async (platform, kind) => {
+    const { reports, out } = await comparisonFixture(['darwin', 'linux'])
+    await rm(join(reports, `${platform}-${kind}-4`, 'source-report.json'))
+    await expect(compareReports(reports, out, ['darwin', 'linux'])).rejects.toThrow(
+      `Missing/unavailable ${platform} ${kind} shards`
+    )
+  })
+  it.each(['failed', 'pending'])(
+    'retains selected baseline %s assertions as explicit evidence',
+    async (status) => {
+      const { reports, out } = await comparisonFixture(['darwin', 'linux'])
+      for (const kind of ['baseline', 'candidate']) {
+        const directory = join(reports, `linux-${kind}-1`)
+        const raw = rawReport('/source', status === 'failed')
+        const suites = raw.testResults as Array<{
+          assertionResults: Array<{ fullName: string; status: string }>
+        }>
+        suites[0].assertionResults[0].fullName = 'linux-1'
+        if (status === 'pending') {
+          raw.numPassedTests = 0
+          raw.numPendingTests = 1
+          suites[0].assertionResults[0].status = 'pending'
+        }
+        const path = join(directory, 'source-report.json')
+        const metadata = JSON.parse(await readFile(path, 'utf8'))
+        metadata.tests = normalizeVitest(raw, '/source')
+        metadata.stages = stages(status === 'failed')
+        await writeFile(path, JSON.stringify(metadata))
+        await writeFile(join(directory, 'vitest.json'), JSON.stringify(raw))
+        await writeFile(
+          join(directory, 'runtime.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            reason: status === 'failed' ? 'failed' : 'passed',
+            unhandledErrors: []
+          })
+        )
+      }
+      await expect(compareReports(reports, out, ['darwin', 'linux'])).resolves.toBeUndefined()
+      const result = JSON.parse(await readFile(join(out, 'comparison.json'), 'utf8')).results[1]
+      const key = status === 'failed' ? 'Failures' : 'Skips'
+      expect(result[`baseline${key}`]).toHaveLength(1)
+      expect(result[`candidate${key}`]).toHaveLength(1)
+      expect(result[`baseline${key}`][0].status).toBe(status)
+      expect(result.regressions).toEqual([])
+    }
+  )
+  it.each([
+    'missing-report',
+    'missing-raw',
+    'missing-runtime',
+    'unavailable',
+    'duplicate-shard',
+    'wrong-total',
+    'image',
+    'node',
+    'arch',
+    'electron',
+    'wrong-source',
+    'wrong-pins',
+    'lock-drift',
+    'raw-counter',
+    'inventory-drift',
+    'global-error',
+    'interrupted-stage'
+  ])('rejects incomplete or mismatched selected Unix evidence: %s', async (fault) => {
+    const { reports, out } = await comparisonFixture(['darwin', 'linux'])
+    const directory = join(reports, 'linux-candidate-4')
+    const metadataPath = join(directory, 'source-report.json')
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8'))
+    if (fault.startsWith('missing-')) {
+      const file = {
+        'missing-report': 'source-report.json',
+        'missing-raw': 'vitest.json',
+        'missing-runtime': 'runtime.json'
+      }[fault]!
+      await rm(join(directory, file))
+    } else if (fault === 'raw-counter') {
+      const path = join(directory, 'vitest.json')
+      const raw = JSON.parse(await readFile(path, 'utf8'))
+      await writeFile(path, JSON.stringify({ ...raw, numTotalTests: 2 }))
+    } else if (fault === 'global-error') {
+      await writeFile(
+        join(directory, 'runtime.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          reason: 'passed',
+          unhandledErrors: ['real global failure']
+        })
+      )
+    } else {
+      if (fault === 'unavailable') metadata.unavailable = true
+      else if (fault === 'duplicate-shard') metadata.shard = 3
+      else if (fault === 'wrong-total') metadata.total = 8
+      else if (['image', 'node', 'arch', 'electron'].includes(fault))
+        metadata[fault] = 'different-real-environment'
+      else if (fault === 'wrong-source') metadata.source = 'c'.repeat(40)
+      else if (fault === 'wrong-pins') metadata.pins = {}
+      else if (fault === 'lock-drift') metadata.lockDigest = 'd'.repeat(64)
+      else if (fault === 'inventory-drift') metadata.tests[0].status = 'skipped'
+      else if (fault === 'interrupted-stage') metadata.stages[1].signal = 'SIGTERM'
+      await writeFile(metadataPath, JSON.stringify(metadata))
+    }
+    await expect(compareReports(reports, out, ['darwin', 'linux'])).rejects.toThrow()
+  })
+  it.each(['failed', 'pending', 'removed', 'typecheck'])(
+    'keeps strict regression comparison for selected Unix evidence: %s',
+    async (status) => {
+      const { reports, out } = await comparisonFixture(['darwin', 'linux'])
+      const directory = join(reports, 'darwin-candidate-4')
+      const path = join(directory, 'source-report.json')
+      const metadata = JSON.parse(await readFile(path, 'utf8'))
+      const raw = rawReport('/source', status === 'failed')
+      const assertions = raw.testResults as Array<{
+        assertionResults: Array<{ fullName: string; status: string }>
+      }>
+      assertions[0].assertionResults[0].fullName =
+        status === 'removed' ? 'different-case' : 'darwin-4'
+      if (status === 'pending') {
+        raw.numPassedTests = 0
+        raw.numPendingTests = 1
+        assertions[0].assertionResults[0].status = 'pending'
+      }
+      metadata.tests = normalizeVitest(raw, '/source')
+      metadata.stages = stages(status === 'failed')
+      if (status === 'typecheck') metadata.stages[2].status = 1
+      await writeFile(path, JSON.stringify(metadata))
+      await writeFile(join(directory, 'vitest.json'), JSON.stringify(raw))
+      await writeFile(
+        join(directory, 'runtime.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          reason: status === 'failed' ? 'failed' : 'passed',
+          unhandledErrors: []
+        })
+      )
+      await expect(compareReports(reports, out, ['darwin', 'linux'])).rejects.toThrow(
+        'introduces source regressions'
+      )
+      const result = JSON.parse(await readFile(join(out, 'comparison.json'), 'utf8')).results[0]
+      if (status === 'typecheck')
+        expect(result.stageRegressions).toEqual([
+          { shard: 4, name: 'typecheck', status: 1, signal: null }
+        ])
+      else expect(result.regressions.length).toBeGreaterThan(0)
+    }
+  )
   it('observes actual Vitest global failures even when its original JSON assertions all pass', async () => {
     const root = await mkdtemp(join(tmpdir(), 'earthnano-runtime-report-'))
     roots.push(root)
@@ -603,7 +819,7 @@ describe('EarthNano original-baseline gates', () => {
       workflow = load(source) as {
         permissions: Record<string, string>
         on: Record<string, unknown>
-        jobs: { native_unix: { if: string }; native_windows: { if: string } }
+        jobs: Record<string, { if: string }>
       }
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.on.schedule).toBeUndefined()
@@ -614,7 +830,9 @@ describe('EarthNano original-baseline gates', () => {
       "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
       "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
     expect(workflow.jobs.native_unix.if).toBe(nativeCondition)
-    expect(workflow.jobs.native_windows.if).toBe(nativeCondition)
+    expect(workflow.jobs.native_windows).toBeUndefined()
+    expect(workflow.jobs.source_windows).toBeUndefined()
+    expect(workflow.jobs.windows_runtime).toBeUndefined()
     expect((workflow.on.push as { branches: string[] }).branches).toEqual([
       'main',
       'ci/earthnano-native'
@@ -624,7 +842,8 @@ describe('EarthNano original-baseline gates', () => {
       if (!action[1].startsWith('./')) expect(action[1]).toMatch(/@[a-f0-9]{40}$/)
     expect(recipes).toContain('xcrun actool --version')
     expect(source).toContain('macos-26-intel')
-    expect(source).toContain("['windows-2022', 8]")
+    expect(source).not.toContain('windows-2022')
+    expect(source).toContain('--platforms darwin,linux')
     expect(recipes).toContain('scripts/ci/npm-ci.mjs')
     expect(recipes).toContain('npm run build')
     expect(recipes).toContain('--publish never')
