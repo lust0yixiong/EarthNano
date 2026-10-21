@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       qa_operational_sha:
-        description: Full approved operational commit SHA of that QA run, separate from application4a31
+        description: Full approved operational commit SHA of that QA run, separate from applicationbdc0
         required: true
         type: string
       notes:
@@ -53,7 +53,7 @@ jobs:
       - name: Checkout fixed application release helpers (not an application rebuild)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 4a31b9ae72654cf6ddf7749103abb48b5f85043f
+          ref: bdc0246383a25990030854f4c2fa100895f29ea6
           path: alpha-source
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -68,8 +68,8 @@ jobs:
           [[ "$ALPHA_QA_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$ALPHA_QA_OPERATIONAL_SHA" =~ ^[a-f0-9]{40}$ ]]
           mkdir -p "$ALPHA_ROOT/evidence"
-          gh run view 39629283517 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/native-run.json"
-          gh run view 39629363410 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/source-run.json"
+          gh run view 39658781703 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/native-run.json"
+          gh run view 39658771118 -R lust0yixiong/EarthNano --json databaseId,headSha,workflowName,status,conclusion,jobs > "$ALPHA_ROOT/evidence/source-run.json"
           gh run view "$ALPHA_QA_RUN_ID" -R lust0yixiong/EarthNano --json databaseId,headSha,headBranch,workflowName,status,conclusion,attempt,jobs > "$ALPHA_ROOT/evidence/qa-run.json"
           node alpha-operation/scripts/ci/alpha-assets/prepare-assets.mjs verify-runs 2>&1 | tee "$ALPHA_ROOT/evidence/verify-runs.log"
       - name: Original release transform dependencies, without lifecycle scripts or application build
@@ -80,7 +80,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: lust0yixiong/EarthNano
-          run-id: 39629283517
+          run-id: 39658781703
           pattern: earthnano-unsigned-*
           path: ${{ env.ALPHA_ROOT }}/inputs/packages
       - name: Download same-run four original Unix native evidence artifacts
@@ -88,7 +88,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: lust0yixiong/EarthNano
-          run-id: 39629283517
+          run-id: 39658781703
           pattern: earthnano-native-evidence-*
           path: ${{ env.ALPHA_ROOT }}/inputs/native
       - name: Download original source comparison outcome
@@ -96,7 +96,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: lust0yixiong/EarthNano
-          run-id: 39629363410
+          run-id: 39658771118
           name: earthnano-source-comparison
           path: ${{ env.ALPHA_ROOT }}/evidence/source-comparison
       - name: Download exact successful QA attempt evidence, never an arbitrary prior attempt
@@ -118,7 +118,7 @@ jobs:
           node scripts/ci/release-certification-evidence.mjs aggregate \
             --directory "$ALPHA_ROOT/assets" \
             --output "$ALPHA_ROOT/assets/RELEASE-CERTIFICATION.json" \
-            --expected-sha 4a31b9ae72654cf6ddf7749103abb48b5f85043f \
+            --expected-sha bdc0246383a25990030854f4c2fa100895f29ea6 \
             --platforms mac,linux 2>&1 | tee "$ALPHA_ROOT/evidence/aggregate.log"
       - name: Original mac feed merge for the explicit Alpha channel
         working-directory: alpha-source
@@ -149,7 +149,7 @@ jobs:
       - name: Upload prepared Alpha assets as an Actions artifact only (no publication)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: earthnano-alpha-prepared-4a31-${{ github.run_id }}-${{ github.run_attempt }}
+          name: earthnano-alpha-prepared-bdc0-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.ALPHA_ROOT }}/assets/
             ${{ env.ALPHA_ROOT }}/evidence/

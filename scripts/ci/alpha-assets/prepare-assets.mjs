@@ -13,9 +13,9 @@ import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const SOURCE = "4a31b9ae72654cf6ddf7749103abb48b5f85043f";
-export const NATIVE_RUN = 39629283517;
-export const SOURCE_RUN = 39629363410;
+export const SOURCE = "bdc0246383a25990030854f4c2fa100895f29ea6";
+export const NATIVE_RUN = 39658781703;
+export const SOURCE_RUN = 39658771118;
 export const VERSION = "0.1.0-alpha.1";
 export const TARGETS = [
   ["macos-26", "macos-arm64", "darwin", "arm64"],
