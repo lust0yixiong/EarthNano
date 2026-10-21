@@ -65,3 +65,7 @@
 后续固定 `36bf60321` 修复了独立审查复现的“availability 检查后私有 owner 退役，零 admission 仍消耗原 delivery 重试次数”竞态：使用原 owner 导出的明确 host-only 不可用异常，原 repository 只释放精确 claim，保留 correlation 与重试预算；普通错误、已消费和处置优先规则保持。三个真实 SQLite race 修复前红、修复后恢复只发送一次或直接认领已保存 continuation，五套原检查 76/76。原三项 ordinary callback 对整合 base 字节相同、对固定上游 AST 相同。
 
 同一提交还整合固定源读取与评估消费者：`resolveOptimizationComputeInputs` 允许原任务零输入，所附文件仍走同一个原 Version lease/hash/tuple 检查；Python/R 保持原非空约束。受控语义源 reader 支持明确空集合，评估摘要可携带全部真实 `reviewIds`，保留原 primary `reviewId` 和旧 JSON shape；实际各 Turn 的 Review 提交仍由后续 owner 完成，不能拼造 aggregate TurnScope。最终 15 套整合检查 565/565、零跳过，完整 types/原架构检查通过；初次 `it.each` 空数组误展开的 fixture 失败也保留，未充作生产红绿证据。见 [投递、固定来源和审阅引用记录](validation/alpha/compute-delivery-sources/manifest.json)。以上仍不证明完整 Compute 候选路径或外部计算环境已验收。
+
+进一步原有 owner 集成回归发现取消兼容缺口：为后台等待引入的 live getter 改变了普通任务审阅提交中 Stop 的既有结果。主集成树在未修改旧 owner 的条件下复现原 `stop-during-submission` 断言失败，`b288c6801` 已恢复无后台 hook 时的原 snapshot 语义；四套 105/105、完整 types 通过，原断言保留。只有 Compute 后台 hook 使用 live 状态。
+
+真实 Compute snapshot 支持另存于独立 `feat/alpha-compute-snapshots` 的 `0354708fc`，尚未并入本集成分支或开放入口。四套 147/147、完整 types/lint 通过，覆盖零/多个固定输入的实际 freeze/resolve/reopen/materialize、跨 Project/profile 拒绝，原 Python/R snapshot SHA 与附件约束保持。它供执行 owner 用真实 store 做下一阶段原 Node/SQLite 验证，不能替代实际 Job 结果或 DeepSeek 验收。上述普通回归红绿、独立 snapshot 与最初 readonly fixture 类型错误记录见 [原始证据及准入边界](validation/alpha/compute-snapshot-preparation/manifest.json)。
