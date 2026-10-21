@@ -179,7 +179,7 @@ test('runs two independent Notebook sources through one original sweep and resum
     ])
     const panel = page.getByTestId('task-optimization-panel')
     await panel.locator('summary').click()
-    await panel.getByLabel('Repeat this task with Notebook Python', { exact: true }).check()
+    await panel.getByLabel('Repeat this task with Notebook', { exact: true }).check()
     await panel
       .getByLabel('Acceptance criteria (one per line)', { exact: true })
       .fill('The published numeric report matches this task’s fixed source observations.')

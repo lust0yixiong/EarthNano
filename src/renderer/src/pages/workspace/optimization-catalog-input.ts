@@ -1,3 +1,4 @@
+import type { NotebookLanguage } from '../../../../shared/notebook-language-contract'
 import {
   normalizeOptimizationArtifactInputs,
   type OptimizationArtifactInput
@@ -16,6 +17,7 @@ export interface CatalogTaskDraft {
   kind: 'text' | 'notebook'
   sourceSessionId: string
   promptMessageId: string
+  language: NotebookLanguage
   sourceReady: boolean
   prompt: string
   criteria: string
@@ -36,6 +38,7 @@ export function newCatalogTask(
     kind,
     sourceSessionId,
     promptMessageId: '',
+    language: 'python',
     sourceReady: false,
     prompt: '',
     criteria: '',
@@ -81,7 +84,7 @@ export function catalogTaskInput(
     ...(checks ? { checks } : {}),
     source:
       task.kind === 'notebook'
-        ? { kind: 'notebook', promptMessageId: task.promptMessageId }
+        ? { kind: 'notebook', promptMessageId: task.promptMessageId, language: task.language }
         : {
             kind: 'text',
             prompt: validated.prompt,

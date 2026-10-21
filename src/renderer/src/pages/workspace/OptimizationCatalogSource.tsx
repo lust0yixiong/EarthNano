@@ -1,3 +1,4 @@
+import type { NotebookLanguage } from '../../../../shared/notebook-language-contract'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorNotice } from '@/components/error-notice'
@@ -5,6 +6,7 @@ import type { PersistedChatSession, SessionSummary } from '../../../../shared/se
 import { notebookOptimizationSourceMessages } from '../../../../shared/earthnano/notebook-source'
 export type CatalogSessionApi = Pick<Window['api']['sessions'], 'list' | 'loadOne'>
 export interface NotebookSourceSelection {
+  language: NotebookLanguage
   sourceSessionId: string
   promptMessageId: string
   sourceReady: boolean
@@ -86,6 +88,22 @@ export function OptimizationCatalogSource({
   return (
     <div className="space-y-2">
       <label className="block">
+        {t('Notebook language')}
+        <select
+          aria-label={t('Notebook language')}
+          className={inputClass}
+          value={value.language}
+          disabled={disabled}
+          onChange={(event) => {
+            const language = event.target.value
+            if (language === 'python' || language === 'r') onChange({ ...value, language })
+          }}
+        >
+          <option value="python">{t('Python')}</option>
+          <option value="r">{t('R')}</option>
+        </select>
+      </label>
+      <label className="block">
         {t('Source chat')}
         <select
           aria-label={t('Source chat')}
@@ -94,6 +112,7 @@ export function OptimizationCatalogSource({
           disabled={disabled}
           onChange={(e) => {
             onChange({
+              ...value,
               sourceSessionId: e.target.value,
               promptMessageId: '',
               sourceReady: false,

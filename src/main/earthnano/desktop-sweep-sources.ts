@@ -1,12 +1,16 @@
 import { resolveActiveConversationMessages } from '../../shared/conversation-graph'
 import type { PersistedChatSession } from '../../shared/session-persistence'
 import type { OptimizationSweepTask } from '../../shared/earthnano/optimization-sweep'
-import { normalizeFrozenNotebookRuntime } from '../../shared/earthnano/notebook-profile'
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
 import type { PersistentCandidateNotebookOptions } from './persistent-candidate-owner'
 import type { ResolvedSweepTask } from './sweep-contract'
 import type { CandidateSnapshotInput } from './candidate-snapshot'
-import { resolveOptimizationNotebookInputs } from './optimization-notebook-input'
+import { notebookOptimizationLanguage } from '../../shared/earthnano/notebook-source'
+import {
+  resolveOptimizationNotebookInputs,
+  resolveOptimizationNotebookRuntime
+} from './optimization-notebook-input'
 import { resolveOptimizationArtifactInputs } from './optimization-input'
 
 /** One selected task's original source authority. The caller owns source-Session deletion admission
@@ -80,32 +84,18 @@ export async function resolveDesktopSweepTask(options: {
     versions: options.versions,
     signal
   })
-  const listing = await options.notebook.service.listRuntimes({
+  const language = notebookOptimizationLanguage(notebookSource)
+  const runtime = await resolveOptimizationNotebookRuntime({
+    service: options.notebook.service,
     projectId,
-    sessionId: source.id,
-    workspaceCwd: source.cwd ?? ''
+    source,
+    language,
+    signal
   })
-  const bound = listing.bindings.python
-  if (
-    !bound ||
-    (bound.status ?? 'active') !== 'active' ||
-    !listing.runtimes.some(
-      (runtime) =>
-        runtime.language === 'python' &&
-        runtime.runtimeId === bound.runtimeId &&
-        runtime.runnable &&
-        (runtime.status ?? 'active') === 'active'
+  if (!runtime)
+    throw new Error(
+      `Notebook task requires its own enabled ${language === 'r' ? 'R' : 'Python'} binding`
     )
-  )
-    throw new Error('Notebook task requires its own enabled Python binding')
-  const runtime = normalizeFrozenNotebookRuntime({
-    language: bound.language,
-    runtimeId: bound.runtimeId,
-    source: bound.source,
-    provenance: bound.provenance,
-    interpreterPath: bound.interpreterPath,
-    ...(bound.version ? { version: bound.version } : {})
-  })
   signal?.throwIfAborted()
   return {
     ...common,
@@ -113,7 +103,7 @@ export async function resolveDesktopSweepTask(options: {
     input: {
       task: { prompt: message.content, files: [], managedInputs },
       agent: structuredClone(options.agent),
-      harness: { ...structuredClone(options.harness), tools: 'notebook-python' },
+      harness: { ...structuredClone(options.harness), tools: notebookToolsForLanguage(language) },
       environment: {
         isolation: 'directory-process',
         network: 'provider-and-notebook-policy',

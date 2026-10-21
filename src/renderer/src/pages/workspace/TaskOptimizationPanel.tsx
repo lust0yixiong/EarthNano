@@ -136,6 +136,7 @@ function OptimizationSessionPanel({
   const [nextTasks, setNextTasks] = useState<CatalogTaskDraft[]>([])
   const [source, setSource] = useState<NotebookSourceSelection>({
     sourceSessionId: sessionId,
+    language: 'python',
     promptMessageId: sourcePromptMessageId ?? '',
     sourceReady: false,
     prompt: ''
@@ -169,6 +170,7 @@ function OptimizationSessionPanel({
           kind: notebookMode ? 'notebook' : 'text',
           sourceSessionId: notebookMode ? source.sourceSessionId : sessionId,
           promptMessageId: source.promptMessageId,
+          language: source.language,
           sourceReady: source.sourceReady,
           prompt: notebookMode ? source.prompt : prompt,
           criteria,
@@ -661,7 +663,7 @@ function OptimizationSessionPanel({
                   requestKey.current = null
                 }}
               />
-              {t('Repeat this task with Notebook Python')}
+              {t('Repeat this task with Notebook')}
             </label>
           )}
           {notebookMode && (

@@ -35,9 +35,19 @@ import { getProjectDbClient } from '../projects/prisma-client'
 import { runtimeMetadata } from '../runtime-metadata'
 import { registerDesktopOptimizationIpcHandlers } from '../desktop-surface-declarations'
 import { normalizeOptimizationArtifactInputs } from '../../shared/earthnano/optimization-input'
-import { normalizeNotebookOptimizationSource } from '../../shared/earthnano/notebook-source'
-import { normalizeFrozenNotebookRuntime } from '../../shared/earthnano/notebook-profile'
-import { resolveOptimizationNotebookInputs } from '../earthnano/optimization-notebook-input'
+import {
+  normalizeNotebookOptimizationSource,
+  notebookOptimizationLanguage
+} from '../../shared/earthnano/notebook-source'
+import {
+  normalizeFrozenNotebookRuntime,
+  notebookToolsForLanguage,
+  notebookLanguageForTools
+} from '../../shared/earthnano/notebook-profile'
+import {
+  resolveOptimizationNotebookInputs,
+  resolveOptimizationNotebookRuntime
+} from '../earthnano/optimization-notebook-input'
 import type {
   PersistentCandidateNotebookOptions,
   PersistentCandidateOwnersOptions
@@ -247,9 +257,10 @@ export async function createDesktopOptimizationOptions(
         }
       | undefined
     if (notebookSource) {
+      const language = notebookOptimizationLanguage(notebookSource)
       if (!dependencies.notebook || !dependencies.loadSession)
         throw new DesktopOptimizationSetupError(
-          'Notebook task requires the original enabled Python runtime and fixed source inputs.'
+          `Notebook task requires the original enabled ${language === 'r' ? 'R' : 'Python'} runtime and fixed source inputs.`
         )
       const source = await dependencies.loadSession(request.projectId, request.sourceSessionId)
       const managedInputs = await resolveOptimizationNotebookInputs({
@@ -261,33 +272,17 @@ export async function createDesktopOptimizationOptions(
         versions,
         signal: dependencies.signal
       })
-      const listing = await dependencies.notebook.service.listRuntimes({
+      const runtime = await resolveOptimizationNotebookRuntime({
+        service: dependencies.notebook.service,
         projectId: request.projectId,
-        sessionId: source.id,
-        workspaceCwd: source.cwd ?? ''
+        source,
+        language,
+        signal: dependencies.signal
       })
-      const bound = listing.bindings.python
-      const enabled =
-        bound &&
-        listing.runtimes.find(
-          (runtime) =>
-            runtime.language === 'python' &&
-            runtime.runtimeId === bound.runtimeId &&
-            runtime.runnable &&
-            (runtime.status ?? 'active') === 'active'
-        )
-      if (!enabled || !bound || (bound.status ?? 'active') !== 'active')
+      if (!runtime)
         throw new DesktopOptimizationSetupError(
-          'Notebook task requires the original enabled Python runtime and fixed source inputs.'
+          `Notebook task requires the original enabled ${language === 'r' ? 'R' : 'Python'} runtime and fixed source inputs.`
         )
-      const runtime = normalizeFrozenNotebookRuntime({
-        language: bound.language,
-        runtimeId: bound.runtimeId,
-        source: bound.source,
-        provenance: bound.provenance,
-        interpreterPath: bound.interpreterPath,
-        ...(bound.version ? { version: bound.version } : {})
-      })
       dependencies.signal?.throwIfAborted()
       scientific = { managedInputs, runtime }
     }
@@ -356,7 +351,9 @@ export async function createDesktopOptimizationOptions(
           instructions:
             'Read the frozen task inputs carefully. Follow the task requirements, verify the deliverables and write the requested files under OUTPUT.',
           skills: [],
-          tools: scientific ? 'notebook-python' : 'workspace-only'
+          tools: scientific
+            ? notebookToolsForLanguage(scientific.runtime.language)
+            : 'workspace-only'
         },
         agent: runtime.agent,
         environment: {
@@ -522,7 +519,7 @@ export async function createDesktopSweepOptions(
         ...(dependencies.sessionPersistence
           ? { sessionPersistence: dependencies.sessionPersistence }
           : {}),
-        ...(tasks.some((task) => task.input.harness.tools === 'notebook-python')
+        ...(tasks.some((task) => notebookLanguageForTools(task.input.harness.tools) !== undefined)
           ? { notebook: dependencies.notebook }
           : {})
       },

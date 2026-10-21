@@ -104,3 +104,19 @@ describe('desktop catalog source boundary', () => {
     for (const value of bad) expect(() => normalizeDesktopSweep(value)).toThrow()
   })
 })
+
+it('retains an explicit R source but never adds language to legacy requests or text sources', () => {
+  const request = sweepRequest()
+  const old = JSON.stringify(normalizeDesktopSweep(request))
+  expect(normalizeDesktopSweep(request).catalog[0].source).not.toHaveProperty('language')
+  request.catalog[0].source = { kind: 'notebook', promptMessageId: 'prompt-a', language: 'r' }
+  expect(normalizeDesktopSweep(request).catalog[0].source).toEqual(request.catalog[0].source)
+  for (const language of [undefined, null, 'R', 'julia']) {
+    request.catalog[0].source = { kind: 'notebook', promptMessageId: 'prompt-a', language } as never
+    expect(() => normalizeDesktopSweep(request)).toThrow()
+  }
+  const text = sweepRequest()
+  text.catalog[1].source = { ...text.catalog[1].source, language: 'r' } as never
+  expect(() => normalizeDesktopSweep(text)).toThrow()
+  expect(JSON.stringify(normalizeDesktopSweep(sweepRequest()))).toBe(old)
+})

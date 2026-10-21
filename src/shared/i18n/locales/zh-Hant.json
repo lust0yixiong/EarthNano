@@ -7322,7 +7322,6 @@
     "Some PDF text has no reliable Unicode mapping. The extracted text is retained; compare it with the original page.": "部分 PDF 文字缺少可靠的 Unicode 對應。已保留擷取的文字，請與原始頁面核對。",
     "Some table structures are unreliable. Original images and text are retained without cell assignments.": "部分表格結構不可靠。已保留原始影像和文字，未將文字分配至儲存格。",
     "Optimize task": "最佳化任務",
-    "Repeat this task with Notebook Python": "使用 Notebook Python 重新執行此任務",
     "Task description": "任務說明",
     "Text input files": "文字輸入檔案",
     "Acceptance criteria (one per line)": "驗收標準（每行一項）",
@@ -7430,6 +7429,8 @@
     "Task ID": "任務 ID",
     "Task filter": "任務篩選",
     "Tasks per domain (empty means all)": "每個任務領域的任務數（留空表示全部）",
-    "No tasks match the previewed filters. Adjust the filters and preview again.": "沒有任務符合預覽的篩選條件。請調整篩選條件後重新預覽。"
+    "No tasks match the previewed filters. Adjust the filters and preview again.": "沒有任務符合預覽的篩選條件。請調整篩選條件後重新預覽。",
+    "Repeat this task with Notebook": "使用 Notebook 重新執行此任務",
+    "Notebook language": "Notebook 語言"
   }
 }

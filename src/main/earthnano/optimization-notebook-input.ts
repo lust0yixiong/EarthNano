@@ -1,3 +1,5 @@
+import type { NotebookLanguage } from '../../shared/notebook-language-contract'
+import type { NotebookRuntimeService } from '../notebook/runtime-service'
 import { createHash } from 'node:crypto'
 import { resolveActiveConversationMessages } from '../../shared/conversation-graph'
 import type { PersistedChatSession } from '../../shared/session-persistence'
@@ -8,6 +10,8 @@ import {
 } from '../../shared/earthnano/notebook-source'
 import {
   normalizeFrozenNotebookInputs,
+  normalizeFrozenNotebookRuntime,
+  type FrozenNotebookRuntime,
   type FrozenNotebookInput
 } from '../../shared/earthnano/notebook-profile'
 import type { ManagedFileVersionReadPort } from '../managed-file-versions/read-port'
@@ -92,4 +96,44 @@ export async function resolveOptimizationNotebookInputs(options: {
       inputs.map((input) => [input.sourceKind + ':' + input.inputFileVersionId, input])
     ).values()
   ])
+}
+
+/** Common original runtime resolution for legacy and catalog starts. Callers must first authorize
+ * the source Session. An unavailable exact language binding never falls back to another target. */
+export async function resolveOptimizationNotebookRuntime(options: {
+  service: Pick<NotebookRuntimeService, 'listRuntimes'>
+  projectId: string
+  source: Pick<PersistedChatSession, 'id' | 'cwd'>
+  language: NotebookLanguage
+  signal?: AbortSignal
+}): Promise<FrozenNotebookRuntime | undefined> {
+  options.signal?.throwIfAborted()
+  const listing = await options.service.listRuntimes({
+    projectId: options.projectId,
+    sessionId: options.source.id,
+    workspaceCwd: options.source.cwd ?? ''
+  })
+  options.signal?.throwIfAborted()
+  const bound = listing.bindings[options.language]
+  if (
+    !bound ||
+    bound.language !== options.language ||
+    (bound.status ?? 'active') !== 'active' ||
+    !listing.runtimes.some(
+      (runtime) =>
+        runtime.language === options.language &&
+        runtime.runtimeId === bound.runtimeId &&
+        runtime.runnable &&
+        (runtime.status ?? 'active') === 'active'
+    )
+  )
+    return undefined
+  return normalizeFrozenNotebookRuntime({
+    language: bound.language,
+    runtimeId: bound.runtimeId,
+    source: bound.source,
+    provenance: bound.provenance,
+    interpreterPath: bound.interpreterPath,
+    ...(bound.version ? { version: bound.version } : {})
+  })
 }

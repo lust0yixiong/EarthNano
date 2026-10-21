@@ -205,3 +205,49 @@ describe('independent selected Notebook task sources', () => {
     ).rejects.toThrow('Session unavailable')
   })
 })
+
+it('freezes the explicitly chosen original R binding even when Python is available and never falls back', async () => {
+  const current = source('a')
+  const r = {
+    ...current.runtime,
+    language: 'r' as const,
+    runtimeId: '/original/R',
+    interpreterPath: '/original/R',
+    version: '4.4.3'
+  }
+  const listRuntimes = vi.fn(async () => ({
+    bindings: { python: current.runtime, r },
+    runtimes: [
+      { ...current.runtime, runnable: true },
+      { ...r, runnable: true }
+    ]
+  }))
+  const options = {
+    projectId: 'p',
+    agent,
+    harness,
+    task: {
+      taskId: 'r-task',
+      domain: 'csv',
+      sourceSessionId: 'a',
+      source: { kind: 'notebook' as const, promptMessageId: 'prompt-a', language: 'r' as const },
+      criteria: 'Verify R output'
+    },
+    loadSession: async () => current.session,
+    versions: { openVersion: async () => current.lease },
+    notebook: { service: { listRuntimes } } as unknown as PersistentCandidateNotebookOptions
+  }
+  const result = await resolveDesktopSweepTask(options)
+  expect(result.input.harness.tools).toBe('notebook-r')
+  expect(result.input.environment.notebook?.runtime).toEqual(r)
+  expect(result.input.task.prompt).toBe('Analyze a')
+  for (const listing of [
+    { bindings: { python: current.runtime }, runtimes: [{ ...current.runtime, runnable: true }] },
+    { bindings: { r: { ...r, status: 'unavailable' } }, runtimes: [{ ...r, runnable: true }] },
+    { bindings: { r }, runtimes: [{ ...r, runnable: false }] },
+    { bindings: { r: current.runtime }, runtimes: [{ ...r, runnable: true }] }
+  ]) {
+    listRuntimes.mockResolvedValueOnce(listing as never)
+    await expect(resolveDesktopSweepTask(options)).rejects.toThrow('enabled R')
+  }
+})

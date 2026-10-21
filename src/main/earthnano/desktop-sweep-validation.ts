@@ -76,13 +76,14 @@ export function normalizeDesktopSweep(value: unknown): StartDesktopSweep {
     const source = object(
       task.source,
       ['kind'],
-      ['promptMessageId', 'prompt', 'files', 'inputArtifacts']
+      ['promptMessageId', 'language', 'prompt', 'files', 'inputArtifacts']
     )
     let normalized: OptimizationSweepTask['source']
     if (source.kind === 'notebook') {
-      object(source, ['kind', 'promptMessageId'])
+      object(source, ['kind', 'promptMessageId'], ['language'])
       const notebook = normalizeNotebookOptimizationSource({
-        promptMessageId: source.promptMessageId
+        promptMessageId: source.promptMessageId,
+        ...(Object.hasOwn(source, 'language') ? { language: source.language } : {})
       })!
       normalized = { kind: 'notebook', ...notebook }
     } else if (source.kind === 'text') {

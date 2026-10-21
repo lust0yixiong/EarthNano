@@ -830,7 +830,7 @@ it('explains admission reasons in user-facing language and safely handles newer 
 it('repeats the original Notebook task by source message identity and disables task editing', async () => {
   await render()
   const checkbox = [...container.querySelectorAll('label')]
-    .find((node) => node.textContent?.includes('Repeat this task with Notebook Python'))!
+    .find((node) => node.textContent?.includes('Repeat this task with Notebook'))!
     .querySelector('input')!
   await act(async () => checkbox.click())
   expect(
@@ -847,7 +847,7 @@ it('repeats the original Notebook task by source message identity and disables t
           taskId: 'task-0001',
           domain: 'research',
           sourceSessionId: 'session',
-          source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+          source: { kind: 'notebook', promptMessageId: 'source-prompt', language: 'python' },
           criteria: 'Recalculate from fixed source CSV'
         }
       ]
@@ -862,7 +862,7 @@ it('repeats the original Notebook task by source message identity and disables t
 it('submits one explicit dual-mode Notebook catalog with a shared budget and source identity', async () => {
   await render()
   const repeat = [...container.querySelectorAll('label')]
-    .find((node) => node.textContent?.includes('Repeat this task with Notebook Python'))!
+    .find((node) => node.textContent?.includes('Repeat this task with Notebook'))!
     .querySelector('input')!
   await act(async () => repeat.click())
   await input('Acceptance criteria (one per line)', 'Verify original fixed observations')
@@ -899,7 +899,7 @@ it('submits one explicit dual-mode Notebook catalog with a shared budget and sou
         taskId: 'task-0001',
         domain: 'research',
         sourceSessionId: 'session',
-        source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+        source: { kind: 'notebook', promptMessageId: 'source-prompt', language: 'python' },
         criteria: 'Verify original fixed observations'
       }
     ]
@@ -1004,14 +1004,14 @@ it('starts two independently chosen original Notebook sources with separate crit
           taskId: 'task-0001',
           domain: 'research',
           sourceSessionId: 'session',
-          source: { kind: 'notebook', promptMessageId: 'source-prompt' },
+          source: { kind: 'notebook', promptMessageId: 'source-prompt', language: 'python' },
           criteria: 'Verify first observations'
         },
         {
           taskId: 'task-0002',
           domain: 'research',
           sourceSessionId: 'another',
-          source: { kind: 'notebook', promptMessageId: 'other-prompt' },
+          source: { kind: 'notebook', promptMessageId: 'other-prompt', language: 'python' },
           criteria: 'Verify second observations'
         }
       ]
@@ -1170,7 +1170,7 @@ it('ignores an old source snapshot after choosing a different source chat', asyn
   await click('Start optimization')
   expect(vi.mocked(api.startSweep).mock.calls[0][0].catalog[0]).toMatchObject({
     sourceSessionId: 'another',
-    source: { kind: 'notebook', promptMessageId: 'other-prompt' }
+    source: { kind: 'notebook', promptMessageId: 'other-prompt', language: 'python' }
   })
 })
 it.each(['foreign', 'archived', 'package'] as const)(
@@ -1280,3 +1280,27 @@ it.each([{ order: [] }, { order: [{ domain: 'research', taskIds: [] }] }])(
     expect(container.textContent).not.toContain('No tasks match the previewed filters.')
   }
 )
+
+it('binds an explicit R draft and invalidates its preview on language change and revert', async () => {
+  await render()
+  const primary = container.querySelector('[data-testid="optimization-catalog-task-task-0001"]')!
+  await act(async () => (primary.querySelector('input[type=checkbox]') as HTMLInputElement).click())
+  await input('Acceptance criteria (one per line)', 'Verify the fixed R observations')
+  await selectSource(primary, 'Notebook language', 'r')
+  await click('Preview task stream')
+  const startButton = (): HTMLButtonElement =>
+    [...container.querySelectorAll('button')].find((b) => b.textContent === 'Start optimization')!
+  expect(startButton().disabled).toBe(false)
+  await selectSource(primary, 'Notebook language', 'python')
+  expect(startButton().disabled).toBe(true)
+  await selectSource(primary, 'Notebook language', 'r')
+  expect(startButton().disabled).toBe(true)
+  await click('Preview task stream')
+  await click('Start optimization')
+  expect(vi.mocked(api.startSweep).mock.calls[0][0].catalog[0].source).toEqual({
+    kind: 'notebook',
+    promptMessageId: 'source-prompt',
+    language: 'r'
+  })
+  expect(api.start).not.toHaveBeenCalled()
+})

@@ -443,99 +443,111 @@ it('keeps original admissions until a failing source-version lease closes, witho
   expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
 })
 
-it('freezes the same original scientific task, exact upload and enabled Python without accepting renderer runtime paths', async () => {
-  const deps = dependencies()
-  const bytes = Buffer.from('sample,value\nA,2\nB,4\nC,6\n')
-  const checksum = createHash('sha256').update(bytes).digest('hex')
-  const runtime = {
-    language: 'python' as const,
-    runtimeId: '/synthetic/python',
-    source: 'external' as const,
-    provenance: 'user-own' as const,
-    interpreterPath: '/synthetic/python',
-    version: '3.12.0'
+it.each(['python', 'r'] as const)(
+  'freezes the same original scientific task, exact upload and enabled %s without accepting renderer runtime paths',
+  async (language) => {
+    const deps = dependencies()
+    const bytes = Buffer.from('sample,value\nA,2\nB,4\nC,6\n')
+    const checksum = createHash('sha256').update(bytes).digest('hex')
+    const runtime = {
+      language,
+      runtimeId: '/synthetic/python',
+      source: 'external' as const,
+      provenance: 'user-own' as const,
+      interpreterPath: '/synthetic/python',
+      version: '3.12.0'
+    }
+    const lease = {
+      logicalFile: { projectId: 'p', sessionId: 's', id: 'upload', source: 'upload' },
+      version: { id: 'v1', checksum, filename: 'measurements.csv' },
+      size: bytes.length,
+      readRange: vi.fn(async () => bytes),
+      verifyUnchanged: vi.fn(async () => {}),
+      close: vi.fn(async () => {})
+    } as unknown as ManagedFileReadLease
+    const session = {
+      id: 's',
+      projectId: 'p',
+      cwd: '/original/workspace',
+      messages: [
+        {
+          id: 'source-prompt',
+          role: 'user',
+          content: request.prompt,
+          status: 'complete',
+          uploads: [
+            {
+              id: 'upload',
+              versionId: 'v1',
+              sessionId: 's',
+              name: 'measurements.csv',
+              size: bytes.length,
+              sha256: checksum
+            }
+          ]
+        }
+      ]
+    } as PersistedChatSession
+    const notebook = {
+      service: {
+        listRuntimes: vi.fn(async () => ({
+          bindings: { [language]: runtime },
+          runtimes: [{ ...runtime, runnable: true, bound: true }]
+        }))
+      },
+      rpc: {},
+      mcpEntryPath: '/synthetic/main.js'
+    } as unknown as NonNullable<Parameters<typeof createDesktopOptimizationOptions>[1]['notebook']>
+    const sourceRequest = {
+      ...request,
+      files: [],
+      notebook: { promptMessageId: 'source-prompt', ...(language === 'r' ? { language } : {}) }
+    }
+    const sourceDeps = {
+      ...deps,
+      notebook,
+      loadSession: vi.fn(async () => session),
+      versions: { openVersion: vi.fn(async () => lease) }
+    }
+    const options = await createDesktopOptimizationOptions(sourceRequest, sourceDeps)
+    expect(options.input.task.prompt).toBe(request.prompt)
+    expect(options.input.task.files).toEqual([])
+    expect(options.input.task.managedInputs).toMatchObject([
+      { inputFileVersionId: 'v1', sourceFileId: 'upload', checksum }
+    ])
+    expect(options.input.harness.tools).toBe(
+      language === 'python' ? 'notebook-python' : 'notebook-r'
+    )
+    expect(options.input.environment).toMatchObject({
+      network: 'provider-and-notebook-policy',
+      notebook: { runtime }
+    })
+    expect(options.ownerOptions.notebook).toBe(notebook)
+    expect(notebook.service.listRuntimes).toHaveBeenCalledWith({
+      projectId: 'p',
+      sessionId: 's',
+      workspaceCwd: '/original/workspace'
+    })
+    expect(lease.close).toHaveBeenCalledOnce()
+    options.releaseAdmission()
+    vi.mocked(notebook.service.listRuntimes).mockResolvedValueOnce({
+      bindings: { [language]: { ...runtime, label: language, status: 'unavailable' } },
+      runtimes: []
+    })
+    await expect(createDesktopOptimizationOptions(sourceRequest, sourceDeps)).rejects.toThrow(
+      language === 'r' ? 'enabled R' : 'enabled Python'
+    )
+    await expect(
+      createDesktopOptimizationOptions({ ...sourceRequest, files: request.files }, sourceDeps)
+    ).rejects.toThrow('mix')
+    await expect(
+      createDesktopOptimizationOptions(sourceRequest, {
+        ...sourceDeps,
+        signal: AbortSignal.abort()
+      })
+    ).rejects.toThrow()
   }
-  const lease = {
-    logicalFile: { projectId: 'p', sessionId: 's', id: 'upload', source: 'upload' },
-    version: { id: 'v1', checksum, filename: 'measurements.csv' },
-    size: bytes.length,
-    readRange: vi.fn(async () => bytes),
-    verifyUnchanged: vi.fn(async () => {}),
-    close: vi.fn(async () => {})
-  } as unknown as ManagedFileReadLease
-  const session = {
-    id: 's',
-    projectId: 'p',
-    cwd: '/original/workspace',
-    messages: [
-      {
-        id: 'source-prompt',
-        role: 'user',
-        content: request.prompt,
-        status: 'complete',
-        uploads: [
-          {
-            id: 'upload',
-            versionId: 'v1',
-            sessionId: 's',
-            name: 'measurements.csv',
-            size: bytes.length,
-            sha256: checksum
-          }
-        ]
-      }
-    ]
-  } as PersistedChatSession
-  const notebook = {
-    service: {
-      listRuntimes: vi.fn(async () => ({
-        bindings: { python: runtime },
-        runtimes: [{ ...runtime, runnable: true, bound: true }]
-      }))
-    },
-    rpc: {},
-    mcpEntryPath: '/synthetic/main.js'
-  } as unknown as NonNullable<Parameters<typeof createDesktopOptimizationOptions>[1]['notebook']>
-  const sourceRequest = { ...request, files: [], notebook: { promptMessageId: 'source-prompt' } }
-  const sourceDeps = {
-    ...deps,
-    notebook,
-    loadSession: vi.fn(async () => session),
-    versions: { openVersion: vi.fn(async () => lease) }
-  }
-  const options = await createDesktopOptimizationOptions(sourceRequest, sourceDeps)
-  expect(options.input.task.prompt).toBe(request.prompt)
-  expect(options.input.task.files).toEqual([])
-  expect(options.input.task.managedInputs).toMatchObject([
-    { inputFileVersionId: 'v1', sourceFileId: 'upload', checksum }
-  ])
-  expect(options.input.harness.tools).toBe('notebook-python')
-  expect(options.input.environment).toMatchObject({
-    network: 'provider-and-notebook-policy',
-    notebook: { runtime }
-  })
-  expect(options.ownerOptions.notebook).toBe(notebook)
-  expect(notebook.service.listRuntimes).toHaveBeenCalledWith({
-    projectId: 'p',
-    sessionId: 's',
-    workspaceCwd: '/original/workspace'
-  })
-  expect(lease.close).toHaveBeenCalledOnce()
-  options.releaseAdmission()
-  vi.mocked(notebook.service.listRuntimes).mockResolvedValueOnce({
-    bindings: { python: { ...runtime, label: 'Python', status: 'unavailable' } },
-    runtimes: []
-  })
-  await expect(createDesktopOptimizationOptions(sourceRequest, sourceDeps)).rejects.toThrow(
-    'enabled Python'
-  )
-  await expect(
-    createDesktopOptimizationOptions({ ...sourceRequest, files: request.files }, sourceDeps)
-  ).rejects.toThrow('mix')
-  await expect(
-    createDesktopOptimizationOptions(sourceRequest, { ...sourceDeps, signal: AbortSignal.abort() })
-  ).rejects.toThrow()
-})
+)
 
 const catalogRequest = (): StartDesktopSweep => ({
   projectId: 'p',

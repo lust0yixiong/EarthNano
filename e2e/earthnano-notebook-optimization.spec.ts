@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { expect } from '@playwright/test'
 import { isArtifactNotebookProducer } from '../src/shared/artifact-provenance'
 import type { PersistedChatSession } from '../src/shared/session-persistence'
@@ -14,6 +14,10 @@ import { createProject, openProjectSession } from './certification/helpers'
 import { submitPromptViaUi } from './fixtures/conversation'
 import { createEarthnanoMessagesProvider } from './fixtures/earthnano-messages-provider'
 
+const language = process.env.EARTHNANO_NOTEBOOK_LANGUAGE ?? 'python'
+if (language !== 'python' && language !== 'r')
+  throw new Error('Explicit supported Notebook language required')
+const computationMarker = language === 'r' ? 'read.csv' : 'statistics'
 const live = process.env.EARTHNANO_LIVE_DEEPSEEK === '1'
 const resumeAcceptance = process.env.EARTHNANO_E2E_RESUME === '1'
 const dualModeAcceptance = process.env.EARTHNANO_E2E_SWEEP === '1'
@@ -49,8 +53,10 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     'Native scientific acceptance requires an explicitly isolated test home'
   )
   test.setTimeout(900_000)
-  const provider = await createEarthnanoMessagesProvider(live, true, resumeAcceptance)
-  let report: object = { status: 'failed', live }
+  const provider = await createEarthnanoMessagesProvider(live, true, resumeAcceptance, {
+    scientificLanguage: language
+  })
+  let report: object = { status: 'failed', live, language }
   let acceptancePassed = false
   let runtime: object = {}
   let executionRoot: string | undefined
@@ -58,6 +64,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
   let readSessionsForDiagnostics: (() => Promise<unknown>) | undefined
   try {
     runtime = {
+      notebookLanguage: language,
       source: {
         head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
         dirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).length > 0
@@ -114,18 +121,26 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       nodeRunner: process.version,
       model: 'deepseek-flash'
     }
-    const python = execFileSync('python3', ['-c', 'import sys; print(sys.executable)'], {
-      encoding: 'utf8'
-    }).trim()
-    await page.evaluate(async (path) => {
-      await window.api.runtime.registerInterpreter('python', path)
-      const environments = await window.api.runtime.listEnvironments()
-      const entry = environments.python.find(
-        (entry) => entry.envId === path || entry.interpreterPath === path
-      )
-      if (!entry) throw new Error('Scientific Python interpreter missing')
-      await window.api.runtime.setEnvironmentEnabled('python', entry.envId, true)
-    }, python)
+    const interpreter =
+      language === 'r'
+        ? process.env.EARTHNANO_E2E_R_INTERPRETER
+        : execFileSync('python3', ['-c', 'import sys; print(sys.executable)'], {
+            encoding: 'utf8'
+          }).trim()
+    if (!interpreter || !isAbsolute(interpreter))
+      throw new Error('Explicit absolute scientific interpreter required')
+    await page.evaluate(
+      async ({ language, path }) => {
+        await window.api.runtime.registerInterpreter(language, path)
+        const environments = await window.api.runtime.listEnvironments()
+        const entry = environments[language].find(
+          (entry) => entry.envId === path || entry.interpreterPath === path
+        )
+        if (!entry) throw new Error('Scientific interpreter missing')
+        await window.api.runtime.setEnvironmentEnabled(language, entry.envId, true)
+      },
+      { language, path: interpreter } as const
+    )
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.addLocatorHandler(page.getByTestId('permission-card'), async (card) => {
       await card.getByTestId('allow-primary').click()
@@ -148,7 +163,9 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       buffer: Buffer.from('sample,value\nA,2\nB,4\nC,6\n')
     })
     const prompt =
-      'Analyze the attached measurements.csv with the Notebook Python tools. List runtimes and bind the enabled external Python runtime. Read the uploaded CSV, calculate row count, sum and arithmetic mean using Python csv and statistics. Save research-results.json with numeric keys count, sum, mean. Publish this exact local file using write_artifact_file with the Notebook producerRunId. Do not use native Bash or native Write, and do not create extra artifacts. After successful publication reply: Research analysis complete.'
+      language === 'r'
+        ? 'Analyze the attached measurements.csv with the Notebook R tools using explicit language r. List runtimes and bind the enabled external R runtime. Read the uploaded CSV using read.csv, calculate row count, sum and arithmetic mean with base R. Save research-results.json with numeric keys count, sum, mean using jsonlite::write_json(auto_unbox=TRUE). Publish this exact local file using write_artifact_file with the Notebook producerRunId. Do not use native Bash or native Write, and do not create extra artifacts. After successful publication reply: Research analysis complete.'
+        : 'Analyze the attached measurements.csv with the Notebook Python tools. List runtimes and bind the enabled external Python runtime. Read the uploaded CSV, calculate row count, sum and arithmetic mean using Python csv and statistics. Save research-results.json with numeric keys count, sum, mean. Publish this exact local file using write_artifact_file with the Notebook producerRunId. Do not use native Bash or native Write, and do not create extra artifacts. After successful publication reply: Research analysis complete.'
     await submitPromptViaUi(page, prompt)
     await expect(
       page
@@ -198,9 +215,9 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     expect(
       notebookRuns.some(
         (run) =>
-          run.kernelKind === 'python' &&
+          run.kernelKind === language &&
           run.status === 'completed' &&
-          run.script.includes('statistics') &&
+          run.script.includes(computationMarker) &&
           run.inputFiles?.some((file) => file.filename === 'measurements.csv')
       )
     ).toBe(true)
@@ -240,7 +257,8 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     const panel = page.getByTestId('task-optimization-panel')
     await panel.locator('summary').click()
     console.info('Scientific workflow: optimization panel open')
-    await panel.getByLabel('Repeat this task with Notebook Python', { exact: true }).check()
+    await panel.getByLabel('Repeat this task with Notebook', { exact: true }).check()
+    await panel.getByLabel('Notebook language', { exact: true }).selectOption(language)
     await expect(panel.getByLabel('Task description', { exact: true })).toHaveValue(prompt)
     await expect(panel.getByLabel('Task description', { exact: true })).toBeDisabled()
     await panel
@@ -528,7 +546,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
     expect(
       notebookRuns.some(
         (run) =>
-          run.kernelKind === 'python' &&
+          run.kernelKind === language &&
           run.status === 'completed' &&
           run.inputFiles?.some(
             (input) =>
@@ -562,7 +580,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
           checksum: originalUpload.sha256
         }
       ],
-      runtime: { language: 'python', source: 'external' }
+      runtime: { language, source: 'external' }
     })
     expect(completed.budget.admitted).toBeLessThanOrEqual(optimizationExecutions)
     expect(completed.budget.active).toBe(0)
@@ -673,9 +691,9 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       const runs = await app.readNotebookFixtureRuns(projectId, record.identity.sessionId!)
       const computation = runs.find(
         (run) =>
-          run.kernelKind === 'python' &&
+          run.kernelKind === language &&
           run.status === 'completed' &&
-          run.script.includes('statistics') &&
+          run.script.includes(computationMarker) &&
           run.inputFiles?.some(
             (input) =>
               input.sourceFileId === originalUpload.id &&
@@ -709,7 +727,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       const producingRun = runs.find(
         (run) =>
           run.runId === producerRunId &&
-          run.kernelKind === 'python' &&
+          run.kernelKind === language &&
           run.status === 'completed' &&
           run.inputFiles?.some(
             (input) =>
@@ -720,7 +738,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       )
       expect(
         producingRun,
-        'Artifact producer is an original completed Python Run in this same fixed-input Session'
+        'Artifact producer is an original completed Run in the frozen language and this same fixed-input Session'
       ).toBeDefined()
       const preview = await page.evaluate(
         async ({ projectId, sessionId }) => {
@@ -756,7 +774,7 @@ test('runs the identical scientific task in ordinary Send and isolated Harness b
       sourceVersionsPreserved: true,
       nativeNotebookProducersVerified: true,
       inputAccessEvidence:
-        'Exact original source Versions attached to each Run; external Python file-access evidence may be partial. No complete dependency-proof claim.'
+        'Exact original source Versions attached to each Run; external runtime file-access evidence may be partial. No complete dependency-proof claim.'
     }
     // Inherited candidate scopes must not be charged or journaled again by ordinary Send.
     expect((await readOrdinary()).flatMap((state) => Object.values(state.records))).toHaveLength(1)
