@@ -32,7 +32,114 @@ export function exactElectronVersion(lock, installed, binaryOutput, status = 0) 
     )
   return expected
 }
-export function normalizeVitest(report, root, platform = process.platform) {
+function inheritedSkippedTaskIds(runtime, tests, assertions, root, platform, report) {
+  if (runtime?.taskInventory === undefined) return new Set()
+  const inventory = runtime.taskInventory
+  if (
+    runtime.schemaVersion !== 1 ||
+    !['passed', 'failed'].includes(runtime.reason) ||
+    !Array.isArray(runtime.unhandledErrors) ||
+    runtime.unhandledErrors.length ||
+    inventory?.schemaVersion !== 1 ||
+    !Array.isArray(inventory.leaves) ||
+    inventory.leaves.length !== tests.length
+  )
+    throw new Error('Incomplete or global/runtime task observation')
+  const modes = ['run', 'skip', 'only', 'todo', 'queued']
+  const states = [...modes, 'pass', 'fail']
+  const validState = (task) =>
+    task &&
+    modes.includes(task.mode) &&
+    typeof task.hasResult === 'boolean' &&
+    (task.hasResult ? states.includes(task.resultState) : task.resultState === null)
+  const statusMap = {
+    pass: 'passed',
+    fail: 'failed',
+    skip: 'skipped',
+    todo: 'todo',
+    run: 'pending',
+    queued: 'pending',
+    only: 'pending'
+  }
+  const duplicates = new Map()
+  const observed = new Map()
+  for (const leaf of inventory.leaves) {
+    if (
+      !validState(leaf) ||
+      typeof leaf.file !== 'string' ||
+      typeof leaf.name !== 'string' ||
+      typeof leaf.fullName !== 'string' ||
+      !Array.isArray(leaf.ancestors) ||
+      leaf.ancestors.some((ancestor) => !validState(ancestor) || typeof ancestor.name !== 'string')
+    )
+      throw new Error('Malformed task observation')
+    const path = (platform === 'win32' ? win32.relative : relative)(root, leaf.file).replaceAll(
+      '\\',
+      '/'
+    )
+    if (!path || path.startsWith('../') || isAbsolute(path) || win32.isAbsolute(path))
+      throw new Error('Task observation is outside the source root')
+    const names = leaf.ancestors.map((ancestor) => ancestor.name)
+    if (leaf.fullName !== (leaf.name ? [...names, leaf.name].join(' ') : names.join(' ')))
+      throw new Error('Task observation ancestry differs from its identity')
+    const name = leaf.fullName.replaceAll(root, '<SOURCE>')
+    const key = `${path} :: ${name}`
+    const ordinal = duplicates.get(key) ?? 0
+    duplicates.set(key, ordinal + 1)
+    observed.set(`${key} :: ${ordinal}`, {
+      leaf,
+      names,
+      status: statusMap[leaf.resultState ?? leaf.mode]
+    })
+  }
+  // Check the pinned JSON reporter's actual leaf-counter predicates, not a tolerated difference.
+  const leaves = inventory.leaves
+  const observedCounters = {
+    numTotalTests: leaves.length,
+    numPassedTests: leaves.filter((leaf) => leaf.resultState === 'pass').length,
+    numFailedTests: leaves.filter((leaf) => leaf.resultState === 'fail').length,
+    numPendingTests: leaves.filter(
+      (leaf) =>
+        ['run', 'queued'].includes(leaf.resultState) ||
+        leaf.mode === 'skip' ||
+        leaf.resultState === 'skip'
+    ).length,
+    numTodoTests: leaves.filter((leaf) => leaf.mode === 'todo').length
+  }
+  if (Object.entries(observedCounters).some(([key, value]) => report[key] !== value))
+    throw new Error('Raw assertion counters differ from actual task observations')
+  const inheritedSkips = new Set()
+  for (let index = 0; index < tests.length; index++) {
+    const test = tests[index],
+      assertion = assertions[index],
+      evidence = observed.get(test.id)
+    if (
+      !evidence ||
+      evidence.status !== test.status ||
+      assertion.title !== evidence.leaf.name ||
+      JSON.stringify(assertion.ancestorTitles ?? []) !== JSON.stringify(evidence.names)
+    )
+      throw new Error('Raw assertion inventory differs from task observations')
+    const { leaf } = evidence
+    const inheritedSkip =
+      test.status === 'pending' &&
+      leaf.mode === 'run' &&
+      !leaf.hasResult &&
+      leaf.resultState === null &&
+      assertion.duration === undefined &&
+      test.failureMessages.length === 0 &&
+      leaf.ancestors.some(
+        (ancestor) =>
+          ancestor.resultState === 'skip' || (ancestor.mode === 'skip' && !ancestor.hasResult)
+      ) &&
+      !leaf.ancestors.some((ancestor) => ['run', 'queued'].includes(ancestor.resultState))
+    if (test.status === 'pending' && !inheritedSkip)
+      throw new Error('Pending task has no complete inherited skip witness')
+    if (inheritedSkip) inheritedSkips.add(test.id)
+  }
+  return inheritedSkips
+}
+export function normalizeVitest(report, root, platform = process.platform, runtime) {
   if (!report || !Array.isArray(report.testResults) || !report.testResults.length)
     throw new Error('No test suite report; validation unavailable')
   const counters = [
@@ -57,6 +164,7 @@ export function normalizeVitest(report, root, platform = process.platform) {
   )
     throw new Error('Malformed or global/runtime Vitest failure')
   const tests = [],
+    assertions = [],
     duplicates = new Map()
   for (const suite of report.testResults) {
     if (!suite || typeof suite.name !== 'string') throw new Error('Malformed Vitest suite')
@@ -89,6 +197,7 @@ export function normalizeVitest(report, root, platform = process.platform) {
         !['passed', 'failed', 'pending', 'todo', 'skipped', 'disabled'].includes(assertion.status)
       )
         throw new Error(`Unknown test status ${assertion.status}`)
+      assertions.push(assertion)
       tests.push({
         id: `${key} :: ${ordinal}`,
         path,
@@ -99,13 +208,24 @@ export function normalizeVitest(report, root, platform = process.platform) {
     }
   }
   const count = (status) => tests.filter((test) => status.includes(test.status)).length
+  const inheritedSkips = inheritedSkippedTaskIds(runtime, tests, assertions, root, platform, report)
+  const pendingCount = count(['pending', 'skipped', 'disabled'])
+  // Vitest 4.1.11 omits unexecuted mode=run leaves under nested skipped suites from this counter.
+  // Only a complete, matching actual task observation can account for those specific leaves.
+  const omittedInheritedSkips = pendingCount === report.numPendingTests ? 0 : inheritedSkips.size
   if (
     !tests.length ||
     report.numTotalTestSuites < report.testResults.length ||
     tests.length !== report.numTotalTests ||
     count(['passed']) !== report.numPassedTests ||
     count(['failed']) !== report.numFailedTests ||
-    count(['pending', 'skipped', 'disabled']) !== report.numPendingTests ||
+    pendingCount !== report.numPendingTests + omittedInheritedSkips ||
+    report.numTotalTests !==
+      report.numPassedTests +
+        report.numFailedTests +
+        report.numPendingTests +
+        report.numTodoTests +
+        omittedInheritedSkips ||
     count(['todo']) !== report.numTodoTests ||
     report.numTotalTestSuites !==
       report.numPassedTestSuites + report.numFailedTestSuites + report.numPendingTestSuites ||
@@ -113,7 +233,9 @@ export function normalizeVitest(report, root, platform = process.platform) {
     (!report.success && report.numFailedTests === 0)
   )
     throw new Error('Incomplete Vitest assertion inventory')
-  return tests
+  return tests.map((test) =>
+    inheritedSkips.has(test.id) ? { ...test, inheritedSkip: true } : test
+  )
 }
 export function validateSourceExecution(report, runtime) {
   const names = ['npm-ci', 'pretest', 'typecheck', 'tests']
@@ -370,8 +492,14 @@ export async function sourceShard({ root, kind, shard, total, out }) {
     await stage('tests', testInvocation.command, testInvocation.args, {
       shell: testInvocation.shell
     })
-    metadata.tests = normalizeVitest(await json(join(out, 'vitest.json')), selected)
-    validateSourceExecution(metadata, await json(join(out, 'runtime.json')))
+    const runtime = await json(join(out, 'runtime.json'))
+    metadata.tests = normalizeVitest(
+      await json(join(out, 'vitest.json')),
+      selected,
+      process.platform,
+      runtime
+    )
+    validateSourceExecution(metadata, runtime)
   } catch (error) {
     metadata.unavailable = error.message
   }
@@ -405,14 +533,16 @@ export async function compareReports(root, out) {
           report.pins?.harnessTree !== HARNESS_TREE
         )
           throw new Error('Malformed source report identity')
+        const runtime = await json(join(directory, 'runtime.json'))
         const rawTests = normalizeVitest(
           await json(join(directory, 'vitest.json')),
           report.testRoot,
-          report.platform
+          report.platform,
+          runtime
         )
         if (JSON.stringify(rawTests) !== JSON.stringify(report.tests))
           throw new Error('Source inventory differs from original raw report')
-        validateSourceExecution(report, await json(join(directory, 'runtime.json')))
+        validateSourceExecution(report, runtime)
         reports.push(report)
       }
     }

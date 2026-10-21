@@ -666,3 +666,164 @@ it('runs the original test script with npm_execpath without repeating the record
   })
   expect(observed.npmExecpath).toMatch(/[\\/]npm-cli\.js$/)
 })
+
+it('explains only actual inherited skips with complete runner observations and preserves raw pending identities', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'earthnano-inherited-skip-'))
+  roots.push(root)
+  const config = join(root, 'vitest.config.mjs')
+  const rawFile = join(root, 'vitest.json')
+  const runtimeFile = join(root, 'runtime.json')
+  await writeFile(config, `export default {test:{include:['case.test.mjs'],maxWorkers:1}}`)
+  await writeFile(
+    join(root, 'case.test.mjs'),
+    `import {describe,it,expect} from ${JSON.stringify(join(process.cwd(), 'node_modules/vitest/dist/index.js'))};` +
+      `describe.skip('no original interpreter',()=>describe.skipIf(true)('original POSIX-only suite',()=>{it('first original case',()=>expect(1).toBe(1));it('second original case',()=>expect(1).toBe(1))}));it('ordinary pass',()=>expect(1).toBe(1))`
+  )
+  const child = spawnSync(
+    process.execPath,
+    [
+      join(process.cwd(), 'node_modules/vitest/vitest.mjs'),
+      'run',
+      '--config',
+      config,
+      '--root',
+      root,
+      '--reporter=json',
+      `--reporter=${join(process.cwd(), 'scripts/ci/earthnano-runtime-reporter.mjs')}`,
+      `--outputFile=${rawFile}`
+    ],
+    {
+      encoding: 'utf8',
+      timeout: 15_000,
+      env: { ...process.env, EARTHNANO_CI_RUNTIME_REPORT: runtimeFile }
+    }
+  )
+  expect(child.status, child.stdout + child.stderr).toBe(0)
+  const raw = JSON.parse(await readFile(rawFile, 'utf8'))
+  const runtime = JSON.parse(await readFile(runtimeFile, 'utf8'))
+  const originalRaw = JSON.stringify(raw)
+  expect(raw).toMatchObject({
+    numTotalTests: 3,
+    numPassedTests: 1,
+    numPendingTests: 0,
+    success: true
+  })
+  expect(runtime).toMatchObject({ schemaVersion: 1, reason: 'passed', unhandledErrors: [] })
+  expect(() => normalizeVitest(raw, root)).toThrow('Incomplete')
+  const inventory = normalizeVitest(raw, root, process.platform, runtime)
+  expect(inventory.map((test) => test.status)).toEqual(['pending', 'pending', 'passed'])
+  expect(inventory.filter((test) => test.inheritedSkip)).toHaveLength(2)
+  expect(JSON.stringify(raw)).toBe(originalRaw)
+  expect(() =>
+    validateSourceExecution({ tests: inventory, stages: stages() }, runtime)
+  ).not.toThrow()
+  const comparison = compareInventories(
+    inventory.map((test) => ({ ...test, status: 'passed' })),
+    inventory
+  )
+  expect(comparison.regressions).toEqual([
+    { id: inventory[0].id, reason: 'passed-to-pending' },
+    { id: inventory[1].id, reason: 'passed-to-pending' }
+  ])
+
+  const changes = [
+    [
+      'old sidecar',
+      (r: typeof runtime) => {
+        delete r.taskInventory
+      }
+    ],
+    [
+      'missing leaf',
+      (r: typeof runtime) => {
+        r.taskInventory.leaves.shift()
+      }
+    ],
+    [
+      'extra leaf',
+      (r: typeof runtime) => {
+        r.taskInventory.leaves.push(r.taskInventory.leaves[0])
+      }
+    ],
+    [
+      'wrong identity',
+      (r: typeof runtime) => {
+        r.taskInventory.leaves[0].fullName += ' changed'
+      }
+    ],
+    [
+      'wrong status',
+      (r: typeof runtime) => {
+        r.taskInventory.leaves[0].mode = 'todo'
+      }
+    ],
+    [
+      'no skipped ancestor',
+      (r: typeof runtime) => {
+        for (const ancestor of r.taskInventory.leaves[0].ancestors) {
+          ancestor.mode = 'run'
+          ancestor.hasResult = true
+          ancestor.resultState = 'pass'
+        }
+      }
+    ],
+    [
+      'unfinished run',
+      (r: typeof runtime) => {
+        Object.assign(r.taskInventory.leaves[0], { hasResult: true, resultState: 'run' })
+      }
+    ],
+    [
+      'unfinished queued',
+      (r: typeof runtime) => {
+        Object.assign(r.taskInventory.leaves[0], { hasResult: true, resultState: 'queued' })
+      }
+    ],
+    [
+      'arbitrary resultless only leaf',
+      (r: typeof runtime) => {
+        r.taskInventory.leaves[0].mode = 'only'
+      }
+    ],
+    [
+      'running ancestor',
+      (r: typeof runtime) => {
+        Object.assign(r.taskInventory.leaves[0].ancestors[0], {
+          hasResult: true,
+          resultState: 'run'
+        })
+      }
+    ],
+    [
+      'global error',
+      (r: typeof runtime) => {
+        r.unhandledErrors.push({ message: 'unhandled rejection' })
+      }
+    ],
+    [
+      'interrupted outcome',
+      (r: typeof runtime) => {
+        r.reason = 'interrupted'
+      }
+    ]
+  ] as const
+  for (const [name, change] of changes) {
+    const altered = structuredClone(runtime)
+    change(altered)
+    expect(() => normalizeVitest(raw, root, process.platform, altered), name).toThrow()
+  }
+  for (const counters of [
+    { numTotalTests: 4 },
+    { numPassedTests: 2 },
+    { numFailedTests: 1 },
+    { numPendingTests: 1 },
+    { numPendingTests: 2 },
+    { numTodoTests: 1 }
+  ])
+    expect(() =>
+      normalizeVitest({ ...raw, ...counters }, root, process.platform, runtime)
+    ).toThrow()
+  const duration = structuredClone(raw)
+  duration.testResults[0].assertionResults[0].duration = 1
+  expect(() => normalizeVitest(duration, root, process.platform, runtime)).toThrow()
+}, 30_000)
