@@ -12,6 +12,12 @@ import type {
   SshOverrides
 } from '@aipoch/compute'
 
+/** Original persisted Session host visibility/selection; neither field grants execution approval. */
+export type SessionComputeHostAccess = Readonly<{
+  enabledProviderIds: readonly string[]
+  selectedProviderIds: readonly string[]
+}>
+
 /** Host-owned evidence and automatic-analysis extensions of the execution snapshot. */
 export type ComputeJob = ExecutionJob & {
   file_evidence?: import('./execution-file-evidence').ExecutionFileEvidenceSummary

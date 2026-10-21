@@ -54,16 +54,24 @@ export interface AcpExecutionBoundary {
   settle(): Promise<boolean>
 }
 
-/** Main-process owner declaration, constructed only from an admitted delegated Attempt. */
-export interface TrustedDelegatedExecutionOwner {
+/** Main-process owned-turn witness; actual Session admission remains the original owner's fact. */
+export interface TrustedExecutionTurnOwner {
   readonly projectId: string
   readonly sourceSessionId: string
+  ownsExecution(executionId: string): boolean
+  ownsTurn(provenance: AcpPromptRequest['provenanceContext']): boolean
+  ownsSession(sessionId: string): boolean
+}
+
+/** Original application result delivery in an existing execution, never a delegated Attempt. */
+export interface TrustedApplicationExecutionOwner extends TrustedExecutionTurnOwner {
+  ownsApplicationDispatch(input: AcpExecutionDispatch): boolean
+}
+
+/** Main-process owner declaration, constructed only from an admitted delegated Attempt. */
+export interface TrustedDelegatedExecutionOwner extends TrustedExecutionTurnOwner {
   readonly parentPromptMessageId: string
   readonly frameId: string
   readonly runtimeSegmentId: string
   readonly attemptId: string
-  ownsExecution(executionId: string): boolean
-  ownsTurn(provenance: AcpPromptRequest['provenanceContext']): boolean
-  /** Checks attachment to the exact private child coordinator, never a renderer claim. */
-  ownsSession(sessionId: string): boolean
 }

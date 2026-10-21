@@ -4,6 +4,10 @@ import { createHash } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 
 import type { ExecutionRequest, Ref } from '../../shared/earthnano/execution-port'
+import type {
+  ComputeToolsProfile,
+  FrozenComputeContext
+} from '../../shared/earthnano/compute-profile'
 import { defaultFileDurability } from '@aipoch/durable-files'
 import {
   normalizeCandidateArtifactFile,
@@ -34,7 +38,7 @@ export type CandidateTask = Readonly<{
 export type CandidateHarness = Readonly<{
   instructions: string
   skills: readonly CandidateTextFile[]
-  tools: 'workspace-only' | NotebookToolsProfile
+  tools: 'workspace-only' | NotebookToolsProfile | ComputeToolsProfile
 }>
 export type CandidateAgent = Readonly<{
   backend: 'claude-code'
@@ -46,6 +50,7 @@ export type CandidateEnvironment = Readonly<{
   isolation: 'directory-process'
   network: 'provider-only' | 'provider-and-notebook-policy'
   notebook?: Readonly<{ runtime: FrozenNotebookRuntime }>
+  compute?: FrozenComputeContext
 }>
 export type CandidateSnapshotInput = Readonly<{
   task: CandidateTask

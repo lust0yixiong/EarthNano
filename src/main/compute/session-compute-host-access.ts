@@ -1,7 +1,4 @@
-type SessionComputeHostAccess = Readonly<{
-  enabledProviderIds: readonly string[]
-  selectedProviderIds: readonly string[]
-}>
+import type { SessionComputeHostAccess } from '../../shared/compute'
 
 type SessionComputeHostAccessPruneSnapshot = Readonly<{
   projectId: string

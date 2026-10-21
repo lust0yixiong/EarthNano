@@ -58,6 +58,13 @@ const text = (value: unknown, max = 4096): string => {
 export function normalizeFrozenNotebookInputs(value: unknown): FrozenNotebookInput[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 10)
     throw new Error('Notebook profile requires one to ten immutable inputs')
+  return normalizeFrozenManagedInputs(value)
+}
+
+/** Same immutable metadata contract; original Compute calls may have zero or multiple inputs.
+ * Actual bytes, resource budgets and leases remain with the original input owner. */
+export function normalizeFrozenManagedInputs(value: unknown): FrozenNotebookInput[] {
+  if (!Array.isArray(value)) throw new Error('Immutable inputs require an array')
   const seen = new Set<string>()
   let projectId: string | undefined
   return value.map((item) => {
