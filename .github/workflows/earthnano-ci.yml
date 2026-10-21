@@ -25,11 +25,17 @@ jobs:
     timeout-minutes: 60
     env:
       QA_SOURCE_ROOT: ${{ github.workspace }}/qa-source
-      QA_ROOT: ${{ runner.temp }}/earthnano-packaged-qa-${{ github.run_id }}-${{ github.run_attempt }}
       QA_OPERATION_SHA: ${{ github.sha }}
       QA_WORKFLOW_REF: ${{ github.workflow_ref }}
       QA_MAC_TARGET: ${{ inputs.target }}
     steps:
+      - name: Allocate owned QA paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUNNER_TEMP" = /* && "$RUNNER_TEMP" != *$'\n'* && "$RUNNER_TEMP" != *$'\r'* ]] || exit 1
+          [[ "$GITHUB_RUN_ID" =~ ^[0-9]+$ && "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]] || exit 1
+          printf 'QA_ROOT=%s\n' "$RUNNER_TEMP/earthnano-packaged-qa-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - name: Checkout exact operational instructions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
