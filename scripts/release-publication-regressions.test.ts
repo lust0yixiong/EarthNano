@@ -87,7 +87,12 @@ it.each(['x64', 'arm64'] as const)(
     const name = expandMacro(
       config.appImage.artifactName,
       getArtifactArchName(Arch[arch], 'AppImage'),
-      { name: 'open-science', version: '0.27.0' },
+      {
+        name: 'open-science',
+        productName: require('./package.json').productName,
+        sanitizedProductName: require('./package.json').productName,
+        version: '0.27.0'
+      },
       { ext: 'AppImage', os: 'linux' }
     )
     expect(manifest(installer(name)).downloads[`linux-${arch}-appimage`]).toMatchObject({

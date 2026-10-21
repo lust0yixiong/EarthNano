@@ -21,12 +21,17 @@ export function artifactHash(file, algorithm, encoding = 'hex') {
 }
 
 export function validateArtifactName(name, version, allowLegacyNames = false) {
+  // EarthNano changes the published product filename. Retain the original release family for
+  // historical manifests and upstream tooling; both families use the same version/path checks.
+  const productPrefixes = ['aipoch-open-science', 'EarthNano']
   if (
     typeof name !== 'string' ||
     /[/\\\r\n]/.test(name) ||
     !(
-      name.startsWith(`aipoch-open-science-${version}-`) ||
-      name.startsWith(`aipoch-open-science_${version}_`) ||
+      productPrefixes.some(
+        (prefix) =>
+          name.startsWith(`${prefix}-${version}-`) || name.startsWith(`${prefix}_${version}_`)
+      ) ||
       (allowLegacyNames &&
         (name.startsWith(`open-science-${version}-`) ||
           name.startsWith(`open-science_${version}_`)))
