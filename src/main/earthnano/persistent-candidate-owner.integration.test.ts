@@ -30,6 +30,12 @@ import {
   persistCandidateOwnerSettlement,
   readCandidateOwnerSettlement
 } from './candidate-settlement-witness'
+import type { CandidateArtifactFile } from '../../shared/earthnano/candidate-artifact'
+const textContent = (file: CandidateArtifactFile): string => {
+  expect('content' in file).toBe(true)
+  if (!('content' in file)) throw new Error('Expected original text artifact fixture')
+  return file.content
+}
 type Body = { model: string; system: unknown; messages: unknown[] }
 const send = (
   response: ServerResponse,
@@ -569,14 +575,14 @@ it
     const before = await owners.exportResult(record)
     expect(
       before.files
-        .map((file) => ({ path: file.path, content: file.content }))
+        .map((file) => ({ path: file.path, content: textContent(file) }))
         .sort((a, b) => a.path.localeCompare(b.path))
     ).toEqual([...expectedOutputs].sort((a, b) => a.path.localeCompare(b.path)))
     if (methodRole && (finalReply.trim() || !outputs.length)) {
       const canonical = before.files.find((file) => file.path === `${methodRole}-reply.md`)!
-      expect(canonical.content).toBe(before.replyText)
+      expect(textContent(canonical)).toBe(before.replyText)
       if (reflectionScenario)
-        expect(before.files.find((file) => file.path === 'experience.md')!.content).not.toBe(
+        expect(textContent(before.files.find((file) => file.path === 'experience.md')!)).not.toBe(
           before.replyText
         )
       expect(record.evidence.artifacts).toContainEqual(canonical.artifactRef)
@@ -589,7 +595,7 @@ it
         )
       ).toBe(true)
       if (scenario === 'proposer-empty') {
-        expect(canonical.content).toBe('')
+        expect(textContent(canonical)).toBe('')
         expect(canonical.artifactRef.checksum).toBe(
           'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
         )

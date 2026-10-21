@@ -19,11 +19,24 @@ import {
   createOriginalTurnEvidenceReader,
   originalEvidenceCanonical as canonical,
   originalEvidenceDigest as digest,
-  originalTurnReply as turnReply
+  originalTurnReply as turnReply,
+  type OriginalTurnEvidence
 } from './original-turn-evidence'
+import { createHash } from 'node:crypto'
 import { constants, realpathSync } from 'node:fs'
-import { lstat, open, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  readdir,
+  realpath,
+  rm,
+  rmdir,
+  type FileHandle
+} from 'node:fs/promises'
+import { dirname, extname, isAbsolute, join, resolve } from 'node:path'
 import type { PrismaClient } from '@prisma/client'
 import type { ExecutionRecord, Ref } from '../../shared/earthnano/execution-port'
 import type { NewCheck, ReviewWithChecks } from '../../shared/reviewer'
@@ -45,6 +58,15 @@ import { ArtifactProvenanceRepository } from '../artifacts/provenance-repository
 import { ArtifactRepository } from '../artifacts/repository'
 import { ArtifactRunRegistry } from '../artifacts/run-registry'
 import { ManagedFileVersionService } from '../managed-file-versions/service'
+import type { ManagedFileReadLease } from '../managed-file-versions/read-port'
+import { LOCAL_RESOURCE_BUDGETS, assertWithinResourceBudget } from '../resource-budget'
+import { assertDiskReserve, copyOpenFileWithinBudget } from '../bounded-file-io'
+import { availableBytes } from '../storage/usage'
+import type {
+  CandidateArtifactFile,
+  CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
+import { normalizeCandidateArtifactFile } from '../../shared/earthnano/candidate-artifact'
 import { resolveDataRoot } from '../storage-root'
 import { ProjectRepository } from '../projects/repository'
 import { ReviewRepository } from '../reviewer/repository'
@@ -71,6 +93,8 @@ export interface PersistentCandidateNotebookOptions {
 export interface PersistentCandidateOwnersOptions {
   dataRoot: string
   notebook?: PersistentCandidateNotebookOptions
+  /** Host-owned, isolated temporary projections; never an authoritative artifact store. */
+  artifactProjectionRoot?: string
   /** Share the application's original Session persistence and serialization authority. */
   sessionPersistence: {
     repository: SessionRepository
@@ -93,7 +117,6 @@ export type {
   PersistentCandidateOwners
 } from './candidate-owner-contract'
 import type {
-  PersistentCandidateFile,
   PersistentCandidateResult,
   PersistentCandidateOwners
 } from './candidate-owner-contract'
@@ -120,6 +143,135 @@ const decodeName = (name: string): string => {
   if (encodeName(path) !== name) throw new Error('Noncanonical candidate output path')
   return path
 }
+/** Uses the same portable relative path constraints as candidate snapshot inputs. Old text
+ * paths keep their existing projection; newly exposed binary paths must satisfy these rules. */
+const binaryPath = (path: string): string => {
+  if (
+    !path.trim() ||
+    isAbsolute(path) ||
+    /[\\:*?"<>|]/.test(path) ||
+    [...path].some(
+      (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+    ) ||
+    path
+      .split('/')
+      .some(
+        (part) =>
+          !part ||
+          part === '.' ||
+          part === '..' ||
+          /[. ]$/.test(part) ||
+          /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part)
+      )
+  )
+    throw new Error('Candidate binary path is not a portable relative path')
+  return path
+}
+const projectionDirectory = async (
+  path: string,
+  create = false
+): Promise<{ path: string; assert(): Promise<void> }> => {
+  if (!isAbsolute(path)) throw new Error('Artifact projection root must be absolute')
+  const absolute = resolve(path)
+  const parents: string[] = []
+  let parent = absolute
+  for (;;) {
+    parents.unshift(parent)
+    const next = dirname(parent)
+    if (next === parent) break
+    parent = next
+  }
+  // Check each existing ancestor before creating its child; recursive mkdir could otherwise
+  // follow a linked ancestor before the post-creation identity check.
+  for (const current of parents) {
+    if (create) {
+      try {
+        await mkdir(current, { mode: 0o700 })
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      }
+    }
+    const observed = await lstat(current)
+    if (!observed.isDirectory() || observed.isSymbolicLink())
+      throw new Error('Artifact projection contains a linked directory')
+  }
+  const observed = await lstat(absolute)
+  if (process.platform !== 'win32' && (observed.mode & 0o077) !== 0)
+    throw new Error('Artifact projection directory must be private')
+  const resolved = await realpath(absolute)
+  const assert = async (): Promise<void> => {
+    const current = await lstat(absolute)
+    if (
+      !current.isDirectory() ||
+      current.isSymbolicLink() ||
+      current.dev !== observed.dev ||
+      current.ino !== observed.ino ||
+      (await realpath(absolute)) !== resolved
+    )
+      throw new Error('Artifact projection directory identity changed')
+  }
+  return { path: resolved, assert }
+}
+const verifyProjectedArtifact = async (
+  assetPath: string,
+  file: CandidateBinaryArtifactFile,
+  assertDirectory: () => Promise<void>,
+  signal?: AbortSignal
+): Promise<void> => {
+  signal?.throwIfAborted()
+  await assertDirectory()
+  const before = await lstat(assetPath)
+  if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1)
+    throw new Error('Artifact projection is not an ordinary file')
+  const handle = await open(assetPath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
+  try {
+    const stat = await handle.stat()
+    if (
+      !stat.isFile() ||
+      stat.nlink !== 1 ||
+      stat.dev !== before.dev ||
+      stat.ino !== before.ino ||
+      stat.size !== file.sizeBytes
+    )
+      throw new Error('Artifact projection identity or size changed')
+    const hash = createHash('sha256')
+    const buffer = Buffer.allocUnsafe(64 * 1024)
+    let position = 0
+    while (position < stat.size) {
+      signal?.throwIfAborted()
+      const { bytesRead } = await handle.read(
+        buffer,
+        0,
+        Math.min(buffer.length, stat.size - position),
+        position
+      )
+      if (bytesRead <= 0) throw new Error('Artifact projection read was incomplete')
+      hash.update(buffer.subarray(0, bytesRead))
+      position += bytesRead
+    }
+    const after = await handle.stat()
+    if (
+      stat.size !== after.size ||
+      stat.mtimeMs !== after.mtimeMs ||
+      stat.ctimeMs !== after.ctimeMs ||
+      'sha256:' + hash.digest('hex') !== file.digest
+    )
+      throw new Error('Artifact projection bytes changed')
+    const current = await lstat(assetPath)
+    if (
+      !current.isFile() ||
+      current.isSymbolicLink() ||
+      current.dev !== stat.dev ||
+      current.ino !== stat.ino
+    )
+      throw new Error('Artifact projection path changed')
+    await assertDirectory()
+    signal?.throwIfAborted()
+  } finally {
+    await handle.close()
+  }
+}
+
 /** Import only bounded, ordinary UTF-8 outputs. Immutable ArtifactVersion bytes become the authority. */
 const collectOutputs = async (root: string): Promise<Array<{ path: string; content: string }>> => {
   const files: Array<{ path: string; content: string }> = []
@@ -251,43 +403,124 @@ export function createPersistentCandidateOwners(
     versions
   })
   const readFiles = async (
-    record: Pick<ExecutionRecord, 'request' | 'evidence'>,
+    record: Pick<ExecutionRecord, 'request' | 'evidence' | 'identity'>,
     scientific = record.evidence.references?.some((ref) =>
       ref.id.startsWith('notebook-scientific:')
-    ) ?? false
-  ): Promise<PersistentCandidateFile[]> => {
-    const files: PersistentCandidateFile[] = []
+    ) ?? false,
+    signal?: AbortSignal
+  ): Promise<CandidateArtifactFile[]> => {
+    signal?.throwIfAborted()
+    const files: CandidateArtifactFile[] = []
     if (record.evidence.artifacts.length > 64)
-      throw new Error('Candidate artifact inventory exceeds text export profile')
+      throw new Error('Candidate artifact inventory exceeds export profile')
     let total = 0
+    let textTotal = 0
     for (const artifactRef of record.evidence.artifacts) {
+      signal?.throwIfAborted()
       const lease = await versions.openVersion(
         { source: 'artifact', projectId: record.request.projectId, fileId: artifactRef.artifactId },
         artifactRef.versionId
       )
       try {
-        if (lease.version.checksum !== artifactRef.checksum || lease.size > 1024 * 1024)
-          throw new Error('Artifact version integrity mismatch')
+        if (
+          lease.version.checksum !== artifactRef.checksum ||
+          lease.version.id !== artifactRef.versionId ||
+          lease.version.fileId !== artifactRef.artifactId ||
+          lease.logicalFile.source !== 'artifact' ||
+          lease.logicalFile.id !== artifactRef.artifactId ||
+          lease.logicalFile.projectId !== record.request.projectId ||
+          lease.logicalFile.sessionId !== record.identity.sessionId ||
+          BigInt(lease.size) !== lease.version.sizeBytes
+        )
+          throw new Error('Artifact version integrity or ownership mismatch')
+        assertWithinResourceBudget('file', lease.size, LOCAL_RESOURCE_BUDGETS.artifactFileBytes)
         total += lease.size
-        if (total > 4 * 1024 * 1024)
-          throw new Error('Candidate artifacts exceed text export profile')
-        // The original immutable lease forbids empty ranges. A zero-byte Version has exact
-        // empty content; still verify its original lease and checksum before exporting it.
-        const bytes = lease.size === 0 ? Buffer.alloc(0) : await lease.readRange(0, lease.size)
+        assertWithinResourceBudget('turn', total, LOCAL_RESOURCE_BUDGETS.artifactTurnBytes)
+        const path = scientific
+          ? logicalPath(lease.version.filename)
+          : decodeName(lease.version.filename)
+        const mime = lease.version.contentType?.split(';', 1)[0]?.trim().toLowerCase()
+        // Declared rich/binary formats remain descriptors even when their header happens to be
+        // ASCII. Missing MIME retains the original strict UTF-8 projection when lossless.
+        let textual =
+          !mime ||
+          mime === 'application/octet-stream' ||
+          mime.startsWith('text/') ||
+          /^application\/(?:json|[^/]+\+json|xml|[^/]+\+xml|javascript|x-javascript|yaml|x-yaml|toml|x-ndjson)$/.test(
+            mime
+          )
+        const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+        const chunks: string[] = []
+        const hash = createHash('sha256')
+        for (let offset = 0; offset < lease.size; offset += 64 * 1024) {
+          signal?.throwIfAborted()
+          const end = Math.min(lease.size, offset + 64 * 1024)
+          const bytes = await lease.readRange(offset, end)
+          if (bytes.byteLength !== end - offset)
+            throw new Error('Artifact version read was incomplete')
+          hash.update(bytes)
+          if (textual) {
+            try {
+              const text = decoder.decode(bytes, { stream: true })
+              if (lease.size <= 1024 * 1024) chunks.push(text)
+            } catch {
+              textual = false
+              chunks.length = 0
+            }
+          }
+        }
+        if (textual) {
+          try {
+            const tail = decoder.decode()
+            if (lease.size <= 1024 * 1024) chunks.push(tail)
+          } catch {
+            textual = false
+            chunks.length = 0
+          }
+        }
         await lease.verifyUnchanged()
-        if (digest(bytes) !== 'sha256:' + artifactRef.checksum)
+        signal?.throwIfAborted()
+        const checksum = 'sha256:' + hash.digest('hex')
+        if (checksum !== 'sha256:' + artifactRef.checksum)
           throw new Error('Artifact version bytes changed')
-        files.push({
-          path: scientific
-            ? logicalPath(lease.version.filename)
-            : decodeName(lease.version.filename),
-          content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes),
-          digest: digest(bytes),
-          artifactRef: structuredClone(artifactRef)
-        })
+        if (textual) {
+          textTotal += lease.size
+          if (lease.size > 1024 * 1024 || textTotal > 4 * 1024 * 1024)
+            throw new Error('Candidate artifacts exceed text export profile')
+          files.push({
+            path,
+            content: chunks.join(''),
+            digest: checksum,
+            artifactRef: structuredClone(artifactRef)
+          })
+        } else {
+          files.push(
+            normalizeCandidateArtifactFile({
+              path: binaryPath(path),
+              representation: 'binary',
+              sizeBytes: lease.size,
+              ...(lease.version.contentType ? { contentType: lease.version.contentType } : {}),
+              digest: checksum,
+              artifactRef: structuredClone(artifactRef)
+            })
+          )
+        }
       } finally {
         await lease.close()
       }
+    }
+    if (
+      new Set(files.map((file) => file.path.normalize('NFC').toLowerCase())).size !== files.length
+    )
+      throw new Error('Colliding output paths')
+    if (files.some((file) => 'representation' in file)) {
+      const paths = files.map((file) => file.path.normalize('NFC').toLowerCase()).sort()
+      if (
+        paths.some((path) =>
+          paths.some((parent) => path !== parent && path.startsWith(parent + '/'))
+        )
+      )
+        throw new Error('Overlapping binary output paths')
     }
     return files
   }
@@ -628,7 +861,7 @@ export function createPersistentCandidateOwners(
         }
         const now = Date.now()
         const text = scientific
-          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound ${frozenRuntime!.language === 'r' ? 'R Notebook (execute with explicit language:r)' : 'Python Notebook'} and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+          ? `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nUse the bound ${frozenRuntime!.language === 'r' ? 'R Notebook (execute with explicit language:r)' : 'Python Notebook'} and the fixed Notebook input versions listed below. Publish bounded artifacts (data, figures or reports) with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
           : `${materialized.snapshots.task.prompt}\n\n${materialized.snapshots.invocation.mission}\n\nINPUT: ${materialized.inputDir}\nOUTPUT: ${materialized.outputDir}\nTask files are in INPUT. Inputs and embedded context are read-only reference material. Write deliverables under OUTPUT. For proposer/composer harness output, write OUTPUT/context/harness/instructions.md and optional OUTPUT/context/harness/skills/<name>/SKILL.md. Do not use the Python working directory.`
         const idle = await coordinator.saveSession({
           id: sessionId,
@@ -775,7 +1008,10 @@ export function createPersistentCandidateOwners(
               throw new Error('Original Session terminal commit is incomplete')
             const artifacts = await turnArtifacts(frozen)
             const files = await readFiles(
-              { request, evidence: { artifacts } } as Pick<ExecutionRecord, 'request' | 'evidence'>,
+              { request, identity: { sessionId }, evidence: { artifacts } } as Pick<
+                ExecutionRecord,
+                'request' | 'identity' | 'evidence'
+              >,
               scientific
             )
             const scientificReferences: Ref[] = []
@@ -830,7 +1066,7 @@ export function createPersistentCandidateOwners(
             }
             const integrity = files.map((file) => {
               let jsonSyntax: 'valid' | 'invalid' | 'not-applicable' = 'not-applicable'
-              if (/\.json$/i.test(file.path)) {
+              if ('content' in file && /\.json$/i.test(file.path)) {
                 try {
                   JSON.parse(file.content)
                   jsonSyntax = 'valid'
@@ -856,8 +1092,9 @@ export function createPersistentCandidateOwners(
             const checks: NewCheck[] = [
               {
                 status: !integrity.length ? 'warn' : summary.invalidJsonCount ? 'fail' : 'pass',
-                claim:
-                  'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
+                claim: files.some((file) => 'representation' in file)
+                  ? 'Deterministic file integrity / text encoding / JSON syntax only; binary content and semantics are not assessed'
+                  : 'Deterministic file integrity / UTF-8 / JSON syntax only; no semantic assessment',
                 evidence: JSON.stringify(summary),
                 ...(files[0] ? { artifactVersionId: files[0].artifactRef.versionId } : {}),
                 sortIndex: 0
@@ -953,24 +1190,287 @@ export function createPersistentCandidateOwners(
     }
     return owner
   }
+  const verifyExportRecord = async (
+    record: ExecutionRecord,
+    signal?: AbortSignal
+  ): Promise<{ frozen: OriginalTurnEvidence; replyText: string }> => {
+    signal?.throwIfAborted()
+    validateRecord(record)
+    if (
+      record.requestDigest !== requestDigest(record.request) ||
+      record.identity.promptMessageId !== `candidate-prompt-${record.executionId}`
+    )
+      throw new Error('Candidate execution does not match its original turn identity')
+    const frozen = await pinnedTurn(record)
+    if (
+      !record.identity.runtimeExecutionId ||
+      !frozen.session.runtimeSessionAdmissions?.some(
+        (admission) =>
+          admission.promptMessageId === record.identity.promptMessageId &&
+          admission.executionId === record.identity.runtimeExecutionId
+      )
+    )
+      throw new Error('Candidate execution has no exact original runtime admission')
+    const scientificRef = record.evidence.references.find((ref) =>
+      ref.id.startsWith('notebook-scientific:')
+    )
+    if (scientificRef) {
+      const runs = (
+        await notebookRuns.readSessionRuns(record.request.projectId, record.identity.sessionId!)
+      ).filter((run) => run.promptMessageId === record.identity.promptMessageId)
+      if (digest(canonical(runs)) !== scientificRef.digest)
+        throw new Error('Original scientific Notebook Runs changed')
+      for (const artifact of record.evidence.artifacts) {
+        const { execution } = await provenance.getVersionExecution({
+          projectId: record.request.projectId,
+          appSessionId: record.identity.sessionId!,
+          artifactId: artifact.artifactId,
+          versionId: artifact.versionId
+        })
+        if (
+          !execution ||
+          execution.terminalPromptMessageId !== record.identity.promptMessageId ||
+          !runs.some(
+            (run) =>
+              run.runId === execution.producerRunId &&
+              run.status === 'completed' &&
+              run.promptMessageId === record.identity.promptMessageId
+          )
+        )
+          throw new Error('Scientific ArtifactVersion has no original Notebook producer')
+      }
+    }
+    signal?.throwIfAborted()
+    const replyText = turnReply(frozen)
+    if (replyText !== record.evidence.text)
+      throw new Error('Execution reply differs from original committed turn')
+    return { frozen, replyText }
+  }
+  type Projection = {
+    file: CandidateBinaryArtifactFile
+    assetPath: string
+    cleanup(): Promise<void>
+    assert(): Promise<void>
+  }
+  const projections = new Map<string, Promise<Projection>>()
+  let projectedBytes = 0
+  const projectionCleanups = new Set<() => Promise<void>>()
+  const projectionStop = new AbortController()
+  let projectionRoot: ReturnType<typeof projectionDirectory> | undefined
+  const activeMaterializations = new Set<Promise<unknown>>()
+  const materializeArtifactOwned: NonNullable<
+    PersistentCandidateOwners['materializeArtifact']
+  > = async (suppliedRecord, suppliedRef, suppliedSignal) => {
+    const signal = suppliedSignal
+      ? AbortSignal.any([suppliedSignal, projectionStop.signal])
+      : projectionStop.signal
+    signal.throwIfAborted()
+    if (closing) throw new Error('Candidate owner factory is shutting down')
+    if (!options.artifactProjectionRoot)
+      throw new Error('Artifact projection root is not configured')
+    const record = structuredClone(suppliedRecord)
+    const artifactRef = structuredClone(suppliedRef)
+    validateRecord(record)
+    if (
+      !['baseline', 'candidate'].includes(record.request.role) ||
+      record.phase !== 'completed' ||
+      record.cleanup !== 'confirmed' ||
+      record.requestDigest !== requestDigest(record.request)
+    )
+      throw new Error('Artifact projection requires a completed original task execution')
+    if (!record.evidence.artifacts.some((ref) => canonical(ref) === canonical(artifactRef)))
+      throw new Error('Artifact projection reference is not in the completed execution')
+    await verifyExportRecord(record, signal)
+    const files = await readFiles(record, undefined, signal)
+    signal.throwIfAborted()
+    const file = files.find((entry) => canonical(entry.artifactRef) === canonical(artifactRef))
+    if (!file || !('representation' in file))
+      throw new Error('Artifact projection requires an original binary descriptor')
+    const key = canonical({
+      executionId: record.executionId,
+      requestDigest: record.requestDigest,
+      artifactRef
+    })
+    let pending = projections.get(key)
+    if (!pending) {
+      if (closing) throw new Error('Candidate owner factory is shutting down')
+      if (projections.size >= 64 || projectionCleanups.size >= 64)
+        throw new Error('Artifact projection inventory exceeds export profile')
+      assertWithinResourceBudget(
+        'turn',
+        projectedBytes + file.sizeBytes,
+        LOCAL_RESOURCE_BUDGETS.artifactTurnBytes
+      )
+      projectedBytes += file.sizeBytes
+      pending = (async (): Promise<Projection> => {
+        let reservationReleased = false
+        const releaseReservation = (): void => {
+          if (!reservationReleased) {
+            reservationReleased = true
+            projectedBytes -= file.sizeBytes
+          }
+        }
+        let cleanup: (() => Promise<void>) | undefined
+        try {
+          projectionRoot ??= projectionDirectory(options.artifactProjectionRoot!, true)
+          const root = await projectionRoot
+          await root.assert()
+          if (closing) throw new Error('Candidate owner factory is shutting down')
+          const directory = await projectionDirectory(await mkdtemp(join(root.path, 'artifact-')))
+          const alias =
+            'artifact-' + digest(canonical(artifactRef)).slice(7) + extname(binaryPath(file.path))
+          const assetPath = join(directory.path, alias)
+          const assert = async (): Promise<void> => {
+            await root.assert()
+            await directory.assert()
+          }
+          const sourceLease: { current?: ManagedFileReadLease } = {}
+          let leaseClosed = false
+          let directoryRemoved = false
+          const closeLease = async (): Promise<void> => {
+            if (sourceLease.current && !leaseClosed) {
+              await sourceLease.current.close()
+              leaseClosed = true
+            }
+          }
+          cleanup = async () => {
+            // Preserve both pending source-lease release and the exact owned target on failure.
+            // A later shutdown can retry; a failed close never confirms physical cleanup.
+            const results = await Promise.allSettled([
+              closeLease(),
+              (async () => {
+                if (directoryRemoved) return
+                await assert()
+                await chmod(directory.path, 0o700)
+                // Windows's read-only file attribute must be cleared before unlinking. The
+                // integrity boundary is the Version/digest checks, not POSIX permission bits.
+                if (process.platform === 'win32') {
+                  try {
+                    await chmod(assetPath, 0o600)
+                  } catch (error) {
+                    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+                  }
+                }
+                await rm(assetPath, { force: true })
+                await rmdir(directory.path)
+                directoryRemoved = true
+              })()
+            ])
+            const failures = results.flatMap((result) =>
+              result.status === 'rejected' ? [result.reason] : []
+            )
+            if (failures.length)
+              throw new AggregateError(failures, 'Artifact projection cleanup is unconfirmed')
+            projectionCleanups.delete(cleanup!)
+            releaseReservation()
+          }
+          projectionCleanups.add(cleanup)
+          if (Buffer.byteLength(alias) > 240)
+            throw new Error('Artifact asset alias exceeds filename budget')
+          await assert()
+          const lease = await versions.openVersion(
+            {
+              source: 'artifact',
+              projectId: record.request.projectId,
+              fileId: artifactRef.artifactId
+            },
+            artifactRef.versionId
+          )
+          sourceLease.current = lease
+          if (
+            lease.logicalFile.source !== 'artifact' ||
+            lease.logicalFile.id !== artifactRef.artifactId ||
+            lease.logicalFile.projectId !== record.request.projectId ||
+            lease.logicalFile.sessionId !== record.identity.sessionId ||
+            lease.version.fileId !== artifactRef.artifactId ||
+            lease.version.id !== artifactRef.versionId ||
+            lease.version.checksum !== artifactRef.checksum ||
+            lease.size !== file.sizeBytes ||
+            BigInt(lease.size) !== lease.version.sizeBytes
+          )
+            throw new Error('Artifact projection source differs from the verified Version')
+          await lease.verifyUnchanged()
+          await lease.assertCanCopyTo?.(assetPath)
+          await assert()
+          signal.throwIfAborted()
+          assertDiskReserve(
+            await availableBytes(directory.path),
+            file.sizeBytes,
+            LOCAL_RESOURCE_BUDGETS.diskReserveBytes
+          )
+          // The existing original lease supplies positional reads to the original bounded copier.
+          // No source path is reopened or exposed to a provider; cancellation is checked per chunk.
+          const source = {
+            read: async (buffer: Uint8Array, offset: number, length: number, position: number) => {
+              signal.throwIfAborted()
+              const result = await lease!.read(buffer, offset, length, position)
+              signal.throwIfAborted()
+              return { ...result, buffer }
+            }
+          } as Pick<FileHandle, 'read'>
+          const copied = await copyOpenFileWithinBudget(
+            source,
+            assetPath,
+            LOCAL_RESOURCE_BUDGETS.artifactFileBytes,
+            signal
+          )
+          if (copied.sizeBytes !== file.sizeBytes || 'sha256:' + copied.checksum !== file.digest)
+            throw new Error('Artifact projection copy differs from its verified Version')
+          await lease.verifyUnchanged()
+          await verifyProjectedArtifact(assetPath, file, assert, signal)
+          if (process.platform !== 'win32') {
+            await chmod(assetPath, 0o400)
+            await chmod(directory.path, 0o500)
+          }
+          await assert()
+          await closeLease()
+          signal.throwIfAborted()
+          if (closing) throw new Error('Candidate owner factory is shutting down')
+          return { file, assetPath, assert, cleanup }
+        } catch (error) {
+          await cleanup?.().catch(() => undefined)
+          if (!cleanup) releaseReservation()
+          throw error
+        }
+      })()
+
+      projections.set(key, pending)
+      pending.catch(() => {
+        if (projections.get(key) === pending) {
+          projections.delete(key)
+        }
+      })
+    }
+    let detach = (): void => undefined
+    const aborted = new Promise<never>((_resolve, reject) => {
+      const abort = (): void => reject(signal.reason)
+      signal.addEventListener('abort', abort, { once: true })
+      detach = () => {
+        signal.removeEventListener('abort', abort)
+      }
+    })
+    const projected = await Promise.race([pending, aborted]).finally(detach)
+    await verifyProjectedArtifact(projected.assetPath, file, projected.assert, signal)
+    if (closing) throw new Error('Candidate owner factory is shutting down')
+    return { file: structuredClone(file), assetPath: projected.assetPath }
+  }
+  const materializeArtifact: NonNullable<PersistentCandidateOwners['materializeArtifact']> = (
+    ...args
+  ) => {
+    const operation = materializeArtifactOwned(...args)
+    activeMaterializations.add(operation)
+    void operation.then(
+      () => activeMaterializations.delete(operation),
+      () => activeMaterializations.delete(operation)
+    )
+    return operation
+  }
   return {
     openOwner,
     readSemanticSourceEvidence,
+    materializeArtifact,
     async exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult> {
-      const frozen = await pinnedTurn(record)
-      const scientificRef = record.evidence.references.find((ref) =>
-        ref.id.startsWith('notebook-scientific:')
-      )
-      if (scientificRef) {
-        const runs = (
-          await notebookRuns.readSessionRuns(record.request.projectId, record.identity.sessionId!)
-        ).filter((run) => run.promptMessageId === record.identity.promptMessageId)
-        if (digest(canonical(runs)) !== scientificRef.digest)
-          throw new Error('Original scientific Notebook Runs changed')
-      }
-      const replyText = turnReply(frozen)
-      if (replyText !== record.evidence.text)
-        throw new Error('Execution reply differs from original committed turn')
+      const { frozen, replyText } = await verifyExportRecord(record)
       return {
         executionId: record.executionId,
         artifacts: structuredClone(record.evidence.artifacts),
@@ -1187,9 +1687,15 @@ export function createPersistentCandidateOwners(
       }
       const files = await readFiles(target)
       const assessmentFiles = await readFiles(assessment)
-      if (assessmentFiles.length !== 1 || assessmentFiles[0]!.path !== 'assessment.json')
+      const assessmentFile = assessmentFiles[0]
+      if (
+        assessmentFiles.length !== 1 ||
+        !assessmentFile ||
+        assessmentFile.path !== 'assessment.json' ||
+        !('content' in assessmentFile)
+      )
         throw new Error('Semantic assessor must publish only the fixed assessment document')
-      const checked = parseSemanticAssessment(assessmentFiles[0]!.content, files, criteria)
+      const checked = parseSemanticAssessment(assessmentFile.content, files, criteria)
       if (semanticCanonical(checked) !== semanticCanonical(document))
         throw new Error('Semantic document differs from its committed ArtifactVersion')
       const criteriaItems = semanticCriteria(criteria)
@@ -1219,7 +1725,7 @@ export function createPersistentCandidateOwners(
         assessmentTaskSnapshotRef: assessment.request.taskSnapshotRef,
         assessmentInvocationRef: assessment.request.invocationRef,
         model: assessment.configuration.model,
-        assessmentDocumentDigest: semanticDigest(assessmentFiles[0]!.content),
+        assessmentDocumentDigest: semanticDigest(assessmentFile.content),
         document: checked,
         limitation:
           'Model semantic judgment grounded in supplied quotes; not deterministic factual proof.'
@@ -1332,8 +1838,22 @@ export function createPersistentCandidateOwners(
     },
     async shutdown(): Promise<{ reaped: boolean }> {
       closing = true
+      projectionStop.abort(new Error('Candidate owner factory is shutting down'))
+      // Verification can still own an original Version lease before a projection is allocated.
+      await Promise.allSettled([...activeMaterializations])
+      const pendingProjections = [...projections.values()]
       const results = await Promise.all([...runtimes].map(stop))
-      return { reaped: results.every((result) => result.reaped) }
+      await Promise.allSettled(pendingProjections)
+      const projectionResults = await Promise.allSettled(
+        [...projectionCleanups].map((cleanup) => cleanup())
+      )
+      projections.clear()
+      return {
+        reaped:
+          results.every((result) => result.reaped) &&
+          projectionResults.every((result) => result.status === 'fulfilled') &&
+          projectionCleanups.size === 0
+      }
     }
   }
 }

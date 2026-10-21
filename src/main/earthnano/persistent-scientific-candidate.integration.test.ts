@@ -28,6 +28,13 @@ import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 
+import type { CandidateArtifactFile } from '../../shared/earthnano/candidate-artifact'
+const textContent = (file: CandidateArtifactFile): string => {
+  expect('content' in file).toBe(true)
+  if (!('content' in file)) throw new Error('Expected original text artifact fixture')
+  return file.content
+}
+
 configureTestRuntimeMetadata()
 it.skipIf(process.platform === 'win32').for([
   {
@@ -346,8 +353,8 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       expect(baseline!.identity.runtimeExecutionId).not.toBe(record.identity.runtimeExecutionId)
       expect(baseline!.identity.sessionId).not.toBe(sourceSessionId)
       expect(record.identity.sessionId).not.toBe(sourceSessionId)
-      expect((await owners.exportResult(baseline!)).files.map((file) => file.content)).toEqual(
-        (await owners.exportResult(record)).files.map((file) => file.content)
+      expect((await owners.exportResult(baseline!)).files.map(textContent)).toEqual(
+        (await owners.exportResult(record)).files.map(textContent)
       )
       const baselineRuns = await new NotebookRunRepository(root).readSessionRuns(
         projectId,
@@ -400,7 +407,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     }
     expect(record.evidence.artifacts).toHaveLength(1)
     const result = await owners.exportResult(record)
-    expect(JSON.parse(result.files[0].content)).toEqual({ count: 3, sum: 12, mean: 4 })
+    expect(JSON.parse(textContent(result.files[0]!))).toEqual({ count: 3, sum: 12, mean: 4 })
     const runs = await new NotebookRunRepository(root).readSessionRuns(
       projectId,
       record.identity.sessionId!
@@ -485,7 +492,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       notebookLanguage === 'r'
         ? 'Use the bound R Notebook (execute with explicit language:r)'
         : 'Use the bound Python Notebook'
-    } and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+    } and the fixed Notebook input versions listed below. Publish bounded artifacts (data, figures or reports) with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
     const readPrompt = async (target: ExecutionRecord): Promise<string | undefined> => {
       const persisted = await loadSessionMutationAuthority(
         sessions,

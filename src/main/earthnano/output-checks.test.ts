@@ -3,6 +3,7 @@ import { expect, it } from 'vitest'
 import { checkOutputFiles } from './output-checks'
 import type { PersistentCandidateFile } from './persistent-candidate-owner'
 import type { OutputCheckResult } from '../../shared/earthnano/research-outcome'
+import type { CandidateBinaryArtifactFile } from '../../shared/earthnano/candidate-artifact'
 const file = (content: string): PersistentCandidateFile => ({
   path: 'result.json',
   content,
@@ -80,4 +81,23 @@ it('only traverses canonical JSON array indices and keeps plain object keys vali
   expect(inspect('/items/0', 1).status).toBe('pass')
   expect(inspect('/object/length', 3).status).toBe('pass')
   expect(inspect('/object/01', 2).status).toBe('pass')
+})
+
+it('checks declared text JSON beside binary metadata and refuses to parse binary as JSON', () => {
+  const binary: CandidateBinaryArtifactFile = {
+    path: 'plot.png',
+    representation: 'binary',
+    sizeBytes: 7,
+    contentType: 'image/png',
+    digest: 'sha256:' + 'b'.repeat(64),
+    artifactRef: { artifactId: 'plot', versionId: 'plot-v1', checksum: 'b'.repeat(64) }
+  }
+  const check = { kind: 'json-value' as const, path: 'result.json', pointer: '/sum', expected: 6 }
+  expect(checkOutputFiles([file('{"sum":6}'), binary], [check])[0]).toMatchObject({
+    status: 'pass',
+    reason: 'matched'
+  })
+  expect(() => checkOutputFiles([binary], [{ ...check, path: 'plot.png' }])).toThrow(
+    'not assessable'
+  )
 })

@@ -4,7 +4,15 @@ import { chmod, lstat, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type {
+  ArtifactReference,
+  ExecutionRecord,
+  ExecutionRequest
+} from '../../shared/earthnano/execution-port'
+import type {
+  CandidateArtifactFile,
+  CandidateBinaryArtifactFile
+} from '../../shared/earthnano/candidate-artifact'
 import {
   createCandidateSnapshotStore,
   type ResolvedCandidateSnapshots,
@@ -83,7 +91,8 @@ type Fixture = {
 async function setup(
   limit = 9,
   baselineCount = 1,
-  scientific: false | true | 'r' = false
+  scientific: false | true | 'r' = false,
+  outputFormat: 'text' | 'binary' | 'mixed' | 'candidate-binary' = 'text'
 ): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), 'earthnano-semantic-unit-'))
   roots.push(root)
@@ -204,7 +213,34 @@ async function setup(
           versionId: randomUUID(),
           checksum: createHash('sha256').update(content).digest('hex')
         }
-        const files = [{ path, content, digest: semanticDigest(content), artifactRef: outputRef }]
+        const files: CandidateArtifactFile[] = [
+          { path, content, digest: semanticDigest(content), artifactRef: outputRef }
+        ]
+        const artifacts: ArtifactReference[] = [outputRef]
+        if (
+          !isReviewer &&
+          outputFormat !== 'text' &&
+          (outputFormat !== 'candidate-binary' || request.role === 'candidate')
+        ) {
+          const binary: CandidateBinaryArtifactFile = {
+            path: 'plot.png',
+            representation: 'binary',
+            sizeBytes: 7,
+            contentType: 'image/png',
+            digest: 'sha256:' + 'b'.repeat(64),
+            artifactRef: {
+              artifactId: randomUUID(),
+              versionId: randomUUID(),
+              checksum: 'b'.repeat(64)
+            }
+          }
+          if (outputFormat !== 'mixed') {
+            files.length = 0
+            artifacts.length = 0
+          }
+          files.push(binary)
+          artifacts.push(binary.artifactRef)
+        }
         if (isReviewer && fault === 'extra')
           files.push({
             path: 'unexpected.txt',
@@ -214,7 +250,7 @@ async function setup(
           })
         results.set(context.executionId, {
           executionId: context.executionId,
-          artifacts: [outputRef],
+          artifacts,
           replyText: 'SOLVER_REVIEW_ANSWER_DO_NOT_EXPOSE',
           trajectoryText: 'SOLVER_TRAJECTORY_DO_NOT_EXPOSE',
           files
@@ -226,7 +262,7 @@ async function setup(
             status: 'complete',
             scope: 'synthetic fixed version',
             text: 'not a semantic result',
-            artifacts: [outputRef],
+            artifacts,
             references: [],
             limitations: []
           },
@@ -300,8 +336,11 @@ async function setup(
     })),
     exportResult: vi.fn(async (record: ExecutionRecord) => {
       const value = structuredClone(results.get(record.executionId)!)
-      if (fault === 'tamper' && record.request.role !== 'reviewer')
-        value.files[0]!.content += 'changed'
+      if (fault === 'tamper' && record.request.role !== 'reviewer') {
+        const file = value.files[0]!
+        if (!('content' in file)) throw new Error('Expected original text artifact fixture')
+        file.content += 'changed'
+      }
       return value
     }),
     readReviews: vi.fn(async () => [
@@ -633,4 +672,46 @@ it('rejects changed source evidence before admitting either independent assessme
   }))
   await expect(evaluateOptimizationSemantics(f.options)).rejects.toThrow('source evidence differs')
   expect(f.admissions).toHaveLength(0)
+})
+
+it.each(['binary', 'candidate-binary'] as const)(
+  'rejects binary-only targets before either independent reviewer is admitted: %s',
+  async (outputFormat) => {
+    const f = await setup(9, 1, false, outputFormat)
+    await expect(evaluateOptimizationSemantics(f.options)).rejects.toThrow(
+      'Binary-only work product is not assessable'
+    )
+    expect(f.admissions).toHaveLength(0)
+    expect(f.committed).toHaveLength(0)
+  }
+)
+
+it('allows exact text quotes beside binary metadata and marks binary content unavailable', async () => {
+  const binary: CandidateBinaryArtifactFile = {
+    path: 'plot.png',
+    representation: 'binary',
+    sizeBytes: 7,
+    contentType: 'image/png',
+    digest: 'sha256:' + 'b'.repeat(64),
+    artifactRef: { artifactId: 'plot', versionId: 'plot-v1', checksum: 'b'.repeat(64) }
+  }
+  expect(parseSemanticAssessment(document(), [file, binary], criteria)).toEqual(document())
+  const forged = document()
+  forged.checks[0]!.evidence[0] = {
+    path: binary.path,
+    artifactRef: binary.artifactRef,
+    quote: 'metadata'
+  }
+  expect(() => parseSemanticAssessment(forged, [file, binary], criteria)).toThrow(
+    'Binary artifact content is unavailable'
+  )
+  const f = await setup(9, 1, false, 'mixed')
+  await evaluateOptimizationSemantics(f.options)
+  expect(f.admissions).toHaveLength(2)
+  for (const input of f.reviewerInputs) {
+    expect(input.task.prompt).toContain('Their content is unavailable and has not been examined')
+    expect(input.harness.instructions).toContain(
+      'do not claim that binary contents or scientific correctness were verified'
+    )
+  }
 })
