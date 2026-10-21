@@ -3,12 +3,14 @@ import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { LOCAL_RESOURCE_BUDGETS } from '../resource-budget'
 
 import {
   createCandidateSnapshotStore,
   type CandidateExecutionRefs,
   type CandidateSnapshotInput,
-  type CandidateSnapshotStore
+  type CandidateSnapshotStore,
+  type CandidateContextAsset
 } from './candidate-snapshot'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -62,14 +64,17 @@ const input = (): CandidateSnapshotInput => ({
   environment: { isolation: 'directory-process', network: 'provider-only' }
 })
 
-const fixture = async (): Promise<{ root: string; store: CandidateSnapshotStore }> => {
+const fixture = async (
+  materializeAsset?: Parameters<typeof createCandidateSnapshotStore>[0]['materializeAsset']
+): Promise<{ root: string; store: CandidateSnapshotStore }> => {
   const root = await fs.mkdtemp(join(tmpdir(), 'earthnano-candidates-'))
   roots.push(root)
   return {
     root,
     store: await createCandidateSnapshotStore({
       root: join(root, 'store'),
-      candidatesRoot: join(root, 'candidates')
+      candidatesRoot: join(root, 'candidates'),
+      ...(materializeAsset ? { materializeAsset } : {})
     })
   }
 }
@@ -89,6 +94,177 @@ const freeze = async (
 }
 const objectPath = (root: string, digest: string): string =>
   join(root, 'store/objects', `${digest.slice(7)}.json`)
+
+describe('version-bound binary invocation assets', () => {
+  const bytes = Buffer.from([0x89, 0, 0xff, 0x80])
+  const checksum = createHash('sha256').update(bytes).digest('hex')
+  const asset: CandidateContextAsset = {
+    path: 'context/candidates/A/opaque.bin',
+    sourceExecutionId: 'original-execution',
+    artifact: {
+      path: 'data.bin',
+      representation: 'binary',
+      sizeBytes: bytes.length,
+      contentType: 'application/octet-stream',
+      digest: `sha256:${checksum}`,
+      artifactRef: { artifactId: 'artifact', versionId: 'version-1', checksum }
+    }
+  }
+  const withAssets = async (
+    store: CandidateSnapshotStore,
+    refs: CandidateExecutionRefs,
+    assets: readonly CandidateContextAsset[] = [asset]
+  ): Promise<CandidateExecutionRefs> => ({
+    ...refs,
+    invocationRef: await store.freezeInvocation({
+      taskSnapshotRef: refs.taskSnapshotRef,
+      harnessRevisionRef: refs.harnessRevisionRef,
+      mission: input().task.prompt,
+      assets
+    })
+  })
+
+  it('keeps ordinary snapshot bytes while binding asset Version and source identity into invocation', async () => {
+    const { store } = await fixture()
+    const plainRefs = await freeze(store)
+    expect((await store.resolve(plainRefs)).invocation).not.toHaveProperty('assets')
+    const assetRefs = await withAssets(store, plainRefs)
+    expect(assetRefs.taskSnapshotRef).toEqual(plainRefs.taskSnapshotRef)
+    expect(assetRefs.harnessRevisionRef).toEqual(plainRefs.harnessRevisionRef)
+    expect(assetRefs.environmentSpecRef).toEqual(plainRefs.environmentSpecRef)
+    expect(assetRefs.invocationRef).not.toEqual(plainRefs.invocationRef)
+    const otherSource = await withAssets(store, plainRefs, [
+      { ...asset, sourceExecutionId: 'different-execution' }
+    ])
+    expect(otherSource.invocationRef).not.toEqual(assetRefs.invocationRef)
+    const otherVersion = await withAssets(store, plainRefs, [
+      {
+        ...asset,
+        artifact: {
+          ...asset.artifact,
+          artifactRef: { ...asset.artifact.artifactRef, versionId: 'version-2' }
+        }
+      }
+    ])
+    expect(otherVersion.invocationRef).not.toEqual(assetRefs.invocationRef)
+  })
+
+  it('copies exact owner bytes into readonly INPUT with the frozen digest and cancellation signal', async () => {
+    const materializeAsset = vi.fn(async () => ({
+      file: structuredClone(asset.artifact),
+      assetPath
+    }))
+    const { root, store } = await fixture(materializeAsset)
+    const assetPath = join(root, 'owner-asset.bin')
+    await fs.writeFile(assetPath, bytes)
+    const refs = await withAssets(store, await freeze(store))
+    const controller = new AbortController()
+    const value = await store.materialize({
+      executionId: 'binary',
+      refs,
+      signal: controller.signal
+    })
+    const path = join(value.inputDir, asset.path)
+    expect(await fs.readFile(path)).toEqual(bytes)
+    const mode = (await fs.stat(path)).mode
+    if (process.platform === 'win32') expect(mode & 0o222).toBe(0)
+    else expect(mode & 0o777).toBe(0o400)
+    expect(materializeAsset).toHaveBeenCalledExactlyOnceWith(asset, controller.signal)
+    expect(value.manifest).toContainEqual({
+      path: `workspace/inputs/${asset.path}`,
+      digest: asset.artifact.digest,
+      bytes: bytes.length
+    })
+    expect(value.snapshots.task).not.toHaveProperty('assets')
+  })
+
+  it.each(['file', 'turn'] as const)(
+    'rejects assets above the original %s budget before opening any original Version',
+    async (dimension) => {
+      const materializeAsset = vi.fn(async () => {
+        throw new Error('Oversized manifests must not open a Version')
+      })
+      const { root, store } = await fixture(materializeAsset)
+      const large = {
+        ...asset,
+        artifact: {
+          ...asset.artifact,
+          sizeBytes: LOCAL_RESOURCE_BUDGETS.artifactFileBytes + (dimension === 'file' ? 1 : 0)
+        }
+      }
+      const assets =
+        dimension === 'file'
+          ? [large]
+          : [0, 1, 2].map((index) => ({ ...large, path: `context/${index}.bin` }))
+      const refs = await withAssets(store, await freeze(store), assets)
+      await expect(store.materialize({ executionId: 'oversized', refs })).rejects.toThrow(
+        `Local resource ${dimension} budget exceeded`
+      )
+      expect(materializeAsset).not.toHaveBeenCalled()
+      expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+    }
+  )
+
+  it('refuses missing owners, malformed manifests and collisions with ordinary frozen inputs', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const invocation = {
+      taskSnapshotRef: refs.taskSnapshotRef,
+      harnessRevisionRef: refs.harnessRevisionRef,
+      mission: input().task.prompt
+    }
+    for (const assets of [
+      undefined,
+      [],
+      [asset, asset],
+      [{ ...asset, path: '../escape' }],
+      [{ ...asset, path: 'notes.txt' }],
+      [{ ...asset, sourceExecutionId: 'bad\nidentity' }],
+      [{ ...asset, artifact: { ...asset.artifact, content: 'fake bytes' } }]
+    ])
+      await expect(store.freezeInvocation({ ...invocation, assets } as never)).rejects.toThrow()
+    const assetRefs = await withAssets(store, refs)
+    await expect(
+      store.materialize({ executionId: 'missing-owner', refs: assetRefs })
+    ).rejects.toThrow('owner is unavailable')
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+  })
+
+  it.each(['changed-bytes', 'different-Version', 'symlink', 'hardlink', 'cancelled'] as const)(
+    'rejects %s before any native preparation can consume an asset',
+    async (kind) => {
+      let assetPath: string
+      const controller = new AbortController()
+      const callback = vi.fn(async () => {
+        if (kind === 'cancelled') controller.abort(new Error('Stopped asset preparation'))
+        return {
+          file:
+            kind === 'different-Version'
+              ? {
+                  ...asset.artifact,
+                  artifactRef: { ...asset.artifact.artifactRef, versionId: 'other' }
+                }
+              : asset.artifact,
+          assetPath
+        }
+      })
+      const { root, store } = await fixture(callback)
+      const original = join(root, 'owner-original.bin')
+      await fs.writeFile(original, kind === 'changed-bytes' ? Buffer.alloc(bytes.length) : bytes)
+      assetPath = join(root, 'owner-asset.bin')
+      if (kind === 'symlink') await fs.symlink(original, assetPath)
+      else if (kind === 'hardlink') await fs.link(original, assetPath)
+      else assetPath = original
+      const refs = await withAssets(store, await freeze(store))
+      await expect(
+        store.materialize({ executionId: 'rejected', refs, signal: controller.signal })
+      ).rejects.toThrow()
+      await expect(
+        fs.stat(join(root, 'candidates/rejected/workspace/inputs', asset.path))
+      ).rejects.toThrow()
+    }
+  )
+})
 
 describe('candidate immutable references', () => {
   it('freezes actual text and returns verified deeply frozen payloads after callers mutate their inputs', async () => {

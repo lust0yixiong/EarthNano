@@ -82,7 +82,8 @@ export function createClaudeCandidateDriver(
         context.signal.throwIfAborted()
         const materialized = await options.snapshots.materialize({
           executionId: context.executionId,
-          refs: request
+          refs: request,
+          signal: context.signal
         })
         // Preparation includes a bounded native --version probe. A failed probe may have
         // started resources without returning an owner, so its failure is conservatively fenced.
