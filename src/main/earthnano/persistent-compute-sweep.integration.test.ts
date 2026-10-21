@@ -64,7 +64,9 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   const provider = await createEarthnanoMessagesProvider(live, true, false, {
     scientificCompute: true,
     scientificFigure: true,
-    maxModelRequests: 160,
+    // Independent transport ceiling for this full k=2 experiment, including original retries and
+    // both reviewers. It never raises the Core admission budget or resumes a failed experiment.
+    maxModelRequests: 240,
     ...(process.env.EARTHNANO_DEEPSEEK_KEY_FILE
       ? { keyFile: process.env.EARTHNANO_DEEPSEEK_KEY_FILE }
       : {})

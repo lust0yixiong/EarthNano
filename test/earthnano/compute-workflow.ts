@@ -4,6 +4,7 @@ import { chmod, lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from '
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { vi } from 'vitest'
+import sharp from 'sharp'
 import { createComputeExecution } from '@aipoch/compute/node'
 import type { PrismaClient } from '@prisma/client'
 import type { ComputeJob } from '../../src/shared/compute'
@@ -99,9 +100,12 @@ export async function createComputeWorkflowFixture(options: {
 }): Promise<ComputeWorkflowFixture> {
   const { mode, sourcePrompt } = options
   const png = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWOQAAAAASUVORK5CYII=',
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
     'base64'
   )
+  // Validate the fixture with a real decoder before native/provider work. A PNG signature alone
+  // cannot prove its compressed chunks/CRCs are valid for an external image API.
+  await sharp(png).raw().toBuffer()
   const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-compute-workflow-')))
   initDataRoot(root)
   const configRoot = join(root, 'config')

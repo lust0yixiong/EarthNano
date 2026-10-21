@@ -18,7 +18,7 @@ import { FileExecutionStore } from './execution-store'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
 
 const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWOQAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
   'base64'
 )
 type Block = { type: string; name?: string; content?: unknown; input?: Record<string, unknown> }
