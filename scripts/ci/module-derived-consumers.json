@@ -3151,7 +3151,9 @@
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx",
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx",
-      "src/shared/earthnano/notebook-source.test.ts"
+      "src/shared/earthnano/notebook-source.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts"
     ],
     "package_literature_discovery": [
       "src/main/acp/artifact-publication-recovery.integration.test.ts",
@@ -3264,7 +3266,9 @@
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx",
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx",
-      "src/shared/earthnano/notebook-source.test.ts"
+      "src/shared/earthnano/notebook-source.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts"
     ],
     "package_literature_reading": [
       "src/main/literature/full-text-index-storage.test.ts",
@@ -3756,7 +3760,9 @@
       "src/renderer/src/lib/literature-renderer-host.test.ts",
       "src/renderer/src/pages/literature/renderer-host.test.tsx",
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
-      "src/shared/earthnano/notebook-source.test.ts"
+      "src/shared/earthnano/notebook-source.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts"
     ],
     "project_database": [
       "src/main/acp/artifact-publication-recovery.integration.test.ts",
@@ -4004,7 +4010,9 @@
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx",
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx",
-      "src/shared/earthnano/notebook-source.test.ts"
+      "src/shared/earthnano/notebook-source.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts"
     ],
     "renderer_acp": [
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx"
@@ -5190,7 +5198,9 @@
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx",
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx",
-      "src/shared/earthnano/notebook-source.test.ts"
+      "src/shared/earthnano/notebook-source.test.ts",
+      "src/shared/earthnano/optimization-preview.test.ts",
+      "src/shared/earthnano/optimization-sweep.test.ts"
     ],
     "skill_runtime_transport": [
       "src/main/acp/artifact-publication-recovery.integration.test.ts",

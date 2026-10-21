@@ -363,7 +363,7 @@ export async function createEarthnanoMessagesProvider(
             language: scientificLanguage,
             code:
               scientificLanguage === 'r'
-                ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(jsonlite::toJSON(report, auto_unbox=TRUE, digits=NA))`
+                ? `values <- utils::read.csv(${JSON.stringify(source.notebookPath)}, check.names=FALSE)$value\nreport <- list(count=length(values), sum=sum(values), mean=mean(values))\njsonlite::write_json(report, 'research-results.json', auto_unbox=TRUE, digits=NA)\nprint(report)`
                 : `import csv, statistics, json\nfrom pathlib import Path\nwith open(${JSON.stringify(source.notebookPath)}, newline='', encoding='utf-8') as source:\n    values = [float(row['value']) for row in csv.DictReader(source)]\nreport = dict(count=len(values), sum=sum(values), mean=statistics.mean(values))\nPath('research-results.json').write_text(json.dumps(report), encoding='utf-8')\nprint(json.dumps(report))`
           })
         }

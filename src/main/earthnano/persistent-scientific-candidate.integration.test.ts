@@ -25,12 +25,26 @@ import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
-import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
+import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
+import { notebookToolsForLanguage } from '../../shared/earthnano/notebook-profile'
 
 configureTestRuntimeMetadata()
-it.skipIf(process.platform === 'win32' || !process.env.EARTHNANO_RESEARCH_PYTHON)(
-  'runs the original Python MCP and producer owners against an old fixed source Version in one Core',
-  async () => {
+it.skipIf(process.platform === 'win32').for([
+  {
+    notebookLanguage: 'python' as const,
+    displayLanguage: 'Python',
+    runtimeCommand: process.env.EARTHNANO_RESEARCH_PYTHON
+  },
+  {
+    notebookLanguage: 'r' as const,
+    displayLanguage: 'R',
+    runtimeCommand: process.env.EARTHNANO_RESEARCH_R
+  }
+])(
+  'runs the original $displayLanguage MCP and producer owners against an old fixed source Version in one Core',
+  { timeout: 120_000 },
+  async ({ notebookLanguage, displayLanguage, runtimeCommand }, context) => {
+    if (!runtimeCommand) return context.skip()
     const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-scientific-')))
     // Launch the original source MCP entry points from ordinary Node. The desktop production
     // bundle is Electron-owned and its entry must not be imported as an ordinary Node program.
@@ -127,9 +141,9 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       })
     })
     const settings = new NotebookRuntimeSettingsModule(new SettingsRepository(configRoot))
-    const python = await realpath(process.env.EARTHNANO_RESEARCH_PYTHON ?? '/usr/bin/python3')
-    await settings.addManualInterpreter('python', python)
-    await settings.setEnvironmentEnabled('python', python, true)
+    const interpreter = await realpath(runtimeCommand)
+    await settings.addManualInterpreter(notebookLanguage, interpreter)
+    await settings.setEnvironmentEnabled(notebookLanguage, interpreter, true)
     const notebook = new NotebookRuntimeService({
       configRoot,
       dataRoot: root,
@@ -172,7 +186,9 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       getClient: async () => client,
       notebook: { service: notebook, rpc, mcpEntryPath }
     })
-    const provider = await createEarthnanoMessagesProvider(false)
+    const provider = await createEarthnanoMessagesProvider(false, true, false, {
+      scientificLanguage: notebookLanguage
+    })
     // The cleanup is registered before native execution; optional access covers initialization failure.
     let disposeCore = (): void => undefined
     onTestFinished(async () => {
@@ -195,7 +211,12 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     })
     const binding = (
       await notebook.listRuntimes({ projectId, sessionId: sourceSessionId, workspaceCwd: root })
-    ).runtimes.find((entry) => entry.runtimeId === python)!
+    ).runtimes.find((entry) => entry.runtimeId === interpreter)!
+    expect(binding).toMatchObject({
+      language: notebookLanguage,
+      runtimeId: interpreter,
+      runnable: true
+    })
     const {
       language,
       runtimeId,
@@ -211,15 +232,16 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     const refs = await snapshots.freeze({
       task: {
         prompt:
-          'Use csv and statistics to compute count, sum and mean for measurements.csv and publish research-results.json.',
+          notebookLanguage === 'r'
+            ? 'Use read.csv and base R to compute count, sum and mean for measurements.csv and publish research-results.json.'
+            : 'Use csv and statistics to compute count, sum and mean for measurements.csv and publish research-results.json.',
         files: [],
         managedInputs: [managedInput]
       },
       harness: {
-        instructions:
-          'Analyze the original fixed input with Notebook Python; publish a real producer report.',
+        instructions: `Analyze the original fixed input with Notebook ${displayLanguage}; publish a real producer report.`,
         skills: [],
-        tools: 'notebook-python'
+        tools: notebookToolsForLanguage(notebookLanguage)
       },
       agent: {
         backend: 'claude-code',
@@ -232,7 +254,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
         network: 'provider-and-notebook-policy',
         notebook: {
           runtime: {
-            language: language as 'python',
+            language,
             runtimeId,
             source: runtimeSource,
             provenance: runtimeProvenance,
@@ -245,7 +267,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     const invocationRef = await snapshots.freezeInvocation({
       taskSnapshotRef: refs.taskSnapshotRef,
       harnessRevisionRef: refs.harnessRevisionRef,
-      mission: 'Compute the scientific task using the original Python tools.'
+      mission: `Compute the scientific task using the original ${displayLanguage} tools.`
     })
     const request: ExecutionRequest = {
       contractVersion: 1,
@@ -287,15 +309,95 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       })
     )
     disposeCore = () => core.dispose()
-    core.configureBudget(projectId, request.budgetRef, 1)
+    core.configureBudget(projectId, request.budgetRef, notebookLanguage === 'r' ? 2 : 1)
+    let baseline: ExecutionRecord | undefined
+    if (notebookLanguage === 'r') {
+      const baselineHandle = await core.submit({
+        ...request,
+        role: 'baseline',
+        requestKey: 'scientific-baseline',
+        origin: { ...request.origin, stageId: 'baseline' }
+      })
+      baseline = await core.waitForTerminal(baselineHandle.executionId)
+      expect(baseline, JSON.stringify(baseline)).toMatchObject({
+        phase: 'completed',
+        cleanup: 'confirmed'
+      })
+      expect(baseline.request).toMatchObject({
+        ...refs,
+        invocationRef,
+        role: 'baseline'
+      })
+    }
     const handle = await core.submit(request)
     const record = await core.waitForTerminal(handle.executionId)
     expect(record, JSON.stringify(record)).toMatchObject({
       phase: 'completed',
       cleanup: 'confirmed'
     })
-    expect(Object.keys(state.records)).toEqual([record.executionId])
-    expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    if (notebookLanguage === 'python') {
+      expect(Object.keys(state.records)).toEqual([record.executionId])
+      expect(Object.values(state.budgets)).toEqual([{ limit: 1, admitted: 1 }])
+    } else {
+      expect(Object.keys(state.records)).toEqual([baseline!.executionId, record.executionId])
+      expect(Object.values(state.budgets)).toEqual([{ limit: 2, admitted: 2 }])
+      expect(baseline!.identity.sessionId).not.toBe(record.identity.sessionId)
+      expect(baseline!.identity.promptMessageId).not.toBe(record.identity.promptMessageId)
+      expect(baseline!.identity.runtimeExecutionId).not.toBe(record.identity.runtimeExecutionId)
+      expect(baseline!.identity.sessionId).not.toBe(sourceSessionId)
+      expect(record.identity.sessionId).not.toBe(sourceSessionId)
+      expect((await owners.exportResult(baseline!)).files.map((file) => file.content)).toEqual(
+        (await owners.exportResult(record)).files.map((file) => file.content)
+      )
+      const baselineRuns = await new NotebookRunRepository(root).readSessionRuns(
+        projectId,
+        baseline!.identity.sessionId!
+      )
+      expect(baselineRuns).toHaveLength(1)
+      expect(baselineRuns[0]).toMatchObject({
+        kernelKind: 'r',
+        status: 'completed',
+        executionInvocationId: expect.any(String),
+        inputFiles: [expect.objectContaining(managedInput)]
+      })
+      expect(baseline!.evidence.artifacts).toHaveLength(1)
+      const baselineVersion = await client.artifactVersion.findUniqueOrThrow({
+        where: { id: baseline!.evidence.artifacts[0].versionId }
+      })
+      expect(baselineVersion).toMatchObject({
+        producerRunId: baselineRuns[0].runId,
+        notebookSessionId: baseline!.identity.sessionId,
+        promptMessageId: baseline!.identity.promptMessageId,
+        filename: 'research-results.json',
+        state: 'finalized'
+      })
+      expect(baselineRuns[0].frozenRuntimeTarget).toMatchObject({
+        language,
+        runtimeId,
+        source: runtimeSource,
+        interpreterPath
+      })
+      expect(
+        (
+          await notebook.listRuntimes({
+            projectId,
+            sessionId: baseline!.identity.sessionId!,
+            workspaceCwd: root
+          })
+        ).bindings[notebookLanguage]
+      ).toMatchObject({
+        language,
+        runtimeId,
+        source: runtimeSource,
+        provenance: runtimeProvenance,
+        interpreterPath,
+        ...(version ? { version } : {})
+      })
+      expect(baselineRuns[0].runtimeId ?? baselineRuns[0].frozenRuntimeTarget?.runtimeId).toBe(
+        runtimeId
+      )
+      expect(baselineRuns[0].promptMessageId).toBe(baseline!.identity.promptMessageId)
+    }
     expect(record.evidence.artifacts).toHaveLength(1)
     const result = await owners.exportResult(record)
     expect(JSON.parse(result.files[0].content)).toEqual({ count: 3, sum: 12, mean: 4 })
@@ -305,19 +407,106 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     )
     expect(runs).toHaveLength(1)
     expect(runs[0]).toMatchObject({
-      kernelKind: 'python',
+      kernelKind: notebookLanguage,
       status: 'completed',
       executionInvocationId: expect.any(String),
       inputFiles: [expect.objectContaining(managedInput)]
     })
+    expect(runs[0].runtimeId ?? runs[0].frozenRuntimeTarget?.runtimeId).toBe(runtimeId)
+    expect(runs[0].frozenRuntimeTarget).toMatchObject({
+      language,
+      runtimeId,
+      source: runtimeSource,
+      interpreterPath
+    })
+    expect(
+      (
+        await notebook.listRuntimes({
+          projectId,
+          sessionId: record.identity.sessionId!,
+          workspaceCwd: root
+        })
+      ).bindings[notebookLanguage]
+    ).toMatchObject({
+      language,
+      runtimeId,
+      source: runtimeSource,
+      provenance: runtimeProvenance,
+      interpreterPath,
+      ...(version ? { version } : {})
+    })
+    expect(runs[0].promptMessageId).toBe(record.identity.promptMessageId)
+    if (baseline) {
+      const prior = await client.artifactVersion.findUniqueOrThrow({
+        where: { id: baseline.evidence.artifacts[0].versionId }
+      })
+      expect(prior.producerRunId).not.toBe(runs[0].runId)
+    }
     const versionRow = await client.artifactVersion.findUniqueOrThrow({
       where: { id: record.evidence.artifacts[0].versionId }
     })
-    expect(versionRow.producerRunId).toBe(runs[0].runId)
-    expect(versionRow.filename).toBe('research-results.json')
+    expect(versionRow).toMatchObject({
+      producerRunId: runs[0].runId,
+      notebookSessionId: record.identity.sessionId,
+      promptMessageId: record.identity.promptMessageId,
+      filename: 'research-results.json',
+      state: 'finalized'
+    })
+    for (const target of baseline ? [baseline, record] : [record]) {
+      const inputs = await client.artifactVersionInput.findMany({
+        where: { artifactVersionId: target.evidence.artifacts[0].versionId }
+      })
+      expect(
+        inputs,
+        JSON.stringify({
+          role: target.request.role,
+          notebookRuns: await new NotebookRunRepository(root).readSessionRuns(
+            projectId,
+            target.identity.sessionId!
+          )
+        })
+      ).toHaveLength(1)
+      expect(inputs[0]).toMatchObject({
+        sourceKind: 'upload-version',
+        inputFileVersionId: managedInput.inputFileVersionId,
+        sourceUploadVersionId: managedInput.inputFileVersionId,
+        sourceProjectId: projectId,
+        sourceSessionId,
+        sourceFileId: fixed.id,
+        checksum: managedInput.checksum,
+        sizeBytes: BigInt(managedInput.sizeBytes)
+      })
+    }
     expect(
-      await client.uploadFile.count({ where: { sessionId: record.identity.sessionId! } })
-    ).toBe(0)
+      (await client.uploadFile.findUniqueOrThrow({ where: { id: fixed.id } })).currentVersionId
+    ).toBe(later.versionId)
+    const frozen = await snapshots.resolve(request)
+    const expectedPrompt = `${frozen.task.prompt}\n\n${frozen.invocation.mission}\n\n${
+      notebookLanguage === 'r'
+        ? 'Use the bound R Notebook (execute with explicit language:r)'
+        : 'Use the bound Python Notebook'
+    } and the fixed Notebook input versions listed below. Publish bounded textual reports with write_artifact_file and the real producerRunId. The host has pinned the runtime; do not bind or switch it, install packages, use Shell or start background work.`
+    const readPrompt = async (target: ExecutionRecord): Promise<string | undefined> => {
+      const persisted = await loadSessionMutationAuthority(
+        sessions,
+        projectId,
+        target.identity.sessionId!
+      )
+      expect(persisted.status).toBe('found')
+      if (persisted.status !== 'found') throw new Error('Scientific Session is unavailable')
+      return persisted.session.messages.find(
+        (message) => message.id === target.identity.promptMessageId
+      )?.content
+    }
+    // Python is the original owner-composed prompt byte for byte. Both R roles receive the
+    // same task/mission and explicit R requirement through their independent original Sessions.
+    expect(await readPrompt(record)).toBe(expectedPrompt)
+    if (baseline) expect(await readPrompt(baseline)).toBe(expectedPrompt)
+    for (const target of baseline ? [baseline, record] : [record]) {
+      expect(
+        await client.uploadFile.count({ where: { sessionId: target.identity.sessionId! } })
+      ).toBe(0)
+    }
     const sourceEvidence = await owners.readSemanticSourceEvidence({ target: record, snapshots })
     expect(sourceEvidence.inputs).toHaveLength(1)
     expect(sourceEvidence.inputs[0].status).toBe('available')
@@ -326,7 +515,34 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       status: 'available',
       content
     })
-    expect((await owners.readReviews(record))[0].outcome).toBe('pass')
+    const reviews = await owners.readReviews(record)
+    expect(reviews).toHaveLength(1)
+    expect(reviews[0]).toMatchObject({
+      outcome: 'pass',
+      sessionId: record.identity.sessionId,
+      turnMessageId: record.identity.promptMessageId
+    })
+    const baselineSourceEvidence = baseline
+      ? await owners.readSemanticSourceEvidence({ target: baseline, snapshots })
+      : undefined
+    const baselineReviews = baseline ? await owners.readReviews(baseline) : undefined
+    const baselineResult = baseline ? await owners.exportResult(baseline) : undefined
+    if (baseline) {
+      expect(baselineSourceEvidence).toEqual(sourceEvidence)
+      expect(baselineReviews).toHaveLength(1)
+      expect(baselineReviews![0]).toMatchObject({
+        outcome: 'pass',
+        sessionId: baseline.identity.sessionId,
+        turnMessageId: baseline.identity.promptMessageId
+      })
+      expect(baselineReviews![0].id).not.toBe(reviews[0].id)
+      expect(baseline.evidence.artifacts[0].artifactId).not.toBe(
+        record.evidence.artifacts[0].artifactId
+      )
+      expect(baseline.evidence.artifacts[0].versionId).not.toBe(
+        record.evidence.artifacts[0].versionId
+      )
+    }
     const calls = provider.stats.requests
     expect(await owners.shutdown()).toEqual({ reaped: true })
     owners = createPersistentCandidateOwners({
@@ -345,13 +561,22 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       sourceEvidence
     )
     expect((await owners.exportResult(record)).files).toEqual(result.files)
+    expect(await owners.readReviews(record)).toEqual(reviews)
+    expect(await readPrompt(record)).toBe(expectedPrompt)
+    if (baseline) {
+      expect(await owners.readSemanticSourceEvidence({ target: baseline, snapshots })).toEqual(
+        baselineSourceEvidence
+      )
+      expect((await owners.exportResult(baseline)).files).toEqual(baselineResult!.files)
+      expect(await owners.readReviews(baseline)).toEqual(baselineReviews)
+      expect(await readPrompt(baseline)).toBe(expectedPrompt)
+    }
     expect(provider.stats.requests).toBe(calls)
 
-    const frozen = await snapshots.resolve(request)
     for (const scenario of ['tampered-source', 'changed-runtime', 'disabled-runtime'] as const) {
       if (scenario === 'disabled-runtime')
         await settings.setEnvironmentEnabled(
-          'python',
+          notebookLanguage,
           frozen.environment.notebook!.runtime.runtimeId,
           false
         )
@@ -367,7 +592,10 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
             ? {
                 ...frozen.environment,
                 notebook: {
-                  runtime: { ...frozen.environment.notebook!.runtime, version: '0.0.0-unavailable' }
+                  runtime: {
+                    ...frozen.environment.notebook!.runtime,
+                    version: '0.0.0-unavailable'
+                  }
                 }
               }
             : frozen.environment
@@ -387,13 +615,15 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       core.configureBudget(projectId, scenario, 1)
       const beforeReject = provider.stats.requests
       const rejectedHandle = await core.submit(rejection)
-      expect(await core.waitForTerminal(rejectedHandle.executionId)).toMatchObject({
+      const rejected = await core.waitForTerminal(rejectedHandle.executionId)
+      expect(rejected).toMatchObject({
         phase: 'failed',
         cleanup: 'confirmed',
         error: { code: 'candidate-preparation-failed' }
       })
+      expect(rejected.evidence.artifacts).toEqual([])
       expect(provider.stats.requests).toBe(beforeReject)
     }
-  },
-  120_000
+    expect(provider.stats.upstreamRequests).toBe(0)
+  }
 )
