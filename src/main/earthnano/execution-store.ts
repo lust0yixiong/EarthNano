@@ -101,12 +101,24 @@ export class FileExecutionStore implements ExecutionStore {
         closeSync(fd)
       }
       renameSync(temp, this.filename)
-      // fsync the directory on supported POSIX hosts. This local implementation targets those hosts.
-      const directory = openSync(dirname(this.filename), 'r')
       try {
-        fsyncSync(directory)
-      } finally {
-        closeSync(directory)
+        const directory = openSync(dirname(this.filename), 'r')
+        try {
+          fsyncSync(directory)
+        } finally {
+          closeSync(directory)
+        }
+      } catch (error) {
+        // Match the pinned durable-files policy: Node cannot open/flush Windows directories.
+        // The payload above is always flushed; all other failures retain the durability barrier.
+        if (
+          process.platform !== 'win32' ||
+          typeof error !== 'object' ||
+          error === null ||
+          !('code' in error) ||
+          !['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'].includes(String(error.code))
+        )
+          throw error
       }
     } finally {
       if (existsSync(temp)) unlinkSync(temp)
