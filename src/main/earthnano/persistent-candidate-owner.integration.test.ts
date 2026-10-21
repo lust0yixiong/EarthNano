@@ -21,6 +21,8 @@ import { UploadRepository } from '../uploads/repository'
 import { createCandidateSnapshotStore } from './candidate-snapshot'
 import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { createPersistentCandidateOwners } from './persistent-candidate-owner'
+import { createDesktopCandidateOwnerRouting } from './desktop-candidate-owner-routing'
+import { routeCandidateContinuations } from '../composition/background-results'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
 import type { ExecutionRecord, ExecutionRequest } from '../../shared/earthnano/execution-port'
 import type { OutputCheckSpec } from '../../shared/earthnano/research-outcome'
@@ -107,6 +109,7 @@ it
   .skipIf(process.platform === 'win32')
   .each([
     'original',
+    'non-compute-routing',
     'shared-session-hydration',
     'pre-admission-rejection',
     'six-outputs-and-skills',
@@ -395,7 +398,67 @@ it
             apiEndpoints: ['messages']
           }
         }),
-        openOwner: owners.openOwner,
+        openOwner: async (input) => {
+          const owner = await owners.openOwner(input)
+          if (scenario !== 'non-compute-routing') return owner
+          const prepare = owner.preparePlan
+          const shutdown = owner.shutdown
+          let assertRetired: (() => Promise<void>) | undefined
+          owner.preparePlan = async () => {
+            const plan = await prepare()
+            const sessionId = plan.prompt.sessionId
+            const privateSessions = vi.fn(async () => new Set([sessionId]))
+            const routing = createDesktopCandidateOwnerRouting(privateSessions)
+            const release = routing.onOwnersReady(owners)
+            const ordinary = {
+              sendContinuation: vi.fn(),
+              isContinuationSaved: vi.fn(async () => false),
+              canStartSessionTurn: vi.fn(async () => true)
+            }
+            const routed = routeCandidateContinuations(ordinary, routing.resolveCandidateDelivery)
+            const binding = {
+              projectId: input.request.projectId,
+              sessionId,
+              agentFrameId: 'ordinary-frame',
+              executionCwd: input.materialized.cwd
+            }
+            // A real factory without Compute services must be recognized before the cold index.
+            await expect(routing.resolveControlPolicy(binding)).resolves.toBeUndefined()
+            expect(privateSessions).not.toHaveBeenCalled()
+            expect(await routing.resolveCandidateDelivery(sessionId)).toEqual({
+              kind: 'private-unavailable'
+            })
+            const delivery = {
+              sessionId,
+              deliveryIds: ['not-a-compute-delivery'],
+              continuationMessageId: 'no-ordinary-fallback'
+            }
+            expect(await routed.canStartSessionTurn(sessionId)).toBe(false)
+            await expect(routed.isContinuationSaved(delivery)).rejects.toThrow('unavailable')
+            const dispatch = routed.sendContinuation({
+              ...delivery,
+              text: 'unowned'
+            })
+            await expect(dispatch.admitted).rejects.toThrow('unavailable')
+            await expect(dispatch.result).rejects.toThrow('unavailable')
+            for (const callback of Object.values(ordinary)) expect(callback).not.toHaveBeenCalled()
+            assertRetired = async () => {
+              await expect(routing.resolveControlPolicy(binding)).rejects.toThrow('unavailable')
+              expect(await routing.resolveCandidateDelivery(sessionId)).toEqual({
+                kind: 'private-unavailable'
+              })
+              expect(privateSessions).not.toHaveBeenCalled()
+              release?.()
+            }
+            return plan
+          }
+          owner.shutdown = async () => {
+            const result = await shutdown()
+            if (result.reaped) await assertRetired?.()
+            return result
+          }
+          return owner
+        },
         ...(scenario === 'original'
           ? {
               ownerSettled: async (settlement) => {

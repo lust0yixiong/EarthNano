@@ -2410,38 +2410,34 @@ export function createPersistentCandidateOwners(
   }
   return {
     openOwner,
-    ...(options.compute
-      ? {
-          resolveCandidateDelivery: async (sessionId: string) => {
-            const owned = privateCompute.get(sessionId)
-            return !owned
-              ? knownPrivateSessions.has(sessionId)
-                ? { kind: 'private-unavailable' as const }
-                : { kind: 'ordinary' as const }
-              : !owned.available()
-                ? { kind: 'private-unavailable' as const }
-                : { kind: 'private' as const, target: owned.target }
-          },
-          resolveControlPolicy: async (
-            binding: Parameters<NonNullable<PersistentCandidateOwners['resolveControlPolicy']>>[0]
-          ) => {
-            const owned = privateCompute.get(binding.sessionId)
-            if (!owned) {
-              const runtime = knownPrivateSessions.get(binding.sessionId)
-              if (
-                !runtime ||
-                (!closing &&
-                  !shutdowns.has(runtime) &&
-                  runtime.hasLiveSession(binding.projectId, binding.sessionId))
-              )
-                return undefined
-              throw new Error('Private control owner is unavailable')
-            }
-            if (!owned.available()) throw new Error('Private Compute control owner is unavailable')
-            return owned.policy(binding)
-          }
-        }
-      : {}),
+    resolveCandidateDelivery: async (sessionId: string) => {
+      const owned = privateCompute.get(sessionId)
+      return !owned
+        ? knownPrivateSessions.has(sessionId)
+          ? { kind: 'private-unavailable' as const }
+          : { kind: 'ordinary' as const }
+        : !owned.available()
+          ? { kind: 'private-unavailable' as const }
+          : { kind: 'private' as const, target: owned.target }
+    },
+    resolveControlPolicy: async (
+      binding: Parameters<NonNullable<PersistentCandidateOwners['resolveControlPolicy']>>[0]
+    ) => {
+      const owned = privateCompute.get(binding.sessionId)
+      if (!owned) {
+        const runtime = knownPrivateSessions.get(binding.sessionId)
+        if (
+          !runtime ||
+          (!closing &&
+            !shutdowns.has(runtime) &&
+            runtime.hasLiveSession(binding.projectId, binding.sessionId))
+        )
+          return undefined
+        throw new Error('Private control owner is unavailable')
+      }
+      if (!owned.available()) throw new Error('Private Compute control owner is unavailable')
+      return owned.policy(binding)
+    },
     readSemanticSourceEvidence,
     materializeArtifact,
     async exportResult(record: ExecutionRecord): Promise<PersistentCandidateResult> {
