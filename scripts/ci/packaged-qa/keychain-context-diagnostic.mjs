@@ -192,7 +192,7 @@ if (process.argv[2] !== "--after-original-wrapper-seed") {
     false,
   );
   assert.equal(isolated.HOME, join(testRoot, "isolated home"));
-  await mkdir(isolated.HOME);
+  // The original fixture does not create HOME before launch; preserve that initial state.
   await save(join(output, "original-fixture-function.json"), {
     path: "e2e/fixtures/electron-app.ts",
     sourceSha256: sha(fixture),
@@ -217,6 +217,15 @@ if (process.argv[2] !== "--after-original-wrapper-seed") {
       name,
       environment: safeEnvironment(env),
       pathSha256: sha(env.PATH ?? ""),
+      homePathExistsAtProbeStart: env.HOME
+        ? await lstat(env.HOME).then(
+            () => true,
+            (error) => {
+              if (error.code === "ENOENT") return false;
+              throw error;
+            },
+          )
+        : null,
       commands: [],
     };
     const search = spawnSync(
