@@ -8,6 +8,8 @@
 
 0.1 最终发布时，安装包清单与更新 feed 也须显式使用 macOS/Linux 范围；现存上游 stable 发布工具的五目标默认保留，不可直接用于本版，也不能把缺少已延期 Windows 包当作未完成四目标验收。范围调整的本地检查见 [CI 证据](validation/alpha/unix-0.1-ci/manifest.json)，当前尚未公开发布。
 
+最终候选已合入 Compute 与 PR21 的 Unix 发布范围修改，代码合并点 `9815ac08e`；仅解决本队列文档冲突，原业务与 workflow 未额外改动。四套发布 helper 130/130、完整 types/lint 通过；[原始集成证据](validation/alpha/final-release-integration/manifest.json)。这不代替最终 head 的托管源码对照、四个平台实际安装包及发布；Windows 仍延期 0.2。
+
 Compute 已接入原任务目录、固定来源、私有 Session、多 Turn producer、逐 Turn Review、桌面与冷启动路由。原完整服务链离线 k=2 通过；实际 DeepSeek 第五次实验沿原 manager 恢复后完成 22/24、8 Job、累计 156/240 模型请求，独立评估 88/92 pass、产物 passed。原方法18次执行/既有Job未重提；干净提交8ec对完成实例复核1/1，零模型/运输调用。原反思缺闭合标签，原 parser 正确不保留 Library entry；离线正向 Library、失败工具后修正、24个真实 producer/Version 仍验证。全部先前模型、身份和验收断言失败保留；外部连接/加密器仍为协议 fixture，不能据此声称外部 SSH、科学提升或完整GUI/发布包通过。普通 Python/R 原路由与 unknown 锁边界保持。当前 head Unix 对照、堆叠 PR 审查与最终四目标包待完成；原 hosted 失败和模块登记修复已核对。当前范围见 [Compute 契约](ALPHA_COMPUTE_CONTRACT.md)，原始红绿见 [服务链验证](validation/alpha/compute-original-workflow/manifest.json)。
 
 发布准备工具现已支持在原 manifest generator 和认证聚合器中显式传入 `--platforms mac,linux`：仍检查六项安装器、两份 Mac 更新 ZIP、三份 feed 和四个平台的同源认证；范围外文件及引用直接拒绝。独立审查发现的 URL 后缀分类缺口已有四例真实字节 fixture 复现并修复，四套检查最终 130/130、完整 compiled types/lint 通过，见 [原始证据与限制](validation/alpha/unix-0.1-release/manifest.json)。这仅完成发布工具准备，未启用发布工作流或上传安装包。归档中另有旧 CI 源 `c1e663279` 的 Mac ARM64 DMG/ZIP 原脚本本机启动检查，不能替代最终融合提交的四目标原生验收。

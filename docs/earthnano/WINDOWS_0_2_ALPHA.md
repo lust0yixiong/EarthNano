@@ -27,6 +27,8 @@
 
 通用 CI 路径/UTF-8/测试分类修复 `171e0127070baf56aec206836815db362f2bdb5e` 同时关系 macOS 的严格对照，单独保留在 0.1 分支；其余 Windows 专项尝试不因延期而删除，也不作为本版交付内容。
 
+原 `ci/earthnano-native` 的 Windows 诊断 tip `f6329ed8cf5993a9b8a807b393b7640c395b42cd` 已完整保存到 [archive/alpha-windows-native-20261021](https://github.com/lust0yixiong/EarthNano/tree/archive/alpha-windows-native-20261021)。原生验证分支后续只指向本版最终 Unix 候选；保留旧 tip 不会执行 Windows 任务。
+
 ## 0.2-Alpha 恢复清单
 
 1. 核对保留提交与届时固定上游差异，先审查未验证诊断 helper；不要直接合并整条试验分支。
