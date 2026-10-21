@@ -1,6 +1,18 @@
 import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate-owner-ports'
 import { createRequire } from 'node:module'
-import { chmod, lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -46,11 +58,22 @@ it.skipIf(process.platform === 'win32').for([
     notebookLanguage: 'r' as const,
     displayLanguage: 'R',
     runtimeCommand: process.env.EARTHNANO_RESEARCH_R
+  },
+  {
+    notebookLanguage: 'r' as const,
+    displayLanguage: 'R binary',
+    runtimeCommand: process.env.EARTHNANO_RESEARCH_R,
+    scientificBinary: true
   }
 ])(
   'runs the original $displayLanguage MCP and producer owners against an old fixed source Version in one Core',
   { timeout: 120_000 },
-  async ({ notebookLanguage, displayLanguage, runtimeCommand }, context) => {
+  async (scenario, context) => {
+    const { notebookLanguage, displayLanguage, runtimeCommand } = scenario
+    const scientificBinary = 'scientificBinary' in scenario && scenario.scientificBinary
+    const evidenceDirectory = scientificBinary
+      ? process.env.EARTHNANO_BINARY_SCIENTIFIC_EVIDENCE_DIR
+      : undefined
     if (!runtimeCommand) return context.skip()
     const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-scientific-')))
     // Launch the original source MCP entry points from ordinary Node. The desktop production
@@ -90,14 +113,23 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       updatedAt: 1
     })
     const uploads = new UploadRepository(root, { getClient: async () => client })
-    const source = join(root, 'measurements.csv'),
-      content = 'sample,value\na,2\nb,4\nc,6\n'
-    await writeFile(source, content)
+    const sourceName = scientificBinary ? 'measurements.rds' : 'measurements.csv'
+    const sourceMime = scientificBinary ? 'application/octet-stream' : 'text/csv'
+    const source = join(root, sourceName)
+    let content: string | Buffer = 'sample,value\na,2\nb,4\nc,6\n'
+    if (scientificBinary) {
+      execFileSync(runtimeCommand, [
+        '--vanilla',
+        '-e',
+        `saveRDS(c(2,4,6), ${JSON.stringify(source)}, version=2)`
+      ])
+      content = await readFile(source)
+    } else await writeFile(source, content)
     const upload = await uploads.stageLocalFile({
       transferId: 'source-upload',
       sourcePath: source,
-      name: 'measurements.csv',
-      mimeType: 'text/csv',
+      name: sourceName,
+      mimeType: sourceMime,
       size: Buffer.byteLength(content)
     })
     const [fixed] = await uploads.finalizePendingSessionUploads(
@@ -123,13 +155,21 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     // Seed a later head through original immutable upload byte ingestion. CSV is intentionally
     // not an editable text extension; the fixture moves the second immutable Version into the
     // original logical file to model a later source revision without changing old bytes.
-    await writeFile(source, 'sample,value\nchanged,999\n')
+    let laterContent: string | Buffer = 'sample,value\nchanged,999\n'
+    if (scientificBinary) {
+      execFileSync(runtimeCommand, [
+        '--vanilla',
+        '-e',
+        `saveRDS(999, ${JSON.stringify(source)}, version=2)`
+      ])
+      laterContent = await readFile(source)
+    } else await writeFile(source, laterContent)
     const stagedLater = await uploads.stageLocalFile({
       transferId: 'later-source',
       sourcePath: source,
-      name: 'measurements.csv',
-      mimeType: 'text/csv',
-      size: Buffer.byteLength('sample,value\nchanged,999\n')
+      name: sourceName,
+      mimeType: sourceMime,
+      size: Buffer.byteLength(laterContent)
     })
     const [later] = await uploads.finalizePendingSessionUploads(
       sourceSessionId,
@@ -170,15 +210,34 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
         return value.session
       }
     })
+    const inputAuthority = new ImmutableInputAuthority({
+      storageRoot: root,
+      managedFileVersions: versions
+    })
+    const stagedInputEvidence: Array<{
+      sessionId: string
+      path: string
+      checksum: string
+      size: number
+    }> = []
+    if (scientificBinary) {
+      const originalStage = inputAuthority.stageContent.bind(inputAuthority)
+      vi.spyOn(inputAuthority, 'stageContent').mockImplementation(async (...args) => {
+        const path = await originalStage(...args)
+        const bytes = await readFile(path)
+        expect(bytes).toEqual(content)
+        const checksum = createHash('sha256').update(bytes).digest('hex')
+        expect(checksum).toBe(managedInput.checksum)
+        stagedInputEvidence.push({ sessionId: args[1], path, checksum, size: bytes.length })
+        return path
+      })
+    }
     const rpc = new NotebookLocalRpcServer(notebook, {
       transport: 'tcp',
       artifactProvenance: provenance,
       inputRegistry: new NotebookInputRegistry({
         storageRoot: root,
-        inputAuthority: new ImmutableInputAuthority({
-          storageRoot: root,
-          managedFileVersions: versions
-        })
+        inputAuthority
       })
     })
     let owners = createPersistentCandidateOwners({
@@ -191,10 +250,12 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       dataRoot: root,
       configRoot,
       getClient: async () => client,
-      notebook: { service: notebook, rpc, mcpEntryPath }
+      notebook: { service: notebook, rpc, mcpEntryPath },
+      ...(scientificBinary ? { artifactProjectionRoot: join(root, 'artifact-projections') } : {})
     })
     const provider = await createEarthnanoMessagesProvider(false, true, false, {
-      scientificLanguage: notebookLanguage
+      scientificLanguage: notebookLanguage,
+      ...(scientificBinary ? { scientificBinary: true } : {})
     })
     // The cleanup is registered before native execution; optional access covers initialization failure.
     let disposeCore = (): void => undefined
@@ -238,8 +299,9 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     })
     const refs = await snapshots.freeze({
       task: {
-        prompt:
-          notebookLanguage === 'r'
+        prompt: scientificBinary
+          ? 'Use readRDS and base R to compute count, sum and mean for the fixed measurements.rds and publish research-results.json plus measurements.png using the real Notebook producer.'
+          : notebookLanguage === 'r'
             ? 'Use read.csv and base R to compute count, sum and mean for measurements.csv and publish research-results.json.'
             : 'Use csv and statistics to compute count, sum and mean for measurements.csv and publish research-results.json.',
         files: [],
@@ -353,9 +415,23 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       expect(baseline!.identity.runtimeExecutionId).not.toBe(record.identity.runtimeExecutionId)
       expect(baseline!.identity.sessionId).not.toBe(sourceSessionId)
       expect(record.identity.sessionId).not.toBe(sourceSessionId)
-      expect((await owners.exportResult(baseline!)).files.map(textContent)).toEqual(
-        (await owners.exportResult(record)).files.map(textContent)
-      )
+      if (scientificBinary) {
+        for (const target of [baseline!, record]) {
+          const exported = await owners.exportResult(target)
+          expect(exported.files.map((file) => file.path).sort()).toEqual([
+            'measurements.png',
+            'research-results.json'
+          ])
+          expect(
+            JSON.parse(
+              textContent(exported.files.find((file) => file.path === 'research-results.json')!)
+            )
+          ).toEqual({ count: 3, sum: 12, mean: 4 })
+        }
+      } else
+        expect((await owners.exportResult(baseline!)).files.map(textContent)).toEqual(
+          (await owners.exportResult(record)).files.map(textContent)
+        )
       const baselineRuns = await new NotebookRunRepository(root).readSessionRuns(
         projectId,
         baseline!.identity.sessionId!
@@ -367,7 +443,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
         executionInvocationId: expect.any(String),
         inputFiles: [expect.objectContaining(managedInput)]
       })
-      expect(baseline!.evidence.artifacts).toHaveLength(1)
+      expect(baseline!.evidence.artifacts).toHaveLength(scientificBinary ? 2 : 1)
       const baselineVersion = await client.artifactVersion.findUniqueOrThrow({
         where: { id: baseline!.evidence.artifacts[0].versionId }
       })
@@ -405,9 +481,17 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       )
       expect(baselineRuns[0].promptMessageId).toBe(baseline!.identity.promptMessageId)
     }
-    expect(record.evidence.artifacts).toHaveLength(1)
+    expect(record.evidence.artifacts).toHaveLength(scientificBinary ? 2 : 1)
     const result = await owners.exportResult(record)
-    expect(JSON.parse(textContent(result.files[0]!))).toEqual({ count: 3, sum: 12, mean: 4 })
+    expect(
+      JSON.parse(
+        textContent(
+          scientificBinary
+            ? result.files.find((file) => file.path === 'research-results.json')!
+            : result.files[0]!
+        )
+      )
+    ).toEqual({ count: 3, sum: 12, mean: 4 })
     const runs = await new NotebookRunRepository(root).readSessionRuns(
       projectId,
       record.identity.sessionId!
@@ -459,30 +543,168 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       filename: 'research-results.json',
       state: 'finalized'
     })
-    for (const target of baseline ? [baseline, record] : [record]) {
-      const inputs = await client.artifactVersionInput.findMany({
-        where: { artifactVersionId: target.evidence.artifacts[0].versionId }
-      })
-      expect(
-        inputs,
-        JSON.stringify({
-          role: target.request.role,
-          notebookRuns: await new NotebookRunRepository(root).readSessionRuns(
-            projectId,
-            target.identity.sessionId!
+    const binaryOutputEvidence: Array<{
+      role: ExecutionRequest['role']
+      executionId: string
+      producerRunId: string
+      artifactRef: ExecutionRecord['evidence']['artifacts'][number]
+      sizeBytes: number
+      checksum: string
+      projectionPath: string
+      inputProjectionPath: string
+    }> = []
+    if (scientificBinary) {
+      for (const target of [baseline!, record]) {
+        const targetRuns = await new NotebookRunRepository(root).readSessionRuns(
+          projectId,
+          target.identity.sessionId!
+        )
+        expect(targetRuns).toHaveLength(1)
+        expect(targetRuns[0].script).toContain('readRDS(')
+        expect(targetRuns[0].script).toContain("grDevices::png('measurements.png'")
+        expect(
+          stagedInputEvidence.some(
+            (entry) =>
+              entry.sessionId === target.identity.sessionId &&
+              entry.checksum === managedInput.checksum &&
+              entry.size === managedInput.sizeBytes
           )
+        ).toBe(true)
+        const exported = await owners.exportResult(target)
+        const image = exported.files.find((file) => file.path === 'measurements.png')!
+        if (!('representation' in image))
+          throw new Error('Original PNG did not export a binary descriptor')
+        expect(image).toMatchObject({
+          representation: 'binary',
+          contentType: 'image/png',
+          sizeBytes: expect.any(Number)
         })
-      ).toHaveLength(1)
-      expect(inputs[0]).toMatchObject({
-        sourceKind: 'upload-version',
-        inputFileVersionId: managedInput.inputFileVersionId,
-        sourceUploadVersionId: managedInput.inputFileVersionId,
-        sourceProjectId: projectId,
-        sourceSessionId,
-        sourceFileId: fixed.id,
-        checksum: managedInput.checksum,
-        sizeBytes: BigInt(managedInput.sizeBytes)
-      })
+        expect(image).not.toHaveProperty('content')
+        const pngLease = await versions.openVersion(
+          { source: 'artifact', projectId, fileId: image.artifactRef.artifactId },
+          image.artifactRef.versionId
+        )
+        let bytes: Buffer
+        try {
+          bytes = Buffer.from(await pngLease.readRange(0, pngLease.size))
+          expect(bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+          expect(bytes.length).toBe(image.sizeBytes)
+          expect('sha256:' + createHash('sha256').update(bytes).digest('hex')).toBe(image.digest)
+          expect(pngLease.version.checksum).toBe(image.artifactRef.checksum)
+          await pngLease.verifyUnchanged()
+        } finally {
+          await pngLease.close()
+        }
+        for (const artifact of target.evidence.artifacts) {
+          const row = await client.artifactVersion.findUniqueOrThrow({
+            where: { id: artifact.versionId }
+          })
+          expect(row).toMatchObject({
+            artifactId: artifact.artifactId,
+            checksum: artifact.checksum,
+            producerRunId: targetRuns[0].runId,
+            notebookSessionId: target.identity.sessionId,
+            promptMessageId: target.identity.promptMessageId,
+            state: 'finalized'
+          })
+          const original = await provenance.getVersionExecution({
+            projectId,
+            appSessionId: target.identity.sessionId!,
+            artifactId: artifact.artifactId,
+            versionId: artifact.versionId
+          })
+          expect(original.execution).toMatchObject({
+            producerRunId: targetRuns[0].runId,
+            terminalPromptMessageId: target.identity.promptMessageId
+          })
+        }
+        const materialized = await owners.materializeArtifact!(target, image.artifactRef)
+        expect(materialized.file).toEqual(image)
+        expect(await readFile(materialized.assetPath)).toEqual(bytes)
+        const assetSnapshots = await createCandidateSnapshotStore({
+          root: join(root, `binary-context-snapshots-${target.request.role}`),
+          candidatesRoot: join(root, `binary-contexts-${target.request.role}`),
+          materializeAsset: (asset, signal) => {
+            expect(asset.sourceExecutionId).toBe(target.executionId)
+            expect(asset.artifact).toEqual(image)
+            return owners.materializeArtifact!(target, asset.artifact.artifactRef, signal)
+          }
+        })
+        const assetRefs = await assetSnapshots.freeze({
+          task: { prompt: 'Inspect the fixed anonymous image.', files: [] },
+          harness: {
+            instructions: 'Read the supplied image asset.',
+            skills: [],
+            tools: 'workspace-only'
+          },
+          agent: (await snapshots.resolve(request)).agent,
+          environment: { isolation: 'directory-process', network: 'provider-only' }
+        })
+        const assetInvocation = await assetSnapshots.freezeInvocation({
+          taskSnapshotRef: assetRefs.taskSnapshotRef,
+          harnessRevisionRef: assetRefs.harnessRevisionRef,
+          mission: 'Inspect the original binary Version.',
+          assets: [
+            {
+              path: 'assets/measurements.png',
+              sourceExecutionId: target.executionId,
+              artifact: image
+            }
+          ]
+        })
+        const input = await assetSnapshots.materialize({
+          executionId: 'image-consumer',
+          refs: { ...assetRefs, invocationRef: assetInvocation }
+        })
+        const inputProjectionPath = join(input.inputDir, 'assets', 'measurements.png')
+        expect(await readFile(inputProjectionPath)).toEqual(bytes)
+        expect(input.manifest).toContainEqual({
+          path: 'workspace/inputs/assets/measurements.png',
+          digest: image.digest,
+          bytes: image.sizeBytes
+        })
+        binaryOutputEvidence.push({
+          role: target.request.role,
+          executionId: target.executionId,
+          producerRunId: targetRuns[0].runId,
+          artifactRef: image.artifactRef,
+          sizeBytes: image.sizeBytes,
+          checksum: image.artifactRef.checksum,
+          projectionPath: materialized.assetPath,
+          inputProjectionPath
+        })
+        if (evidenceDirectory) {
+          await mkdir(evidenceDirectory, { recursive: true })
+          await writeFile(join(evidenceDirectory, `${target.request.role}-measurements.png`), bytes)
+        }
+      }
+    }
+    for (const target of baseline ? [baseline, record] : [record]) {
+      for (const artifact of target.evidence.artifacts) {
+        const inputs = await client.artifactVersionInput.findMany({
+          where: { artifactVersionId: artifact.versionId }
+        })
+        expect(
+          inputs,
+          JSON.stringify({
+            role: target.request.role,
+            notebookRuns: await new NotebookRunRepository(root).readSessionRuns(
+              projectId,
+              target.identity.sessionId!
+            )
+          })
+        ).toHaveLength(1)
+        expect(inputs[0]).toMatchObject({
+          sourceKind: 'upload-version',
+          inputFileVersionId: managedInput.inputFileVersionId,
+          sourceUploadVersionId: managedInput.inputFileVersionId,
+          sourceProjectId: projectId,
+          sourceSessionId,
+          sourceFileId: fixed.id,
+          checksum: managedInput.checksum,
+          sizeBytes: BigInt(managedInput.sizeBytes)
+        })
+      }
     }
     expect(
       (await client.uploadFile.findUniqueOrThrow({ where: { id: fixed.id } })).currentVersionId
@@ -516,12 +738,19 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     }
     const sourceEvidence = await owners.readSemanticSourceEvidence({ target: record, snapshots })
     expect(sourceEvidence.inputs).toHaveLength(1)
-    expect(sourceEvidence.inputs[0].status).toBe('available')
+    expect(sourceEvidence.inputs[0].status).toBe(scientificBinary ? 'unavailable' : 'available')
     expect(sourceEvidence.inputs[0].input.inputFileVersionId).toBe(managedInput.inputFileVersionId)
-    expect(sourceEvidence.inputs[0]).toMatchObject({
-      status: 'available',
-      content
-    })
+    if (scientificBinary) {
+      expect(sourceEvidence.inputs[0]).toMatchObject({
+        status: 'unavailable',
+        reason: 'binary-or-invalid-utf8'
+      })
+      expect(sourceEvidence.inputs[0]).not.toHaveProperty('content')
+    } else
+      expect(sourceEvidence.inputs[0]).toMatchObject({
+        status: 'available',
+        content
+      })
     const reviews = await owners.readReviews(record)
     expect(reviews).toHaveLength(1)
     expect(reviews[0]).toMatchObject({
@@ -552,6 +781,7 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
     }
     const calls = provider.stats.requests
     expect(await owners.shutdown()).toEqual({ reaped: true })
+    if (scientificBinary) expect(await readdir(join(root, 'artifact-projections'))).toEqual([])
     owners = createPersistentCandidateOwners({
       ...createCandidateOwnerTestPorts({
         dataRoot: root,
@@ -562,7 +792,8 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       dataRoot: root,
       configRoot,
       getClient: async () => client,
-      notebook: { service: notebook, rpc, mcpEntryPath }
+      notebook: { service: notebook, rpc, mcpEntryPath },
+      ...(scientificBinary ? { artifactProjectionRoot: join(root, 'artifact-projections') } : {})
     })
     expect(await owners.readSemanticSourceEvidence({ target: record, snapshots })).toEqual(
       sourceEvidence
@@ -577,6 +808,17 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       expect((await owners.exportResult(baseline)).files).toEqual(baselineResult!.files)
       expect(await owners.readReviews(baseline)).toEqual(baselineReviews)
       expect(await readPrompt(baseline)).toBe(expectedPrompt)
+    }
+    if (scientificBinary) {
+      for (const target of [baseline!, record]) {
+        const previous = binaryOutputEvidence.find(
+          (entry) => entry.executionId === target.executionId
+        )!
+        const reopened = await owners.materializeArtifact!(target, previous.artifactRef)
+        const bytes = await readFile(reopened.assetPath)
+        expect(bytes.length).toBe(previous.sizeBytes)
+        expect(createHash('sha256').update(bytes).digest('hex')).toBe(previous.checksum)
+      }
     }
     expect(provider.stats.requests).toBe(calls)
 
@@ -632,5 +874,59 @@ await (notebook ? api.runNotebookMcpServer() : api.runArtifactMcpServer());
       expect(provider.stats.requests).toBe(beforeReject)
     }
     expect(provider.stats.upstreamRequests).toBe(0)
+    if (evidenceDirectory) {
+      await writeFile(
+        join(evidenceDirectory, 'r-binary-scientific.json'),
+        JSON.stringify(
+          {
+            source:
+              'Original managedInputs -> NotebookInputRegistry -> ImmutableInputAuthority -> R readRDS',
+            fixedInput: managedInput,
+            laterHeadVersionId: later.versionId,
+            fixedSourceChecksum: createHash('sha256').update(content).digest('hex'),
+            laterSourceChecksum: createHash('sha256').update(laterContent).digest('hex'),
+            frozenRuntime: frozen.environment.notebook!.runtime,
+            baseline,
+            candidate: record,
+            baselineRuns: await new NotebookRunRepository(root).readSessionRuns(
+              projectId,
+              baseline!.identity.sessionId!
+            ),
+            candidateRuns: runs,
+            originalProducerVersions: await client.artifactVersion.findMany({
+              where: {
+                id: {
+                  in: [...baseline!.evidence.artifacts, ...record.evidence.artifacts].map(
+                    (artifact) => artifact.versionId
+                  )
+                }
+              }
+            }),
+            originalUsedInputs: await client.artifactVersionInput.findMany({
+              where: {
+                artifactVersionId: {
+                  in: [...baseline!.evidence.artifacts, ...record.evidence.artifacts].map(
+                    (artifact) => artifact.versionId
+                  )
+                }
+              }
+            }),
+            binaryOutputEvidence,
+            stagedInputEvidence,
+            semanticSourceEvidence: sourceEvidence,
+            baselineResult,
+            candidateResult: result,
+            originalIntegrityReviews: { baseline: baselineReviews, candidate: reviews },
+            providerStats: provider.stats,
+            ownerReopenedWithoutProviderReplay: provider.stats.requests === calls,
+            limitations: [
+              'Source RDS is explicitly unavailable to the text-only semantic assessor; no binary scientific assessment or visual interpretation is claimed.'
+            ]
+          },
+          (_key, value) => (typeof value === 'bigint' ? value.toString() : value),
+          2
+        ) + '\n'
+      )
+    }
   }
 )
