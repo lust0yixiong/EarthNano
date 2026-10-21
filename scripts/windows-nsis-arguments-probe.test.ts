@@ -37,10 +37,22 @@ describe('bounded NSIS argument observation', () => {
     expect(() => parseObservation(receipt('raw', 'parsed', ''))).toThrow(/Invalid/)
     expect(probeSource).toContain('kernel32::GetCommandLineW()')
     expect(probeSource).toContain('FileWriteUTF16LE /BOM')
-    expect(probeSource).toContain('!include "multiUser.nsh"')
     expect(probeSource).toContain('!insertmacro GetDParameter $R0')
     expect(probeSource).not.toMatch(/\bQuit\b/)
     expect(probeSource).not.toMatch(/SetOutPath|CreateDirectory|WriteReg|ExecWait|\/LOG/)
+  })
+
+  it('binds the locked app-builder templates without searching stock NSIS include directories', () => {
+    const includes = probeSource.split('\n').filter((line) => line.startsWith('!include '))
+    expect(includes).toEqual([
+      '!include "LogicLib.nsh"',
+      '!include "${APP_BUILDER_NSIS_DIR}\\include\\StdUtils.nsh"',
+      '!include "${APP_BUILDER_NSIS_DIR}\\multiUser.nsh"'
+    ])
+    // MultiUser.nsh in the compiler's stock Include directory is a different header. Merely
+    // adding the template directory to the search list does not select GetDParameter's owner.
+    expect(probeSource).not.toMatch(/^!include "(?:multiUser|StdUtils)\.nsh"$/im)
+    expect(probeSource).not.toMatch(/^!macro GetDParameter\b/m)
   })
 
   it('requires one already cached original bundle and verifies its archive without downloading', async () => {

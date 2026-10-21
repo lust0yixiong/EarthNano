@@ -130,16 +130,18 @@ const lockedTemplates = async () => {
   }
 }
 
+// The stock compiler has its own MultiUser.nsh. Bind both app-builder headers by absolute
+// path: !addincludedir alone does not give them priority over the compiler's Include directory.
 const probeSource = `Unicode true
 !addincludedir "\${APP_BUILDER_NSIS_DIR}"
 !addincludedir "\${APP_BUILDER_NSIS_DIR}\\include"
 !addplugindir /x86-unicode "\${APP_BUILDER_NSIS_PLUGIN_DIR}"
 !include "LogicLib.nsh"
-!include "StdUtils.nsh"
+!include "\${APP_BUILDER_NSIS_DIR}\\include\\StdUtils.nsh"
 !define APP_GUID "earthnano-argument-observation"
 !define UNINSTALL_APP_KEY "earthnano-argument-observation"
 !define INSTALL_MODE_PER_ALL_USERS
-!include "multiUser.nsh"
+!include "\${APP_BUILDER_NSIS_DIR}\\multiUser.nsh"
 Name "EarthNano NSIS argument observation"
 OutFile "probe.exe"
 InstallDir "$EXEDIR\\default-target"
