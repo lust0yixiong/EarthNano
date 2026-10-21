@@ -14,6 +14,7 @@ import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
 import { dump, load } from 'js-yaml'
 import { buildManifest } from './generate-version-manifest.mjs'
+import { validateReleasePlatforms } from './release-artifact-validation.mjs'
 
 const repo = process.cwd()
 const version = '0.1.0-alpha.1'
@@ -88,9 +89,162 @@ const options = (dir: string): AlphaOptions => ({
   requireComplete: true
 })
 
+const unixRelease = (): ReleaseFixture => {
+  const fixture = release()
+  const names = fixture.names.filter((name) => !name.endsWith('.exe'))
+  rmSync(join(fixture.dir, fixture.names[2]))
+  rmSync(join(fixture.dir, 'alpha.yml'))
+  writeFileSync(
+    join(fixture.dir, 'SHA256SUMS.txt'),
+    names.map((name) => `${hash(fixture.bytes(name))}  ${name}\n`).join('')
+  )
+  return { ...fixture, names }
+}
+const unixOptions = (dir: string): AlphaOptions & { platforms: string } => ({
+  ...options(dir),
+  platforms: 'mac,linux'
+})
+
+it('requires an explicit known unique release scope without changing the full default', () => {
+  expect(validateReleasePlatforms()).toEqual(['mac', 'linux', 'win'])
+  expect(validateReleasePlatforms('mac,linux')).toEqual(['mac', 'linux'])
+  for (const value of ['', 'mac,', 'mac,mac', 'mac,unknown', 'darwin,linux', 'mac, linux'])
+    expect(() => validateReleasePlatforms(value), value).toThrow(/platform/)
+})
+it('requires six original Unix installer keys, both byte-verified Mac ZIPs and three feeds', () => {
+  const { dir, names } = unixRelease()
+  const manifest = buildManifest(unixOptions(dir))
+  expect(Object.keys(manifest.downloads).sort()).toEqual([
+    'linux-arm64-appimage',
+    'linux-arm64-deb',
+    'linux-x64-appimage',
+    'linux-x64-deb',
+    'mac-arm64',
+    'mac-x64'
+  ])
+  expect(names.filter((name) => name.endsWith('.zip'))).toHaveLength(2)
+  expect(manifest.downloads).not.toHaveProperty('win-x64')
+  expect(
+    Object.values(manifest.downloads).every((entry: { url: string }) =>
+      entry.url.startsWith(assetBaseUrl + '/')
+    )
+  ).toBe(true)
+  // An omitted scope still requires Windows; directory contents never infer a smaller release.
+  expect(() => buildManifest(options(dir))).toThrow(/win-x64/)
+})
+it.each(Array.from({ length: 8 }, (_, index) => index))(
+  'rejects a missing or tampered selected Unix installer/update ZIP at index %s',
+  (index) => {
+    const { dir, names, bytes } = unixRelease()
+    const path = join(dir, names[index])
+    rmSync(path)
+    expect(() => buildManifest(unixOptions(dir))).toThrow()
+    writeFileSync(path, bytes(names[index]) + 'changed bytes')
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/SHA256 mismatch/)
+  }
+)
+it.each(['alpha-mac.yml', 'alpha-linux.yml', 'alpha-linux-arm64.yml'])(
+  'retains version, size and real hash validation for the selected feed %s',
+  (name) => {
+    const { dir } = unixRelease()
+    const path = join(dir, name)
+    const feed = load(readFileSync(path, 'utf8')) as Feed
+    rmSync(path)
+    expect(() => buildManifest(unixOptions(dir))).toThrow()
+    writeFileSync(path, dump({ ...feed, version: '0.1.0-alpha.2' }))
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/Invalid update feed/)
+    const size = structuredClone(feed)
+    size.files[0].size++
+    writeFileSync(path, dump(size))
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/size mismatch/)
+    const digest = structuredClone(feed)
+    digest.files[0].sha512 = 'A'.repeat(86) + '=='
+    writeFileSync(path, dump(digest))
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/SHA512 mismatch/)
+  }
+)
+it.each(['installer', 'blockmap', 'feed', 'feed-reference', 'checksum-reference'])(
+  'rejects out-of-scope Windows %s rather than dropping it from Unix output',
+  (kind) => {
+    const { dir } = unixRelease()
+    const name = `EarthNano-${version}-win-x64-setup.exe`
+    if (kind === 'installer' || kind === 'blockmap')
+      writeFileSync(
+        join(dir, name + (kind === 'blockmap' ? '.blockmap' : '')),
+        'out-of-scope bytes'
+      )
+    else if (kind === 'feed') writeFileSync(join(dir, 'alpha.yml'), 'out-of-scope Windows feed')
+    else if (kind === 'checksum-reference')
+      writeFileSync(
+        join(dir, 'SHA256SUMS.txt'),
+        readFileSync(join(dir, 'SHA256SUMS.txt'), 'utf8') + `${'a'.repeat(64)}  ${name}\n`
+      )
+    else
+      writeFileSync(
+        join(dir, 'alpha-mac.yml'),
+        dump({ version, files: [{ url: name, size: 1, sha512: 'A'.repeat(86) + '==' }] })
+      )
+    expect(() => buildManifest(unixOptions(dir))).toThrow(/outside selected platforms/)
+  }
+)
+it('cannot narrow stable publication or bypass Alpha verification using a scope', () => {
+  expect(() =>
+    buildManifest({
+      ...unixOptions('/unused'),
+      channel: 'latest',
+      version: '0.1.2',
+      assetBaseUrl: undefined
+    })
+  ).toThrow(/Stable releases require all/)
+  for (const override of [
+    { requireComplete: false },
+    { metadataOnly: true },
+    { allowLegacyNames: true }
+  ])
+    expect(() => buildManifest({ ...unixOptions('/unused'), ...override })).toThrow(
+      /complete, byte-verified/
+    )
+})
+it('passes the explicit Unix scope through the original generator CLI without a Windows feed', () => {
+  const { dir } = unixRelease()
+  const output = join(dir, 'version.json')
+  const invoke = (flags: string[]): SpawnSyncReturns<string> =>
+    spawnSync(
+      process.execPath,
+      [
+        join(repo, 'scripts/generate-version-manifest.mjs'),
+        dir,
+        output,
+        '--require-complete',
+        ...flags
+      ],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          VERSION: version,
+          UPDATE_CHANNEL: 'alpha',
+          ASSET_BASE_URL: assetBaseUrl
+        }
+      }
+    )
+  const result = invoke(['--platforms', 'mac,linux'])
+  expect(result.status, result.stderr).toBe(0)
+  expect(Object.keys(JSON.parse(readFileSync(output, 'utf8')).downloads)).toHaveLength(6)
+  expect(invoke([]).status).not.toBe(0)
+  for (const flags of [
+    ['--platforms'],
+    ['--platforms', ''],
+    ['--platforms', 'mac,mac'],
+    ['--platforms', 'mac,linux', '--platforms', 'win']
+  ])
+    expect(invoke(flags).status).not.toBe(0)
+})
+
 it('builds the complete Alpha manifest from actual bytes and the explicit immutable GitHub asset base', () => {
   const { dir, names } = release()
   const manifest = buildManifest(options(dir))
+  expect(buildManifest({ ...options(dir), platforms: 'mac,linux,win' })).toEqual(manifest)
   expect(Object.keys(manifest.downloads)).toHaveLength(7)
   expect(manifest.downloads['linux-arm64-deb'].url).toBe(`${assetBaseUrl}/${names[6]}`)
   expect(manifest.downloads['mac-arm64'].url).toBe(`${assetBaseUrl}/${names[0]}`)

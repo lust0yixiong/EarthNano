@@ -3,6 +3,40 @@ import { createHash } from 'node:crypto'
 import { closeSync, openSync, readSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
+// A caller must select its release scope; never infer it from whichever files arrived.
+export function validateReleasePlatforms(value = 'mac,linux,win') {
+  if (typeof value !== 'string') throw new Error('Invalid release platforms')
+  const platforms = value.split(',')
+  if (
+    platforms.some((platform) => !['mac', 'linux', 'win'].includes(platform)) ||
+    new Set(platforms).size !== platforms.length
+  )
+    throw new Error('Unknown, empty or duplicate release platform')
+  return platforms
+}
+
+// Classify only existing native artifact/feed families, including sidecars and legacy names.
+// Artifact names, versions, bytes and feed metadata still pass their original strict validators.
+export function assertReleaseArtifactScope(name, platforms) {
+  if (typeof name !== 'string') return
+  const platform =
+    /\.exe(?:\.blockmap)?$/i.test(name) ||
+    /(?:win|windows)-(?:x64|arm64)(?:-setup)?\.zip$/i.test(name) ||
+    /^(?:alpha|latest)\.ya?ml$/.test(name)
+      ? 'win'
+      : /\.dmg(?:\.blockmap)?$/i.test(name) ||
+          /(?:mac|macos)-(?:x64|arm64)\.zip$/i.test(name) ||
+          /-mac\.ya?ml$/.test(name)
+        ? 'mac'
+        : /\.(?:AppImage|deb)(?:\.blockmap)?$/i.test(name) ||
+            /linux-(?:x64|arm64)\.zip$/i.test(name) ||
+            /-linux(?:-arm64)?\.ya?ml$/.test(name)
+          ? 'linux'
+          : undefined
+  if (platform && !platforms.includes(platform))
+    throw new Error(`Release artifact outside selected platforms: ${name}`)
+}
+
 // Release installers can exceed a gigabyte. Keep hashing bounded without changing the synchronous
 // manifest API used by the CLI and its consumers.
 export function artifactHash(file, algorithm, encoding = 'hex') {

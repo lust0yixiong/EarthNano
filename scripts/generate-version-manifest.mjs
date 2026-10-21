@@ -11,6 +11,7 @@
 //     outputPath  positional or env OUTPUT      where to write version.json (default: <dir>/version.json)
 //     VERSION       required  release version without a leading 'v' (e.g. 0.1.2)
 //     UPDATE_CHANNEL optional latest (default) or alpha; alpha requires matching alpha.N version
+//     --platforms mac,linux  explicit Alpha native scope (default mac,linux,win)
 //     ASSET_BASE_URL required for alpha: exact EarthNano /releases/download/v<VERSION> URL
 //     CDN_BASE_URL  stable only required  public base URL used to build each download url
 //     S3_PREFIX     stable only required  path prefix inside the bucket (e.g. open-science)
@@ -24,6 +25,8 @@ import { pathToFileURL } from 'node:url'
 import { load } from 'js-yaml'
 import {
   artifactHash,
+  assertReleaseArtifactScope,
+  validateReleasePlatforms,
   validateArtifactName,
   validateReleaseVersion,
   validateUpdateFeed
@@ -32,13 +35,13 @@ import {
 // Filename -> downloads key. Explicit regex table so an unexpected artifact name fails loudly (as a
 // warning) rather than being silently misfiled. deb uses the dpkg convention (underscores + amd64).
 const KEY_RULES = [
-  { key: 'mac-arm64', pattern: /-mac-arm64\.dmg$/ },
-  { key: 'mac-x64', pattern: /-mac-x64\.dmg$/ },
-  { key: 'win-x64', pattern: /-win-x64-setup\.exe$/ },
-  { key: 'linux-x64-appimage', pattern: /-linux-(?:x64|x86_64)\.AppImage$/ },
-  { key: 'linux-x64-deb', pattern: /_amd64\.deb$/ },
-  { key: 'linux-arm64-appimage', pattern: /-linux-arm64\.AppImage$/ },
-  { key: 'linux-arm64-deb', pattern: /_arm64\.deb$/ }
+  { platform: 'mac', key: 'mac-arm64', pattern: /-mac-arm64\.dmg$/ },
+  { platform: 'mac', key: 'mac-x64', pattern: /-mac-x64\.dmg$/ },
+  { platform: 'win', key: 'win-x64', pattern: /-win-x64-setup\.exe$/ },
+  { platform: 'linux', key: 'linux-x64-appimage', pattern: /-linux-(?:x64|x86_64)\.AppImage$/ },
+  { platform: 'linux', key: 'linux-x64-deb', pattern: /_amd64\.deb$/ },
+  { platform: 'linux', key: 'linux-arm64-appimage', pattern: /-linux-arm64\.AppImage$/ },
+  { platform: 'linux', key: 'linux-arm64-deb', pattern: /_arm64\.deb$/ }
 ]
 
 // Non-installer files that legitimately live in the release dir; skipped without a warning.
@@ -104,11 +107,15 @@ export function buildManifest({
   prefix,
   channel = 'latest',
   assetBaseUrl,
+  platforms,
   metadataOnly = false,
   requireComplete = false,
   allowLegacyNames = false
 }) {
   validateReleaseVersion(version, channel)
+  const selectedPlatforms = validateReleasePlatforms(platforms)
+  if (channel !== 'alpha' && selectedPlatforms.length !== 3)
+    throw new Error('Stable releases require all mac,linux,win platforms')
   // Alpha assets belong to this repository's immutable version tag, never the rolling channel or
   // upstream stable CDN. Require the caller to name that destination; do not guess a URL.
   if (channel === 'alpha') {
@@ -126,16 +133,25 @@ export function buildManifest({
     throw new Error('Explicit asset base URLs are only supported for the Alpha channel')
   }
   const sums = parseSha256Sums(readFileSync(join(dir, 'SHA256SUMS.txt'), 'utf8'))
+  for (const name of Object.keys(sums)) assertReleaseArtifactScope(name, selectedPlatforms)
   const base = assetBaseUrl ?? `${cdnBase}/${prefix}/releases/${version}`
   const feedNames = [
-    `${channel}.yml`,
-    `${channel}-linux.yml`,
-    `${channel}-linux-arm64.yml`,
-    `${channel}-mac.yml`
+    ...(selectedPlatforms.includes('win') ? [`${channel}.yml`] : []),
+    ...(selectedPlatforms.includes('linux')
+      ? [`${channel}-linux.yml`, `${channel}-linux-arm64.yml`]
+      : []),
+    ...(selectedPlatforms.includes('mac') ? [`${channel}-mac.yml`] : [])
   ]
+  const readFeed = (filename) => {
+    const feed = load(readFileSync(join(dir, filename), 'utf8'))
+    if (Array.isArray(feed?.files))
+      for (const file of feed.files) assertReleaseArtifactScope(file?.url, selectedPlatforms)
+    return feed
+  }
 
   const downloads = {}
   for (const filename of readdirSync(dir)) {
+    assertReleaseArtifactScope(filename, selectedPlatforms)
     const key = keyForFile(filename)
     if (!key && !filename.endsWith('.zip')) {
       // Warn only for genuinely unexpected files, not known non-manifest artifacts (zips, sums, ...).
@@ -160,7 +176,7 @@ export function buildManifest({
     (name) => feedNames.includes(name) || /-mac\.yml$/.test(name)
   )) {
     const feed = validateUpdateFeed(
-      load(readFileSync(join(dir, filename), 'utf8')),
+      readFeed(filename),
       dir,
       version,
       metadataOnly,
@@ -174,19 +190,15 @@ export function buildManifest({
     }
   }
   if (requireComplete) {
-    for (const { key } of KEY_RULES) {
+    for (const { key, platform } of KEY_RULES) {
+      if (!selectedPlatforms.includes(platform)) continue
       if (!downloads[key])
         throw new Error(
           `Missing ${channel === 'latest' ? 'stable' : channel} release installer: ${key}`
         )
     }
     for (const name of feedNames) {
-      const feed = validateUpdateFeed(
-        load(readFileSync(join(dir, name), 'utf8')),
-        dir,
-        version,
-        metadataOnly
-      )
+      const feed = validateUpdateFeed(readFeed(name), dir, version, metadataOnly)
       const required =
         name === `${channel}-mac.yml`
           ? ['-mac-arm64.zip', '-mac-x64.zip']
@@ -270,6 +282,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const prefix = process.env.S3_PREFIX
   const channel = process.env.UPDATE_CHANNEL ?? 'latest'
   const assetBaseUrl = process.env.ASSET_BASE_URL
+  const platformIndex = process.argv.indexOf('--platforms')
+  if (
+    process.argv.filter((value) => value === '--platforms').length > 1 ||
+    (platformIndex !== -1 && !process.argv[platformIndex + 1])
+  )
+    throw new Error('Expected one explicit --platforms value')
+  const platforms = platformIndex === -1 ? undefined : process.argv[platformIndex + 1]
   if (!version || (channel === 'latest' && (!cdnBase || !prefix))) {
     console.error(
       '[version-manifest] VERSION is required; latest also requires CDN_BASE_URL and S3_PREFIX'
@@ -290,6 +309,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     prefix,
     channel,
     assetBaseUrl,
+    platforms,
     metadataOnly: process.argv.includes('--metadata-only'),
     requireComplete: process.argv.includes('--require-complete'),
     allowLegacyNames: process.argv.includes('--backfill')
