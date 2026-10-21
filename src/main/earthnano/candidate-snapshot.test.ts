@@ -95,6 +95,149 @@ const freeze = async (
 const objectPath = (root: string, digest: string): string =>
   join(root, 'store/objects', `${digest.slice(7)}.json`)
 
+describe('immutable invocation context files', () => {
+  const context = [
+    { path: 'rollouts/base1.md', content: '遥感 🌍\r\n@source !`echo untouched`\n' },
+    { path: 'adoption.json', content: '{"chosen":"A"}\n' }
+  ]
+  it('preserves the exact legacy invocation envelope and digest when context files are absent', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const legacy = JSON.stringify({
+      kind: 'invocation',
+      value: {
+        harnessRevisionRef: {
+          digest: refs.harnessRevisionRef.digest,
+          id: refs.harnessRevisionRef.id,
+          version: refs.harnessRevisionRef.version
+        },
+        mission: input().task.prompt,
+        taskSnapshotRef: {
+          digest: refs.taskSnapshotRef.digest,
+          id: refs.taskSnapshotRef.id,
+          version: refs.taskSnapshotRef.version
+        }
+      },
+      version: 1
+    })
+    expect(await fs.readFile(objectPath(root, refs.invocationRef.digest), 'utf8')).toBe(legacy)
+    expect(refs.invocationRef.digest).toBe(
+      `sha256:${createHash('sha256').update(legacy).digest('hex')}`
+    )
+    expect((await store.resolve(refs)).invocation).not.toHaveProperty('contextFiles')
+  })
+
+  it('reopens complete context bytes and materializes them into the original readonly INPUT manifest', async () => {
+    const { root, store } = await fixture()
+    const refs = await freeze(store)
+    const offered = structuredClone(context)
+    const invocationRef = await store.freezeInvocation({
+      ...(await store.resolve(refs)).invocation,
+      contextFiles: offered
+    })
+    offered[0].content = 'changed after freeze'
+    const reopened = await createCandidateSnapshotStore({
+      root: join(root, 'store'),
+      candidatesRoot: join(root, 'candidates')
+    })
+    const frozen = await reopened.resolve({ ...refs, invocationRef })
+    expect(frozen.task).toEqual(input().task)
+    expect(frozen.invocation.contextFiles).toEqual([...context].reverse())
+    expect(Object.isFrozen(frozen.invocation.contextFiles![0])).toBe(true)
+    const value = await reopened.materialize({
+      executionId: 'with-context',
+      refs: { ...refs, invocationRef }
+    })
+    for (const file of context) {
+      const path = join(value.inputDir, file.path)
+      expect(await fs.readFile(path)).toEqual(Buffer.from(file.content, 'utf8'))
+      expect(value.manifest).toContainEqual({
+        path: `workspace/inputs/${file.path}`,
+        bytes: Buffer.byteLength(file.content),
+        digest: `sha256:${createHash('sha256').update(file.content).digest('hex')}`
+      })
+      if (process.platform !== 'win32') expect((await fs.stat(path)).mode & 0o222).toBe(0)
+    }
+    expect(frozen.invocation.mission).toBe(input().task.prompt)
+    const reordered = await reopened.freezeInvocation({
+      ...frozen.invocation,
+      contextFiles: context
+    })
+    expect(reordered).toEqual(invocationRef)
+    const controller = new AbortController()
+    controller.abort()
+    await expect(
+      reopened.materialize({
+        executionId: 'cancelled-context',
+        refs: { ...refs, invocationRef },
+        signal: controller.signal
+      })
+    ).rejects.toThrow()
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual(['with-context'])
+  })
+
+  it.each([
+    [{ path: '../escape', content: 'x' }],
+    [{ path: '/absolute', content: 'x' }],
+    [{ path: 'CON.txt', content: 'x' }],
+    [{ path: 'data/SOURCE.txt', content: 'collision with task' }],
+    [{ path: 'notes.txt/nested', content: 'prefix collision with task' }],
+    [
+      { path: 'é.md', content: 'x' },
+      { path: 'e\u0301.md', content: 'y' }
+    ],
+    [{ path: 'valid.md', content: '\0' }],
+    [{ path: 'valid.md', content: '\ud800' }]
+  ])(
+    'rejects invalid or colliding context manifest %j before materialization',
+    async (...contextFiles) => {
+      const { root, store } = await fixture()
+      const refs = await freeze(store)
+      await expect(
+        store.freezeInvocation({ ...(await store.resolve(refs)).invocation, contextFiles })
+      ).rejects.toThrow()
+      expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+    }
+  )
+
+  it('rejects context collisions with binary assets and counts context against the existing aggregate budget before owner I/O', async () => {
+    const materializeAsset = vi.fn(async () => {
+      throw new Error('Must reject before owner I/O')
+    })
+    const { root, store } = await fixture(materializeAsset)
+    const refs = await freeze(store, { ...input(), task: { prompt: 'same task', files: [] } })
+    const invocation = (await store.resolve(refs)).invocation
+    const asset = (path: string): CandidateContextAsset => ({
+      path,
+      sourceExecutionId: 'source',
+      artifact: {
+        path: 'large.bin',
+        representation: 'binary',
+        sizeBytes: LOCAL_RESOURCE_BUDGETS.artifactFileBytes,
+        digest: `sha256:${'a'.repeat(64)}`,
+        artifactRef: { artifactId: 'a', versionId: 'v', checksum: 'a'.repeat(64) }
+      }
+    })
+    await expect(
+      store.freezeInvocation({
+        ...invocation,
+        contextFiles: context,
+        assets: [asset('ROLLOUTS/base1.md')]
+      })
+    ).rejects.toThrow('collide')
+    const invocationRef = await store.freezeInvocation({
+      ...invocation,
+      contextFiles: context,
+      assets: [asset('a.bin'), asset('b.bin')]
+    })
+    await expect(
+      store.materialize({ executionId: 'over-budget-context', refs: { ...refs, invocationRef } })
+    ).rejects.toThrow('Local resource turn budget exceeded')
+    expect(materializeAsset).not.toHaveBeenCalled()
+    expect(await fs.readdir(join(root, 'candidates'))).toEqual([])
+  })
+})
+
 describe('version-bound binary invocation assets', () => {
   const bytes = Buffer.from([0x89, 0, 0xff, 0x80])
   const checksum = createHash('sha256').update(bytes).digest('hex')

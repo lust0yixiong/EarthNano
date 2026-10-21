@@ -46,7 +46,8 @@ afterEach(async () => {
 const fixture = async (
   skills: readonly CandidateTextFile[] = [],
   scientific: boolean | 'r' = false,
-  binary?: Buffer
+  binary?: Buffer,
+  contextFiles?: readonly CandidateTextFile[]
 ): Promise<{
   resolved: ResolvedCandidateSnapshots
   materialized: MaterializedCandidate
@@ -125,6 +126,7 @@ const fixture = async (
     taskSnapshotRef: refs.taskSnapshotRef,
     harnessRevisionRef: refs.harnessRevisionRef,
     mission: 'Run the task',
+    ...(contextFiles ? { contextFiles } : {}),
     ...(binaryArtifact
       ? {
           assets: [{ path: 'anonymous.png', sourceExecutionId: 'source', artifact: binaryArtifact }]
@@ -162,6 +164,46 @@ const runGate = (root: string, tool: string, args: object): string => {
 
 describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate preparation', () => {
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0xff])
+
+  it('accepts exact readonly invocation context with native expansion syntax only inside evidence files', async () => {
+    const content = '完整证据 🌍\r\n@host !`touch forbidden`\n'
+    const f = await fixture([], false, png, [{ path: 'rollouts/base1.md', content }])
+    await prepareClaudeCandidate(f)
+    const path = join(f.materialized.inputDir, 'rollouts/base1.md')
+    expect(await readFile(path)).toEqual(Buffer.from(content, 'utf8'))
+    expect(runGate(f.materialized.root, 'Read', { file_path: path })).toBe('allow')
+    expect(runGate(f.materialized.root, 'Write', { file_path: path, content: 'replacement' })).toBe(
+      'deny'
+    )
+    expect(f.resolved.invocation.mission).not.toContain(content)
+  })
+
+  it.each(['bytes', 'digest', 'missing', 'extra'] as const)(
+    'rejects %s tampering in the invocation context materialization before native preparation',
+    async (kind) => {
+      const f = await fixture([], false, undefined, [
+        { path: 'rollouts/base1.md', content: 'original evidence' }
+      ])
+      const path = join(f.materialized.inputDir, 'rollouts/base1.md')
+      const manifest = f.materialized.manifest.map((entry) => ({ ...entry }))
+      const entry = manifest.find((entry) => entry.path.endsWith('rollouts/base1.md'))!
+      if (kind === 'bytes') {
+        await chmod(path, 0o600)
+        await writeFile(path, 'changed evidence')
+      } else if (kind === 'digest') entry.digest = `sha256:${'a'.repeat(64)}`
+      else if (kind === 'missing') manifest.splice(manifest.indexOf(entry), 1)
+      else
+        manifest.push({
+          path: 'workspace/inputs/unexpected.txt',
+          bytes: 0,
+          digest: `sha256:${'b'.repeat(64)}`
+        })
+      await expect(
+        prepareClaudeCandidate({ ...f, materialized: { ...f.materialized, manifest } })
+      ).rejects.toThrow(/Candidate (materialization|manifest)/)
+      expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+    }
+  )
 
   const computeFixture = async (): Promise<Awaited<ReturnType<typeof fixture>>> => {
     const f = await fixture()

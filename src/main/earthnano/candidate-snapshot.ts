@@ -72,6 +72,7 @@ export type CandidateInvocation = Readonly<{
   taskSnapshotRef: Ref
   harnessRevisionRef: Ref
   mission: string
+  contextFiles?: readonly CandidateTextFile[]
   assets?: readonly CandidateContextAsset[]
 }>
 /** Host-only provenance. The method binding authorizes the exact admitted source before freezing.
@@ -241,8 +242,11 @@ const contextAssets = (value: unknown): CandidateContextAsset[] => {
 }
 
 const validateInvocationFiles = (task: CandidateTask, invocation: CandidateInvocation): void => {
-  if (invocation.assets)
-    files([...task.files, ...invocation.assets.map(({ path }) => ({ path, content: '' }))])
+  files([
+    ...task.files,
+    ...(invocation.contextFiles ?? []),
+    ...(invocation.assets ?? []).map(({ path }) => ({ path, content: '' }))
+  ])
 }
 
 const normalize = (kind: Kind, value: unknown): unknown => {
@@ -308,11 +312,16 @@ const normalize = (kind: Kind, value: unknown): unknown => {
       ...(compute ? { compute } : {})
     } satisfies CandidateEnvironment
   }
-  const entry = object(value, ['taskSnapshotRef', 'harnessRevisionRef', 'mission'], ['assets'])
+  const entry = object(
+    value,
+    ['taskSnapshotRef', 'harnessRevisionRef', 'mission'],
+    ['assets', 'contextFiles']
+  )
   return {
     taskSnapshotRef: ref(entry.taskSnapshotRef, 'task'),
     harnessRevisionRef: ref(entry.harnessRevisionRef, 'harness'),
     mission: text(entry.mission),
+    ...(Object.hasOwn(entry, 'contextFiles') ? { contextFiles: files(entry.contextFiles) } : {}),
     ...(Object.hasOwn(entry, 'assets') ? { assets: contextAssets(entry.assets) } : {})
   } satisfies CandidateInvocation
 }
@@ -529,12 +538,18 @@ export const createCandidateSnapshotStore = async ({
       const snapshots = await resolve(refs)
       if (snapshots.invocation.assets && !materializeAsset)
         throw new Error('Original candidate asset owner is unavailable')
-      if (snapshots.invocation.assets) {
-        let bytes = snapshots.task.files.reduce(
-          (total, file) => total + Buffer.byteLength(file.content, 'utf8'),
-          0
-        )
-        for (const asset of snapshots.invocation.assets) {
+      {
+        let bytes = 0
+        for (const file of [
+          ...snapshots.task.files,
+          ...(snapshots.invocation.contextFiles ?? [])
+        ]) {
+          const size = Buffer.byteLength(file.content, 'utf8')
+          assertWithinResourceBudget('file', size, LOCAL_RESOURCE_BUDGETS.artifactFileBytes)
+          bytes += size
+          assertWithinResourceBudget('turn', bytes, LOCAL_RESOURCE_BUDGETS.artifactTurnBytes)
+        }
+        for (const asset of snapshots.invocation.assets ?? []) {
           assertWithinResourceBudget(
             'file',
             asset.artifact.sizeBytes,
@@ -597,6 +612,8 @@ export const createCandidateSnapshotStore = async ({
         })
       }
       for (const file of snapshots.task.files) await write(join(inputDir, file.path), file.content)
+      for (const file of snapshots.invocation.contextFiles ?? [])
+        await write(join(inputDir, file.path), file.content)
       for (const asset of snapshots.invocation.assets ?? []) {
         signal?.throwIfAborted()
         const original = await materializeAsset!(asset, signal)

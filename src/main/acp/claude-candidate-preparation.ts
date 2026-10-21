@@ -81,6 +81,9 @@ const verifyMaterialization = async (materialized: MaterializedCandidate): Promi
     ...task.files.map(
       (file) => [join(materialized.inputDir, file.path), text(file.content)] as const
     ),
+    ...(invocation.contextFiles ?? []).map(
+      (file) => [join(materialized.inputDir, file.path), text(file.content)] as const
+    ),
     [materialized.instructionsPath, text(harness.instructions)] as const,
     ...harness.skills.map(
       (file) => [join(materialized.skillsDir, file.path), text(file.content)] as const
