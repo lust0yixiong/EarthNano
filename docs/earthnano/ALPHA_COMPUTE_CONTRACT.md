@@ -51,3 +51,5 @@
 后续验收必须覆盖：0/多个固定输入及旧 Version；host 撤权/替换/mode 变化；最小 RPC 与不可伪造 policy；无 grant 无 UI 等待；真实原 Node REPL/Job/投递第二 Turn；多 Job 与错误 delivery 拒绝；原 JSON/PNG producer→Version→匿名资产→Review；等待/审批/harvest 中 stop/deadline、远端 unknown、关闭失败及重开零重提。原文本、Python/R、binary、delegation 和 Harness 方法测试身份保留。先用原 repository/transport fixtures 证明明确层级，再用 DeepSeek 做真实后端验证；本地 transport 证据不能冒充外部 SSH/Slurm 验收。
 
 共享阶段 6 个测试文件 136/136、无跳过，完整 Node/sandbox/Web compiled types 通过；原始证据随本轮提交保存。执行/审批/Job 候选路径与真实模型验收仍待实施，不因上述 DTO 检查通过就标记功能完成。
+
+来源 helper 已实现为 `main/earthnano/compute-context.ts` 的 `freezeComputeContext` / `assertFrozenComputeContext`，只读原 Session/host repository。可选 providerId 检查原冻结 enabled 集合；原 row id/shape/mode 变化或来源撤权拒绝，新选择/新增 host 不扩张旧任务。3 文件 58/58、完整 compiled types 及 lint 通过，见 [来源身份验证](validation/alpha/compute-source-context/manifest.json)。这些 helper 尚未接入候选启动，不是执行授权或实际 Compute 验收。
