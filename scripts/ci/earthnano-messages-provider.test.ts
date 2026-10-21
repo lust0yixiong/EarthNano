@@ -75,8 +75,69 @@ it('keeps unexpected upstream failures rejected instead of reclassifying them as
   expect(provider.stats).toMatchObject({
     upstreamRequests: 1,
     rejected: 1,
+    rejectionReasons: { 'upstream-http-5xx': 1 },
+    upstreamStatuses: { '503': 1 },
     cancelledUpstreamRequests: 0
   })
+})
+
+it('retains the exact body limit and distinguishes oversized input before forwarding', async () => {
+  const upstream = vi.fn<typeof fetch>(async () => new Response('data: [DONE]\n\n'))
+  const provider = await setup(upstream)
+  const empty = JSON.stringify({ ...body, padding: '' })
+  const bounded = JSON.stringify({ ...body, padding: 'x'.repeat(1_000_000 - empty.length) })
+  expect(Buffer.byteLength(bounded)).toBe(1_000_000)
+  const send = (payload: string): Promise<Response> =>
+    fetch(`${provider.url}/v1/messages`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${provider.token}`, 'content-type': 'application/json' },
+      body: payload
+    })
+  const accepted = await send(bounded)
+  expect(accepted.status).toBe(200)
+  await accepted.text()
+  const rejected = await send(`${bounded} `)
+  expect(rejected.status).toBe(400)
+  expect(await rejected.text()).toBe('Bounded scientific acceptance request rejected')
+  expect(upstream).toHaveBeenCalledOnce()
+  expect(provider.stats).toMatchObject({
+    requests: 1,
+    upstreamRequests: 1,
+    rejected: 1,
+    rejectionReasons: { 'body-limit': 1 },
+    upstreamStatuses: { '200': 1 }
+  })
+})
+
+it.each([400, 429])('records upstream HTTP %s without retaining its error body', async (status) => {
+  const sensitive = 'private-upstream-error-body'
+  const cancel = vi.fn()
+  const upstream = vi.fn<typeof fetch>(
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(sensitive))
+          },
+          cancel
+        }),
+        { status }
+      )
+  )
+  const provider = await setup(upstream)
+  const response = await request(provider)
+  expect(response.status).toBe(400)
+  expect(await response.text()).toBe('Bounded scientific acceptance request rejected')
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(provider.stats.rejectionReasons).toEqual({ [`upstream-http-${status}`]: 1 })
+  expect(provider.stats.upstreamStatuses).toEqual({ [status]: 1 })
+  expect(provider.stats).toMatchObject({
+    rejected: 1,
+    upstreamRequests: 1,
+    cancelledUpstreamRequests: 0
+  })
+  expect(JSON.stringify(provider.stats)).not.toContain(sensitive)
+  expect(JSON.stringify(provider.stats)).not.toContain('sk-fixture-only')
 })
 
 it('counts a completed upstream stream once and retains actual reported token totals', async () => {
@@ -120,6 +181,7 @@ it('enforces an explicit model-request ceiling before another upstream request',
   expect(upstream).toHaveBeenCalledOnce()
   expect(provider.stats.requests).toBe(2)
   expect(provider.stats.upstreamRequests).toBe(1)
+  expect(provider.stats.rejectionReasons).toEqual({ 'request-limit': 1 })
 })
 
 it.each([0, 321, 1.5, NaN])(

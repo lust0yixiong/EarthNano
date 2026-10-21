@@ -107,6 +107,18 @@ const nested = (value: unknown, key: string): unknown => {
   return undefined
 }
 
+type RejectionReason =
+  | 'body-limit'
+  | 'input-shape'
+  | 'request-limit'
+  | 'upstream-http-400'
+  | 'upstream-http-429'
+  | 'upstream-http-5xx'
+  | 'upstream-http-other'
+  | 'upstream-body-missing'
+  | 'route-auth'
+  | 'fixture-error'
+
 /** Only model choices are substituted offline. Live mode forwards the same native Claude requests
  * to the explicitly authorized provider; no scientific tool or persistence response is fabricated. */
 export async function createEarthnanoMessagesProvider(
@@ -135,6 +147,8 @@ export async function createEarthnanoMessagesProvider(
     rejected: number
     unsupportedTokenCountRequests: number
     rejectedRoutes: Record<string, number>
+    rejectionReasons: Partial<Record<RejectionReason, number>>
+    upstreamStatuses: Record<string, number>
     healthRequests: number
     nativeTitleRequests: number
     pausedBeforeForward: number
@@ -175,6 +189,8 @@ export async function createEarthnanoMessagesProvider(
     rejected: 0,
     unsupportedTokenCountRequests: 0,
     rejectedRoutes: {} as Record<string, number>,
+    rejectionReasons: {} as Partial<Record<RejectionReason, number>>,
+    upstreamStatuses: {} as Record<string, number>,
     healthRequests: 0,
     nativeTitleRequests: 0,
     pausedBeforeForward: 0,
@@ -223,8 +239,10 @@ export async function createEarthnanoMessagesProvider(
       request.resume()
       return
     }
-    const reject = (): void => {
+    let failureReason: RejectionReason = 'route-auth'
+    const reject = (reason: RejectionReason = failureReason): void => {
       stats.rejected++
+      stats.rejectionReasons[reason] = (stats.rejectionReasons[reason] ?? 0) + 1
       const route = `${request.method} ${new URL(request.url ?? '/', 'http://localhost').pathname}`
       stats.rejectedRoutes[route] = (stats.rejectedRoutes[route] ?? 0) + 1
       if (!response.headersSent) response.writeHead(400)
@@ -237,16 +255,17 @@ export async function createEarthnanoMessagesProvider(
         request.headers.authorization !== `Bearer ${token}`
       )
         return reject()
+      failureReason = 'input-shape'
       const chunks: Buffer[] = []
       let size = 0
       for await (const chunk of request) {
         size += chunk.length
-        if (size > 1_000_000) return reject()
+        if (size > 1_000_000) return reject('body-limit')
         chunks.push(Buffer.from(chunk))
       }
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Body
-      if (body.model !== 'deepseek-flash' || !body.stream || ++stats.requests > maxModelRequests)
-        return reject()
+      if (body.model !== 'deepseek-flash' || !body.stream) return reject()
+      if (++stats.requests > maxModelRequests) return reject('request-limit')
       const userText = body.messages
         .filter((message) => message.role === 'user')
         .map((message) =>
@@ -269,6 +288,7 @@ export async function createEarthnanoMessagesProvider(
       const blocks = body.messages.flatMap((message) =>
         Array.isArray(message.content) ? message.content : []
       )
+      failureReason = 'fixture-error'
       for (const block of blocks)
         if (block.type === 'tool_use' && block.name && !stats.toolNames.includes(block.name))
           stats.toolNames.push(block.name)
@@ -336,9 +356,21 @@ export async function createEarthnanoMessagesProvider(
               signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90_000)])
             }
           )
+          stats.upstreamStatuses[upstream.status] =
+            (stats.upstreamStatuses[upstream.status] ?? 0) + 1
           if (!upstream.ok || !upstream.body) {
+            const reason: RejectionReason = !upstream.ok
+              ? upstream.status === 400
+                ? 'upstream-http-400'
+                : upstream.status === 429
+                  ? 'upstream-http-429'
+                  : upstream.status >= 500 && upstream.status <= 599
+                    ? 'upstream-http-5xx'
+                    : 'upstream-http-other'
+              : 'upstream-body-missing'
+            failureReason = reason
             await upstream.body?.cancel()
-            return reject()
+            return reject(reason)
           }
           response.writeHead(200, { 'content-type': 'text/event-stream' })
           let pending = '',
