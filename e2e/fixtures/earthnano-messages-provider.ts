@@ -138,6 +138,8 @@ export async function createEarthnanoMessagesProvider(
     upstreamFetch?: typeof fetch
     /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
     maxModelRequests?: number
+    /** Restore a previously frozen controlled loopback endpoint; fail if its port is occupied. */
+    loopbackPort?: number
   } = {}
 ): Promise<{
   url: string
@@ -182,6 +184,9 @@ export async function createEarthnanoMessagesProvider(
   const maxModelRequests = testOptions.maxModelRequests ?? (scientificOptimization ? 160 : 120)
   if (!Number.isSafeInteger(maxModelRequests) || maxModelRequests < 1 || maxModelRequests > 320)
     throw new Error('Invalid bounded acceptance request limit')
+  const loopbackPort = testOptions.loopbackPort ?? 0
+  if (!Number.isSafeInteger(loopbackPort) || loopbackPort < 0 || loopbackPort > 65535)
+    throw new Error('Invalid controlled loopback port')
   const token = randomUUID(),
     controllers = new Set<AbortController>()
   const stats = {
@@ -726,7 +731,10 @@ export async function createEarthnanoMessagesProvider(
       reject()
     }
   })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(loopbackPort, '127.0.0.1', resolve)
+  })
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     token,

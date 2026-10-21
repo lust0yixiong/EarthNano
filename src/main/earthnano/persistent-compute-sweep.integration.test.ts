@@ -84,12 +84,39 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
   const modelRequestsRemaining = 240 - (retained?.provider.requests ?? 0)
   if (!Number.isSafeInteger(modelRequestsRemaining) || modelRequestsRemaining <= 0)
     throw new Error('Original controlled model-request budget is exhausted')
+  let loopbackPort: number | undefined
+  if (retained) {
+    const { manifest } = readDesktopOptimizationResume(
+      join(retained.fixtureRoot, 'earthnano', 'desktop-runs', retained.progress.runId, 'execution')
+    )
+    const wanted = manifest.identity.sweep?.tasks[0].input.agent.providerRef
+    // The original fixture chose a random local port and deliberately never persisted credentials.
+    // Restore that nonsecret endpoint by its original provider revision, without relaxing identity.
+    for (let port = 1; port <= 65535; port++) {
+      const digest = createHash('sha256')
+        .update(
+          JSON.stringify({
+            type: 'custom',
+            model: 'deepseek-flash',
+            baseUrl: `http://127.0.0.1:${port}`,
+            apiEndpoints: ['messages']
+          })
+        )
+        .digest('hex')
+      if (`desktop-provider:controlled-compute:${digest}` === wanted) {
+        loopbackPort = port
+        break
+      }
+    }
+    if (!loopbackPort) throw new Error('Original controlled provider endpoint unavailable')
+  }
   const provider = await createEarthnanoMessagesProvider(live, true, false, {
     scientificCompute: true,
     scientificFigure: true,
     // Independent transport ceiling for this full k=2 experiment, including original retries and
     // both reviewers. It never raises the Core admission budget or resumes a failed experiment.
     maxModelRequests: modelRequestsRemaining,
+    ...(loopbackPort ? { loopbackPort } : {}),
     ...(process.env.EARTHNANO_DEEPSEEK_KEY_FILE
       ? { keyFile: process.env.EARTHNANO_DEEPSEEK_KEY_FILE }
       : {})
@@ -98,6 +125,7 @@ it('runs the frozen Compute task through original desktop sweep, Harness k=2 and
     sourceSha,
     dirty: Boolean(dirty),
     live,
+    controlledProviderEndpoint: provider.url,
     controlledModelRequestBudget: {
       limit: 240,
       previouslyUsed: retained?.provider.requests ?? 0,
