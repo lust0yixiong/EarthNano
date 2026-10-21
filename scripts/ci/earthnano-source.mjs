@@ -581,7 +581,24 @@ export async function sourceBatch({ root, out }, execute = sourceShard) {
     throw new Error('Source cohort contains unavailable shards; inspect original reports')
 }
 
-export async function compareReports(root, out) {
+export function comparisonPlatforms(value = 'darwin,linux,win32') {
+  if (typeof value !== 'string') throw new Error('Invalid comparison platforms')
+  const platforms = value.split(',')
+  if (
+    !platforms.length ||
+    platforms.some((platform) => !['darwin', 'linux', 'win32'].includes(platform)) ||
+    new Set(platforms).size !== platforms.length
+  )
+    throw new Error('Unknown, empty or duplicate comparison platform')
+  return platforms
+}
+export async function compareReports(root, out, platforms = comparisonPlatforms()) {
+  if (
+    !Array.isArray(platforms) ||
+    platforms.some((platform) => !['darwin', 'linux', 'win32'].includes(platform))
+  )
+    throw new Error('Invalid comparison platforms')
+  platforms = comparisonPlatforms(platforms.join(','))
   const reports = []
   const walk = async (directory) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -608,6 +625,8 @@ export async function compareReports(root, out) {
           report.pins?.harnessTree !== HARNESS_TREE
         )
           throw new Error('Malformed source report identity')
+        if (!platforms.includes(report.platform))
+          throw new Error(`Source report outside selected platforms: ${report.platform}`)
         const runtime = await json(join(directory, 'runtime.json'))
         const rawTests = normalizeVitest(
           await json(join(directory, 'vitest.json')),
@@ -635,7 +654,7 @@ export async function compareReports(root, out) {
     )
       throw new Error('Source lockfile identity differs across platforms')
   const results = []
-  for (const platform of ['darwin', 'linux', 'win32']) {
+  for (const platform of platforms) {
     const expectedTotal = platform === 'win32' ? 8 : 4
     const sets = {}
     for (const kind of ['baseline', 'candidate']) {
@@ -847,8 +866,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     else if (args[0] === 'source-batch') {
       if (process.platform !== 'linux') throw new Error('Source cohort requires one Linux runner')
       await sourceBatch({ root, out })
-    } else if (args[0] === 'compare') await compareReports(resolve(value('--reports')), out)
-    else if (args[0] === 'manifest') await artifactManifest(root, out)
+    } else if (args[0] === 'compare') {
+      if (
+        args.filter((arg) => arg === '--platforms').length > 1 ||
+        (args.includes('--platforms') && !value('--platforms'))
+      )
+        throw new Error('Expected one explicit --platforms value')
+      await compareReports(
+        resolve(value('--reports')),
+        out,
+        comparisonPlatforms(value('--platforms'))
+      )
+    } else if (args[0] === 'manifest') await artifactManifest(root, out)
     else if (args[0] === 'pins') await verifyPins(root)
     else if (args[0] === 'electron') {
       const probe = run(
