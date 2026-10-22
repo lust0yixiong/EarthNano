@@ -19,6 +19,23 @@
   不删除限制或扩大 skip 来作出支持声明。
 - 不新增自动优化触发、配置治理、完整费用账本或第二套执行/优化规则；固定上游不升级。
 
+### 本轮定位和移植
+
+开发分支已整合 `0.1.1-Alpha` PR #27 的 `4fabdc7fcf6180861eb509306c6955cb0224ae57`。
+0.1.1 仍在独立迭代，最终 PR 以其届时已公布的提交为合并基础；本轮不提前改版本号或发布。
+
+| 工作 | 实际证据与处理 | 当前边界 |
+| --- | --- | --- |
+| Windows checkout | 恢复运行发现六个历史证据路径超过 Windows 路径限制；仅缩短归档文件名，逐一校验原压缩字节和解压字节，保留路径映射 | 不删除证据，不改变原结果 |
+| 安装器 exit 2 | [运行 39700451549](https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549) 的原安装 smoke 失败；隔离诊断定位到 `prepare` 的 `Add-Type -TypeDefinition`，原参数 probe 同时确认 verbatim `/D=` 的实际传递 | 参数修正不能单独解决运行时编译失败 |
+| 上游安装修复 | 定向移植 [OpenScience 814f30751](https://github.com/aipoch/open-science/commit/814f30751bbbe04efe3a03412ef17a7869d82524)：五个生产模块和 extractor 原测试逐字节复用；构建时编译、原签名钩子、私有 DLL 加载和 UTF-16LE 输出 | 不移植同一提交的六分片调度或其他无关改动；`UPSTREAMS.json` 的对照 pin 保持不变 |
+| PowerShell 回归 | [旧红 39702517939](https://github.com/lust0yixiong/EarthNano/actions/runs/39702517939)：x64/x86 中文 TEMP 两例失败、英文两例通过；[修复后 39703245660](https://github.com/lust0yixiong/EarthNano/actions/runs/39703245660)：四例原 prepare/publish/cleanup 断言全部通过，实际位数和 TEMP UTF-16 原字节已核对 | 新运行共 10 通过、15 条件跳过；窄例不代替原 NSIS 完整安装、资源和 RPC 启动 smoke |
+| 源码对照 | 从保留分支逐项恢复 durability、host 注入、UTF-8/ACL/攻击夹具修复，并补齐 0.1.1 文件的原模块登记；完整 Windows 分片和原比较器仍在验收 | 不以 job 绿色代替原断言结果，不将基线失败抵消候选新失败 |
+
+安装模块的 Git blob、SHA256 与原 C# / 目录事务主体保真证明见
+[上游移植清单](validation/alpha/windows-0.2-upstream-installer/manifest.json)。
+原安装的目录身份、ACL、reparse-point、发布和清理事务主体保持逐字节一致。
+
 以下内容为 2026-10-21 的延期记录和恢复依据。其当时的“停止 Windows”与
 “0.1 尚待发布”描述不覆盖上面的恢复决定，也不把历史尝试标记为已验证修复。
 
