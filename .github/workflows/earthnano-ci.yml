@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       source_run_id:
-        description: Successful same-source full Unix, Harness and packaged-trial CI run
+        description: Same-source CI with complete Mac source, four native targets, Harness and packaged trials
         required: true
         type: string
 
@@ -48,6 +48,18 @@ jobs:
       - name: Original release helper dependencies only, without application lifecycle or rebuild
         working-directory: application
         run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+          pattern: earthnano-source-macos-15-*
+          path: ${{ env.PATCH_ROOT }}/inputs/source-macos
+      - name: Compare all original macOS source assertions with the unchanged source comparator
+        working-directory: application
+        run: |
+          node scripts/ci/earthnano-source.mjs compare --platforms darwin \
+            --reports "$PATCH_ROOT/inputs/source-macos" \
+            --out "$PATCH_ROOT/evidence/source-macos-comparison"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           github-token: ${{ github.token }}

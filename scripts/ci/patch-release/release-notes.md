@@ -20,6 +20,12 @@ for reference outputs, sources and exact scope. Model API calls may incur provid
 
 ## Scope
 
+Validation completed for both actual-package examples, the real DeepSeek trial,
+all four macOS/Linux native install/launch checks, and the full macOS comparison
+against pinned original source (no new regressions; two inherited PDF worker-resource
+test failures retained). The full Linux source comparison is still running in
+[CI](https://github.com/lust0yixiong/EarthNano/actions/runs/39722806098) and is not claimed passed.
+
 Unsigned/ad-hoc macOS and Linux Alpha preview; no Developer ID notarization or SLSA claim.
 Windows remains deferred to 0.2-Alpha. Reproducing a frozen calculation or obtaining a passing
 Review does not establish general scientific correctness or broadly better model performance.
