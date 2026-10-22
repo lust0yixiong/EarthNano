@@ -53,6 +53,8 @@
 已变化，再执行原 `INTEGRITY_FAILED`、缓存复用和四倍／五倍读取计数断言。
 受控元数据别名探针可复现原失败，补足前提后通过；原 50 项正常测试全部保留。
 这不证明历史 Windows 跑次的具体时序，实际 Windows 仍须在新提交完整复验。
+原始红绿报告、受控观测脚本和摘要见
+[缓存夹具证据](validation/alpha/windows-0.2-cache-fixture/manifest.json)。
 
 **该修改不是生产完整性修复。** 继承实现中，若 dev、ino、size、mtime 和 ctime
 全部不变，缓存 lease 可能沿用既有摘要；本轮未修改该生产缓存规则，也未增加
