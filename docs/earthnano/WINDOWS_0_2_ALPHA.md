@@ -2,7 +2,7 @@
 
 ## 当前验收状态：2026-10-22
 
-最终产品提交 `60e922b99ce77186374d219df2954de1c63acb5f` 已整合 0.1.1 的
+已完成安装验收的提交 `60e922b99ce77186374d219df2954de1c63acb5f` 整合了 0.1.1 的
 `ef4fd17618d468123ffdf6cd172205916ec8872a`，保留 `0.1.1-alpha.1` 构建版本，
 本轮没有发布 0.2 标签或公开安装包。
 
@@ -12,7 +12,7 @@
 原始旧数据库各两次启动／关闭、迁移 ledger 和卸载。四项原数据库证书
 `freshInstall`、`legacyAdoption`、`reopen`、`specialPath` 均通过；未提供 previous
 installer，因此不代表已发布版本间升级、DeepSeek、R 科研或 WSL 授权认证已验证。
-原生验收证据及 API 摘要已独立复核，见[原生原证据归档](validation/alpha/windows-0.2-native/manifest.json)。完整源码对照仍在同一 run 执行。
+原生验收证据及 API 摘要已独立复核，见[原生原证据归档](validation/alpha/windows-0.2-native/manifest.json)。同一 run 的完整源码比较已执行并失败，具体结果见下文；原生绿色不覆盖源码失败。
 
 [先前运行 39708148492](https://github.com/lust0yixiong/EarthNano/actions/runs/39708148492)
 的原 smoke 仍为真实失败：已推进到新库 profile，shutdown 返回 202 且响应体读取
@@ -20,6 +20,45 @@ installer，因此不代表已发布版本间升级、DeepSeek、R 科研或 WSL
 停机相关源码相同，不能将后续绿色写成已修复该间歇性问题的证据。日志中的
 transport-close 可能发生于超时强杀清理，不能据此确定原因；本轮未改退出超时、
 频道或通过条件，也未仅凭标题移植无关的上游 UI 退出改动。
+
+### 原迁移测试的实际超时
+
+本轮完整 `60e922b99` 的 candidate 5 有一项候选新增失败：历史 journal 升级用例
+在原 30 秒测试界限失败（30.060 秒），同轮上游基线为 16.109 秒通过。完整比较
+仍保留该失败，不会由局部重跑抵消。
+
+[独立原参数诊断 39714645856](https://github.com/lust0yixiong/EarthNano/actions/runs/39714645856)
+仍为失败：77 项中 76 通过、1 超时，0 跳过、0 全局错误。原 journal 用例该次
+25.809 秒通过，相邻 metadata receipts 用例却在 30.037 秒失败；默认报告器明确
+显示 `Test timed out in 30000ms`。原 JSON 的 `STACK_TRACE_ERROR` 来自锁定 Vitest
+超时处理覆盖栈文本，不能视为数据库的另一项业务错误。
+
+相关生产模块、历史夹具、schema 和 Prisma 与固定上游相同，不能仅据相同源码认定
+环境原因。见[失败原证据](validation/alpha/windows-0.2-migration-diagnostic-39714645856/manifest.json)。
+修正仅将历史测试夹具的原语句批入真实事务；原生产迁移器、历史语句／校验和、
+断言、SQLite 持久性选项及 30 秒／60 秒原时限均不改变。Prisma 默认 5 秒事务限制
+仍保留。六对真实数据库的 schema、数据、ID、校验和与外键状态等价；两项失败回滚／
+恢复控制通过，本地 16 个原消费者共 160/160 通过（本地 Node 26 补充证据）。见
+[等价性与原消费者证据](validation/alpha/windows-0.2-historical-fixture/manifest.json)。
+
+[Windows 修正验证 39716802777](https://github.com/lust0yixiong/EarthNano/actions/runs/39716802777)
+实际检出 `06e5c169d3e289201f89b21cca01d086434042d4`，原 77 项全部通过、0 跳过、
+0 全局错误，原 JSON／runtime／标题清单和 normalizer 一致。journal 用例 1.533 秒、
+metadata receipts 用例 2.500 秒；这次窄验证不拼入旧 16 片，也不取代最终完整对照。
+[原 ZIP 与日志](validation/alpha/windows-0.2-historical-fixture-39716802777/manifest.json)。
+
+### 对照启动后的 0.1.1 夹具整合
+
+完整对照冻结在上述 `60e922b99`。期间 0.1.1 新增
+`59dfde65a2b6368dd5603667aef7305a0ed23ef3`，仅为
+`smart-collections.test.ts` 的四 worker 并发重试用例保留足够 pending 输入，
+原断言和定向子集边界不变。修复分支已整合为 `4f209c180114f1d96d02c9c48805d24b39463932`；
+相对已测提交只有文档和该测试文件变化，生产、构建 recipe、比较器及其他测试未变。
+
+[独立 Windows 运行 39713055366](https://github.com/lust0yixiong/EarthNano/actions/runs/39713055366)
+明确检出 `4f209c180`，原 59 项标题与原 JSON／runtime／normalizer 结果逐项一致：
+59 通过、0 失败、0 跳过、0 全局错误。见[单文件原证据](validation/alpha/windows-0.2-fixture-39713055366/manifest.json)；此结果不拼入 `60e922b99` 的
+16 份源码报告，也不声称最新文档提交重新执行了完整矩阵。
 
 ## 恢复工作：2026-10-22
 
@@ -42,7 +81,8 @@ transport-close 可能发生于超时强杀清理，不能据此确定原因；�
 
 ### 本轮定位和移植
 
-开发分支已整合 `0.1.1-Alpha` PR #27 的 `ef4fd17618d468123ffdf6cd172205916ec8872a`。
+开发分支已整合 `0.1.1-Alpha` PR #27 的 `59dfde65a2b6368dd5603667aef7305a0ed23ef3`；
+规范完整矩阵的冻结基线及后续单文件验证分别见上文。
 0.1.1 仍在独立迭代，最终 PR 以其届时已公布的提交为合并基础；本轮不提前改版本号或发布。
 
 | 工作 | 实际证据与处理 | 当前边界 |
