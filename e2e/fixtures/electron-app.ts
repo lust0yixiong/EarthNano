@@ -47,6 +47,7 @@ import { prepareBrandStorageFixture } from './brand-storage-data'
 import { captureNativeQuitDialog } from './native-quit-dialog'
 import type { PackageOperationSnapshot } from '../../src/shared/session-package'
 import { createSessionFile, type PersistedChatSession } from '../../src/shared/session-persistence'
+import { prepareIsolatedMacosKeychain } from './isolated-macos-keychain'
 
 const APP_ROOT = resolve(process.cwd())
 const FAKE_AGENT_PATH = resolve(APP_ROOT, 'e2e', 'fixtures', 'fake-opencode.mjs')
@@ -491,19 +492,21 @@ const launchOpenScience = async (
   sessionPerformanceTrace: boolean,
   packagePath?: string
 ): Promise<ElectronApplication> => {
+  const environment = launchEnvironment(
+    storageRoot,
+    fakeAgentEnabled ? fakeAgentBinRoot : undefined,
+    process.env,
+    fakeRemoteItEnabled ? fakeRemoteItRoot : undefined,
+    windowMode,
+    sessionPerformanceTrace
+  )
+  await prepareIsolatedMacosKeychain(environment)
   const application = await electron.launch({
     ...electronLaunchTarget(userDataRoot),
     args: [...electronLaunchTarget(userDataRoot).args, ...(packagePath ? [packagePath] : [])],
     cwd: fakeRemoteItEnabled ? fakeRemoteItRoot : APP_ROOT,
     env: {
-      ...launchEnvironment(
-        storageRoot,
-        fakeAgentEnabled ? fakeAgentBinRoot : undefined,
-        process.env,
-        fakeRemoteItEnabled ? fakeRemoteItRoot : undefined,
-        windowMode,
-        sessionPerformanceTrace
-      ),
+      ...environment,
       ...(process.platform === 'darwin' && !process.env.OPEN_SCIENCE_E2E_EXECUTABLE
         ? {
             NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require=${JSON.stringify(resolve(APP_ROOT, 'e2e/fixtures/mock-node-credentials.cjs'))}`

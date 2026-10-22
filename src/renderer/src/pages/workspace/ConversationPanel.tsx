@@ -41,6 +41,7 @@ import { ResizablePanel } from '@/components/ui/resizable'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { sessionPackageImportAvailable } from '@/lib/session-package-capabilities'
 import { cn } from '@/lib/utils'
+import { upstreamTrials, upstreamTrialFiles } from '@/lib/upstream-trials'
 import { ConnectorCredentialControls } from '@/pages/settings/ConnectorCredentialDialog'
 import {
   createSessionPlanPreviewItem,
@@ -1723,6 +1724,17 @@ const ConversationPanel = ({
               {isNewConversation && (
                 <NewConversationStart
                   onStartResearch={canEditDraft ? insertResearchPrompt : undefined}
+                  onStartTrial={
+                    canEditDraft &&
+                    !isUploadingAttachments &&
+                    attachments.length === 0 &&
+                    draftDoc.nodes.every((node) => node.type === 'text' && !node.text.trim())
+                      ? (id) => {
+                          insertResearchPrompt(upstreamTrials[id].prompt)
+                          onStageAttachmentFiles(upstreamTrialFiles(id))
+                        }
+                      : undefined
+                  }
                 />
               )}
               <div className="px-1 md:px-3">

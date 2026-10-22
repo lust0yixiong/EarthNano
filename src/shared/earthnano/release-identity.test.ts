@@ -15,7 +15,7 @@ it('keeps EarthNano preview discovery and packaged updater on one independent ch
   const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'))
   expect(pkg.productName).toBe(APP.name)
   expect(builder.productName).toBe(APP.name)
-  expect(pkg.version).toBe('0.1.0-alpha.1')
+  expect(pkg.version).toBe('0.1.1-alpha.1')
   expect(isPublishedReleaseVersion(pkg.version)).toBe(true)
   expect(lock.version).toBe(pkg.version)
   expect(lock.packages[''].version).toBe(pkg.version)

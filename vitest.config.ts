@@ -26,7 +26,10 @@ export function resolveVitestMaxWorkers(
 export const VITEST_ARCHITECTURE_TEST_GLOBS = [
   '**/*.architecture.test.ts',
   // Whole-repository graph scanning belongs after the parallel pool, retaining its timeout.
-  'scripts/ci/module-consumer-coverage.test.ts'
+  'scripts/ci/module-consumer-coverage.test.ts',
+  // This trust-boundary fixture starts dozens of Git/Node subprocesses; run it after the
+  // parallel unit pool while keeping every assertion and its original timeout.
+  'scripts/ci/pr-gate-workflow.test.ts'
 ] as const
 
 export const VITEST_DATABASE_TEST_GLOBS = [

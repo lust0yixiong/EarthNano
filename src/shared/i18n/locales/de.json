@@ -7591,6 +7591,12 @@
     "Task filter": "Aufgabenfilter",
     "Tasks per domain (empty means all)": "Aufgaben pro Domäne (leer bedeutet alle)",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "Keine Aufgaben entsprechen den angezeigten Filtern. Passen Sie die Filter an und zeigen Sie die Vorschau erneut an.",
-    "Repeat this task with Notebook": "Diese Aufgabe mit Notebook erneut ausführen"
+    "Repeat this task with Notebook": "Diese Aufgabe mit Notebook erneut ausführen",
+    "Try upstream examples": "Upstream-Beispiele ausprobieren",
+    "OpenScience: reproduce Case16": "OpenScience: Case16 erneut ausführen",
+    "Rerun the original registry calculation with its frozen input.": "Die ursprüngliche Registerberechnung mit ihren fixierten Eingaben erneut ausführen.",
+    "Harness²: reconcile signed ledgers": "Harness²: vorzeichenbehaftete Kontobücher abgleichen",
+    "Run the original demo task, then compare configurations with Optimize task.": "Die ursprüngliche Demo-Aufgabe ausführen und danach Konfigurationen mit der Aufgabenoptimierung vergleichen.",
+    "Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.": "In einem leeren Entwurf ein Beispiel wählen, um seine Eingaben anzuhängen. Vor dem Senden prüfen; Modellaufrufe können Kosten verursachen."
   }
 }

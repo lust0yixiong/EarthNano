@@ -1,4 +1,4 @@
-# EarthNano v0.1.0-alpha.1
+# EarthNano v0.1.1-alpha.1
 
 Esta versión en desarrollo integra OpenScience y Harness². La aceptación y publicación de Alpha siguen pendientes. La documentación original que aparece a continuación describe el proyecto de origen; sus descargas y resultados no constituyen una publicación ni una validación de EarthNano.
 

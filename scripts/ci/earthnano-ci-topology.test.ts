@@ -147,13 +147,15 @@ describe('EarthNano 0.1 Unix CI scope', () => {
   it('requires only Unix source/native jobs and no Windows dependency', () => {
     expect(needs(workflow.jobs.source_unix)).toEqual(['plan'])
     expect(needs(workflow.jobs.native_unix)).toEqual([])
+    expect(needs(workflow.jobs.trials_packaged)).toEqual(['native_unix'])
     expect(needs(workflow.jobs.plan)).toEqual([])
     expect(Object.keys(workflow.jobs)).toEqual([
       'plan',
       'source_unix',
       'comparison',
       'harness',
-      'native_unix'
+      'native_unix',
+      'trials_packaged'
     ])
     expect(Object.values(workflow.jobs).flatMap(needs)).not.toContain('windows_runtime')
     for (const [name, output] of [['source_unix', 'unix_matrix']])

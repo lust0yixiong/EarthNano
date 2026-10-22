@@ -7428,6 +7428,12 @@
     "Task filter": "작업 필터",
     "Tasks per domain (empty means all)": "도메인별 작업 수 (비워 두면 모두)",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "미리보기 필터와 일치하는 작업이 없습니다. 필터를 조정한 후 다시 미리보기를 확인하세요.",
-    "Repeat this task with Notebook": "Notebook으로 이 작업 다시 실행"
+    "Repeat this task with Notebook": "Notebook으로 이 작업 다시 실행",
+    "Try upstream examples": "업스트림 예제 체험",
+    "OpenScience: reproduce Case16": "OpenScience: Case16 재실행",
+    "Rerun the original registry calculation with its frozen input.": "고정된 입력으로 원본 등록 데이터 계산을 재실행합니다.",
+    "Harness²: reconcile signed ledgers": "Harness²: 부호 있는 원장 대조",
+    "Run the original demo task, then compare configurations with Optimize task.": "원본 데모 작업을 실행한 다음 작업 최적화에서 설정을 비교합니다.",
+    "Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.": "빈 초안에서 예제를 선택하면 입력 파일이 첨부됩니다. 전송 전에 확인하세요. 모델 호출 시 요금이 발생할 수 있습니다."
   }
 }
