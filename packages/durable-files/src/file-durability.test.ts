@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createFileDurability } from './file-durability'
+import { createFileDurability, createSynchronousFileDurability } from './file-durability'
 
 describe('file durability', () => {
   it('opens ordinary files with a write-capable handle before syncing', async () => {
@@ -56,4 +56,72 @@ it('propagates unexpected directory sync failures and still closes the handle', 
     createFileDurability({ openHandle, platform: 'win32' }).syncDirectory('directory')
   ).rejects.toBe(failure)
   expect(close).toHaveBeenCalledOnce()
+})
+
+describe('synchronous file durability uses the same directory policy', () => {
+  it('opens file payloads with write capability and directories read-only', () => {
+    const sync = vi.fn(),
+      close = vi.fn(),
+      openHandle = vi.fn(() => ({ sync, close }))
+    const durability = createSynchronousFileDurability({ openHandle, platform: 'win32' })
+    durability.syncFile('file')
+    durability.syncDirectory('directory')
+    expect(openHandle.mock.calls).toEqual([
+      ['file', 'r+'],
+      ['directory', 'r']
+    ])
+    expect(sync).toHaveBeenCalledTimes(2)
+    expect(close).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'])(
+    'permits Windows directory %s only, including original open/close semantics',
+    (code) => {
+      const failure = Object.assign(new Error(code), { code })
+      for (const phase of ['open', 'sync', 'close'] as const) {
+        const close = vi.fn(() => {
+          if (phase === 'close') throw failure
+        })
+        const openHandle = vi.fn(() => {
+          if (phase === 'open') throw failure
+          return {
+            sync: (): void => {
+              if (phase === 'sync') throw failure
+            },
+            close
+          }
+        })
+        expect(() =>
+          createSynchronousFileDurability({ openHandle, platform: 'win32' }).syncDirectory('dir')
+        ).not.toThrow()
+        for (const platform of ['linux', 'darwin'] as const) {
+          expect(() =>
+            createSynchronousFileDurability({ openHandle, platform }).syncDirectory('dir')
+          ).toThrow(failure)
+        }
+        expect(() =>
+          createSynchronousFileDurability({ openHandle, platform: 'win32' }).syncFile('file')
+        ).toThrow(failure)
+        expect(close).toHaveBeenCalledTimes(phase === 'open' ? 0 : 4)
+      }
+    }
+  )
+
+  it.each(['EIO', 'EACCES', 'ENOSPC', undefined])(
+    'retains unknown Windows directory error %s and always closes opened handles',
+    (code) => {
+      const failure = Object.assign(new Error('directory failure'), { code })
+      const close = vi.fn()
+      const openHandle = vi.fn(() => ({
+        sync: (): void => {
+          throw failure
+        },
+        close
+      }))
+      expect(() =>
+        createSynchronousFileDurability({ openHandle, platform: 'win32' }).syncDirectory('dir')
+      ).toThrow(failure)
+      expect(close).toHaveBeenCalledOnce()
+    }
+  )
 })

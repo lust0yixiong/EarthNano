@@ -1,4 +1,5 @@
 import { mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -16,6 +17,61 @@ const root = (): string => {
 }
 afterEach(() => roots.splice(0).forEach((path) => rmSync(path, { recursive: true, force: true })))
 const secret = 'PRIVATE_PROVIDER_TOKEN_and_mission_and_python_traceback'
+
+const assertInheritedWindowsAcl = (path: string): void => {
+  const literal = path.replaceAll("'", "''")
+  const script = `
+$ErrorActionPreference = 'Stop'
+$path = '${literal}'
+$sidType = [System.Security.Principal.SecurityIdentifier]
+$child = Get-Acl -LiteralPath $path
+$parent = Get-Acl -LiteralPath ([IO.Path]::GetDirectoryName($path))
+$owner = $child.GetOwner($sidType).Value
+$group = $child.GetGroup($sidType).Value
+$allows = @($child.GetAccessRules($true, $true, $sidType) | Where-Object { $_.AccessControlType -eq 'Allow' })
+$inheritable = @($parent.GetAccessRules($true, $true, $sidType) | Where-Object {
+  $_.AccessControlType -eq 'Allow' -and
+  ($_.InheritanceFlags -band [System.Security.AccessControl.InheritanceFlags]::ObjectInherit) -ne 0
+})
+$unmatched = @($allows | Where-Object {
+  $rule = $_
+  $matches = @($inheritable | Where-Object {
+    $sid = $_.IdentityReference.Value
+    if ($sid -eq 'S-1-3-0') { $sid = $owner }
+    if ($sid -eq 'S-1-3-1') { $sid = $group }
+    $sid -eq $rule.IdentityReference.Value -and
+    (([int]$rule.FileSystemRights -band [int]$_.FileSystemRights) -eq [int]$rule.FileSystemRights)
+  })
+  $matches.Count -eq 0
+})
+@{
+  protected = [bool]$child.AreAccessRulesProtected
+  allowCount = $allows.Count
+  explicitAllowCount = @($allows | Where-Object { !$_.IsInherited }).Count
+  inheritedAllowCount = @($allows | Where-Object { $_.IsInherited }).Count
+  unmatchedAllowCount = $unmatched.Count
+} | ConvertTo-Json -Compress
+`
+  const stdout = execFileSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-EncodedCommand',
+      Buffer.from(script, 'utf16le').toString('base64')
+    ],
+    { encoding: 'utf8', timeout: 10_000, maxBuffer: 64 * 1024, windowsHide: true }
+  )
+  const acl = JSON.parse(stdout.trim())
+  expect(acl).toMatchObject({
+    protected: false,
+    explicitAllowCount: 0,
+    unmatchedAllowCount: 0
+  })
+  expect(Number.isSafeInteger(acl.allowCount)).toBe(true)
+  expect(acl.allowCount).toBeGreaterThan(0)
+  expect(acl.inheritedAllowCount).toBe(acl.allowCount)
+}
 const processOptions = (): Parameters<typeof runHarnessProcess>[0] => ({
   binding: { dispatch: vi.fn(async () => undefined), stop: vi.fn(async () => undefined) },
   python: 'python3',
@@ -135,7 +191,11 @@ it('appends bounded private facts across resume and ignores arbitrary exception 
       protocolStatus: 'failed'
     }
   ])
-  expect(statSync(path).mode & 0o777).toBe(0o600)
+  if (process.platform === 'win32') {
+    // Follow the original private-snapshot platform contract: Windows mode bits do not prove 0600.
+    // This read-only check proves no added grants beyond the existing parent, not parent privacy.
+    assertInheritedWindowsAcl(path)
+  } else expect(statSync(path).mode & 0o777).toBe(0o600)
   expect(readFileSync(path, 'utf8')).not.toContain(secret)
   for (let index = 0; index < 1000; index++)
     recordOptimizationFailure(directory, 'cleanup', undefined, 'cleanup-unconfirmed')
