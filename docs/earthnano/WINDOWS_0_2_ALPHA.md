@@ -1,6 +1,30 @@
 # Windows 0.2-Alpha：恢复与验收
 
-## 当前验收状态：2026-10-22
+## 当前发布状态：0.2.0-alpha.1
+
+当前版本为独立公开的 [0.2.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.2.0-alpha.1)，
+安装包源码为 `ca96faed10916edde870aae47da6d70f31e55300`，覆盖 macOS ARM64/x64、
+Linux x64/ARM64 和 Windows x64。Windows [EXE 安装器](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-win-x64-setup.exe)
+与其余八个包的下载链接见 [README 安装表](../../README.md#安装)，摘要见同一 Release 的
+[SHA256SUMS.txt](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt)。
+
+本版 macOS 原始源码报告见 [39744881823](https://github.com/lust0yixiong/EarthNano/actions/runs/39744881823)，
+四个 Unix 原生包构建／安装验收见 [39746583897](https://github.com/lust0yixiong/EarthNano/actions/runs/39746583897)。
+Windows 同源码原生安装验收见 [Windows 原生运行 39751493083](https://github.com/lust0yixiong/EarthNano/actions/runs/39751493083)。
+macOS 原始源码对照无新增测试或阶段回归的结论保留既有失败和跳过，不能写成全部测试通过。
+两个 Linux 全量源码 batch 及其依赖的最终完整比较按用户本次明确决定豁免，未作发布验收；
+原运行与规则保留，不计为通过。五个平台原生构建与安装验收均已按原规则通过。
+冻结的范围说明与原运行状态见 [SOURCE-CI-ACCEPTANCE.json](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/SOURCE-CI-ACCEPTANCE.json)。
+
+本版安装器为未签名 Alpha；Windows 配置优化仍不受支持，13 项 POSIX 集成边界不计为通过。
+本次 Windows 包验收不认证已发布旧安装器间升级、Authenticode、WSL 授权或全部科研／模型能力。
+先前 `39708148492` 的间歇退出失败仍为历史失败，后续绿色不证明其根因已修复。
+旧 `v0.1.1-alpha.1`、`v0.1.0-alpha.1` 及 `alpha` release／tag／资产保留，未推进更新频道。
+
+以下记录归属于各自的历史提交与跑次；其中“尚未发布”“只提交整合 PR”和
+`0.1.1-alpha.1` 描述的是当时状态，不作为本版 ca96 安装包的验收证明。
+
+## 发布前恢复验收记录：2026-10-22
 
 完整 Windows 验收的执行版本为 `2982f4d1dcbce13746c40b25f1045aecec24cec6`，包含
 0.1.1 PR #27 的 `8829c1596f55449267945716e8d47f3714935144`。正式发布基线的后续
