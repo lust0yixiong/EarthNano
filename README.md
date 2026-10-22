@@ -2,7 +2,7 @@
 
 EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入同一执行核心：先在项目与会话中完成科研任务，再对同一个任务比较基线和候选配置，保留 Notebook、产物版本、来源与审阅记录。
 
-当前版本：**[0.1.1-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)**，支持 macOS 和 Linux。Windows 安装与分发延期至 0.2-Alpha，见[问题记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
+当前版本：**[0.2.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.2.0-alpha.1)**，提供 macOS ARM64/x64、Linux x64/ARM64 和 Windows x64 安装包。本版为未签名 Alpha 预览；Windows 配置优化仍不受支持，安装验收和已知限制见 [Windows 记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
 
 [安装](#安装) · [首次配置](#首次配置) · [试用上游案例](#试用上游案例) · [第一次科研任务](#第一次科研任务) · [完整使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)
 
@@ -12,19 +12,20 @@ EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入�
 
 | 系统与架构 | 下载文件 |
 | --- | --- |
-| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-mac-arm64.dmg) |
-| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-mac-x64.dmg) |
-| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano_0.1.1-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage) |
-| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano_0.1.1-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-linux-arm64.AppImage) |
+| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.zip) |
+| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.zip) |
+| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage) |
+| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-arm64.AppImage) |
+| Windows x64 | [EXE 安装器（未签名）](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-win-x64-setup.exe) |
 
-macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
+macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.2.0-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
 
 ```bash
 # macOS：Apple Silicon DMG 示例
-shasum -a 256 EarthNano-0.1.1-alpha.1-mac-arm64.dmg
+shasum -a 256 EarthNano-0.2.0-alpha.1-mac-arm64.dmg
 
 # Linux：x64 AppImage 示例
-sha256sum EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
+sha256sum EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage
 ```
 
 ### macOS
@@ -41,17 +42,17 @@ Debian/Ubuntu 在下载目录安装 `.deb`，只执行与你架构对应的一�
 
 ```bash
 # x64
-sudo apt install ./EarthNano_0.1.1-alpha.1_amd64.deb
+sudo apt install ./EarthNano_0.2.0-alpha.1_amd64.deb
 
 # ARM64
-sudo apt install ./EarthNano_0.1.1-alpha.1_arm64.deb
+sudo apt install ./EarthNano_0.2.0-alpha.1_arm64.deb
 ```
 
 其他支持 AppImage 的 Linux 环境可赋予文件执行权限后启动；ARM64 请替换为对应文件名：
 
 ```bash
-chmod +x EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
-./EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
+chmod +x EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage
+./EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage
 ```
 
 ## 首次配置
@@ -80,7 +81,7 @@ API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git�
 
 选择案例只准备草稿和附件，不自动执行；检查后再点击 Send。现有会话继续保留。所需环境、参考结果与优化操作见[案例指南](docs/earthnano/UPSTREAM_TRIALS.md)。
 
-旧版 [0.1.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1) 及其安装包保留；本版本单独发布，不覆盖旧 `alpha` 发布入口。
+旧版 [0.1.1-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)、[0.1.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1) 及其安装包保留；本版本单独发布，不覆盖旧 `alpha` 发布入口。
 
 ## 第一次科研任务
 
@@ -117,10 +118,11 @@ API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git�
 
 - [源码安装与开发基线](docs/earthnano/BASELINE.md)、[开发依赖](docs/development-quick-reference.md)
 - [功能来源与范围](docs/earthnano/FUNCTION_ORIGINS.md)、[执行契约](docs/earthnano/CORE_CONTRACT.md)、[完成契约与已知限制](docs/earthnano/ALPHA_CONTRACT.md)
-- [原始科研/原生包证据](docs/earthnano/validation/alpha/final-bdc/manifest.json)、[完整上游源码对照](docs/earthnano/validation/alpha/source-39658771118/manifest.json)、[发布文件验证](docs/earthnano/validation/alpha/assets-39683248168/manifest.json)
+- [本次源码验收范围与明确豁免](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/SOURCE-CI-ACCEPTANCE.json)；本版原始 CI：[macOS 原始源码报告](https://github.com/lust0yixiong/EarthNano/actions/runs/39744881823)、[四个 Unix 原生包构建与安装验收](https://github.com/lust0yixiong/EarthNano/actions/runs/39746583897)、[Windows 原生安装验收](https://github.com/lust0yixiong/EarthNano/actions/runs/39751493083)
+- [历史科研/原生包证据](docs/earthnano/validation/alpha/final-bdc/manifest.json)、[历史完整上游源码对照](docs/earthnano/validation/alpha/source-39658771118/manifest.json)、[历史发布文件验证](docs/earthnano/validation/alpha/assets-39683248168/manifest.json)
 - [固定上游与许可证](UPSTREAMS.json)：两侧 Apache-2.0 许可及兼容标识保留。
 
-本版产品源码为 `bdc0246383a25990030854f4c2fa100895f29ea6`；文档更新不会改变已发布安装包。完整 macOS/Linux 上游对照无新增测试或阶段回归，既有失败与跳过保留；真实模型、安装包与科研工作流的验证范围分别记录。当前 Alpha 不承诺所有模型、所有科研任务或全部平台 GUI 都已验收。
+本版安装包源码为 `ca96faed10916edde870aae47da6d70f31e55300`；后续文档更新不会改变已发布安装包。macOS 原始源码对照无新增测试或阶段回归，既有失败与跳过保留，这不代表全部测试通过。两个 Linux 全量源码 batch 及其依赖的完整比较按用户本次明确决定豁免，未作发布验收；原运行与规则保留，不计为通过。五个平台原生构建与安装验收均已按原规则通过。Windows 安装验收不代表已发布旧 Windows 安装器间升级或 Windows 配置优化已受支持；真实模型、安装包与科研工作流的验证范围分别记录。当前 Alpha 不承诺所有模型、所有科研任务或全部平台 GUI 都已验收。
 
 <details>
 <summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 EarthNano 交付）</summary>
