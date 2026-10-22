@@ -135,6 +135,8 @@ export async function createEarthnanoMessagesProvider(
     /** CSV + PNG desktop fixture; native input, Notebook and Artifact owners stay unchanged. */
     scientificFigure?: boolean
     keyFile?: string
+    /** Selects only offline model decisions for the bundled upstream trial inputs. */
+    trialCase?: 'openscience-case16' | 'harness2-ledger'
     upstreamFetch?: typeof fetch
     /** Explicit bounded capacity for the two-source acceptance; defaults remain unchanged. */
     maxModelRequests?: number
@@ -513,6 +515,51 @@ export async function createEarthnanoMessagesProvider(
             runtimeId: target.runtimeId
           })
         }
+        if (testOptions.trialCase) {
+          const case16 = testOptions.trialCase === 'openscience-case16'
+          const inputs = /<open_science_notebook_inputs>\s*([\s\S]*?)\s*<\/open_science_notebook_inputs>/.exec(userText)?.[1]
+          const paths = new Map<string, string>(
+            (inputs ? JSON.parse(inputs) : []).map((entry: { filename: string; notebookPath: string }) => [entry.filename, entry.notebookPath])
+          )
+          if (!called('notebook_execute')) {
+            const required = case16 ? ['analysis.py', 'registry_source.json'] : ['ledger-1.csv', 'ledger-2.csv']
+            if (required.some((name) => !paths.has(name))) throw new Error('Original trial inputs missing')
+            const code = case16
+              ? [
+                  'import json, hashlib', 'from pathlib import Path',
+                  `script = Path(${JSON.stringify(paths.get('analysis.py'))})`,
+                  `source = Path(${JSON.stringify(paths.get('registry_source.json'))})`,
+                  "scope = {'__name__': 'case16'}",
+                  "exec(compile(script.read_text(encoding='utf-8'), str(script), 'exec'), scope)",
+                  "scope['selfcheck']()",
+                  "rows, summaries = scope['analyze'](json.loads(source.read_bytes()), Path('case16-rerun'))",
+                  "print(json.dumps({'candidates': len(rows), 'included': sum(r['included'] for r in rows)}))"
+                ].join('\n')
+              : [
+                  'import csv, json', 'from pathlib import Path', 'from decimal import Decimal',
+                  `sources = ${JSON.stringify(Object.fromEntries(paths))}`,
+                  'report = {}',
+                  "for name in ['ledger-1.csv', 'ledger-2.csv']:",
+                  "    with open(sources[name], newline='', encoding='utf-8') as source:",
+                  "        values = [Decimal(row['amount']) for row in csv.DictReader(source)]",
+                  "    report[Path(name).stem] = {'count': len(values), 'total': format(sum(values, Decimal(0)), '.2f')}",
+                  "Path('ledger-results.json').write_text(json.dumps(report), encoding='utf-8')", 'print(json.dumps(report))'
+                ].join('\n')
+            return call('notebook_execute', { language: 'python', code })
+          }
+          const outputs = case16 ? ['trial_calculations.csv', 'availability_summary.csv'] : ['ledger-results.json']
+          for (const filename of outputs) {
+            if (blocks.some((block) => block.type === 'tool_use' && block.name?.endsWith('write_artifact_file') && block.input?.filename === filename)) continue
+            const runId = nested(blocks.filter((block) => block.type === 'tool_result'), 'runId')
+            if (typeof runId !== 'string') throw new Error('Trial Notebook producer missing')
+            return call('write_artifact_file', {
+              filename, mimeType: case16 ? 'text/csv' : 'application/json',
+              source: { kind: 'localPath', path: case16 ? `case16-rerun/${filename}` : filename }, producerRunId: runId
+            })
+          }
+          emit(response, body.model, { text: 'Research analysis complete.' })
+          return
+        }
         if (!called('notebook_execute')) {
           const inputs =
             /<open_science_notebook_inputs>\s*([\s\S]*?)\s*<\/open_science_notebook_inputs>/.exec(
@@ -630,6 +677,10 @@ export async function createEarthnanoMessagesProvider(
         return
       }
       if (role === 'reflection') {
+        if (testOptions.trialCase) {
+          emit(response, body.model, { text: 'NO_ENTRY' })
+          return
+        }
         emit(response, body.model, {
           text: scientificCompute
             ? '<edits>Await the original complete Job delivery before analyzing harvested fixture bytes.</edits>\n<experience>\ncue: Controlled Compute protocol fixture\nlesson: A submission receipt is not completion. Use the original final result and preserve its producer identity.\nevidence: Baseline and candidate published version-bound reports through the original Compute continuation. This is protocol evidence, not remote science.\n</experience>'
@@ -646,7 +697,9 @@ export async function createEarthnanoMessagesProvider(
       if (role === 'proposer' || role === 'composer')
         return write(
           join(output, 'context/harness/instructions.md'),
-          scientificOptimization
+          testOptions.trialCase
+            ? `Follow the unchanged signed-ledger task. Read both frozen CSV inputs with the original Notebook tools, retain every sign with decimal.Decimal, and publish ledger-results.json with its actual producerRunId. Revision ${stats.requests}.`
+            : scientificOptimization
             ? scientificCompute
               ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json bytes with node:fs, copy those exact bytes to metrics-source.json without parsing/reformatting the copy, then compute count/sum/mean from its values and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish metrics-source.json, research-results.json and the requested PNG through write_artifact_file with localPath sources and the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
               : scientificLanguage === 'r'
@@ -657,6 +710,16 @@ export async function createEarthnanoMessagesProvider(
       if (role === 'reviewer') {
         const artifacts = JSON.parse(await readFile(join(input, 'evidence/artifacts.json'), 'utf8'))
         const plan = JSON.parse(await readFile(join(input, 'evidence/criteria.json'), 'utf8'))
+        if (testOptions.trialCase === 'harness2-ledger') {
+          const file = artifacts.find((entry: { path: string }) => entry.path === 'ledger-results.json')
+          const value = JSON.parse(file.content)
+          const pass = value['ledger-1']?.count === 3 && value['ledger-1']?.total === '85.15' && value['ledger-2']?.count === 3 && value['ledger-2']?.total === '20.25'
+          return write(join(output, 'assessment.json'), JSON.stringify({
+            schemaVersion: 1, score: pass ? 100 : 0, outcome: pass ? 'pass' : 'flagged',
+            rationale: 'Offline fixture checks the published JSON against the two unchanged original ledger inputs; no general model-quality claim.',
+            checks: plan.criteria.map((criterion: { id: string }) => ({ criterionId: criterion.id, status: pass ? 'pass' : 'fail', evidence: [{ path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() }] }))
+          }))
+        }
         const file = artifacts.find(
           (file: { path: string }) =>
             file.path === (scientificOptimization ? 'research-results.json' : 'result.json')

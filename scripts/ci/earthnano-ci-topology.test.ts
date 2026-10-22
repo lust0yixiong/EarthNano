@@ -163,7 +163,8 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       'windows_runtime',
       'source_windows',
       'comparison_windows',
-      'native_windows'
+      'native_windows',
+      'trials_packaged'
     ])
     expect(
       ['plan', 'source_unix', 'comparison', 'harness', 'native_unix'].flatMap((name) =>

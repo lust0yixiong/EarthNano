@@ -1,0 +1,20 @@
+{
+  "source": "Harness\u00b2 original deterministic ledger demo",
+  "repository": "https://github.com/google-research/harness2",
+  "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+  "path": "harness2/demo.py",
+  "license": "Apache-2.0",
+  "adaptation": "The two original DemoAdapter CSV inputs are copied verbatim. The desktop task publishes JSON through the existing Notebook and Artifact owners. The original deterministic demo and recursive algorithms remain unchanged.",
+  "files": [
+    {
+      "path": "ledger-1.csv",
+      "bytes": 26,
+      "sha256": "fa432e02c69bb6fca2d1a9ee4f10278f1f05f41c230f07df853c891a19dd01e6"
+    },
+    {
+      "path": "ledger-2.csv",
+      "bytes": 26,
+      "sha256": "32a86bc7ee2786670280becc15a6a03c42d13fd8144a3800873aa0648db71c42"
+    }
+  ]
+}
