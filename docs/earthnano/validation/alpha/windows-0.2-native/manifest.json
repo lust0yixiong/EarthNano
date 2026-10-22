@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "project": "EarthNano",
+  "purpose": "Independent actual Windows installer evidence for the bounded 0.2-Alpha repair on the unchanged 0.1.1-alpha.1 package version",
+  "collectedAt": "2026-10-22T02:19:37.496824+00:00",
+  "canonical": {
+    "run": {
+      "id": 39708999081,
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081",
+      "head": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "attempt": 1,
+      "statusAtCollection": "in_progress",
+      "conclusionAtCollection": null
+    },
+    "nativeJob": {
+      "id": 119596188024,
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188024",
+      "startedAt": "2026-10-22T02:03:00Z",
+      "completedAt": "2026-10-22T02:14:00Z",
+      "conclusion": "success"
+    },
+    "source": {
+      "commit": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "tree": "ba26648f7cb9cd2c03c7052837b858a7116720aa",
+      "dirty": false,
+      "productName": "EarthNano",
+      "packageVersion": "0.1.1-alpha.1",
+      "distribution": "unsigned-ci",
+      "platform": "win32",
+      "arch": "x64",
+      "electron": {
+        "expected": "43.7.5",
+        "installed": "43.7.5",
+        "binary": "43.7.5",
+        "status": 0
+      },
+      "manifestInArchive": {
+        "path": "test-results/native-evidence/artifact-manifest.json",
+        "bytes": 2456967,
+        "sha256": "49c1e100254f28fa963917c26808e702a3f5e351a565db0043371304a17e2f00"
+      },
+      "pinnedUpstreams": [
+        {
+          "name": "OpenScience",
+          "repository": "https://github.com/aipoch/open-science",
+          "commit": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5"
+        },
+        {
+          "name": "Harness²",
+          "repository": "https://github.com/google-research/harness2",
+          "commit": "1cfe254e8d25b15f37048c3730134686abe60335"
+        }
+      ]
+    },
+    "archive": {
+      "path": "canonical-evidence.zip",
+      "bytes": 530142,
+      "sha256": "f0b05418a88cc90974c18818d9eea744604e47bf33687cb65b524f2aa34b3981",
+      "artifactId": 12396124538,
+      "artifactName": "earthnano-native-evidence-windows-2022",
+      "apiDigest": "sha256:f0b05418a88cc90974c18818d9eea744604e47bf33687cb65b524f2aa34b3981",
+      "apiArchiveUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396124538/zip",
+      "digestVerifiedAgainstDownloadedBytes": true
+    },
+    "originalJobLog": {
+      "path": "canonical-native-job.log.gz",
+      "bytes": 56548,
+      "sha256": "89eaf93cc68c4319042b48e738ffaf16ad62dd422d09131dce939fd733cd682b",
+      "encoding": "gzip of unchanged UTF-8 original job log",
+      "uncompressedBytes": 317874,
+      "uncompressedSha256": "1c75af11e2b61e4c7fb9a93435eb53d60e2752050486bbc5da31991b1b346725"
+    },
+    "originalWindowsSmoke": "success",
+    "productEquality": {
+      "productCommit": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "ciCommit": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "differences": [],
+      "nativeWorkflow": {
+        "path": ".github/workflows/earthnano-native.yml",
+        "sha256": "e84c828acc3d902aa60f5195f813520a8cee7b2f46a71a41f52acf481d6572ad",
+        "byteIdenticalToCommit": "ef4fd17618d468123ffdf6cd172205916ec8872a",
+        "temporaryProbeOrStageDiagnosticInvoked": false
+      }
+    },
+    "sourceConfiguration": [
+      {
+        "path": "package.json",
+        "sha256": "15fe8d57bc24a9f1cfa5ead581e59b6888b35916e9e0efc60cfffebc29f94fed"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811"
+      },
+      {
+        "path": "electron-builder.yml",
+        "sha256": "0ca609580d9749ab129c4123f2ad994b96c2225a7fdbb9298df4af4334a5e6d2"
+      },
+      {
+        "path": ".nvmrc",
+        "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+      },
+      {
+        "path": "UPSTREAMS.json",
+        "sha256": "7a2520381fd164ee014a8975b777cd823a37401add5fe0b9405d5b7b3e96d1ed"
+      }
+    ],
+    "installedAcceptance": {
+      "installerElapsedMs": 44909,
+      "appAsarBytes": 133238501,
+      "originalSuccessMarkers": {
+        "Packaged Windows MCP local RPC smoke completed successfully.": true,
+        "Windows installer smoke completed successfully.": true
+      },
+      "checks": [
+        "original silent install with spaces and Unicode profile/paths",
+        "packaged resources, original licenses and exact EarthNano PE FileDescription/ProductName/FileVersion",
+        "original local MCP and Artifact RPC",
+        "original Notebook environment provisioning",
+        "exact bootstrap.appVersion and installed application startup/shutdown",
+        "current reopen",
+        "fresh database and seeded legacy database each reopened with ledger validation",
+        "original uninstall and cleanup"
+      ],
+      "databaseCertification": {
+        "schemaVersion": 1,
+        "compatibilityFloor": {
+          "migrationId": "0001_runtime_schema_baseline",
+          "migrationChecksum": "e29d0483786c3ed2e1c9cd358369b254a54ccf54213931c5ef71a8fd4e161525",
+          "sqliteVersion": "3.46.0"
+        },
+        "checks": {
+          "freshInstall": "passed",
+          "legacyAdoption": "passed",
+          "reopen": "passed",
+          "specialPath": "passed"
+        }
+      },
+      "databaseCertificationInArchive": {
+        "path": "dist/database-migration-certification.json",
+        "bytes": 363,
+        "sha256": "050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1"
+      }
+    },
+    "installer": {
+      "path": "dist/EarthNano-0.1.1-alpha.1-win-x64-setup.exe",
+      "bytes": 273010778,
+      "sha256": "06442a8d96fc0c426961c004ab7d2d31db024ecfdced08f24d8630e6efda01d5",
+      "digestEvidence": "declaration in original CI source/artifact manifest; installer bytes were not independently downloaded",
+      "independentlyDownloaded": false
+    },
+    "unsignedPackageArtifact": {
+      "id": 12396796931,
+      "name": "earthnano-unsigned-windows-2022",
+      "bytes": 272518996,
+      "digest": "sha256:688f6744deed5b22060ab03b353e97795db8a42436ee67cfaea631b72d5b4bea",
+      "apiUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396796931",
+      "downloadUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396796931/zip",
+      "artifactUrl": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/artifacts/12396796931",
+      "expired": false,
+      "archiveIndependentlyDownloaded": false,
+      "digestEvidence": "GitHub artifact API digest; unlike the small evidence ZIP this package archive was not independently downloaded"
+    },
+    "overallSourceComparison": "Not assessed here. The full run was still in progress at this independent native-evidence collection; native success does not certify the 16 source shards/comparison."
+  },
+  "priorFailure": {
+    "run": {
+      "id": 39708148492,
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708148492",
+      "head": "cd292f8f0a14537c38666f5886ebae992c4b3400",
+      "attempt": 1,
+      "statusAtCollection": "completed",
+      "conclusionAtCollection": "failure"
+    },
+    "nativeJob": {
+      "id": 119593066773,
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708148492/job/119593066773",
+      "startedAt": "2026-10-22T01:52:38Z",
+      "completedAt": "2026-10-22T02:08:06Z",
+      "conclusion": "failure"
+    },
+    "source": {
+      "commit": "cd292f8f0a14537c38666f5886ebae992c4b3400",
+      "tree": "7a0b98a690ad61d348c3a06e410a0c1d6ad2d800",
+      "dirty": false,
+      "productName": "EarthNano",
+      "packageVersion": "0.1.1-alpha.1",
+      "distribution": "unsigned-ci",
+      "platform": "win32",
+      "arch": "x64",
+      "electron": {
+        "expected": "43.7.5",
+        "installed": "43.7.5",
+        "binary": "43.7.5",
+        "status": 0
+      },
+      "manifestInArchive": {
+        "path": "test-results/native-evidence/artifact-manifest.json",
+        "bytes": 2456791,
+        "sha256": "73b439407f334611e87fbd05b731d66e085542b21bdb07c7be9570eaaabe445f"
+      }
+    },
+    "archive": {
+      "path": "prior-shutdown-failure.zip",
+      "bytes": 788156,
+      "sha256": "480e9e2662bf36148f41a3e8e9cf99d4f024cdad7a7428cc5a2809faa8ea33f3",
+      "artifactId": 12396512879,
+      "artifactName": "earthnano-native-evidence-windows-2022",
+      "apiDigest": "sha256:480e9e2662bf36148f41a3e8e9cf99d4f024cdad7a7428cc5a2809faa8ea33f3",
+      "apiArchiveUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396512879/zip",
+      "digestVerifiedAgainstDownloadedBytes": true
+    },
+    "originalJobLog": {
+      "path": "prior-shutdown-native-job.log.gz",
+      "bytes": 60055,
+      "sha256": "31ca007d1bb18e2267aaf2626f629f1b37df78471cef58ecaf611574a7c8cad3",
+      "encoding": "gzip of unchanged UTF-8 original job log",
+      "uncompressedBytes": 337138,
+      "uncompressedSha256": "64200f1a4f14b3d2224b1a0e842bb2a1efb87fd07d1e4a2602173446d9a84227"
+    },
+    "originalWindowsSmoke": "failure",
+    "productEquality": {
+      "productCommit": "c31aa8c01abcedda66c818f0f85194ae9ad96c46",
+      "ciCommit": "cd292f8f0a14537c38666f5886ebae992c4b3400",
+      "differences": [
+        ".github/workflows/earthnano-ci.yml temporary runtime-reuse/dispatch wrapper only"
+      ]
+    },
+    "failure": {
+      "message": "Installed app did not exit after shutdown.",
+      "sourceLocation": "scripts/windows-installer-smoke.mjs:439 (waitForShutdownExit)",
+      "context": "fresh database isolated profile; launch ordinal is not logged",
+      "verifiedBeforeFailure": [
+        "original install completed",
+        "original resources, licenses and PE identity checks returned",
+        "original local MCP/Artifact RPC success marker",
+        "current launch completed before restart was entered",
+        "bootstrap and 202 shutdown response/body checks returned before waitForShutdownExit in the failing launch"
+      ],
+      "httpContract": "202 means accepted. The waitForShutdownExit error implies the script accepted status 202 and drained the body; it does not prove graceful application/backend exit.",
+      "causeConfirmed": false,
+      "transportCloseCaveat": "The 60-second timeout terminates the process tree before dumping captured output. The transport-close line cannot establish a natural backend exit or its timing relative to taskkill.",
+      "remainingOriginalChecksNotCertified": [
+        "fresh database full reopen/ledger sequence",
+        "seeded legacy full reopen/ledger sequence",
+        "final database certification",
+        "final uninstall"
+      ],
+      "originalResultRetainedAsFailure": true
+    },
+    "isolatedDiagnostic": {
+      "originalsUnchanged": true,
+      "buildExitCode": 0,
+      "smokeExitCode": 0,
+      "traceMarkers": [
+        "PREINIT",
+        "CUSTOM_INIT_BEGIN",
+        "CUSTOM_INIT_BEFORE_UNINSTALLER_PROBE",
+        "QUIT_FAILED_UPDATE",
+        "PREINIT",
+        "CUSTOM_INIT_BEGIN",
+        "CUSTOM_INIT_BEFORE_UNINSTALLER_PROBE",
+        "CUSTOM_INIT_AFTER_UNINSTALLER_PROBE",
+        "CUSTOM_INIT_BEFORE_MODE_PROTECTION",
+        "CUSTOM_INIT_AFTER_MODE_PROTECTION",
+        "CUSTOM_INIT_END",
+        "PUBLICATION_PREPARE_BEGIN",
+        "PUBLICATION_PREPARE_RETURN_OK",
+        "PUBLICATION_EXTRACT_BEGIN",
+        "PUBLICATION_EXTRACT_RETURN_OK",
+        "PUBLICATION_PUBLISH_BEGIN",
+        "PUBLICATION_PUBLISH_RETURN_OK",
+        "CUSTOM_INSTALL_BEGIN",
+        "CUSTOM_INSTALL_END"
+      ],
+      "publicationReturns": [
+        {
+          "stage": "PUBLICATION_PREPARE_RETURN_OK",
+          "exitCode": "0"
+        },
+        {
+          "stage": "PUBLICATION_EXTRACT_RETURN_OK",
+          "exitCode": "0"
+        },
+        {
+          "stage": "PUBLICATION_PUBLISH_RETURN_OK",
+          "exitCode": "0"
+        }
+      ],
+      "scope": "A separately repackaged diagnostic invocation completed the same original smoke. Its success does not replace the failed original invocation or make the original run pass."
+    },
+    "installerDeclaration": {
+      "path": "dist/EarthNano-0.1.1-alpha.1-win-x64-setup.exe",
+      "bytes": 273010779,
+      "sha256": "520b1fea2ef53cd0174b12d38eb70fb8f98bb751d4343b19e74e9bffabd760b5",
+      "independentlyDownloaded": false,
+      "digestEvidence": "original CI source/artifact manifest declaration only"
+    }
+  },
+  "scopeLimits": {
+    "previousInstallerProvided": false,
+    "releasedVersionUpgradeCertified": false,
+    "wslCertificationArgumentsProvided": false,
+    "wslRestartCertified": false,
+    "deepSeekInvoked": false,
+    "rScientificTaskInvoked": false,
+    "guiScientificWorkflowCertified": false,
+    "pythonScope": "original packaged Notebook environment provisioning only; no claim of a scientific task result",
+    "releasesTagsVersionsChannelsChangedByThisArchive": false,
+    "publication": "Unsigned GitHub CI artifacts only; no release/tag publication."
+  },
+  "sourceTrace": {
+    "httpPath": "launchAndProbe -> requestPackagedAppShutdown (POST, require 202, drain body) -> web-service/http-server onShutdownRequest -> node-entry.stop; headless Electron follows its owned startedProcess exit",
+    "upstreamCandidatesNotApplied": [
+      {
+        "commit": "1ff3c1f7702e2243932a38a5ee5cd37cbddd06f4",
+        "reason": "Ordinary disconnected UI quit intent; not established as a fix for this headless timeout."
+      },
+      {
+        "commit": "cc917b0702bb76f74f07431d9251ab59c3731591",
+        "reason": "Journal disposal ordering; this failure lacks backend main.log/step evidence establishing that cause."
+      }
+    ],
+    "diagnosticReuseIfNeeded": "ce523b029a1692a6e6308baf14572a6654fe1cea supplies original captureStartupLogs; no additional diagnostic or production patch is included in this evidence-only commit.",
+    "pinnedOpenScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "reviewedShutdownFilesUnchangedFromPin": [
+      "src/main/node-entry.ts",
+      "src/main/app-lifecycle.ts",
+      "src/main/desktop-runtime-client.ts",
+      "src/main/desktop-runtime-launcher.ts",
+      "src/main/web-service/index.ts"
+    ],
+    "reviewedIndexDifferences": "Only EarthNano name and icon-comment changes. This is a call-chain comparison, not a claim that all runtime modules are unchanged."
+  }
+}
