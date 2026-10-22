@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Preserve evidence for a one-byte prototype-filename test fixture adjustment, separate from the failed original complete Windows comparison. This is not production cache repair or historical Windows root-cause proof.",
+  "change": {
+    "commit": "c252958c61f8e451970e07148d82b04330b7addd",
+    "path": "packages/skills/src/user-skill-compatibility-index.test.ts",
+    "before": "await writeFile(prototypePath, 'after!')",
+    "after": "await writeFile(prototypePath, 'after!!')",
+    "firstContent": "before",
+    "firstBytes": 6,
+    "oldSecondBytes": 6,
+    "newSecondBytes": 7,
+    "originalAssertion": "expect(after).not.toEqual(before)",
+    "assertionUnchanged": true,
+    "productionUnchanged": true,
+    "newSkips": 0,
+    "timeoutChanges": 0,
+    "intent": "The case verifies inclusion of the __proto__ filename in the package compatibility digest. A changed size supplies deterministic invalidation without depending on immediately consecutive writes having distinct timestamp metadata.",
+    "upstreamReuse": "Retain the existing upstream index and cache contract. The adjacent original hashing-race fixture also changes before to after!!; no new invalidation strategy or public API is introduced.",
+    "pinnedProductionGitBlob": "e4bf994c8ca17ba646df548334ffdba555fcd075",
+    "pinnedProductionSha256": "e7eab16fed3e57bb72913c9fda8ebe0847e59728f39ab965d8f3034e46fc9fc9",
+    "originalTestGitBlob": "b10026ca26d019cedcfc966e7b31af72c0df167a",
+    "fixedTestGitBlob": "c50415e51411d525ca8b7ec45ff0ab5ce85f36a7",
+    "upstreamPinnedFilesEqualOriginalCohort": true
+  },
+  "originalWindowsEvidence": {
+    "sources": [
+      {
+        "kind": "baseline",
+        "runId": 39708999081,
+        "runUrl": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081",
+        "runHead": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "reportDirectory": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/reports/earthnano-source-windows-2022-baseline-8",
+        "artifactId": 12397244347,
+        "artifactName": "earthnano-source-windows-2022-baseline-8",
+        "archiveExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397244347.zip",
+        "archiveBytes": 1885725,
+        "archiveSha256": "268928c9b03e1db702d766dee3c3017a728b353b24c1dd151a494e7d3544d4fe",
+        "apiDigest": "sha256:268928c9b03e1db702d766dee3c3017a728b353b24c1dd151a494e7d3544d4fe",
+        "apiDigestVerified": true,
+        "apiArtifactUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397244347",
+        "originalVitest": {
+          "path": "vitest.json",
+          "bytes": 6306995,
+          "sha256": "64f810862c900f878198d44114afd341a18de2411893f1f6dfcfd0bcc5d5fbe2"
+        },
+        "excerptIsExactOriginalAssertionObject": true,
+        "assertion": {
+          "suite": "D:/a/EarthNano/earthnano-upstream-8/packages/skills/src/user-skill-compatibility-index.test.ts",
+          "assertion": {
+            "ancestorTitles": [
+              "UserSkillCompatibilityIndex"
+            ],
+            "fullName": "UserSkillCompatibilityIndex includes prototype-like file names in package compatibility",
+            "status": "passed",
+            "title": "includes prototype-like file names in package compatibility",
+            "duration": 7.35570000000007,
+            "failureMessages": [],
+            "meta": {},
+            "tags": []
+          }
+        }
+      },
+      {
+        "kind": "candidate",
+        "runId": 39708999081,
+        "runUrl": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081",
+        "runHead": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "reportDirectory": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/reports/earthnano-source-windows-2022-candidate-8",
+        "artifactId": 12399586649,
+        "artifactName": "earthnano-source-windows-2022-candidate-8",
+        "archiveExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12399586649.zip",
+        "archiveBytes": 2030757,
+        "archiveSha256": "4f5a77ba00857d8f00198d174533a7feaccb8854f270668a18e83d24172ac207",
+        "apiDigest": "sha256:4f5a77ba00857d8f00198d174533a7feaccb8854f270668a18e83d24172ac207",
+        "apiDigestVerified": true,
+        "apiArtifactUrl": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399586649",
+        "originalVitest": {
+          "path": "vitest.json",
+          "bytes": 6848931,
+          "sha256": "efcd27b3d99534e731948e801aa3df2bc53bb3f385a3b3f7ea452387b339cf6c"
+        },
+        "excerptIsExactOriginalAssertionObject": true,
+        "assertion": {
+          "suite": "D:/a/EarthNano/EarthNano/packages/skills/src/user-skill-compatibility-index.test.ts",
+          "assertion": {
+            "ancestorTitles": [
+              "UserSkillCompatibilityIndex"
+            ],
+            "fullName": "UserSkillCompatibilityIndex includes prototype-like file names in package compatibility",
+            "status": "failed",
+            "title": "includes prototype-like file names in package compatibility",
+            "duration": 11.618400000000065,
+            "failureMessages": [
+              "AssertionError: expected { …(2) } to not deeply equal { …(2) }\n    at D:/a/EarthNano/EarthNano/packages/skills/src/user-skill-compatibility-index.test.ts:170:23\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+            ],
+            "meta": {},
+            "tags": []
+          }
+        }
+      }
+    ],
+    "historicalRun": "The canonical completed run remains new-regressions; this archive does not modify or supersede that result. The baseline passed this case and the candidate failed the unchanged assertion.",
+    "missingObservation": "Neither original raw report contains per-file size/mtimeNs/ctimeNs observations. A specific Windows timestamp alias, path or case-sensitivity root cause is not established by those reports.",
+    "fullCohortArchive": "../windows-0.2-source-39708999081/manifest.json",
+    "externalRawZipPolicy": "Both original raw artifact ZIPs, full vitest/runtime/source reports and API receipts are retained under final-39708999081 outside the repository; this archive contains the exact selected assertion objects and source hashes, not substitute raw reports."
+  },
+  "localOriginalAndFixedSuite": {
+    "node": "v24.19.0",
+    "platform": "darwin",
+    "vitest": "4.1.11",
+    "testFile": "packages/skills/src/user-skill-compatibility-index.test.ts",
+    "originalResult": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fixedResult": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "commandTemplate": "/Users/yxmac_mini/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vitest/vitest.mjs run packages/skills/src/user-skill-compatibility-index.test.ts --maxWorkers=2 --reporter=default --reporter=json --outputFile=<evidence-directory>/{original,fixed}-local-vitest.json",
+    "limitation": "Both uncontrolled macOS suites pass. The controlled test below, not the uncontrolled local original suite, demonstrates the failing same-metadata condition. Actual Windows acceptance requires a new original complete cohort."
+  },
+  "controlledProof": {
+    "script": "controlled-metadata.cjs.gz",
+    "receipt": "controlled-metadata-receipt.json.gz",
+    "node": "v24.19.0",
+    "platform": "darwin",
+    "invocation": "node /Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/controlled-metadata.cjs",
+    "method": "Read the unmodified production TypeScript; bundle in an external VM using the installed esbuild. For __proto__ only, wrap real fs/promises.lstat with fixed mtimeNs and ctimeNs. File content, reads, SHA-256, size, executable mode, traversal and cache algorithm remain real. No production files or installed dependencies are modified.",
+    "cases": [
+      {
+        "label": "original-equal-size-same-tick",
+        "after": "after!",
+        "beforeBytes": 6,
+        "afterBytes": 6,
+        "compatibilityChanged": false,
+        "originalAssertionOutcome": "fail",
+        "hashes": [
+          "__proto__",
+          "SKILL.md"
+        ],
+        "sourceSha256": "e7eab16fed3e57bb72913c9fda8ebe0847e59728f39ab965d8f3034e46fc9fc9"
+      },
+      {
+        "label": "fixed-different-size-same-tick",
+        "after": "after!!",
+        "beforeBytes": 6,
+        "afterBytes": 7,
+        "compatibilityChanged": true,
+        "originalAssertionOutcome": "pass",
+        "hashes": [
+          "__proto__",
+          "SKILL.md",
+          "__proto__"
+        ],
+        "sourceSha256": "e7eab16fed3e57bb72913c9fda8ebe0847e59728f39ab965d8f3034e46fc9fc9"
+      },
+      {
+        "label": "prototype-dictionary-negative-control",
+        "after": "after!!",
+        "beforeBytes": 6,
+        "afterBytes": 7,
+        "compatibilityChanged": false,
+        "originalAssertionOutcome": "fail",
+        "hashes": [
+          "__proto__",
+          "SKILL.md",
+          "__proto__"
+        ],
+        "sourceSha256": "e62f8437821ffdf44d49b356395815eabd37a40e6fdb8271161e0da815424879"
+      }
+    ],
+    "negativeControl": "Only inside the external VM, replace Object.create(null) with {}. Even with the new changed-size fixture, __proto__ is omitted from Object.entries(files), so the original assertion still fails. The fixture adjustment preserves the intended prototype-filename coverage.",
+    "checks": "All controlled assertions passed: equal-size old fixture red; changed-size new fixture green; changed-size ordinary-dictionary mutant red.",
+    "notHistoricalRootCauseProof": true
+  },
+  "retainedLimitation": "Production sameMetadata still reuses a cached hash when size, mtimeNs, ctimeNs and executable flag are all equal. This inherited same-all-metadata limitation is not fixed by a changed-size fixture. No per-read rehashing or other cache semantics are introduced.",
+  "artifacts": [
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/canonical-raw-skill-failure.json",
+      "originalBytes": 1364,
+      "originalSha256": "4c169f4210673f2bbb2f05457a38ec0502a3856a87fc533708d196677d5a001f",
+      "archivedFile": "canonical-raw-skill-failure.json.gz",
+      "archivedBytes": 449,
+      "archivedSha256": "eac6622ce0e53ebe68bf28ba4a77a020b55980b68c2088f2c3324facb26f9383",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/controlled-metadata-receipt.json",
+      "originalBytes": 4929,
+      "originalSha256": "edc096645139adc9340d6fe8eb58cfe61feb5a49b656b8a1636e82699723307e",
+      "archivedFile": "controlled-metadata-receipt.json.gz",
+      "archivedBytes": 928,
+      "archivedSha256": "52f936e6e32a367e4645bdd9cc9d6d02b836a65328ab79312f910b13931ee0e1",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/controlled-metadata.cjs",
+      "originalBytes": 5281,
+      "originalSha256": "d4f2d4efc6a25e24652df4ea28a23b15dc800db68310683f7b75411d7ace62bb",
+      "archivedFile": "controlled-metadata.cjs.gz",
+      "archivedBytes": 2033,
+      "archivedSha256": "003e304a14e5f1195138fcd3d1b199d28337c48b8d15646ab7b7182c1cb91baa",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/original-local-vitest.json",
+      "originalBytes": 3911,
+      "originalSha256": "3a7d8bd22b0a1015c343456855bacef0285f8cd5b691599dad1cdfaface37ac6",
+      "archivedFile": "original-local-vitest.json.gz",
+      "archivedBytes": 958,
+      "archivedSha256": "45b636b643ac4a5475a43fc78d810f18d4a4600ea7ce469c2c3ca41790966385",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/fixed-local-vitest.json",
+      "originalBytes": 3932,
+      "originalSha256": "b01daec380cb793f56df85ead67e229e241c07ddc874dcdcc0dfe4ed22fc4d00",
+      "archivedFile": "fixed-local-vitest.json.gz",
+      "archivedBytes": 967,
+      "archivedSha256": "da749ce134854454246f70501c501ed2888046684060301725309b4b1e0e0e89",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/original-local-vitest.log",
+      "originalBytes": 487,
+      "originalSha256": "becd1b66af1740936b8a5c75462347e7b5e3e3b0cc5241a605a8eac2de0a458c",
+      "archivedFile": "original-local-vitest.log.gz",
+      "archivedBytes": 336,
+      "archivedSha256": "b0155212f190f9133683618e8e8a78eafeb4664cdbc784e40a01e295fdc2d4ab",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "originalExternalPath": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture/fixed-local-vitest.log",
+      "originalBytes": 484,
+      "originalSha256": "8adf1beb69fe24066f36ae2ee8aafd4b32b6c0bbfa11b02f85b7cd62fb9d4e17",
+      "archivedFile": "fixed-local-vitest.log.gz",
+      "archivedBytes": 334,
+      "archivedSha256": "9d1d98fd7e26a51c9654f4f288c8618d67c74c16d371aad2b470915487f318cd",
+      "compression": "gzip level 9, mtime=0",
+      "decompressedEqualsOriginal": true
+    }
+  ],
+  "externalEvidenceDirectory": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/skills-prototype-fixture",
+  "repositoryArchivePolicy": "Compressed files preserve the exact external bytes and are documentation evidence only, not new production test tooling. Each gzip has mtime 0 and its compressed and decompressed SHA-256 recorded. No dispatch, cancellation, source comparison rule change, report rewriting or credential/model access was performed."
+}
