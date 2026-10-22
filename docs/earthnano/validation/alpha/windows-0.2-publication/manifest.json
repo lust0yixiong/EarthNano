@@ -1,0 +1,480 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual Windows2022 PowerShell5.1 publication narrow tests only. Does not prove full NSIS application installation, application startup, notebook runtime or final release.",
+  "red": {
+    "run": {
+      "id": 39702517939,
+      "head": "eee890085c3b795f5a1cf1748cb33b4e4e467e6c",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39702517939",
+      "conclusion": "failure",
+      "runAttempt": 1
+    },
+    "artifact": {
+      "id": 12394116509,
+      "name": "earthnano-windows-publication-regression",
+      "apiDigest": "sha256:3118a4f2797a1f8f5d8a488bf553a9d63a0bbae54abc0e671b418ea34e103c72",
+      "archive": {
+        "path": "publication-red-39702517939/artifact.zip",
+        "bytes": 14512,
+        "sha256": "3118a4f2797a1f8f5d8a488bf553a9d63a0bbae54abc0e671b418ea34e103c72"
+      },
+      "digestMatches": true,
+      "repositoryArchive": "red-artifact.zip"
+    },
+    "testReport": {
+      "path": "publication-red-39702517939/test-results/windows-publication/vitest.json",
+      "bytes": 11251,
+      "sha256": "de81fc74970779eb664e022e1fe1d5681102546b816fa40b1eced889ef0c9b30",
+      "total": 23,
+      "passed": 7,
+      "failed": 2,
+      "skipped": 14,
+      "success": false
+    },
+    "profiles": [
+      {
+        "architecture": "x86",
+        "profile": "profile 数据 with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": false,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-CzMKnY\\profile 数据 with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-CzMKnY\\profile 数据 with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AQwB6AE0ASwBuAFkAXABwAHIAbwBmAGkAbABlACAAcGVuYyAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-CzMKnY\\profile 数据 with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x86' 'profile 数据 with spaces' TEMP",
+        "assertionStatus": "failed",
+        "phases": {
+          "prepare": {
+            "exitCode": 1,
+            "error": null,
+            "sha256": "dfb0883765a3e85b46d18e0afa1af9c09ce3a3275242b3a9074365e45a6e7177",
+            "stderrFirstLine": "Add-Type : The filename, directory name, or volume label syntax is incorrect"
+          }
+        },
+        "rawFacts": {
+          "path": "publication-red-39702517939/tmp/install-publication-tests/case-CzMKnY/profile-environment.json",
+          "bytes": 1409,
+          "sha256": "ed59be233e0c4798fedc34afb248a04a898e9fa8f54b1795b5af3f7b1fc070c3"
+        }
+      },
+      {
+        "architecture": "x64",
+        "profile": "profile ascii with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": true,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-O3rNEA\\profile ascii with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-O3rNEA\\profile ascii with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0ATwAzAHIATgBFAEEAXABwAHIAbwBmAGkAbABlACAAYQBzAGMAaQBpACAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-O3rNEA\\profile ascii with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x64' 'profile ascii with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "98a7fdd7f34af36d07bdce43778e75149214798aef371b8bf167ad006a23b64a",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "e4951ee13e73477795a604ec2c755594bed16829b7f871a9bf57a45cfcbfd29c",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "e4951ee13e73477795a604ec2c755594bed16829b7f871a9bf57a45cfcbfd29c",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-red-39702517939/tmp/install-publication-tests/case-O3rNEA/profile-environment.json",
+          "bytes": 1413,
+          "sha256": "82f89d4992cb696964e5074b9a3eaa1b4791af1ab3cf2b436b8bcae9c18e18ec"
+        }
+      },
+      {
+        "architecture": "x64",
+        "profile": "profile 数据 with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": true,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-VwFChl\\profile 数据 with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-VwFChl\\profile 数据 with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AVgB3AEYAQwBoAGwAXABwAHIAbwBmAGkAbABlACAAcGVuYyAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-VwFChl\\profile 数据 with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x64' 'profile 数据 with spaces' TEMP",
+        "assertionStatus": "failed",
+        "phases": {
+          "prepare": {
+            "exitCode": 1,
+            "error": null,
+            "sha256": "89eeb58a34e4a1e65a6e68331458574bdf41590fb7ccb8bc574be566127ffa05",
+            "stderrFirstLine": "Add-Type : The filename, directory name, or volume label syntax is incorrect"
+          }
+        },
+        "rawFacts": {
+          "path": "publication-red-39702517939/tmp/install-publication-tests/case-VwFChl/profile-environment.json",
+          "bytes": 1408,
+          "sha256": "1780c7ff2443dfb1e77bab6adc266fb8d16f8f8a47c8f139716bd33a03ec49bf"
+        }
+      },
+      {
+        "architecture": "x86",
+        "profile": "profile ascii with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": false,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-xrbU5G\\profile ascii with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-xrbU5G\\profile ascii with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AeAByAGIAVQA1AEcAXABwAHIAbwBmAGkAbABlACAAYQBzAGMAaQBpACAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-xrbU5G\\profile ascii with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x86' 'profile ascii with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "8fcd4c138b1a5fe9dd4bedaa0cb3e891a31dce9a9b723dec7b3f76fe66e03d9a",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "f393a99f1c1916820b703ace0518fb5998d7558ddc89da67600485c7406f8f61",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "f393a99f1c1916820b703ace0518fb5998d7558ddc89da67600485c7406f8f61",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-red-39702517939/tmp/install-publication-tests/case-xrbU5G/profile-environment.json",
+          "bytes": 1414,
+          "sha256": "89701dbe5f808f85b62199a26c739b6767b6bc07f76f2a5d0a0db957606c7378"
+        }
+      }
+    ]
+  },
+  "green": {
+    "run": {
+      "id": 39703245660,
+      "head": "6deee6b80db91019a735a24894f088c153108174",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39703245660",
+      "conclusion": "success",
+      "runAttempt": 1
+    },
+    "artifact": {
+      "id": 12394092673,
+      "name": "earthnano-windows-publication-regression",
+      "apiDigest": "sha256:27dd55b5f47935d780e732ba1197e5ab741cf4b50afc15fc585ba6d35058b565",
+      "archive": {
+        "path": "publication-green-39703245660/artifact.zip",
+        "bytes": 15877,
+        "sha256": "27dd55b5f47935d780e732ba1197e5ab741cf4b50afc15fc585ba6d35058b565"
+      },
+      "digestMatches": true,
+      "repositoryArchive": "green-artifact.zip"
+    },
+    "testReport": {
+      "path": "publication-green-39703245660/test-results/windows-publication/vitest.json",
+      "bytes": 8965,
+      "sha256": "1769d01aeb44036923ddec4713616f0525215efbff560a2c9eb39f42cc1efbe7",
+      "total": 25,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 15,
+      "success": true
+    },
+    "profiles": [
+      {
+        "architecture": "x86",
+        "profile": "profile 数据 with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": false,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-T9iZhP\\profile 数据 with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-T9iZhP\\profile 数据 with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AVAA5AGkAWgBoAFAAXABwAHIAbwBmAGkAbABlACAAcGVuYyAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-T9iZhP\\profile 数据 with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x86' 'profile 数据 with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "2b7516fb4772645bffefce5ad8d5519aa056e6d69a7261fdca43901f425d29ab",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "34f897d4fd6a2b1c611912cae6ab63e989736fd86b8fa524ea682c725c530f43",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "34f897d4fd6a2b1c611912cae6ab63e989736fd86b8fa524ea682c725c530f43",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-green-39703245660/tmp/install-publication-tests/case-T9iZhP/profile-environment.json",
+          "bytes": 1409,
+          "sha256": "57b341c994c4d12d9fc562475e9ed3e36ca2d19f51fedd2b32485d509ce29dd6"
+        }
+      },
+      {
+        "architecture": "x64",
+        "profile": "profile ascii with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": true,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-Wq2i9k\\profile ascii with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-Wq2i9k\\profile ascii with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AVwBxADIAaQA5AGsAXABwAHIAbwBmAGkAbABlACAAYQBzAGMAaQBpACAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-Wq2i9k\\profile ascii with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x64' 'profile ascii with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "7ede79bf2802b2cf2c3f47be7633f40290e9d1af70317fbd081da9e4768c192d",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "fd890c6e52daa99cf26b5019532add2508e253c0ca364c1fbf45bed5d92ea673",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "fd890c6e52daa99cf26b5019532add2508e253c0ca364c1fbf45bed5d92ea673",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-green-39703245660/tmp/install-publication-tests/case-Wq2i9k/profile-environment.json",
+          "bytes": 1413,
+          "sha256": "dc4af40ec8c08b16a0ee8675f4a22b759a01a4fc44cd5be28c64635f793abbe1"
+        }
+      },
+      {
+        "architecture": "x86",
+        "profile": "profile ascii with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": false,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-XAIHYj\\profile ascii with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-XAIHYj\\profile ascii with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AWABBAEkASABZAGoAXABwAHIAbwBmAGkAbABlACAAYQBzAGMAaQBpACAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-XAIHYj\\profile ascii with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x86' 'profile ascii with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "9269c16588167d4cb7cfea367821fe3da4f7bfcd386294a342c254c987fca822",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "ea3a7ceab097b4fee5dce1f669498f41886d81caa68c781538d898d1d98f0cda",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "ea3a7ceab097b4fee5dce1f669498f41886d81caa68c781538d898d1d98f0cda",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-green-39703245660/tmp/install-publication-tests/case-XAIHYj/profile-environment.json",
+          "bytes": 1414,
+          "sha256": "fd7d1495b3b0fa80362fdb1502b296f747aeb0b54c73dfc70c681aa45968bae6"
+        }
+      },
+      {
+        "architecture": "x64",
+        "profile": "profile 数据 with spaces",
+        "facts": {
+          "version": "5.1.20348.5622",
+          "is64BitProcess": true,
+          "codePage": 1252,
+          "temp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-e3VF6e\\profile 数据 with spaces\\Temp",
+          "tmp": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-e3VF6e\\profile 数据 with spaces\\Temp",
+          "tempUtf16": "RAA6AFwAYQBcAEUAYQByAHQAaABOAGEAbgBvAFwARQBhAHIAdABoAE4AYQBuAG8AXAB0AG0AcABcAGkAbgBzAHQAYQBsAGwALQBwAHUAYgBsAGkAYwBhAHQAaQBvAG4ALQB0AGUAcwB0AHMAXABjAGEAcwBlAC0AZQAzAFYARgA2AGUAXABwAHIAbwBmAGkAbABlACAAcGVuYyAAdwBpAHQAaAAgAHMAcABhAGMAZQBzAFwAVABlAG0AcAA=",
+          "tempExists": true,
+          "scriptExists": true,
+          "currentDirectory": "D:\\a\\EarthNano\\EarthNano",
+          "tempPath": "D:\\a\\EarthNano\\EarthNano\\tmp\\install-publication-tests\\case-e3VF6e\\profile 数据 with spaces\\Temp\\"
+        },
+        "checks": {
+          "actualProcessArchitecture": true,
+          "actualTempUtf16Bytes": true,
+          "tempEqualsRequested": true,
+          "tmpEqualsRequested": true,
+          "tempExists": true,
+          "scriptExists": true,
+          "getTempPathEqualsRequested": true,
+          "windowsPowerShell51": true,
+          "originalAnsiCodepage": true
+        },
+        "assertionName": "real Windows payload publication publishes through the original script with isolated 'x64' 'profile 数据 with spaces' TEMP",
+        "assertionStatus": "passed",
+        "phases": {
+          "prepare": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "18b8a3ac72843fd46f335bfe42203410844549ea339b1ba021154d8f8d29dbba",
+            "stderrFirstLine": ""
+          },
+          "publish": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "6ac549fd322e96064cdb9ada53bf244bd8c0c5ae85969b7d4a7270e7bde88c1e",
+            "stderrFirstLine": ""
+          },
+          "cleanup": {
+            "exitCode": 0,
+            "error": null,
+            "sha256": "6ac549fd322e96064cdb9ada53bf244bd8c0c5ae85969b7d4a7270e7bde88c1e",
+            "stderrFirstLine": ""
+          }
+        },
+        "rawFacts": {
+          "path": "publication-green-39703245660/tmp/install-publication-tests/case-e3VF6e/profile-environment.json",
+          "bytes": 1408,
+          "sha256": "1b3c7fdd29d672e5dea3b87cc04934521d20b9ecee8afe3adfd506e68f7fc8c5"
+        }
+      }
+    ]
+  },
+  "conclusion": "Original Add-Type compilation fails with real Unicode TEMP under both PS bitnesses while ASCII controls pass. Targeted upstream precompiled-helper fix passes all four original profile controls without changing their requested Unicode TEMP, plus the retained applicable publication tests. Skips remain explicit.",
+  "rawPathResolution": "Original extracted paths refer to the source evidence archive; resolve raw entries inside each repositoryArchive ZIP by dropping the publication-{red|green}-{run}/ prefix."
+}

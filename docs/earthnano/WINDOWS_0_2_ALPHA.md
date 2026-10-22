@@ -35,6 +35,8 @@
 安装模块的 Git blob、SHA256 与原 C# / 目录事务主体保真证明见
 [上游移植清单](validation/alpha/windows-0.2-upstream-installer/manifest.json)。
 原安装的目录身份、ACL、reparse-point、发布和清理事务主体保持逐字节一致。
+真实 PowerShell 红绿报告、四项 profile 的环境见证和原始 ZIP 摘要见
+[窄验证归档](validation/alpha/windows-0.2-publication/manifest.json)。
 
 以下内容为 2026-10-21 的延期记录和恢复依据。其当时的“停止 Windows”与
 “0.1 尚待发布”描述不覆盖上面的恢复决定，也不把历史尝试标记为已验证修复。
