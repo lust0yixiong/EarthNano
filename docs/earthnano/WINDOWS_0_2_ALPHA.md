@@ -75,6 +75,20 @@ Windows 夹具只使用现有锁文件固定的 `@anthropic-ai/claude-agent-sdk`
 的版本探针。本地 macOS 验证不能证明 Windows 探针或候选执行支持，实际 Windows
 版本输出和原对照仍待新提交复验；本轮没有调用模型、凭证或真实 POSIX hook。
 
+### 本轮原 owner 文件系统边界修复
+
+历史 candidate 8 的原审阅恢复测试有六项在 owner settlement 目录 `fsync` 抛出
+`EPERM`；二进制投影有七项在 `mkdir('C:\\')` 失败。本轮分别复用已有
+`@aipoch/durable-files` 同步目录契约，并按原生 `dirname(root) === root` 语义避免
+创建已存在的文件系统根。普通文件同步仍必须成功，根和所有祖先仍经过原目录／
+符号链接检查，子目录仍逐层创建。既有 receipt 重开使用原 durability owner 的
+`r+` 文件 flush 前提，不改变独占写入和内容验证。
+
+外部受控 EPERM 探针只改变这两项系统操作，保留真实文件、原生产调用和全部原断言，
+原 26 项中 14 项失败，修正后 26 项全部通过；含 store／resume 的原正常回归为
+56 项全部通过。本地结果不代替新 head 的完整 Windows 对照，也不解除候选运行的
+POSIX 限制。原 consumer 生成器重建无差异，未增加边界规则。
+
 ## 原延期记录：2026-10-21
 
 2026-10-21 用户决定：**Windows 安装失败留到 0.2-Alpha 修复，0.1-Alpha 先跳过 Windows 版本。**

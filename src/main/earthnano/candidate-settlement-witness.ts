@@ -1,3 +1,4 @@
+import { defaultSynchronousFileDurability } from '@aipoch/durable-files'
 import {
   closeSync,
   fsyncSync,
@@ -131,7 +132,8 @@ export async function persistCandidateOwnerSettlement(
     })
     if (!previous || canonicalOutput(previous) !== encoded)
       throw new Error('Original owner settlement cannot be replaced')
-    handle = openSync(target, 'r')
+    // As in the original durability owner, Windows file flushes need a write-capable handle.
+    handle = openSync(target, 'r+')
     created = false
   }
   // Exclusive creation never replaces an earlier receipt. An interrupted partial write fails the
@@ -142,12 +144,7 @@ export async function persistCandidateOwnerSettlement(
   } finally {
     closeSync(handle)
   }
-  const parent = openSync(directory, 'r')
-  try {
-    fsyncSync(parent)
-  } finally {
-    closeSync(parent)
-  }
+  defaultSynchronousFileDurability.syncDirectory(directory)
 }
 
 export function readCandidateOwnerSettlement(
