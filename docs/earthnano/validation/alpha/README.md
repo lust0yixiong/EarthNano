@@ -140,3 +140,5 @@ Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/3946459
 Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordinary journal 的原路径到短路径映射。只缩短归档文件名，gzip 存储字节、解压后的原始字节及两组 SHA-256 均保持不变；`catalog/manifest.json` 指向现有短路径。保留证据中的历史文件名通过映射追溯。
 
 2026-10-22 Windows 恢复：真实运行 `39699282330` 在检出时遇到六份后期证据的长路径。`windows-0.2-archive-path-map.json` 保留旧路径到短路径的映射；只改归档文件名及 manifest 定位字段，gzip 字节、原始字节和两组 SHA-256 不变。没有删除证据或改动原测试。
+
+Windows 0.2 原生恢复：见 [独立原证据](windows-0.2-native/manifest.json)。规范运行 `39708999081` 的 Windows x64 原 smoke 通过；旧 `39708148492` 的 shutdown 超时保持失败记录。源码完整比较状态以 [Windows 恢复清单](../../WINDOWS_0_2_ALPHA.md) 为准。

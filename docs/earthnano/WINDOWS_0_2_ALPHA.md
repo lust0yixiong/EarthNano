@@ -1,4 +1,25 @@
-# Windows：延期至 0.2-Alpha
+# Windows 0.2-Alpha：恢复与验收
+
+## 当前验收状态：2026-10-22
+
+最终产品提交 `60e922b99ce77186374d219df2954de1c63acb5f` 已整合 0.1.1 的
+`ef4fd17618d468123ffdf6cd172205916ec8872a`，保留 `0.1.1-alpha.1` 构建版本，
+本轮没有发布 0.2 标签或公开安装包。
+
+[规范运行 39708999081](https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081)
+的原生 Windows x64 job `119596188024` 已通过：原 NSIS 安装、包内身份／许可证／
+资源、MCP／Artifact RPC、Python Notebook 环境部署、current／restart、新建与
+原始旧数据库各两次启动／关闭、迁移 ledger 和卸载。四项原数据库证书
+`freshInstall`、`legacyAdoption`、`reopen`、`specialPath` 均通过；未提供 previous
+installer，因此不代表已发布版本间升级、DeepSeek、R 科研或 WSL 授权认证已验证。
+原生验收证据及 API 摘要已独立复核，见[原生原证据归档](validation/alpha/windows-0.2-native/manifest.json)。完整源码对照仍在同一 run 执行。
+
+[先前运行 39708148492](https://github.com/lust0yixiong/EarthNano/actions/runs/39708148492)
+的原 smoke 仍为真实失败：已推进到新库 profile，shutdown 返回 202 且响应体读取
+完成后，子进程未在原 60 秒内报告退出。同次隔离诊断重跑及最终规范原生验收通过，
+停机相关源码相同，不能将后续绿色写成已修复该间歇性问题的证据。日志中的
+transport-close 可能发生于超时强杀清理，不能据此确定原因；本轮未改退出超时、
+频道或通过条件，也未仅凭标题移植无关的上游 UI 退出改动。
 
 ## 恢复工作：2026-10-22
 
