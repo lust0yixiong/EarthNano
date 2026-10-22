@@ -1285,7 +1285,7 @@ const assertInstalledWindowsIdentity = async ({
         expected: {
           FileDescription: expected.productName,
           ProductName: expected.productName,
-          ProductVersion: expected.version ?? null
+          FileVersion: expected.version ?? null
         }
       })
     )

@@ -21,7 +21,7 @@
 
 ### 本轮定位和移植
 
-开发分支已整合 `0.1.1-Alpha` PR #27 的 `4fabdc7fcf6180861eb509306c6955cb0224ae57`。
+开发分支已整合 `0.1.1-Alpha` PR #27 的 `ef4fd17618d468123ffdf6cd172205916ec8872a`。
 0.1.1 仍在独立迭代，最终 PR 以其届时已公布的提交为合并基础；本轮不提前改版本号或发布。
 
 | 工作 | 实际证据与处理 | 当前边界 |
@@ -51,6 +51,18 @@ URL 后缀保留在原 checksum/feed 输入、真实文件使用字面 basename�
 在验证前就因 `?` 文件名失败；版本身份测试约束合法 Alpha 格式和原 package/lock/
 更新渠道一致性，移除写死旧 `0.1.0-alpha.1` 的构建号。生产发布范围、URL 拒绝规则、
 校验和、更新渠道及版本号均未改动。
+
+完整候选执行和原 Harness 全方法中的 13 项 POSIX 集成用例明确列为 Windows
+平台不适用，未计为通过；Unix 原名称、回调、断言和超时保留，实际 Windows
+host guard 拒绝用例继续执行。范围与别名注册证明见
+[平台边界清单](validation/alpha/windows-0.2-posix-scope/manifest.json)。
+
+### PE 版本检查修正
+
+PE 身份检查由 EarthNano 提交 `d8af1a7bb19e3994a0ffdd10336098cdd17208ef` 额外引入；原上游通过启动后的 `bootstrap.appVersion` 精确检查完整版本。
+[真实取证 39706440979](https://github.com/lust0yixiong/EarthNano/actions/runs/39706440979) 确认锁定构建器写入 `ProductVersion=0.1.1.0`，保留完整版本的字段是 `FileVersion=0.1.1-alpha.1`。
+因此 PE 检查改为精确比较 `FileVersion`，继续精确检查 `FileDescription`、`ProductName`，并保留原上游 `bootstrap.appVersion` 精确检查；`ProductVersion` 继续取证，不作版本匹配的替代或回退。
+这只修正本项目的字段假设，不改包配置、版本或频道；完整安装 smoke 仍须重跑通过。
 
 以下内容为 2026-10-21 的延期记录和恢复依据。其当时的“停止 Windows”与
 “0.1 尚待发布”描述不覆盖上面的恢复决定，也不把历史尝试标记为已验证修复。
