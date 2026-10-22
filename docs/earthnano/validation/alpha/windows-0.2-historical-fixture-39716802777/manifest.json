@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "id": 39716802777,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39716802777",
+    "attempt": 1,
+    "conclusion": "success"
+  },
+  "launcherSource": "597d848e27ab9b9995bb9152029d61c5ed7d8d58",
+  "productSource": "06e5c169d3e289201f89b21cca01d086434042d4",
+  "actualCheckoutCheckpoint": "06e5c169d3e289201f89b21cca01d086434042d4",
+  "job": {
+    "id": 119620739996,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39716802777/job/119620739996",
+    "conclusion": "success"
+  },
+  "scope": "Complete original migration-service.test.ts on candidate06e, separately from the original 16-shard source cohort. The launcher differs from red diagnostic39714645856 only in explicit product checkout/checkpoint; original whole-file invocation, environment, workers, budgets and reporters are identical.",
+  "invocation": {
+    "sourceTestInvocation": true,
+    "runner": "windows-2022",
+    "node": "v24.22.0",
+    "onlyFile": "src/main/database/migration-service.test.ts",
+    "maxWorkers": 2,
+    "testTimeoutMs": 30000,
+    "hookTimeoutMs": 60000,
+    "defaultReporterRetainedForDiagnosis": true,
+    "jsonAndOriginalRuntimeReportersRetained": true,
+    "originalNormalizerGitBlob": "e27f40a992857b029eb1307978908ea47ed3b6c0",
+    "environment": {
+      "EARTHNANO_RESEARCH_PYTHON": "${{ steps.python.outputs.python-path }}",
+      "OPEN_SCIENCE_TEST_MAX_WORKERS": "2",
+      "VITEST_DEFER_COVERAGE_THRESHOLDS": "1",
+      "VITEST_PORTABLE_CI": "0",
+      "VITEST_WINDOWS_FULL_TEST": "1",
+      "OPEN_SCIENCE_CI_EXCLUDED_PACKAGE_ROOTS": "[]",
+      "OPEN_SCIENCE_CI_SELECTED_PACKAGE_ROOTS": "[]",
+      "EARTHNANO_CI_RUNTIME_REPORT": "test-results/windows-focused/runtime.json"
+    }
+  },
+  "result": {
+    "total": 77,
+    "passed": 77,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "globalErrors": 0,
+    "rawLeaves": 77,
+    "runtimeLeaves": 77,
+    "normalizedLeaves": 77,
+    "allOriginalTitlesExactlyMatch": true,
+    "cases": [
+      {
+        "name": "application database migrations adds journal storage to the previous release without changing historical references",
+        "status": "passed",
+        "durationMs": 1532.8125000000002
+      },
+      {
+        "name": "application database migrations adds empty metadata commit receipts without inventing proof for historical references",
+        "status": "passed",
+        "durationMs": 2499.7853999999998
+      }
+    ]
+  },
+  "candidateReview": {
+    "onlyFileInFixtureCommit": "test/fixtures/application-database.ts",
+    "fixtureGitBlob": "3158a3175bdc0cfeea1702db62ce84373e6badd5",
+    "fixtureSha256": "f1b513c5bd216ccb8bc71ecf4bb4e43ea895a6a30c96f2df4148824e5464d046",
+    "semanticFindings": [],
+    "transaction": {
+      "realPrismaCallback": true,
+      "usesTransactionClientForAllOriginalOperations": true,
+      "statementOperationRepairLedgerOrderPreserved": true,
+      "foreignKeysOffAndFinallyOnOutsideTransaction": true,
+      "oneConnectionClientRetained": true,
+      "originalSqlUnchanged": true,
+      "customTransactionOptions": false,
+      "lockedClientDefaults": {
+        "maxWaitMs": 2000,
+        "timeoutMs": 5000
+      },
+      "productionMigrationEngineUnchanged": true,
+      "original77TestsUnchanged": true,
+      "sqliteDurabilityOptionsUnchanged": true
+    },
+    "localMacEvidence": {
+      "original-migration-tests": {
+        "sha256": "051f52e28f5f2581f57f7344ce95e0574f5eacf0011f1b94b4225d46129acfcf",
+        "total": 77,
+        "passed": 77,
+        "failed": 0,
+        "pending": 0,
+        "success": true
+      },
+      "candidate-migration-tests": {
+        "sha256": "4d6aad51047bef80acbb8377bf916d700d3d6b072a4dd607a88337bca9a0b477",
+        "total": 77,
+        "passed": 77,
+        "failed": 0,
+        "pending": 0,
+        "success": true
+      },
+      "candidate-consumers": {
+        "sha256": "0f3154f4df47158b1291684a6728ea4643d04526ad566a71ccd1400fcb987686",
+        "total": 83,
+        "passed": 83,
+        "failed": 0,
+        "pending": 0,
+        "success": true
+      },
+      "candidate-rollback": {
+        "sha256": "93e5789517a6b965e25cbe08349a8194be869c6e52634c289f013e437f91b641",
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "pending": 0,
+        "success": true
+      }
+    },
+    "databaseEquivalence": {
+      "cases": [
+        "baseline-only",
+        "before-bookmarks",
+        "before-managed",
+        "before-search-legacy-alter",
+        "before-vision",
+        "released-default"
+      ],
+      "actualSqliteSchemaAndAllTableRowsCompared": true,
+      "allEqual": true,
+      "excludedOriginalSqlGeneratedTimestampColumnsOnly": {
+        "_open_science_migrations": [
+          "appliedAt"
+        ],
+        "MemorySettings": [
+          "createdAt",
+          "updatedAt"
+        ],
+        "MemoryCategory": [
+          "createdAt",
+          "updatedAt"
+        ],
+        "Tag": [
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "foreignKeyViolations": 0
+    },
+    "sourceProof": [
+      {
+        "path": "src/main/database/migration-service.test.ts",
+        "gitBlob": "cd3dbef94151a8eda20083177cce4cdb3346a129",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "src/main/database/migration-service.ts",
+        "gitBlob": "ed26b1826e3447794d8dc0aa8a12c3d7b941ae63",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "src/main/database/legacy-baseline-adapter.ts",
+        "gitBlob": "71cdf1f6cebc6aa335270d82a595617cdddba77a",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "src/main/database/sqlite-schema-migrations.ts",
+        "gitBlob": "a70775bada5590ffa07e7b53a602c7166a92f2ff",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "src/main/database/migration-sql-executor.ts",
+        "gitBlob": "6f053697a64acc1baddb26135d241983303780f6",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "src/main/projects/prisma-client.ts",
+        "gitBlob": "8df29ed137ed9e8c63f26b3614358cddbccf1eef",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "prisma/schema.prisma",
+        "gitBlob": "bd053092f47e0e2e1300b223ce9efc183ed49f8a",
+        "sameAsOriginalFailed60e": true
+      },
+      {
+        "path": "package-lock.json",
+        "gitBlob": "0a167a535a49203048e58a2432ff0c22bb18a74c",
+        "sameAsOriginalFailed60e": true
+      }
+    ]
+  },
+  "evidence": {
+    "artifact": {
+      "id": 12398839159,
+      "bytes": 6897,
+      "sha256": "aaa5e3afb012b110fb408464edcff7ece219c2633eb02f572eead8924b20eb65",
+      "apiDigest": "sha256:aaa5e3afb012b110fb408464edcff7ece219c2633eb02f572eead8924b20eb65",
+      "apiDigestMatches": true,
+      "repositoryArchive": "raw-artifact.zip"
+    },
+    "rawFiles": [
+      {
+        "path": "runtime.json",
+        "bytes": 46223,
+        "sha256": "710e7e075e36809a04750d22c9e96bc3c8beab9ebc74601c381644f39b745573"
+      },
+      {
+        "path": "vitest.json",
+        "bytes": 26256,
+        "sha256": "a44542af0116d6c0358488075d0d7b3ce65fc0e23ffe13ce586bad68aebdad90"
+      }
+    ],
+    "defaultJobLog": {
+      "repositoryArchive": "default-job.log.gz",
+      "rawBytes": 54908,
+      "rawSha256": "efebaeb23d5f98ad73aa03cc050634608b6d2a70d5ec7f4ce963b7295ef67f44",
+      "storedBytes": 13166,
+      "storedSha256": "4d92c0d2c717464e68d045e4498046ee92fce77d0321e596d849d146b25f16a5"
+    },
+    "externalReceiptSha256": "55adce0daa4e15b9de13c1cb3305773fd4bbf654acddab64ce86f9379eb67e60",
+    "externalSemanticReviewSha256": "6cbc74ab33b7e48bb59eb3a11a4e1c771a2b458b351bd5fe4ccb1da44a1f2254"
+  },
+  "historicalResults": [
+    {
+      "run": 39708999081,
+      "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "kind": "candidate",
+      "shard": 5,
+      "case": "adds journal storage to the previous release without changing historical references",
+      "status": "failed",
+      "durationMs": 30060.1585
+    },
+    {
+      "run": 39714645856,
+      "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "scope": "whole-file diagnostic",
+      "case": "adds empty metadata commit receipts without inventing proof for historical references",
+      "status": "failed",
+      "durationMs": 30037.4966
+    }
+  ],
+  "boundary": "Original run39708999081 candidate5 journal timeout and diagnostic39714645856 metadata-receipt timeout remain failures. This complete single-file candidate06e result is separate and cannot replace a source shard or yield a passing 16-shard comparison. Production migration engine, original tests, dependency/reporting implementations, timeout/hook budgets, skips and comparer were not changed. This collector did not dispatch or cancel workflows. The 6-pair equality control excludes only the listed original CURRENT_TIMESTAMP-generated fields; raw database bytes and SQL were not rewritten. No Windows full-cohort, native rerun, research-task or model validation is claimed by this narrow result."
+}
