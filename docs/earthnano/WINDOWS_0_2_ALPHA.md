@@ -21,6 +21,24 @@ installer，因此不代表已发布版本间升级、DeepSeek、R 科研或 WSL
 transport-close 可能发生于超时强杀清理，不能据此确定原因；本轮未改退出超时、
 频道或通过条件，也未仅凭标题移植无关的上游 UI 退出改动。
 
+### 完整源码对照 39708999081
+
+同一提交的 16 份原报告已完整执行，inventory／runtime／cohort 校验均成立，
+0 全局错误、0 阶段回退。基线 115,591 项：111,330 通过、7 失败、4,254 跳过；
+候选 116,990 项：112,620 通过、6 失败、4,364 跳过。原比较器判定
+`new-regressions`：5 条记录、3 个身份，分别为下述 journal 超时、技能索引
+prototype-like 文件用例失败，以及 0.1.1 用户要求删除 About 版权行后的原测试身份缺项。
+候选共有 110 个新增跳过身份，其中明确的平台边界 13 项未计为通过；完整清单保留。
+原 CLI catch-all 收据虽名为 `validation-unavailable`，不能将实际新增失败称为观测不完整。
+见[完整原比较与 16 份 ZIP 摘要](validation/alpha/windows-0.2-source-39708999081/manifest.json)。
+
+0.1.1 新提交 `8829c1596f55449267945716e8d47f3714935144` 已整合。其 About 处理
+对应另一轮用户明确要求删除的 `© 2026 AIPOCH` 行，是授权的界面行为变更，
+不称为纯品牌改名。原名称／版本和其他断言保留，源码许可证未删。比较器仅记录
+该文件、原／新标题和 occurrence 的精确对应；要求替代断言实际通过，缺项、失败、
+跳过、错误文件／名称／序号仍拒绝。独立正负控制及合并后的 108 项 CI 门禁测试通过。
+该改动不回写本次原红结果，最终源码结论以整合后新提交的完整运行另记。
+
 ### 原迁移测试的实际超时
 
 本轮完整 `60e922b99` 的 candidate 5 有一项候选新增失败：历史 journal 升级用例
@@ -81,7 +99,7 @@ metadata receipts 用例 2.500 秒；这次窄验证不拼入旧 16 片，也不
 
 ### 本轮定位和移植
 
-开发分支已整合 `0.1.1-Alpha` PR #27 的 `59dfde65a2b6368dd5603667aef7305a0ed23ef3`；
+开发分支已整合 `0.1.1-Alpha` PR #27 的 `8829c1596f55449267945716e8d47f3714935144`；
 规范完整矩阵的冻结基线及后续单文件验证分别见上文。
 0.1.1 仍在独立迭代，最终 PR 以其届时已公布的提交为合并基础；本轮不提前改版本号或发布。
 
@@ -91,7 +109,7 @@ metadata receipts 用例 2.500 秒；这次窄验证不拼入旧 16 片，也不
 | 安装器 exit 2 | [运行 39700451549](https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549) 的原安装 smoke 失败；隔离诊断定位到 `prepare` 的 `Add-Type -TypeDefinition`，原参数 probe 同时确认 verbatim `/D=` 的实际传递 | 参数修正不能单独解决运行时编译失败 |
 | 上游安装修复 | 定向移植 [OpenScience 814f30751](https://github.com/aipoch/open-science/commit/814f30751bbbe04efe3a03412ef17a7869d82524)：五个生产模块和 extractor 原测试逐字节复用；构建时编译、原签名钩子、私有 DLL 加载和 UTF-16LE 输出 | 不移植同一提交的六分片调度或其他无关改动；`UPSTREAMS.json` 的对照 pin 保持不变 |
 | PowerShell 回归 | [旧红 39702517939](https://github.com/lust0yixiong/EarthNano/actions/runs/39702517939)：x64/x86 中文 TEMP 两例失败、英文两例通过；[修复后 39703245660](https://github.com/lust0yixiong/EarthNano/actions/runs/39703245660)：四例原 prepare/publish/cleanup 断言全部通过，实际位数和 TEMP UTF-16 原字节已核对 | 新运行共 10 通过、15 条件跳过；窄例不代替原 NSIS 完整安装、资源和 RPC 启动 smoke |
-| 源码对照 | 历史 `ede07` 的 16 份报告与原比较器已完整执行；后续修复仍待新提交验收 | 不以 job 绿色代替原断言结果，不将基线失败抵消候选新失败 |
+| 源码对照 | 历史 `ede07` 与 `60e922b99` 的 16 份原报告均完整执行并保留真实新增失败；整合修正后另作新提交验收 | 不以 job 绿色代替原断言结果，不将基线失败抵消候选新失败 |
 
 安装模块的 Git blob、SHA256 与原 C# / 目录事务主体保真证明见
 [上游移植清单](validation/alpha/windows-0.2-upstream-installer/manifest.json)。
