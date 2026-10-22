@@ -142,3 +142,11 @@ Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordina
 2026-10-22 Windows 恢复：真实运行 `39699282330` 在检出时遇到六份后期证据的长路径。`windows-0.2-archive-path-map.json` 保留旧路径到短路径的映射；只改归档文件名及 manifest 定位字段，gzip 字节、原始字节和两组 SHA-256 不变。没有删除证据或改动原测试。
 
 Windows 0.2 原生恢复：见 [独立原证据](windows-0.2-native/manifest.json)。规范运行 `39708999081` 的 Windows x64 原 smoke 通过；旧 `39708148492` 的 shutdown 超时保持失败记录。源码完整比较状态以 [Windows 恢复清单](../../WINDOWS_0_2_ALPHA.md) 为准。
+
+Windows 最终冻结提交 `2982f4d1d` 的原生运行 `39719225703` 已通过，见
+[原始 ZIP、日志和 API](windows-0.2-native-39719225703/manifest.json)。完整源码比较另行记录，不能用原生绿色替代。
+历史迁移夹具的真实 Windows 77 项与本地等价控制分别见
+[Windows 原测试](windows-0.2-historical-fixture-39716802777/manifest.json)和
+[本地补充控制](windows-0.2-historical-fixture/manifest.json)；技能索引夹具的原字节和正负控制见
+[技能夹具证据](windows-0.2-skills-fixture/manifest.json)。旧完整源码新增失败见
+[39708999081 原比较](windows-0.2-source-39708999081/manifest.json)，不被后续窄验证覆盖。

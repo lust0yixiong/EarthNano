@@ -2,6 +2,26 @@
 
 ## 当前验收状态：2026-10-22
 
+最终代码冻结在 `2982f4d1dcbce13746c40b25f1045aecec24cec6`，已整合 0.1.1 PR #27
+的 `8829c1596f55449267945716e8d47f3714935144`。后续只添加证据与说明；构建版本仍为
+`0.1.1-alpha.1`，尚未发布 0.2 标签、签名安装包或更新频道。
+
+[最终规范运行 39719225703](https://github.com/lust0yixiong/EarthNano/actions/runs/39719225703)
+的原生 Windows x64 job `119629231618` 已通过。实际源码、tree、clean 状态、锁定
+Electron 与证据摘要经独立复核：真实安装、MCP／Artifact RPC、Python Notebook 环境
+部署、current／restart、新库与原 smoke 播种 legacy 库各两次启动／关闭、迁移证书
+四项及卸载通过。原 ZIP 的 SHA256 为
+`83b125b1656e969536ba7f5569d352928e1547bd53304e42d68941d25854ab53`，见
+[最终原生证据](validation/alpha/windows-0.2-native-39719225703/manifest.json)。同一 run 的
+16 分片源码比较仍在执行；不得据原生绿色称源码验收已完成。
+
+首次选择新的 integration ref 的 `39718566493` 因无法读取既有 ci 分支 runtime
+缓存，仅进入原运行时源码构建即取消，源码报告／原生安装均未执行，既非产品通过
+也非产品失败。同一冻结提交随后回到原 ci 分支完成上述正式运行；自动 push run
+`39719223845` 也已取消。没有改产品或原验收规则，不混用这些未完成运行的结果。
+
+以下为此前运行与修正的历史记录。
+
 已完成安装验收的提交 `60e922b99ce77186374d219df2954de1c63acb5f` 整合了 0.1.1 的
 `ef4fd17618d468123ffdf6cd172205916ec8872a`，保留 `0.1.1-alpha.1` 构建版本，
 本轮没有发布 0.2 标签或公开安装包。
@@ -9,7 +29,7 @@
 [规范运行 39708999081](https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081)
 的原生 Windows x64 job `119596188024` 已通过：原 NSIS 安装、包内身份／许可证／
 资源、MCP／Artifact RPC、Python Notebook 环境部署、current／restart、新建与
-原始旧数据库各两次启动／关闭、迁移 ledger 和卸载。四项原数据库证书
+原 smoke 脚本播种的 legacy 数据库各两次启动／关闭、迁移 ledger 和卸载。四项原数据库证书
 `freshInstall`、`legacyAdoption`、`reopen`、`specialPath` 均通过；未提供 previous
 installer，因此不代表已发布版本间升级、DeepSeek、R 科研或 WSL 授权认证已验证。
 原生验收证据及 API 摘要已独立复核，见[原生原证据归档](validation/alpha/windows-0.2-native/manifest.json)。同一 run 的完整源码比较已执行并失败，具体结果见下文；原生绿色不覆盖源码失败。
@@ -64,6 +84,23 @@ prototype-like 文件用例失败，以及 0.1.1 用户要求删除 About 版权
 0 全局错误，原 JSON／runtime／标题清单和 normalizer 一致。journal 用例 1.533 秒、
 metadata receipts 用例 2.500 秒；这次窄验证不拼入旧 16 片，也不取代最终完整对照。
 [原 ZIP 与日志](validation/alpha/windows-0.2-historical-fixture-39716802777/manifest.json)。
+
+### 技能索引测试夹具的文件变化前提
+
+`39708999081` 的 candidate 8 在原 prototype-like 文件名用例失败：两次内容
+`before`／`after!` 均为六字节，原比较器保留该新增失败。生产索引与该测试在固定上游
+和当前上游相关模块中相同，生产字典本来就使用 `Object.create(null)`。
+
+本轮只将第二次内容改为七字节 `after!!`，原 `expect(after).not.toEqual(before)`、
+测试身份、skip 和时限不变。该用例验证 `__proto__` 文件是否计入摘要，不承担
+所有元数据相等时的缓存失效能力验证。本地原／新文件各 10/10 通过；外部真实文件
+控制仅固定目标 mtimeNs／ctimeNs，旧等长夹具仍红、新长度夹具通过；将字典换成
+`{}` 的负控制仍红，原断言仍可抓到原型文件被漏算。见
+[原字节与控制证据](validation/alpha/windows-0.2-skills-fixture/manifest.json)。
+
+原 Windows 跑次没有记录该文件的前后 metadata，控制不证明其历史根因；size、
+mtimeNs、ctimeNs、executable 全相同时沿用摘要的继承缓存限制未修。修改的真实
+Windows 结果以最终完整 cohort 单独记录，不用本地绿色覆盖旧失败。
 
 ### 对照启动后的 0.1.1 夹具整合
 
