@@ -899,6 +899,8 @@
       "src/main/earthnano/desktop-sweep-sources.test.ts",
       "src/main/earthnano/desktop-sweep-validation.test.ts",
       "src/main/earthnano/domain-results.test.ts",
+      "src/main/earthnano/execution-core.test.ts",
+      "src/main/earthnano/execution-store.test.ts",
       "src/main/earthnano/harness-domain-binding.test.ts",
       "src/main/earthnano/harness-large-evidence.test.ts",
       "src/main/earthnano/harness-optimization.test.ts",
@@ -4747,6 +4749,7 @@
       "src/renderer/src/pages/workspace/LiteratureCandidateStatus.test.tsx",
       "src/renderer/src/pages/workspace/LiteratureToolReferenceList.test.tsx",
       "src/renderer/src/pages/workspace/TaskOptimizationPanel.test.tsx",
+      "src/renderer/src/pages/workspace/UpstreamTrialExamples.interaction.test.tsx",
       "src/renderer/src/pages/workspace/WorkspacePage.compute-entry.test.tsx",
       "src/renderer/src/pages/workspace/WorkspaceSidebar.session-gestures.test.tsx"
     ],
