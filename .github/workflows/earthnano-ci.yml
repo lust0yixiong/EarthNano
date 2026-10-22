@@ -1,188 +1,158 @@
-name: EarthNano 0.1.1 Alpha publication
+name: EarthNano 0.1.1 isolated live acceptance
 
 on:
   workflow_dispatch:
-    inputs:
-      source_sha:
-        description: Exact reviewed and merged 0.1.1-alpha.1 application commit
-        required: true
-        type: string
-      source_run_id:
-        description: Successful same-source full Unix, Harness and packaged-trial CI run
-        required: true
-        type: string
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: earthnano-0.1.1-alpha-publication
+  group: earthnano-0.1.1-isolated-live-acceptance
   cancel-in-progress: false
 
 jobs:
-  prepare:
-    if: github.ref == 'refs/heads/ci/earthnano-0.1.1-publication'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    env:
-      PATCH_SOURCE_ROOT: ${{ github.workspace }}/application
-      PATCH_OPERATION_ROOT: ${{ github.workspace }}/operation/scripts/ci/patch-release
-      PATCH_ROOT: ${{ github.workspace }}/patch-stage
-      PATCH_SOURCE_SHA: ${{ inputs.source_sha }}
-      PATCH_SOURCE_RUN: ${{ inputs.source_run_id }}
+  live:
+    if: github.ref == 'refs/heads/ci/earthnano-0.1.1-live-check' && github.repository == 'lust0yixiong/EarthNano' && github.actor == 'lust0yixiong'
+    runs-on: macos-26
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { path: operation, persist-credentials: false }
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ inputs.source_sha }}
-          path: application
+          ref: 8829c1596f55449267945716e8d47f3714935144
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with: { node-version-file: application/.github/earthnano-node-version }
-      - name: Require successful original gates and preserve old releases
-        env: { GH_TOKEN: "${{ github.token }}" }
-        run: node "$PATCH_OPERATION_ROOT/prepare-patch-release.mjs" gates
-      - name: Original release helper dependencies only, without application lifecycle or rebuild
-        working-directory: application
-        run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.source_run_id }}
-          pattern: earthnano-unsigned-*
-          path: ${{ env.PATCH_ROOT }}/inputs/packages
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.source_run_id }}
-          pattern: earthnano-native-evidence-*
-          path: ${{ env.PATCH_ROOT }}/inputs/native
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.source_run_id }}
-          name: earthnano-upstream-trials-packaged
-          path: ${{ env.PATCH_ROOT }}/evidence/packaged-trials
-      - name: Verify original source manifests and actual file bytes; collect without overwrite
-        run: node "$PATCH_OPERATION_ROOT/prepare-patch-release.mjs" collect
-      - name: Original four-target certification aggregate and Mac feed merge
-        working-directory: application
-        run: |
-          node scripts/ci/release-certification-evidence.mjs aggregate \
-            --directory "$PATCH_ROOT/assets" --output "$PATCH_ROOT/assets/RELEASE-CERTIFICATION.json" \
-            --expected-sha "$PATCH_SOURCE_SHA" --platforms mac,linux
-          node scripts/merge-mac-feed.mjs "$PATCH_ROOT/assets" --channel alpha
-          (cd "$PATCH_ROOT/assets" && sha256sum --check --strict SHA256SUMS.txt)
-      - name: Original complete Unix Alpha manifest, bound only to the new fixed version
-        working-directory: application
-        env:
-          VERSION: 0.1.1-alpha.1
-          UPDATE_CHANNEL: alpha
-          ASSET_BASE_URL: https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1
-          NOTES: |
-            ## Highlights
-
-            Two runnable upstream examples in the existing Project/Session workflow: OpenScience Case16 frozen-input reproduction and the Harness² signed-ledger task with explicit shared-core optimization. The requested About footer line is removed. Unsigned macOS/Linux Alpha preview; Windows remains deferred to 0.2-Alpha.
-        run: |
-          export RELEASE_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          node scripts/generate-version-manifest.mjs "$PATCH_ROOT/assets" "$PATCH_ROOT/assets/version.json" --require-complete --platforms mac,linux
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: earthnano-0.1.1-alpha-prepared
-          path: ${{ env.PATCH_ROOT }}/assets/
-          compression-level: 0
-          retention-days: 14
-          if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: earthnano-0.1.1-alpha-preparation-evidence
-          path: ${{ env.PATCH_ROOT }}/evidence/
-          retention-days: 14
-          if-no-files-found: error
-
-  draft:
-    needs: prepare
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: write
-      actions: read
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: lust0yixiong/EarthNano
-      PATCH_SOURCE_SHA: ${{ inputs.source_sha }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with: { path: operation, persist-credentials: false }
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: earthnano-0.1.1-alpha-prepared
-          path: assets
-      - name: New version must not already exist
+        with: { node-version-file: .github/earthnano-node-version, cache: npm }
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with: { python-version-file: .github/earthnano-python-version }
+      - name: Prepare original test dependencies without building the application
+        run: node scripts/ci/npm-ci.mjs
+      - name: Prepare the existing pinned test-only Claude Code runtime
         shell: bash
         run: |
           set -euo pipefail
-          for path in releases/tags/v0.1.1-alpha.1 git/ref/tags/v0.1.1-alpha.1; do
-            set +e
-            gh api --include "repos/$GH_REPO/$path" > probe.txt 2> probe-error.txt
-            code=$?
-            set -e
-            test "$code" -ne 0
-            head -1 probe.txt | grep -E '^HTTP/[0-9.]+ 404 '
-          done
-      - name: Create only a new versioned draft and upload validated bytes
+          prefix="$RUNNER_TEMP/earthnano-trial-claude"
+          npm install --no-audit --no-fund --prefix "$prefix" @anthropic-ai/claude-code@2.1.232
+          "$prefix/node_modules/.bin/claude" --version
+          echo "$prefix/node_modules/.bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39715941943
+          name: earthnano-unsigned-macos-26
+          path: trial-package
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39715941943
+          name: earthnano-native-evidence-macos-26
+          path: native-evidence
+      - name: Verify source identity and actual existing package bytes, then extract
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find assets -maxdepth 1 -type f | wc -l)" -eq 28
-          (cd assets && sha256sum --check --strict SHA256SUMS.txt)
-          gh api --method POST "repos/$GH_REPO/git/refs" \
-            -f ref=refs/tags/v0.1.1-alpha.1 -f sha="$PATCH_SOURCE_SHA"
-          gh release create v0.1.1-alpha.1 --verify-tag --draft --prerelease --latest=false \
-            --title 'EarthNano 0.1.1-Alpha — upstream trial examples' \
-            --notes-file operation/scripts/ci/patch-release/release-notes.md
-          gh release upload v0.1.1-alpha.1 assets/*
-      - name: Retain and independently verify actual draft identity and every uploaded byte digest
-        run: |
-          gh api repos/lust0yixiong/EarthNano/releases/tags/v0.1.1-alpha.1 > draft.json
-          gh api repos/lust0yixiong/EarthNano/git/ref/tags/v0.1.1-alpha.1 > tag.json
+          test "$(git rev-parse HEAD)" = 8829c1596f55449267945716e8d47f3714935144
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict'
-          import {createHash} from 'node:crypto'
+          import {readFile,writeFile,stat} from 'node:fs/promises'
           import {createReadStream} from 'node:fs'
-          import {readFile,readdir,stat,writeFile} from 'node:fs/promises'
-          const release=JSON.parse(await readFile('draft.json','utf8'))
-          const tag=JSON.parse(await readFile('tag.json','utf8'))
-          assert.equal(release.tag_name,'v0.1.1-alpha.1')
-          assert.equal(release.draft,true)
-          assert.equal(release.prerelease,true)
-          assert.equal(tag.object.sha,process.env.PATCH_SOURCE_SHA)
-          const names=(await readdir('assets')).sort()
-          assert.deepEqual(release.assets.map(a=>a.name).sort(),names)
-          const files=[]
-          for(const name of names){
-            const hash=createHash('sha256')
-            for await(const chunk of createReadStream('assets/'+name)) hash.update(chunk)
-            const digest=hash.digest('hex'), size=(await stat('assets/'+name)).size
-            const asset=release.assets.find(a=>a.name===name)
-            assert.equal(asset.size,size)
-            assert.equal(asset.digest,'sha256:'+digest)
-            files.push({name,bytes:size,sha256:digest,assetId:asset.id})
-          }
-          await writeFile('prepared-file-digests.json',JSON.stringify({verified:true,source:process.env.PATCH_SOURCE_SHA,files},null,2)+'\n')
+          import {createHash} from 'node:crypto'
+          const manifest=JSON.parse(await readFile('native-evidence/test-results/native-evidence/artifact-manifest.json','utf8'))
+          assert.equal(manifest.source,'8829c1596f55449267945716e8d47f3714935144')
+          assert.equal(manifest.sourceDirty,false)
+          assert.equal(manifest.version,'0.1.1-alpha.1')
+          assert.equal(manifest.platform,'darwin')
+          assert.equal(manifest.arch,'arm64')
+          const name='EarthNano-0.1.1-alpha.1-mac-arm64.zip'
+          const record=manifest.files.find(file=>file.path==='dist/'+name)
+          assert(record)
+          const path='trial-package/'+name, hash=createHash('sha256')
+          for await(const chunk of createReadStream(path)) hash.update(chunk)
+          const sha256=hash.digest('hex')
+          assert.equal(record.bytes,(await stat(path)).size)
+          assert.equal(sha256,record.sha256)
+          assert.equal(sha256,'f61100b36939831500bc703099946165fb905c4085284bd61e6b624619c7a293')
+          await writeFile('live-package-proof.json',JSON.stringify({verified:true,source:manifest.source,sourceRunId:39715941943,name,sha256},null,2)+'\n')
           NODE
+          ditto -x -k trial-package/EarthNano-0.1.1-alpha.1-mac-arm64.zip "$RUNNER_TEMP/earthnano-trial-app"
+          app="$RUNNER_TEMP/earthnano-trial-app/EarthNano.app"
+          test -x "$app/Contents/MacOS/EarthNano"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = 0.1.1-alpha.1
+          echo "OPEN_SCIENCE_E2E_EXECUTABLE=$app/Contents/MacOS/EarthNano" >> "$GITHUB_ENV"
+      - name: Stage only the explicitly authorized temporary test credential
+        env:
+          TEST_DEEPSEEK_KEY: ${{ secrets.EARTHNANO_0_1_1_DEEPSEEK_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import {writeFile,appendFile} from 'node:fs/promises'
+          import {join} from 'node:path'
+          const key=process.env.TEST_DEEPSEEK_KEY
+          assert(key && /^sk-[A-Za-z0-9]+$/.test(key),'Explicit test credential is required')
+          const path=join(process.env.RUNNER_TEMP,'earthnano-live-deepseek.key')
+          await writeFile(path,key,{mode:0o600,flag:'wx'})
+          await appendFile(process.env.GITHUB_ENV,'EARTHNANO_LIVE_DEEPSEEK_KEY_FILE='+path+'\n')
+          NODE
+      - name: Unchanged original two-case live test, isolated HOME/Keychain, real Notebook and Reviews
+        env:
+          OPEN_SCIENCE_E2E_ISOLATE_HOME: '1'
+          EARTHNANO_LIVE_DEEPSEEK: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci/run-macos-packaged-e2e.sh \
+            node node_modules/@playwright/test/cli.js test e2e/earthnano-upstream-trials.spec.ts \
+              --workers=1 --retries=0 --trace=on
+      - name: Require actual live results and independent passing assessments
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import {readdir,readFile,writeFile} from 'node:fs/promises'
+          import {join} from 'node:path'
+          const reports=[]
+          async function walk(root){for(const entry of await readdir(root,{withFileTypes:true})){const path=join(root,entry.name);if(entry.isDirectory())await walk(path);else if(entry.name==='upstream-trial.json')reports.push(JSON.parse(await readFile(path,'utf8')))}}
+          await walk('test-results')
+          assert.deepEqual(reports.map(r=>r.trial).sort(),['harness2-ledger','openscience-case16'])
+          for(const report of reports){
+            assert.equal(report.status,'passed')
+            assert.equal(report.live,true)
+            assert(report.notebookRuns.some(run=>run.status==='completed'))
+            assert.equal(report.provider.rejected,0)
+            assert.equal(report.provider.usage.incompleteRequests,0)
+            assert(report.provider.upstreamRequests>0 && report.provider.upstreamRequests<=160)
+            assert.deepEqual(report.provider.upstreamStatuses,{'200':report.provider.upstreamRequests})
+          }
+          const scientific=reports.find(r=>r.trial==='openscience-case16')
+          assert.deepEqual(scientific.artifacts.map(({name,sha256})=>({name,sha256})),[
+            {name:'trial_calculations.csv',sha256:'ce5be45173e72f859c525876424d87eacd4a9c88d79afce550fbf3232e719da6'},
+            {name:'availability_summary.csv',sha256:'64e40cf520346dd84f3e07310314b3b7a8e5ce44929aa9963967b23e42c8721e'}
+          ])
+          const optimization=reports.find(r=>r.trial==='harness2-ledger').optimization
+          assert.equal(optimization.state,'completed')
+          const tasks=optimization.sweep.domains.flatMap(d=>d.summary.tasks)
+          assert.equal(tasks.length,1)
+          assert.equal(tasks[0].assessments.baseline.outcome,'pass')
+          assert.equal(tasks[0].assessments.candidate.outcome,'pass')
+          assert.equal(tasks[0].outcome.artifact.status,'passed')
+          await writeFile('live-acceptance-summary.json',JSON.stringify({verified:true,source:'8829c1596f55449267945716e8d47f3714935144',packageSha256:'f61100b36939831500bc703099946165fb905c4085284bd61e6b624619c7a293',totalUpstreamRequests:reports.reduce((sum,r)=>sum+r.provider.upstreamRequests,0),trials:reports.map(({trial,provider})=>({trial,requests:provider.upstreamRequests,roles:provider.roles})),independentOutcomes:'baseline and candidate pass; deterministic artifact passed; both original graceful restart gates passed'},null,2)+'\n')
+          NODE
+      - name: Remove the runner's plaintext test key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/earthnano-live-deepseek.key"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
-          name: earthnano-0.1.1-alpha-draft-evidence
+          name: earthnano-0.1.1-isolated-live-evidence
           path: |
-            draft.json
-            tag.json
-            prepared-file-digests.json
-            probe.txt
-            probe-error.txt
+            live-package-proof.json
+            live-acceptance-summary.json
+            test-results/
+            playwright-report/
           retention-days: 14
+          if-no-files-found: error
