@@ -153,6 +153,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
   it('keeps the original Unix source/native paths independent of focused Windows validation', () => {
     expect(needs(workflow.jobs.source_unix)).toEqual(['plan'])
     expect(needs(workflow.jobs.native_unix)).toEqual([])
+    expect(needs(workflow.jobs.trials_packaged)).toEqual(['native_unix'])
     expect(needs(workflow.jobs.plan)).toEqual([])
     expect(Object.keys(workflow.jobs)).toEqual([
       'plan',
