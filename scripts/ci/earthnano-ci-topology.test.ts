@@ -37,7 +37,13 @@ interface Job {
   strategy?: { 'fail-fast'?: boolean; matrix?: { include: unknown[] } | string }
 }
 interface Workflow {
-  on: Record<string, { branches?: string[] }>
+  on: Record<
+    string,
+    {
+      branches?: string[]
+      inputs?: Record<string, { type: string; default?: unknown; options?: string[] }>
+    }
+  >
   permissions: Record<string, string>
   jobs: Record<string, Job>
 }
@@ -144,7 +150,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  it('requires only Unix source/native jobs and no Windows dependency', () => {
+  it('keeps the original Unix source/native paths independent of focused Windows validation', () => {
     expect(needs(workflow.jobs.source_unix)).toEqual(['plan'])
     expect(needs(workflow.jobs.native_unix)).toEqual([])
     expect(needs(workflow.jobs.plan)).toEqual([])
@@ -153,9 +159,17 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       'source_unix',
       'comparison',
       'harness',
-      'native_unix'
+      'native_unix',
+      'windows_runtime',
+      'source_windows',
+      'comparison_windows',
+      'native_windows'
     ])
-    expect(Object.values(workflow.jobs).flatMap(needs)).not.toContain('windows_runtime')
+    expect(
+      ['plan', 'source_unix', 'comparison', 'harness', 'native_unix'].flatMap((name) =>
+        needs(workflow.jobs[name])
+      )
+    ).not.toContain('windows_runtime')
     for (const [name, output] of [['source_unix', 'unix_matrix']])
       expect(workflow.jobs[name].strategy).toEqual({
         'fail-fast': false,
@@ -731,7 +745,10 @@ describe('EarthNano 0.1 Unix CI scope', () => {
     const job = workflow.jobs.comparison
     expect(job).not.toHaveProperty('continue-on-error')
     expect(needs(job)).toEqual(['source_unix'])
-    expect(job.if).toBe("always() && github.ref != 'refs/heads/ci/earthnano-native'")
+    expect(job.if).toBe(
+      "always() && github.ref != 'refs/heads/ci/earthnano-native' && " +
+        "!(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')"
+    )
     const check = job.steps!.findIndex(
       (step) => step.name === 'Require complete Unix source matrix'
     )
@@ -786,8 +803,78 @@ describe('EarthNano 0.1 Unix CI scope', () => {
     expect(workflow.on.pull_request_target).toBeUndefined()
     for (const name of ['native_unix'])
       expect(workflow.jobs[name].if).toBe(
-        "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
-          "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
+        "((github.event_name == 'workflow_dispatch' && inputs.native) || " +
+          "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')) && " +
+          "!(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')"
       )
   })
+
+  it('makes focused Windows work manual and keeps its original runtime and eight complete shards', () => {
+    expect(workflow.on.workflow_dispatch.inputs!.windows).toMatchObject({
+      type: 'choice',
+      default: 'off',
+      options: ['off', 'source', 'native', 'all']
+    })
+    const runtime = workflow.jobs.windows_runtime
+    expect(runtime.if).toBe("github.event_name == 'workflow_dispatch' && inputs.windows != 'off'")
+    expect(
+      runtime.steps!.some((step) => step.uses === './.github/actions/windows-notebook-runtime')
+    ).toBe(true)
+    const source = workflow.jobs.source_windows
+    expect(needs(source)).toEqual(['windows_runtime'])
+    expect(source.uses).toBe('./.github/workflows/earthnano-source.yml')
+    expect(source.strategy).toEqual({
+      'fail-fast': false,
+      matrix: { kind: ['baseline', 'candidate'], shard: [1, 2, 3, 4, 5, 6, 7, 8] }
+    })
+    expect(source.with).toEqual({
+      os: 'windows-2022',
+      kind: '${{ matrix.kind }}',
+      shard: '${{ matrix.shard }}',
+      total: 8
+    })
+    const native = workflow.jobs.native_windows
+    expect(needs(native)).toEqual(['windows_runtime'])
+    expect(native.uses).toBe('./.github/workflows/earthnano-native.yml')
+    expect(native.with).toEqual({
+      os: 'windows-2022',
+      platform: 'win',
+      arch: 'x64',
+      subdir: 'win-64'
+    })
+    for (const name of ['source_windows', 'comparison_windows', 'native_windows'])
+      expect(workflow.jobs[name].if).toContain("github.event_name == 'workflow_dispatch'")
+  })
+
+  it.each([undefined, '', 'skipped', 'failure', 'cancelled', 'success'])(
+    'requires a completed Windows matrix (%s) before running the unchanged report comparer',
+    (status) => {
+      const comparison = workflow.jobs.comparison_windows
+      expect(needs(comparison)).toEqual(['source_windows'])
+      expect(comparison.if).toContain('always()')
+      expect(comparison).not.toHaveProperty('continue-on-error')
+      const check = comparison.steps!.findIndex(
+        (step) => step.name === 'Require complete Windows source matrix'
+      )
+      const compare = comparison.steps!.findIndex((step) =>
+        step.run?.startsWith('node scripts/ci/earthnano-source.mjs compare')
+      )
+      expect(compare).toBeGreaterThan(check)
+      expect(comparison.steps![compare].run).toBe(
+        'node scripts/ci/earthnano-source.mjs compare --platforms win32 --reports source-reports --out test-results/earthnano-windows'
+      )
+      const env = status === undefined ? {} : { SOURCE_WINDOWS_RESULT: status }
+      const result = spawnSync(process.execPath, ['-e', comparison.steps![check].run!], {
+        env,
+        encoding: 'utf8'
+      })
+      if (status === 'success') expect(result.status, result.stderr).toBe(0)
+      else {
+        expect(result.status).not.toBe(0)
+        expect(result.stderr).toContain(
+          'Required source matrix did not succeed: SOURCE_WINDOWS_RESULT'
+        )
+      }
+    }
+  )
 })
