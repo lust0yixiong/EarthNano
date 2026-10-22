@@ -2,7 +2,7 @@
   "name": "open-science",
   "productName": "EarthNano",
   "desktopName": "open-science.desktop",
-  "version": "0.1.1-alpha.1",
+  "version": "0.2.0-alpha.1",
   "description": "EarthNano \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
   "main": "./out/main/index.js",
   "author": "aipoch",
