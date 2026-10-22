@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/aipoch/open-science/commit/814f30751bbbe04efe3a03412ef17a7869d82524",
+  "sourceCommit": "814f30751bbbe04efe3a03412ef17a7869d82524",
+  "sourceParent": "537261bbac9ef5341b3fee3632265bb1e66cd659",
+  "upstreamPullRequest": "https://github.com/aipoch/open-science/pull/3691",
+  "scope": "Targeted original installer Unicode compatibility fix; no whole-upstream upgrade.",
+  "fixedBaselinesRemain": "UPSTREAMS.json unchanged: OpenScience 9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5 and Harness2 1cfe254e8d25b15f37048c3730134686abe60335.",
+  "byteForByteFiles": [
+    {
+      "path": "build/compile-windows-install-publication.cjs",
+      "gitBlob": "036629c4cdd0f1d96854a77e50d174366f1423e5",
+      "sha256": "1ba5b0c850d45127199a957046b1e476e571cf472fe88febadbfc0ceb374fc43",
+      "bytes": 924,
+      "copiedByteForByte": true
+    },
+    {
+      "path": "build/windows-install-publication.cs",
+      "gitBlob": "89920149697fef7d21acb82983d4daa2f0dfd607",
+      "sha256": "17f7843d43716db87a7612ff3b4ca281690134db19cacd1aa7d72b8bcfe8b5dd",
+      "bytes": 2002,
+      "copiedByteForByte": true
+    },
+    {
+      "path": "build/stage-windows-extractor.cjs",
+      "gitBlob": "d98f3f341f7e649132bc190947e8addde9423247",
+      "sha256": "4e1c5ebfc5e53bc5c8d80362aa88acfa78360d5b85154da1f382b7dea9b37465",
+      "bytes": 3440,
+      "copiedByteForByte": true
+    },
+    {
+      "path": "build/windows-install-publication.nsh",
+      "gitBlob": "3308c3a1c293c52f55f436ba636cd4b72202826c",
+      "sha256": "32f522b50cf4bec359455028457486ea17d4e999105b28ddfa5e5958d3c0ea72",
+      "bytes": 4598,
+      "copiedByteForByte": true
+    },
+    {
+      "path": "build/windows-install-publication.ps1",
+      "gitBlob": "ca4f053c4032983eccf77b1aa81d58d97f23045a",
+      "sha256": "d2ffc7fd3131d5c1960fdc01cd87ee12fd4dbf93ab3158fe6eed7377411267f6",
+      "bytes": 8181,
+      "copiedByteForByte": true
+    },
+    {
+      "path": "scripts/windows-installer-extractor.test.ts",
+      "gitBlob": "faa0f02d28488e02a6ac81e9ce7d887d775e499e",
+      "sha256": "3d37351e1a91d47ae04b535f7f3a74053d2162f918c0ba388b273961a744c5e6",
+      "bytes": 4648,
+      "copiedByteForByte": true
+    }
+  ],
+  "preservation": {
+    "nativeClassBytes": 2001,
+    "nativeClassSha256": "7b232f3d16537f76ee2c2e83764fe40eff3f5768448103349db925ec618ee82e",
+    "directoryLifecycleBytes": 6122,
+    "directoryLifecycleSha256": "866c95ddc8dfa6f56a1f24ab9d9df60446f182483c7625a1e02fb5fa3ad15d57",
+    "unchangedSemantics": "The original C# class and directory identity, ACL, reparse-point, publication and cleanup body are byte-identical. Only build-time compilation, installer-owned assembly loading, and UTF-16LE output change."
+  },
+  "adaptedTest": {
+    "path": "scripts/windows-install-publication.test.ts",
+    "upstreamGitBlob": "970fb8b45914a2db021ca51d20f7b7f75404dcff",
+    "upstreamSha256": "b70173fcf1e9205b7c0edf4abbfdc2ea618e423d0ed90d99f30299785257d54d",
+    "adaptation": "Retain all original/upstream cases and add x64/x86 by ASCII/Unicode isolated profile controls. Copy the same precompiled helper beside each copied script, preserve the original prepare/publish/cleanup assertions, and record selected environment facts including UTF-16 TEMP bytes."
+  },
+  "excludedUpstreamChanges": [
+    "six-shard build/release workflow and its tests",
+    "windows-upgrade-diagnostics workflow",
+    "working-file-observer fixture changes"
+  ],
+  "validation": {
+    "localNode": "v26.0.0",
+    "focused": "6 files: 109 passed, 26 Windows/native/optional skips; skips are not passes.",
+    "lint": "Touched CJS/TypeScript files passed.",
+    "nodeTypes": "Attempted; unavailable against copied archived durable-files build (18 errors in existing durability consumers). No other group dependencies were rebuilt or modified.",
+    "targetBoundary": "Local checks do not execute Windows PowerShell, csc or NSIS and do not prove installation. Require same Windows narrow checks followed by the original full installed-app smoke."
+  }
+}
