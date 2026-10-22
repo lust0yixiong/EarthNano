@@ -15,7 +15,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { AddressInfo } from 'node:net'
-import { expect, it, onTestFinished, vi } from 'vitest'
+import { expect, it as baseIt, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: false } }))
 import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
 import { createCandidateOwnerTestPorts } from '../../../test/earthnano/candidate-owner-ports'
@@ -55,6 +55,8 @@ import {
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
+
+const it = baseIt.skipIf(process.platform === 'win32')
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWOQAAAAASUVORK5CYII=',

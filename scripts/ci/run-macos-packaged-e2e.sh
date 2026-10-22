@@ -49,4 +49,7 @@ security add-generic-password -a 'Open-Science Key' -s 'Open-Science Safe Storag
   -w "$(openssl rand -base64 32)" -T "$OPEN_SCIENCE_E2E_EXECUTABLE" \
   -T "$credential_helper" "$keychain"
 
+# Each isolated HOME must select this same CI-owned vault through its own preferences.
+export OPEN_SCIENCE_E2E_MACOS_KEYCHAIN="$keychain"
+
 "$@"

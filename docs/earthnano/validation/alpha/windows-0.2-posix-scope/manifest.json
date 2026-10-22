@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "d2247b393cd28e15919e62b9ff306b1db58804be",
+  "scope": "Only four EarthNano test modules import it as baseIt and bind const it = baseIt.skipIf(process.platform === 'win32'). Every original it call, complete callback and timeout remains byte for byte unchanged from base.",
+  "patternSources": [
+    "src/main/earthnano/persistent-scientific-candidate.integration.test.ts",
+    "src/main/earthnano/persistent-optimization.integration.test.ts",
+    "vendor/harness2/tests/test_earthnano_sweep.py",
+    "vendor/harness2/tests/test_earthnano_sweep_binding_v2.py"
+  ],
+  "windowsPlatformNotApplicable": {
+    "newlySkipped": 13,
+    "countedAsPass": false,
+    "tests": [
+      {
+        "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+        "cases": 8
+      },
+      {
+        "path": "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+        "cases": 3
+      },
+      {
+        "path": "src/main/earthnano/persistent-compute-sweep.integration.test.ts",
+        "cases": 1
+      },
+      {
+        "path": "src/main/earthnano/harness-large-evidence.test.ts",
+        "cases": 1
+      }
+    ],
+    "reason": "Compute cases execute real native Claude candidate command hooks through the unchanged POSIX-only prepare guard and original POSIX remote scratch contract. Large-evidence executes the original Python method whose summary uses POSIX fcntl/flock.",
+    "windowsOptimizationSupported": false,
+    "historicalFailuresPreserved": true,
+    "historicalLargeEvidenceExit2DirectCauseConfirmed": false,
+    "allFourFilesAbsentFromFixedOpenScienceBaseline": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5"
+  },
+  "unchanged": [
+    "Production code and Windows refusal guards",
+    "SDK path resolution, command hooks, Python file locks and upstream pins",
+    "Unix test selection and original assertions",
+    "Source comparison rules and assertion inventory accounting",
+    "Other cross-platform Compute/protocol/permission/core and actual-host guard tests"
+  ],
+  "validation": {
+    "host": "darwin-arm64",
+    "node": "v24.19.0",
+    "windowsEvidence": "Static AST registration count plus actual installed Vitest TestAPI alias/.each registration probe using local process objects for win32/darwin/linux; no real host platform mutation, Windows execution or integration callbacks.",
+    "platformSelection": {
+      "win32": {
+        "run": 0,
+        "skip": 13
+      },
+      "darwin": {
+        "run": 13,
+        "skip": 0
+      },
+      "linux": {
+        "run": 13,
+        "skip": 0
+      }
+    },
+    "originalBodiesPreserved": "Removing only the it import alias and module-level const restores each whole base file byte for byte; every complete raw original test call/callback also has an identical SHA256.",
+    "registrationProofSha256": "2257ba48107b45a0ab32676aed2cc20c42eee30eb6d7165ead87da028458e46f",
+    "localNativeDependencyNote": "Initial local run lacked the borrowed process-tree native binary: 2 passed and 11 failed. Its original report is retained externally. Unchanged native package sources were built only inside this worktree with the original node-gyp recipe for the local Node; shared modules and published runtime bytes were not changed.",
+    "macIntegration": {
+      "files": 4,
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "sameOriginalTestNamesAsInitialRun": true,
+      "validatedCommit": "f98a2aad97f530fee5f8f4b182ed77a099ce9d7e",
+      "rerunAfterAliasChange": false
+    },
+    "checks": {
+      "eslint": true,
+      "prettier": true,
+      "nodeCompiledTypes": true,
+      "sandboxTypes": true,
+      "webCompiledTypes": true
+    },
+    "paidModelCalls": 0,
+    "actualSSHOrScheduler": false,
+    "windowsAcceptance": false,
+    "macReportSha256": "8589feb2fe89f5f0e431badee5e371b4e83368910bd053587a23b08a778b0674",
+    "externalReceiptSha256": "85d48499c4d5420da5a42cca95d5ce5a578bb9387bee3f76969ebdc81b7a637a",
+    "aliasEquivalence": {
+      "originalVitestTestApi": true,
+      "eachAndSingleRegistration": {
+        "win32": {
+          "passed": 0,
+          "skipped": 13
+        },
+        "darwin": {
+          "passed": 13,
+          "skipped": 0
+        },
+        "linux": {
+          "passed": 13,
+          "skipped": 0
+        }
+      },
+      "actualWindowsExecution": false,
+      "costlyIntegrationBodiesRepeated": false,
+      "originalCallAndCallbackBytesIdentical": true,
+      "nodeTypesLintAndFormattingRechecked": true
+    },
+    "externalAliasReceiptSha256": "05d227ce4a5797299f5953d166dd946d64350300a25b9b63464adeafaca8533e"
+  }
+}
