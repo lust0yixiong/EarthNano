@@ -53,10 +53,8 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
         await window.api.runtime.setEnvironmentEnabled('python', entry.envId, true)
       }, python)
       await page.reload({ waitUntil: 'domcontentloaded' })
-      await page.addLocatorHandler(page.getByTestId('permission-card'), async (card) => {
-        await card.getByTestId('allow-primary').click()
-      })
-      const projectId = await createProject(page, 'EarthNano trial examples')
+      const projectName = 'EarthNano trial examples'
+      const projectId = await createProject(page, projectName)
       await page.getByTestId('upstream-trials').locator('summary').click()
       await page.getByTestId(`trial-${trial}`).click()
       const prompt = await readFile(`resources/trials/${trial}/prompt.md`, 'utf8')
@@ -87,7 +85,16 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
           ? ['trial_calculations.csv', 'availability_summary.csv']
           : ['ledger-results.json']
       await expect
-        .poll(async () => (await loadSource())?.artifacts?.length, { timeout: 240_000 })
+        .poll(
+          async () => {
+            // evaluate-based polling does not trigger Playwright's locator handlers. Act on
+            // the original visible permission card in this isolated test window instead.
+            const permission = page.getByTestId('permission-card').first()
+            if (await permission.isVisible()) await permission.getByTestId('allow-primary').click()
+            return (await loadSource())?.artifacts?.length
+          },
+          { timeout: 240_000 }
+        )
         .toBe(names.length)
       const source = (await loadSource())!
       const user = source.messages.find((message) => message.role === 'user')!
@@ -145,7 +152,6 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
       }
       report.artifacts = published
       if (trial === 'harness2-ledger') {
-        await page.removeLocatorHandler(page.getByTestId('permission-card'))
         const panel = page.getByTestId('task-optimization-panel')
         await panel.locator('summary').click()
         await panel.getByLabel('Repeat this task with Notebook', { exact: true }).check()
@@ -203,7 +209,7 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
       }
       const requestsBeforeRestart = provider.stats.requests
       page = await app.restart()
-      await openProjectSession(page, projectId, source.id)
+      await openProjectSession(page, projectName, prompt)
       expect(provider.stats.requests).toBe(requestsBeforeRestart)
       expect((await loadSource())?.artifacts).toHaveLength(names.length)
       report.status = 'passed'
