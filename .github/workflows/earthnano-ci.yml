@@ -45,19 +45,19 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with: { node-version-file: application/.github/earthnano-node-version }
-      - name: Require both merged PRs, complete original CI, all five actual native jobs, preserved old releases
+      - name: Require merged PRs, strict Mac and Harness, all five native jobs; record explicit Linux source exception
         env: { GH_TOKEN: '${{ github.token }}' }
         run: node "$ALPHA_OPERATION_ROOT/prepare-alpha-release.mjs" gates
       - name: Original release helper dependencies only; actual application gates ran in original native CI
         working-directory: application
         run: npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund
-      # Never mix PR28/PR29 or replace their16 original reports with focused reruns.
+      # Preserve each run separately; explicit user waiver excludes only Linux source/full comparison.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           github-token: ${{ github.token }}
           run-id: 39734082630
-          pattern: earthnano-source-*
-          path: ${{ env.ALPHA_ROOT }}/inputs/source-39734082630/downloaded
+          pattern: earthnano-source-macos-15-*
+          path: ${{ env.ALPHA_ROOT }}/inputs/source-39734082630/reports
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           github-token: ${{ github.token }}
@@ -68,29 +68,15 @@ jobs:
         with:
           github-token: ${{ github.token }}
           run-id: 39744881823
-          pattern: earthnano-source-*
-          path: ${{ env.ALPHA_ROOT }}/inputs/source-39744881823/downloaded
+          pattern: earthnano-source-macos-15-*
+          path: ${{ env.ALPHA_ROOT }}/inputs/source-39744881823/reports
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           github-token: ${{ github.token }}
           run-id: 39744881823
           name: earthnano-harness-comparison
           path: ${{ env.ALPHA_ROOT }}/inputs/source-39744881823/harness
-      - name: Place raw source reports and original comparison in separate paths, without editing bytes
-        shell: bash
-        run: |
-          set -euo pipefail
-          for run in 39734082630 39744881823; do
-            root="$ALPHA_ROOT/inputs/source-$run"
-            mkdir "$root/reports"
-            mv "$root/downloaded/earthnano-source-comparison" "$root/comparison"
-            for directory in "$root/downloaded"/earthnano-source-*; do
-              test -d "$directory"
-              mv "$directory" "$root/reports/"
-            done
-            rmdir "$root/downloaded"
-          done
-      - name: Replay unchanged full Darwin/Linux16-report and Harness comparers for each original run
+      - name: Replay unchanged eight-report Mac and Harness comparers per run; freeze explicit source CI acceptance
         env: { GH_TOKEN: '${{ github.token }}' }
         run: node "$ALPHA_OPERATION_ROOT/prepare-alpha-release.mjs" compare
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8

@@ -1,7 +1,7 @@
 // Temporary publication operation only; never imported by the application or merged into product.
-// Adapted from the prior prepare-patch-release.mjs, with no Linux waiver.
-// HOLD: source/PR29/Unix bindings are updated to reviewed ca96; Windows native ID is not yet bound.
-// Both merged PRs and all same-head successful original runs remain mandatory; see NOTES.md.
+// Temporary explicit user exception: only the two Linux source batches and their dependent
+// full comparisons are waived for this publication. Every other original gate is retained.
+// HOLD until main-agent review and both PRs merged; see NOTES.md.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -75,6 +75,91 @@ export function requireSuccessfulRun(run, head, event) {
   assert(Number.isSafeInteger(run.run_attempt) && run.run_attempt >= 1)
   assert.equal(run.repository.full_name, configuration.repository)
 }
+export const sourceWaiver = Object.freeze({
+  authorization: 'Publisher release decision under explicit user authorization for v0.2.0-alpha.1: accept release without waiting for the two remaining Linux source batches and their dependent full Unix comparisons only; these are not counted as passed.',
+  runIds: ['39734082630', '39744881823'],
+  jobs: ['Source ubuntu-24.04 cohort 1/4', 'Enforce pinned original source comparison'],
+  acceptedPlatforms: ['darwin'], notAcceptedPlatforms: ['linux'],
+  limitation: 'Linux full source comparison is not accepted or counted as passed. Original runs, reports, comparison rules and historical failures remain unchanged; no cancellation is performed.'
+})
+const originalInapplicableSourceJobs = new Set([
+  'Original pinned Windows Notebook runtime',
+  'Unsigned native build and original launch ${{ matrix.os }}',
+  'Source Windows ${{ matrix.kind }} ${{ matrix.shard }}/8',
+  'Bundled upstream cases in the actual Mac ARM64 package',
+  'Unsigned Windows install and original launch',
+  'Enforce complete pinned Windows source comparison'
+])
+export function requireSourceRun(run, jobs, expected) {
+  assert(sourceWaiver.runIds.includes(expected.id), 'Waiver is restricted to the two named runs')
+  assert.equal(String(run.id), expected.id)
+  assert.equal(run.head_sha, expected.head)
+  assert.equal(run.path, '.github/workflows/earthnano-ci.yml')
+  assert.equal(run.event, 'pull_request')
+  assert.equal(run.repository.full_name, configuration.repository)
+  assert(Number.isSafeInteger(run.run_attempt) && run.run_attempt >= 1)
+  assert(['requested', 'waiting', 'pending', 'queued', 'in_progress', 'completed'].includes(run.status))
+  assert(run.status === 'completed'
+    ? ['success', 'failure', 'cancelled', 'timed_out'].includes(run.conclusion)
+    : run.conclusion === null)
+  const requiredNames = ['Resolve original platform sharding',
+    'Pinned Harness source and original unittest comparison (Python 3.12)',
+    ...['baseline', 'candidate'].flatMap(kind => [1, 2, 3, 4].map(shard => `Source macos-15 ${kind} ${shard}/4`))]
+  const required = requiredNames.map(name => requireJob(jobs, name))
+  const waived = sourceWaiver.jobs.map((name, index) => {
+    const found = jobs.filter(job => matchesJob(job, name))
+    assert(found.length <= 1, `Duplicate waived job: ${name}`)
+    if (index === 0) assert.equal(found.length, 1, 'Original Linux batch identity must exist')
+    // The dependent comparison may not be scheduled until the Linux batch terminates.
+    return found[0] ?? { name, status: 'not-yet-created', conclusion: null }
+  })
+  for (const job of jobs) {
+    if (sourceWaiver.jobs.some(name => matchesJob(job, name))) {
+      assert(['requested', 'waiting', 'pending', 'queued', 'in_progress', 'completed'].includes(job.status))
+      assert(job.status === 'completed'
+        ? ['success', 'failure', 'cancelled', 'timed_out', 'skipped'].includes(job.conclusion)
+        : job.conclusion === null)
+      continue
+    }
+    assert.equal(job.status, 'completed', `Unfinished non-waived job: ${job.name}`)
+    assert(job.conclusion === 'success' ||
+      (job.conclusion === 'skipped' && originalInapplicableSourceJobs.has(job.name)),
+    `Failed/cancelled or unexpectedly skipped non-waived job: ${job.name}`)
+  }
+  return {
+    run: { id: String(run.id), head: run.head_sha, status: run.status, conclusion: run.conclusion,
+      attempt: run.run_attempt, url: run.html_url },
+    requiredJobs: required.map(({ id, name, status, conclusion }) => ({ id, name, status, conclusion })),
+    waivedJobs: waived.map(({ id, name, status, conclusion }) => ({ id: id ?? null, name, status, conclusion })),
+    fullUnixSourceAccepted: false, macOriginalJobsPassed: true
+  }
+}
+export function requireMergedRunAssociation(run, pr, expected) {
+  assert.equal(pr.number, expected.pr)
+  assert.equal(pr.merged, true)
+  assert.equal(pr.head.sha, expected.head)
+  assert.equal(pr.base.ref, 'main')
+  assert.equal(pr.head.repo.full_name, configuration.repository)
+  assert.equal(pr.base.repo.full_name, configuration.repository)
+  assert.equal(String(run.id), expected.id)
+  assert.equal(run.event, 'pull_request')
+  assert.equal(run.path, '.github/workflows/earthnano-ci.yml')
+  assert.equal(run.head_sha, expected.head)
+  assert.equal(run.repository.full_name, configuration.repository)
+  assert.equal(run.head_branch, pr.head.ref)
+  assert(Array.isArray(run.pull_requests))
+  if (run.pull_requests.length)
+    assert(run.pull_requests.some(item => item.number === expected.pr && item.head.sha === expected.head))
+  return { expectedPr: expected.pr, expectedHead: expected.head, headBranch: run.head_branch,
+    apiPullRequestEntries: run.pull_requests.length,
+    binding: run.pull_requests.length ? 'nonempty API PR/head association verified'
+      : 'merged-run API association is empty; exact known run/event/repository/head/branch plus merged same-head PR verified',
+    actualMergeCheckoutTreeProof: 'Required separately by unchanged raw Mac report replay before acceptance asset is frozen' }
+}
+export async function freezeSourceAcceptance(input, assets) {
+  // Copy once into a different inode. draft.gates refreshes evidence, never the published snapshot.
+  await writeFile(join(assets, 'SOURCE-CI-ACCEPTANCE.json'), await readFile(input), { flag: 'wx' })
+}
 const stableRelease = release => ({
   ...Object.fromEntries(['id', 'tag_name', 'target_commitish', 'name', 'body', 'draft', 'prerelease', 'published_at']
     .map(key => [key, release[key] ?? null])),
@@ -129,7 +214,8 @@ async function gates(source, root, operation, windowsRun) {
   const evidence = join(root, 'evidence')
   await preserve(operation, evidence, 'before')
   await stablePublisherGuard(evidence, 'prepare')
-  // Both PRs must be merged at the exact reviewed heads. No pending Linux exception.
+  // Both PRs must be merged at exact reviewed heads; only the explicit two-job Linux exception applies.
+  const sourceAcceptances = []
   for (const expected of configuration.sourceRuns) {
     const pr = api(`pulls/${expected.pr}`)
     assert.equal(pr.merged, true, `PR${expected.pr} must be merged`)
@@ -139,20 +225,15 @@ async function gates(source, root, operation, windowsRun) {
     assert.equal(pr.base.repo.full_name, configuration.repository)
     await save(join(evidence, `pr-${expected.pr}.json`), pr)
     const record = await inspectRun(expected.id, evidence)
-    requireSuccessfulRun(record.run, expected.head, 'pull_request')
-    assert(record.run.pull_requests.some(item => item.number === expected.pr && item.head.sha === expected.head))
-    requireJob(record.jobs, 'Resolve original platform sharding')
-    requireJob(record.jobs, 'Enforce pinned original source comparison')
-    requireJob(record.jobs, 'Pinned Harness source and original unittest comparison (Python 3.12)')
-    requireJob(record.jobs, 'Source ubuntu-24.04 cohort 1/4')
+    sourceAcceptances.push({ ...requireSourceRun(record.run, record.jobs, expected),
+      prAssociation: requireMergedRunAssociation(record.run, pr, expected) })
     for (const kind of ['baseline', 'candidate']) for (let shard = 1; shard <= 4; shard++) {
       requireJob(record.jobs, `Source macos-15 ${kind} ${shard}/4`)
       requireArtifact(record, `earthnano-source-macos-15-${kind}-${shard}`)
     }
-    requireArtifact(record, 'earthnano-source-ubuntu-24.04-cohort-1')
     requireArtifact(record, 'earthnano-harness-comparison')
-    requireArtifact(record, 'earthnano-source-comparison')
   }
+  await save(join(evidence, 'source-ci-gates.json'), { schemaVersion: 1, waiver: sourceWaiver, sourceRuns: sourceAcceptances })
   // Ensure the exact reviewed source is in merged main; tag stays at exact reviewed source, not a moving branch.
   const main = api('commits/main')
   assert.equal(command('git', ['merge-base', '--is-ancestor', configuration.source, main.sha], { cwd: source }), '')
@@ -181,7 +262,7 @@ async function gates(source, root, operation, windowsRun) {
   await save(join(evidence, 'gates.json'), {
     verified: true, source: configuration.source, sourceTree: configuration.sourceTree, version: configuration.version, windowsRun,
     unixRun: configuration.unixRun, sourceRuns: configuration.sourceRuns,
-    limitation: 'Original comparison admits inherited failures/skips; success is not all tests passing. No deferred required CI, signed-package, model-quality, previous-Windows-upgrade or Windows-optimization claim.'
+    limitation: 'Explicit user waiver applies only to the two Linux source batches and their dependent full comparison; these are not accepted/passed. Mac/Harness and every native gate remain strict. Inherited failures/skips and all other limitations remain.'
   })
 }
 async function walkReports(directory) {
@@ -201,21 +282,25 @@ async function compare(source, root) {
       assert.equal(command('git', ['show', `${expected.head}:${path}`], { cwd: source }), await readFile(join(source, path), 'utf8'))
   const { compareReports } = await import(pathToFileURL(join(source, 'scripts/ci/earthnano-source.mjs')))
   const { compareHarnessReports } = await import(pathToFileURL(join(source, 'scripts/ci/earthnano-harness-compare.mjs')))
+  const sourceGateSnapshot = await readJson(join(root, 'evidence/source-ci-gates.json'))
+  const replayed = []
   for (const expected of configuration.sourceRuns) {
     const inputs = join(root, 'inputs', `source-${expected.id}`)
     const reports = await walkReports(join(inputs, 'reports'))
-    assert.equal(reports.length, 16, `Full original 16 reports required for ${expected.id}`)
+    assert.equal(reports.length, 8, `All eight original Mac reports required for ${expected.id}`)
+    assert(reports.every(report => report.platform === 'darwin'), 'Only the selected original Mac reports may enter this replay')
     const candidates = reports.filter(report => report.kind === 'candidate')
-    assert.equal(candidates.length, 8)
+    assert.equal(candidates.length, 4)
     const candidateSources = [...new Set(candidates.map(report => report.source))]
     assert.equal(candidateSources.length, 1)
     const candidate = api(`commits/${candidateSources[0]}`)
     const head = api(`commits/${expected.head}`)
     assert.equal(candidate.commit.tree.sha, head.commit.tree.sha, 'Actual PR merge checkout tree must equal reviewed PR head tree')
     const out = join(root, 'evidence', `source-${expected.id}-comparison`)
-    await compareReports(join(inputs, 'reports'), out, ['darwin', 'linux'])
-    const original = await readJson(join(inputs, 'comparison', 'comparison.json'))
-    assert.deepEqual(await readJson(join(out, 'comparison.json')), original, 'Replayed comparison differs from original CI output')
+    await compareReports(join(inputs, 'reports'), out, ['darwin'])
+    const comparison = await readJson(join(out, 'comparison.json'))
+    assert.deepEqual(comparison.results.map(result => result.platform), ['darwin'])
+    assert(comparison.results.every(result => result.regressions.length === 0 && result.stageRegressions.length === 0))
     const harnessRoot = join(inputs, 'harness')
     const baseline = await readJson(join(harnessRoot, 'harness-baseline.json'))
     const harnessCandidate = await readJson(join(harnessRoot, 'harness-candidate.json'))
@@ -224,11 +309,22 @@ async function compare(source, root) {
     assert.equal(result.regressions.length, 0)
     const originalHarness = await readJson(join(harnessRoot, 'harness-comparison.json'))
     assert.deepEqual({ schemaVersion: 1, python: baseline.python, ...result }, originalHarness)
+    replayed.push({ ...sourceGateSnapshot.sourceRuns.find(item => item.run.id === expected.id),
+      pr: expected.pr, reviewedHead: expected.head, actualCheckout: candidateSources[0], actualTree: candidate.commit.tree.sha,
+      replayProducer: 'publication-runner replay of unchanged compareReports([darwin]); not an original CI full comparison output',
+      macComparison: comparison, harness: result })
     await save(join(out, 'actual-checkout-and-harness.json'), {
       pr: expected.pr, reviewedHead: expected.head, actualCheckout: candidateSources[0],
       actualTree: candidate.commit.tree.sha, originalRun: expected.id, harness: result
     })
   }
+  await writeFile(join(root, 'evidence/SOURCE-CI-ACCEPTANCE.json'), JSON.stringify({
+    schemaVersion: 1, frozenAt: new Date().toISOString(), source: configuration.source,
+    sourceTree: configuration.sourceTree, waiver: sourceWaiver, sourceRuns: replayed,
+    acceptedPlatforms: ['darwin'], notAcceptedPlatforms: ['linux'],
+    nativeRequirement: 'All five original same-source native build/install/smoke jobs must pass; no exception.',
+    limitation: 'Only original Mac source comparison and Harness are accepted here. Linux full source and dependent final Unix comparison are explicitly waived by the user, not passed. Original API statuses above are a frozen preparation-time snapshot and are not rewritten by draft-time rechecks.'
+  }, null, 2) + '\n', { flag: 'wx' })
 }
 export async function verifyManifestFile(manifest, file, name) {
   const records = manifest.files.filter(item => item.path === `dist/${name}`)
@@ -247,6 +343,14 @@ async function collect(source, root) {
   const lock = await readJson(join(source, 'package-lock.json'))
   const assets = join(root, 'assets')
   await mkdir(assets) // Never overwrite or reuse a partially staged set.
+  const acceptancePath = join(root, 'evidence/SOURCE-CI-ACCEPTANCE.json')
+  const acceptance = await readJson(acceptancePath)
+  assert.equal(acceptance.source, configuration.source)
+  assert.equal(acceptance.sourceTree, configuration.sourceTree)
+  assert.deepEqual(acceptance.acceptedPlatforms, ['darwin'])
+  assert.deepEqual(acceptance.notAcceptedPlatforms, ['linux'])
+  assert.deepEqual(acceptance.sourceRuns.map(item => item.run.id), sourceWaiver.runIds)
+  await freezeSourceAcceptance(acceptancePath, assets)
   const origins = []
   const { writePlatformEvidence } = await import(pathToFileURL(join(source, 'scripts/ci/release-certification-evidence.mjs')))
   for (const [os, target, platform, arch] of targets) {
@@ -339,7 +443,7 @@ async function finalize(root) {
   const expected = [...origins.map(item => item.name),
     ...targets.map(([, target]) => `source-manifest-${target}.json`),
     'certification-windows-x64.json', 'windows-certification-derivation.json',
-    'RELEASE-CERTIFICATION.json', 'alpha-mac.yml', 'version.json', 'SHA256SUMS.txt'].sort()
+    'RELEASE-CERTIFICATION.json', 'SOURCE-CI-ACCEPTANCE.json', 'alpha-mac.yml', 'version.json', 'SHA256SUMS.txt'].sort()
   const names = (await readdir(assets)).sort()
   assert.deepEqual(names, expected, 'Unexpected/missing asset outside the complete staged set')
   const records = []
