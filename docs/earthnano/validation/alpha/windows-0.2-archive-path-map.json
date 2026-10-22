@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "reason": "Actual Windows checkout failed before runtime/build in run39699282330 because six evidence paths exceeded MAX_PATH. Archive-only aliases preserve every stored and decompressed byte; historical source paths inside evidence remain unchanged.",
+  "base": "793a196509d1ff335b318cf97ed2fb8d82b84ae7",
+  "failedRun": 39699282330,
+  "observedWindowsWorkspacePrefix": "D:\\a\\EarthNano\\EarthNano\\",
+  "files": [
+    {
+      "oldPath": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.068741954994c985d329395b0d1a8733d2b4b84c0555d1931ac4233c7f64ef38.json.gz",
+      "path": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-session-068741954994c985.json.gz",
+      "gzipSha256": "de284edd69cadf8f5963bec42b98f8e3f9fbb3a19946ee8480c8b125af9129b8",
+      "rawSha256": "068741954994c985d329395b0d1a8733d2b4b84c0555d1931ac4233c7f64ef38",
+      "rawBytes": 46711
+    },
+    {
+      "oldPath": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.0dfbbd33df2e6e04f222ef267b6f99161add8d87a57d6bd660690ceb72a92482.json.gz",
+      "path": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-session-0dfbbd33df2e6e04.json.gz",
+      "gzipSha256": "94c5916fa4e4fb258bce8d73680d2898e6e08f4151c02d4d52b884d42c11e7e7",
+      "rawSha256": "0dfbbd33df2e6e04f222ef267b6f99161add8d87a57d6bd660690ceb72a92482",
+      "rawBytes": 46791
+    },
+    {
+      "oldPath": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.1cea3b0bf6312981bf633e714c030092debb0056aa3b017ff987bb9df74ec878.json.gz",
+      "path": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-session-1cea3b0bf6312981.json.gz",
+      "gzipSha256": "c042de60d2d0e9770fc193f48a4dc0a41323c8126651d64a219b83994c4b2d4d",
+      "rawSha256": "1cea3b0bf6312981bf633e714c030092debb0056aa3b017ff987bb9df74ec878",
+      "rawBytes": 46787
+    },
+    {
+      "oldPath": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.854000ab7758bb9ea7f78774a0d4e8dce1facbc510be476e488d9f93807df61d.json.gz",
+      "path": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-session-854000ab7758bb9e.json.gz",
+      "gzipSha256": "a840dc59acd24443ae6064cf0839e1fe5d289e3350f7ea96f70e8fcc2eb83c33",
+      "rawSha256": "854000ab7758bb9ea7f78774a0d4e8dce1facbc510be476e488d9f93807df61d",
+      "rawBytes": 48594
+    },
+    {
+      "oldPath": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-boundary__observed-journals__notebooks__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6__run.json.7eebbaddce70f5d54fced93f3c9746494e5e7f8f5f0f91935c8e1ed292750f54.json.gz",
+      "path": "docs/earthnano/validation/alpha/compute-original-workflow/continuation-notebook-7eebbaddce70f5d5.json.gz",
+      "gzipSha256": "92dacb1bfe0468b204a7422dc4cb8af0e18256e18472cb374068e876002c499b",
+      "rawSha256": "7eebbaddce70f5d54fced93f3c9746494e5e7f8f5f0f91935c8e1ed292750f54",
+      "rawBytes": 11876
+    },
+    {
+      "oldPath": "docs/earthnano/validation/alpha/final-bdc/science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-ordinary-journal-a968837c-ef26-4129-a658-96c0a080fdf1-75bf0672ee0b3cea468450f0049f5749cb34e7a31b809936f7943d153bff3fad.json.gz",
+      "path": "docs/earthnano/validation/alpha/final-bdc/science/results/packaged-notebook-optimiza-7daaa-he-original-Notebook-owners/final-ordinary-journal.json.gz",
+      "gzipSha256": "5d5c912a6b07dbd4be5658e1b77f0ae4d52630a51db052f6b55e91e6663876be",
+      "rawSha256": "2f2aa38e9c931e5af915d31d34aa4e96299d6b20149634f05e327b287a3306ec",
+      "rawBytes": 5797
+    }
+  ]
+}

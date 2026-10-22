@@ -138,3 +138,5 @@ Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/3946459
 首次 DeepSeek 两来源双模式 k1 通过：40/48 核心接纳、210 本地/209 上游请求，零拒绝、1 上游取消、用量不完整1项。生产覆盖38/40；API/美元未知。两来源同任务/固定版本/实际 Notebook producer/6个独立评审、停止/重开零重放通过。单任务 k2 的本轮原生验证为离线；更广 Alpha 与平台打包未因此完成。
 
 Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordinary journal 的原路径到短路径映射。只缩短归档文件名，gzip 存储字节、解压后的原始字节及两组 SHA-256 均保持不变；`catalog/manifest.json` 指向现有短路径。保留证据中的历史文件名通过映射追溯。
+
+2026-10-22 Windows 恢复：真实运行 `39699282330` 在检出时遇到六份后期证据的长路径。`windows-0.2-archive-path-map.json` 保留旧路径到短路径的映射；只改归档文件名及 manifest 定位字段，gzip 字节、原始字节和两组 SHA-256 不变。没有删除证据或改动原测试。
