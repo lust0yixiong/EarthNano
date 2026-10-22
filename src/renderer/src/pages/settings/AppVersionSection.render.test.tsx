@@ -52,14 +52,14 @@ describe('AppVersionSection', () => {
     expect(container.querySelector('details, pre')).toBeNull()
   })
 
-  it('shows the app name, version, and copyright', () => {
+  it('shows the app name and version without the promotional copyright line', () => {
     act(() => {
       root.render(<AppVersionSection />)
     })
 
     expect(container.textContent).toContain('EarthNano')
     expect(container.textContent).toContain('v0.2.0')
-    expect(container.textContent).toContain('© 2026 AIPOCH')
+    expect(container.textContent).not.toContain('© 2026 AIPOCH')
   })
 
   it('links help and release history to the canonical external resources', () => {

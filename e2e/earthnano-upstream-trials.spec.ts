@@ -113,8 +113,20 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
           contentStatus: { state: 'available' },
           evidence: { producer: { state: 'available', producer_run_id: expect.any(String) } }
         })
-        const path = artifact.path
-        const bytes = await readFile(path)
+        const preview = await page.evaluate(
+          (request) => window.api.artifacts.readPreview(request),
+          {
+            path: artifact.path,
+            projectId,
+            sessionId: source.id,
+            fileId: artifact.artifactId!,
+            versionId: artifact.versionId!,
+            encoding: 'base64' as const,
+            maxBytes: 100_000
+          }
+        )
+        expect(preview.truncated).toBe(false)
+        const bytes = Buffer.from(preview.content, 'base64')
         if (trial === 'openscience-case16')
           expect(bytes.equals(await readFile(`resources/trials/openscience-case16/${name}`))).toBe(
             true
@@ -149,14 +161,12 @@ for (const trial of ['openscience-case16', 'harness2-ledger'] as const) {
           )
         await panel.getByLabel('Check expected JSON output', { exact: true }).check()
         await panel.getByLabel('Output JSON file', { exact: true }).fill('ledger-results.json')
-        await panel
-          .getByLabel('Expected JSON value', { exact: true })
-          .fill(
-            JSON.stringify({
-              'ledger-1': { count: 3, total: '85.15' },
-              'ledger-2': { count: 3, total: '20.25' }
-            })
-          )
+        await panel.getByLabel('Expected JSON value', { exact: true }).fill(
+          JSON.stringify({
+            'ledger-1': { count: 3, total: '85.15' },
+            'ledger-2': { count: 3, total: '20.25' }
+          })
+        )
         await panel.getByLabel('Optimization mode', { exact: true }).selectOption('sequential')
         await panel.getByLabel('Recursion parameter (k)', { exact: true }).fill('1')
         await panel
