@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { ref: 463a78a159b384fd1136294b7091d12329ce16cd, fetch-depth: 0, persist-credentials: false }
+        with: { ref: 4f209c180114f1d96d02c9c48805d24b39463932, fetch-depth: 0, persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: { node-version-file: .github/earthnano-node-version, cache: npm }
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
@@ -50,7 +50,8 @@ jobs:
           import { sourceTestInvocation } from './scripts/ci/earthnano-source.mjs';
           mkdirSync('test-results/windows-focused', { recursive: true });
           console.log(JSON.stringify({phase:'focused-product-checkout',source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()}));
-          const invocation=sourceTestInvocation(["scripts/ci/audit-module-ownership.test.ts", "scripts/ci/earthnano-ci.test.ts", "scripts/ci/earthnano-ci-topology.test.ts", "scripts/ci/module-consumer-coverage.test.ts", "src/main/host-layer-dependencies.architecture.test.ts", "src/renderer/src/i18n/resources.test.ts", "src/shared/earthnano/release-identity.test.ts", "scripts/alpha-release-feed.test.ts", "src/main/acp/claude-candidate-preparation.test.ts", "src/main/session-package/browser-import.test.ts", "src/main/managed-file-versions/version-file-operator.test.ts", "src/main/earthnano/optimization-reconciliation.test.ts", "src/main/earthnano/persistent-candidate-owner.binary.test.ts", "src/main/earthnano/harness-optimization.test.ts", "src/main/composition/desktop-optimization.test.ts", "src/main/credential-identity/sqlite-snapshot.test.ts", "src/main/earthnano/desktop-optimization-manager.test.ts", "src/main/earthnano/execution-core.test.ts", "src/main/earthnano/execution-store.test.ts", "src/main/earthnano/candidate-snapshot.test.ts", "src/main/earthnano/optimization-failure-diagnostics.test.ts", "src/main/earthnano/optimization-resume.test.ts", "packages/durable-files/src/file-durability.test.ts", "src/main/earthnano/harness-large-evidence.test.ts", "src/main/earthnano/persistent-compute-candidate.integration.test.ts", "src/main/earthnano/persistent-compute-workflow.integration.test.ts", "src/main/earthnano/persistent-compute-sweep.integration.test.ts", "--maxWorkers=2", "--testTimeout=30000", "--hookTimeout=60000", "--reporter=default", "--reporter=json", "--reporter=./scripts/ci/earthnano-runtime-reporter.mjs", "--outputFile=test-results/windows-focused/vitest.json"]);
+          if(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim() !== '4f209c180114f1d96d02c9c48805d24b39463932') throw new Error('Unexpected focused product checkout');
+          const invocation=sourceTestInvocation(["src/main/literature/smart-collections.test.ts", "--maxWorkers=2", "--testTimeout=30000", "--hookTimeout=60000", "--reporter=default", "--reporter=json", "--reporter=./scripts/ci/earthnano-runtime-reporter.mjs", "--outputFile=test-results/windows-focused/vitest.json"]);
           const result=spawnSync(invocation.command,invocation.args,{stdio:'inherit',shell:invocation.shell});
           process.exit(result.status ?? 1);
           JS
