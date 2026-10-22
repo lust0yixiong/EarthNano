@@ -1,0 +1,3527 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Immutable archive of the original completed Windows comparison with actual new regressions; this is a failed acceptance record, not a passing receipt.",
+  "run": {
+    "id": 39708999081,
+    "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081",
+    "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f",
+    "head_branch": "ci/earthnano-native",
+    "status": "completed",
+    "conclusion": "failure",
+    "event": "workflow_dispatch",
+    "run_attempt": 1,
+    "created_at": "2026-10-22T02:00:59Z",
+    "updated_at": "2026-10-22T03:28:38Z"
+  },
+  "requestedSelection": {
+    "windows": "all",
+    "native": false,
+    "source": "Parent dispatch selection; GitHub run API does not return workflow_dispatch inputs. Actual run jobs are retained below."
+  },
+  "upstreamPins": {
+    "schemaVersion": 1,
+    "upstreams": [
+      {
+        "name": "OpenScience",
+        "repository": "https://github.com/aipoch/open-science",
+        "commit": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "path": ".",
+        "integration": "Upstream history retained; EarthNano shared execution core and opt-in ACP driver added; TaskAgentPort dispatch extracted with legacy behavior preserved; frozen candidate snapshots and isolated Claude Code native preparation composed through the shared ACP driver (opt-in); opt-in persistent optimization composition reuses original Session, immutable ArtifactVersion and scoped Review owners; desktop opt-in task UI now uses typed native commands, shared progress/admission/stop ownership and independent fixed-artifact semantic Reviews; original Session/Artifact/Review owners retained for bounded concurrent candidates; typed desktop method controls and fixed base1 independent comparison added; round7 adds opt-in experiment-local domain input/results and deterministic JSON checks in original scoped Review, with separate artifact/configuration outcomes and no automatic publication; round8 routes desktop Send and headless Task dispatch through the same ExecutionCore as optimization, preserves full rich ACP requests and original Session/ArtifactVersion/Review/delegation owners, and links ordinary Reviewer and background delegated missions through explicit shared-core resource declarations; round9 reuses original Notebook/Artifact/Upload/Reviewer owners for real scientific workflow acceptance and resolves same-Session immutable ArtifactVersion inputs through original managed-version leases; no scientific tool or persistence owner was replaced; round10 extracts the original ACP Notebook binding for ordinary Send and isolated scientific candidates, freezes original managed source versions and enabled Python binding, and reuses the same application Notebook RPC/input/permission/producer owners with narrow host binding and restrictive policy hooks; same original scientific task enters Harness2 baseline and candidates through the existing ExecutionCore; scientific artifact export uses original MCP-published versions, not the text importer; Alpha catalog sweeps independently resolve each task through original Session/ManagedFileVersion/Python owners, use the same persistent Core/admission/stop/resume/Review lifecycle, and share only the exact completed base1 assessment across modes; real Notebook dual-mode stop/reopen/resume verified on fixed be1143b2a with DeepSeek; desktop catalog now reuses original active Session source parsing and independently freezes each Notebook source, all newly created experiments use the same sweep-v2 path and original read-only task_stream preview with start-time digest validation; two-source dual-mode DeepSeek acceptance exposed the original per-owner millisecond/counter provisional-route collision, fixed minimally inside AcpSessionCapabilityOwner with an owner-private UUID across all six temporary namespaces while preserving stable Session routing, token admission and cleanup; original-versus-candidate real RPC causal controls and 322 original owner/handover/coordinator regressions retained",
+        "license": "Apache-2.0",
+        "licenseFile": "LICENSE"
+      },
+      {
+        "name": "Harness²",
+        "repository": "https://github.com/google-research/harness2",
+        "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+        "tree": "edc756a4d03a2826a248115482084a176e60e751",
+        "path": "vendor/harness2",
+        "integration": "EarthNano generated execution contract and method execution seam integrated across schedule, recursion, proposal and selection; legacy remains default; tree records original upstream baseline, not current vendor tree; private JSONL binding now runs original single-mode sequential/parallel method (k 1–8) through common ExecutionCore with pinned results and claude-text profile; round6 leaves existing core algorithm/seam files unchanged and exposes original finals-only anonymous selector; round7 adds a separate opt-in domain entry reusing original task_stream/run_domain, reflect_adoption and Library; raw experience stays experiment-local, with immutable platform provenance; original core modules and single-task earthnano.py unchanged this round; round8 retains optimization algorithms, anonymous selection/reflection/Library/domain ordering and independent grading separation; only shared schema/validator changes permit unbounded ordinary execution deadlines while optimization deadlines remain mandatory; round9 preserves algorithms and adds k3/k8 and four-task Library equivalence coverage while aligning bounded private evidence transport to legal candidate outputs; candidate tools/data profile is unchanged; round10 preserves original schedule/recursion/selection/reflection/Library and upstream pins; private earthnano entry transports fixed Notebook managed-input metadata without changing the original task prompt, keeps all method and independent Reviewer roles workspace-only, and preserves the host-fixed scientific profile across revisions; scientific domain successors are explicitly rejected until separately integrated; Alpha sweep-v2 now calls original task_stream/run_sweep/run_domain/run_task once for canonical multiple modes, full identity catalog and selected per-task payloads; scope/task/descriptor bind immutable invocations and cached reads, original mode/domain Libraries are verified against platform artifacts; v1 remains compatibility-only with no implicit migration; core algorithm modules unchanged in this sweep round; catalog round changes no vendor method source, exposes original seed/filter/per-domain limits/domain workers via desktop preview and verifies its opaque sha256-prefixed plan again before source freezing; legacy requests/manifests remain compatible; native two-source dual-mode k1 and single-task k2 are reported separately",
+        "license": "Apache-2.0",
+        "licenseFile": "vendor/harness2/LICENSE"
+      }
+    ]
+  },
+  "outcome": {
+    "conclusion": "new-regressions",
+    "fullSourceAcceptance": false,
+    "normalizedAssertions": {
+      "baseline": {
+        "passed": 111330,
+        "failed": 7,
+        "skipped": 4254,
+        "total": 115591
+      },
+      "candidate": {
+        "passed": 112620,
+        "failed": 6,
+        "skipped": 4364,
+        "total": 116990
+      }
+    },
+    "originalCounts": {
+      "baseline": 115591,
+      "candidate": 116990,
+      "added": 1400
+    },
+    "regressionRecordCount": 5,
+    "regressionUniqueIdentityCount": 3,
+    "regressions": [
+      {
+        "id": "src/renderer/src/pages/settings/AppVersionSection.render.test.tsx :: AppVersionSection shows the app name, version, and copyright :: 0",
+        "reason": "baseline-test-missing"
+      },
+      {
+        "id": "src/main/database/migration-service.test.ts :: application database migrations adds journal storage to the previous release without changing historical references :: 0",
+        "reason": "passed-to-failed"
+      },
+      {
+        "id": "packages/skills/src/user-skill-compatibility-index.test.ts :: UserSkillCompatibilityIndex includes prototype-like file names in package compatibility :: 0",
+        "reason": "passed-to-failed"
+      },
+      {
+        "id": "src/main/database/migration-service.test.ts :: application database migrations adds journal storage to the previous release without changing historical references :: 0",
+        "reason": "new-failure"
+      },
+      {
+        "id": "packages/skills/src/user-skill-compatibility-index.test.ts :: UserSkillCompatibilityIndex includes prototype-like file names in package compatibility :: 0",
+        "reason": "new-failure"
+      }
+    ],
+    "stageRegressionCount": 0,
+    "stageRegressions": [],
+    "globalErrorCount": 0,
+    "newSkippedAssertions": 110,
+    "addedCountNote": "The original comparer identifies 1400 added identities. Candidate minus baseline totals is 1399 because one original baseline identity is missing. No identities were renamed or ignored for this archive.",
+    "baselineFailures": [
+      {
+        "id": "src/main/uploads/active-transfer-owner.test.ts :: ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging :: 0",
+        "path": "src/main/uploads/active-transfer-owner.test.ts",
+        "name": "ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected { Object (content) } to deeply equal { Object (error) }\n    at D:/a/EarthNano/earthnano-upstream-3/src/main/uploads/active-transfer-owner.test.ts:69:22\n    at file:///D:/a/EarthNano/earthnano-upstream-3/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (installed) :: 0",
+        "path": "src/main/literature/pdf-translation/writer.test.ts",
+        "name": "generates a readable translated PDF from the configured physical backend boundary (installed)",
+        "status": "failed",
+        "failureMessages": [
+          "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-37UQKA\\installed\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/earthnano-upstream-4/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/earthnano-upstream-4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (安装 package) :: 0",
+        "path": "src/main/literature/pdf-translation/writer.test.ts",
+        "name": "generates a readable translated PDF from the configured physical backend boundary (安装 package)",
+        "status": "failed",
+        "failureMessages": [
+          "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-xI6SKp\\安装 package\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/earthnano-upstream-4/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/earthnano-upstream-4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "scripts/database-migration-ledger-smoke.test.ts :: packaged database migration ledger smoke blocks analysis constraints when a historical Compute Job has an invalid state :: 0",
+        "path": "scripts/database-migration-ledger-smoke.test.ts",
+        "name": "packaged database migration ledger smoke blocks analysis constraints when a historical Compute Job has an invalid state",
+        "status": "failed",
+        "failureMessages": [
+          "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/database-migration-ledger-smoke.test.ts:304:3\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+        ]
+      },
+      {
+        "id": "scripts/database-migration-ledger-smoke.test.ts :: packaged database migration ledger smoke blocks the global Memory index without deleting duplicate historical entries :: 0",
+        "path": "scripts/database-migration-ledger-smoke.test.ts",
+        "name": "packaged database migration ledger smoke blocks the global Memory index without deleting duplicate historical entries",
+        "status": "failed",
+        "failureMessages": [
+          "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/database-migration-ledger-smoke.test.ts:340:3\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+        ]
+      },
+      {
+        "id": "scripts/publish-npm-release.test.ts :: checks actual tarballs, a complete target set, source identity and identical entry bytes :: 0",
+        "path": "scripts/publish-npm-release.test.ts",
+        "name": "checks actual tarballs, a complete target set, source identity and identical entry bytes",
+        "status": "failed",
+        "failureMessages": [
+          "Error: Command failed: tar -czf C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-QYbeVB\\npm-darwin-arm64\\main.tgz -C C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-QYbeVB\\npm-darwin-arm64 package\ntar (child): Cannot connect to C: resolve failed\ntar: Child returned status 128\ntar: Error is not recoverable: exiting now\n\n    at genericNodeError (node:internal/errors:986:15)\n    at wrappedFn (node:internal/errors:540:14)\n    at checkExecSyncError (node:child_process:943:11)\n    at execFileSync (node:child_process:979:15)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/publish-npm-release.test.ts:38:16\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/credential-identity/sqlite-snapshot.test.ts :: isolated SQLite ciphertext snapshots blocks source changes during copying: change-wal :: 0",
+        "path": "src/main/credential-identity/sqlite-snapshot.test.ts",
+        "name": "isolated SQLite ciphertext snapshots blocks source changes during copying: change-wal",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/chai/index.js:1700:25)\n    at D:/a/EarthNano/earthnano-upstream-8/src/main/credential-identity/sqlite-snapshot.test.ts:344:58\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+        ]
+      }
+    ],
+    "candidateFailures": [
+      {
+        "id": "src/main/uploads/active-transfer-owner.test.ts :: ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging :: 0",
+        "path": "src/main/uploads/active-transfer-owner.test.ts",
+        "name": "ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected { Object (content) } to deeply equal { Object (error) }\n    at D:/a/EarthNano/EarthNano/src/main/uploads/active-transfer-owner.test.ts:69:22\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (installed) :: 0",
+        "path": "src/main/literature/pdf-translation/writer.test.ts",
+        "name": "generates a readable translated PDF from the configured physical backend boundary (installed)",
+        "status": "failed",
+        "failureMessages": [
+          "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-5hWPCf\\installed\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/EarthNano/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (安装 package) :: 0",
+        "path": "src/main/literature/pdf-translation/writer.test.ts",
+        "name": "generates a readable translated PDF from the configured physical backend boundary (安装 package)",
+        "status": "failed",
+        "failureMessages": [
+          "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-9njMI1\\安装 package\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/EarthNano/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "src/main/database/migration-service.test.ts :: application database migrations adds journal storage to the previous release without changing historical references :: 0",
+        "path": "src/main/database/migration-service.test.ts",
+        "name": "application database migrations adds journal storage to the previous release without changing historical references",
+        "status": "failed",
+        "failureMessages": [
+          "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/EarthNano/src/main/database/migration-service.test.ts:297:3\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+        ]
+      },
+      {
+        "id": "scripts/publish-npm-release.test.ts :: checks actual tarballs, a complete target set, source identity and identical entry bytes :: 0",
+        "path": "scripts/publish-npm-release.test.ts",
+        "name": "checks actual tarballs, a complete target set, source identity and identical entry bytes",
+        "status": "failed",
+        "failureMessages": [
+          "Error: Command failed: tar -czf C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-pnCwHA\\npm-darwin-arm64\\main.tgz -C C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-pnCwHA\\npm-darwin-arm64 package\ntar (child): Cannot connect to C: resolve failed\ntar: Child returned status 128\ntar: Error is not recoverable: exiting now\n\n    at genericNodeError (node:internal/errors:986:15)\n    at wrappedFn (node:internal/errors:540:14)\n    at checkExecSyncError (node:child_process:943:11)\n    at execFileSync (node:child_process:979:15)\n    at D:/a/EarthNano/EarthNano/scripts/publish-npm-release.test.ts:38:16\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "id": "packages/skills/src/user-skill-compatibility-index.test.ts :: UserSkillCompatibilityIndex includes prototype-like file names in package compatibility :: 0",
+        "path": "packages/skills/src/user-skill-compatibility-index.test.ts",
+        "name": "UserSkillCompatibilityIndex includes prototype-like file names in package compatibility",
+        "status": "failed",
+        "failureMessages": [
+          "AssertionError: expected { …(2) } to not deeply equal { …(2) }\n    at D:/a/EarthNano/EarthNano/packages/skills/src/user-skill-compatibility-index.test.ts:170:23\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      }
+    ],
+    "limitation": "Baseline failures/skips remain unresolved evidence, not full acceptance. Equal failing statuses do not prove an identical cause.",
+    "explicitPosixIntegrationBoundary": {
+      "skipped": 13,
+      "passed": 0,
+      "assertions": [
+        {
+          "id": "src/main/earthnano/harness-large-evidence.test.ts :: carries four MiB of fixed outputs through the original Python method and TS ownership without truncating evidence :: 0",
+          "path": "src/main/earthnano/harness-large-evidence.test.ts",
+          "name": "carries four MiB of fixed outputs through the original Python method and TS ownership without truncating evidence",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (complete) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (complete) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (continuation-failure) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (continuation-failure) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (tool-failure-repaired) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (tool-failure-repaired) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (multi-batch) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (multi-batch) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (stop-continuation) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (stop-continuation) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (prepare-failure) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (prepare-failure) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (stop-unknown) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (stop-unknown) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-candidate.integration.test.ts :: joins original Compute lifecycle (source-revoked) without replacing initial identity :: 0",
+          "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+          "name": "joins original Compute lifecycle (source-revoked) without replacing initial identity",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-sweep.integration.test.ts :: runs the frozen Compute task through original desktop sweep, Harness k=2 and independent reviews :: 0",
+          "path": "src/main/earthnano/persistent-compute-sweep.integration.test.ts",
+          "name": "runs the frozen Compute task through original desktop sweep, Harness k=2 and independent reviews",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-workflow.integration.test.ts :: runs original candidate Compute workflow with authorized :: 0",
+          "path": "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+          "name": "runs original candidate Compute workflow with authorized",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-workflow.integration.test.ts :: runs original candidate Compute workflow with no-grant :: 0",
+          "path": "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+          "name": "runs original candidate Compute workflow with no-grant",
+          "status": "skipped",
+          "failureMessages": []
+        },
+        {
+          "id": "src/main/earthnano/persistent-compute-workflow.integration.test.ts :: runs original candidate Compute workflow with protection-unavailable :: 0",
+          "path": "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+          "name": "runs original candidate Compute workflow with protection-unavailable",
+          "status": "skipped",
+          "failureMessages": []
+        }
+      ],
+      "limitation": "These 13 assertions are original POSIX integration execution and are explicitly skipped on Windows. They do not prove Windows Harness, candidate hook or persistent Compute execution support."
+    },
+    "sourceWrapperJobsNote": "All 16 source wrapper jobs succeeded in producing reports. Their success does not mean all test assertions passed.",
+    "nativeJobNote": "The Windows native installer job succeeded in this run, but native evidence is archived separately by its owner and does not override this source failure."
+  },
+  "comparison": {
+    "originalFiles": {
+      "comparison.json": {
+        "original": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/ci-comparison/earthnano-windows-source-comparison/comparison.json",
+          "bytes": 4389950,
+          "sha256": "435aa47f42980bbe274eab34bed8391abf71ead454b5384e4f7605d84f0f6738"
+        },
+        "archived": {
+          "path": "docs/earthnano/validation/alpha/windows-0.2-source-39708999081/comparison.json.gz",
+          "bytes": 156962,
+          "sha256": "92a62da1d8251c735de48028b91cf4f61854200091809af15417308385e6b964",
+          "format": "gzip",
+          "compressionLevel": 9,
+          "mtime": 0
+        },
+        "decompressedBytesEqualOriginal": true,
+        "localOriginalComparerBytesEqualCiOriginal": true
+      },
+      "comparison.md": {
+        "original": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/ci-comparison/earthnano-windows-source-comparison/comparison.md",
+          "bytes": 382,
+          "sha256": "35580425bf6281bc4ce32cd3d1352a13fad5d6ec16c828e98baf591a5fe3151a"
+        },
+        "archived": {
+          "path": "docs/earthnano/validation/alpha/windows-0.2-source-39708999081/comparison.md.gz",
+          "bytes": 247,
+          "sha256": "24f339a5cf95af9be2f19031c6b01bc32d8022dce8dcb8d1baa2cbf961a4760f",
+          "format": "gzip",
+          "compressionLevel": 9,
+          "mtime": 0
+        },
+        "decompressedBytesEqualOriginal": true,
+        "localOriginalComparerBytesEqualCiOriginal": true
+      }
+    },
+    "artifact": {
+      "run": 39708999081,
+      "artifactId": 12399044177,
+      "name": "earthnano-windows-source-comparison",
+      "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12399044177.zip",
+      "archiveBytes": 157380,
+      "archiveSha256": "0daed32dedf3a39294a792909bf7c8b25929bd04939ee91e61dcec5a0b646fbd",
+      "apiDigest": "sha256:0daed32dedf3a39294a792909bf7c8b25929bd04939ee91e61dcec5a0b646fbd",
+      "apiDigestMatches": true,
+      "apiArtifact": {
+        "id": 12399044177,
+        "node_id": "MDg6QXJ0aWZhY3QxMjM5OTA0NDE3Nw==",
+        "name": "earthnano-windows-source-comparison",
+        "size_in_bytes": 157380,
+        "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399044177",
+        "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399044177/zip",
+        "expired": false,
+        "digest": "sha256:0daed32dedf3a39294a792909bf7c8b25929bd04939ee91e61dcec5a0b646fbd",
+        "created_at": "2026-10-22T03:28:35Z",
+        "updated_at": "2026-10-22T03:28:35Z",
+        "expires_at": "2026-11-05T03:28:33Z",
+        "workflow_run": {
+          "id": 39708999081,
+          "repository_id": 1426478825,
+          "head_repository_id": 1426478825,
+          "head_branch": "ci/earthnano-native",
+          "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+        }
+      },
+      "files": [
+        {
+          "path": "comparison.json",
+          "bytes": 4389950,
+          "sha256": "435aa47f42980bbe274eab34bed8391abf71ead454b5384e4f7605d84f0f6738"
+        },
+        {
+          "path": "comparison.md",
+          "bytes": 382,
+          "sha256": "35580425bf6281bc4ce32cd3d1352a13fad5d6ec16c828e98baf591a5fe3151a"
+        },
+        {
+          "path": "validation-unavailable.json",
+          "bytes": 191,
+          "sha256": "2283b357a85dd3b753703823d61c98e7b770a9d396f5926451281b46cb5b1a8a"
+        }
+      ]
+    },
+    "originalCliCatchAllReceipt": {
+      "content": {
+        "schemaVersion": 1,
+        "command": "compare",
+        "platform": "linux",
+        "node": "v24.22.0",
+        "error": "EarthNano introduces source regressions; inspect comparison.json and original logs"
+      },
+      "file": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/ci-comparison/earthnano-windows-source-comparison/validation-unavailable.json",
+        "bytes": 191,
+        "sha256": "2283b357a85dd3b753703823d61c98e7b770a9d396f5926451281b46cb5b1a8a"
+      },
+      "interpretation": "The original CLI writes this generic catch-all receipt after throwing for source regressions. All 16 inventories and the cohort validated; comparison.json classifies the outcome as actual new-regressions, not missing runtime or inventory."
+    }
+  },
+  "independentOriginalValidation": {
+    "comparer": {
+      "path": "scripts/ci/earthnano-source.mjs",
+      "gitBlob": "e27f40a992857b029eb1307978908ea47ed3b6c0",
+      "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "modified": false
+    },
+    "localNode": "v24.19.0",
+    "ciNode": "v24.22.0",
+    "localPlatform": "darwin",
+    "ciComparisonPlatform": "linux",
+    "testPlatform": "win32",
+    "inventoryCommand": "/Users/yxmac_mini/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node /Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/validate-original-inventories.mjs",
+    "inventoryExitCode": 0,
+    "comparisonCommand": "/Users/yxmac_mini/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node scripts/ci/earthnano-source.mjs compare --platforms win32 --reports /Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/reports --out /Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/local-original-comparison",
+    "comparisonExitCode": 1,
+    "expectedExitMeaning": "The unchanged original comparer throws for actual source regressions.",
+    "cohortValidation": "passed",
+    "rawStoredRuntimeInventoryValidation": "passed for all 16 reports",
+    "byteIdentity": "Original CI and independent local comparison.json/comparison.md are byte-identical.",
+    "observerInitialization": {
+      "file": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/collection-initialization-observer-error.json",
+        "bytes": 174,
+        "sha256": "215063f6682901caff9f0b4aee8ff505cc0757656898e012841a75689cd40d82"
+      },
+      "interpretation": "The read-only collector initially lacked its empty reports output directory. The observer directory was created and collection resumed. The error is preserved; no product source, tests, report or comparison rules changed."
+    }
+  },
+  "reports": [
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-1",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 1,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-1",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 663,
+        "numPassedTestSuites": 663,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 19156,
+        "numPassedTests": 19155,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 19156,
+      "runtimeLeaves": 19156,
+      "normalizedLeaves": 19156,
+      "normalizedCounts": {
+        "passed": 19155,
+        "failed": 0,
+        "skipped": 1
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 7709997,
+          "sha256": "a12804b4784683902b9bb1ce2e5ad008e74b277bcf37e7b14818aac1867faa5a"
+        },
+        "vitest.json": {
+          "bytes": 5691393,
+          "sha256": "b040c073902f261a1bc70ac46a68be4e03909ae638fa5803c01959c2c8a20776"
+        },
+        "runtime.json": {
+          "bytes": 8489534,
+          "sha256": "97bcb4db520766013d6f4a5d460240e7c55438b7edf7b11eba9f7f8827d6330a"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397382009,
+        "name": "earthnano-source-windows-2022-baseline-1",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397382009.zip",
+        "archiveBytes": 1409067,
+        "archiveSha256": "2ec4a651815c53de95aa2624b77d20d73b889c78b86d2e11c5da2a922ce95525",
+        "apiDigest": "sha256:2ec4a651815c53de95aa2624b77d20d73b889c78b86d2e11c5da2a922ce95525",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397382009,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5NzM4MjAwOQ==",
+          "name": "earthnano-source-windows-2022-baseline-1",
+          "size_in_bytes": 1409067,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397382009",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397382009/zip",
+          "expired": false,
+          "digest": "sha256:2ec4a651815c53de95aa2624b77d20d73b889c78b86d2e11c5da2a922ce95525",
+          "created_at": "2026-10-22T02:30:02Z",
+          "updated_at": "2026-10-22T02:30:02Z",
+          "expires_at": "2026-11-05T02:30:01Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2540,
+            "sha256": "b7ff42d355f2dbde464820b3ee69214a9d0050fa7e984d05cf69f14055d4fb9d"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "720e992b61e349d37ee2c4321b1b643919fb5566da4383d79e6b7ac4993be1d4"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 8489534,
+            "sha256": "97bcb4db520766013d6f4a5d460240e7c55438b7edf7b11eba9f7f8827d6330a"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 7709997,
+            "sha256": "a12804b4784683902b9bb1ce2e5ad008e74b277bcf37e7b14818aac1867faa5a"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1379,
+            "sha256": "694e25f0e28a1dcda4ff5b71c2431a0ce3bd3d9d419d0d1f3326b8a94dd690cf"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 5691393,
+            "sha256": "b040c073902f261a1bc70ac46a68be4e03909ae638fa5803c01959c2c8a20776"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188092,
+        "name": "Source Windows baseline 1/8 / Source windows-2022 baseline 1/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:30:06Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188092"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-2",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 2,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-2",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 134,
+        "numPassedTestSuites": 134,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 938,
+        "numPassedTests": 908,
+        "numFailedTests": 0,
+        "numPendingTests": 30,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 938,
+      "runtimeLeaves": 938,
+      "normalizedLeaves": 938,
+      "normalizedCounts": {
+        "passed": 908,
+        "failed": 0,
+        "skipped": 30
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 382754,
+          "sha256": "2878363f23a9decf12cecb2f4c034a896ede4fa1db5a39bdf49a080ab0ce3a76"
+        },
+        "vitest.json": {
+          "bytes": 319655,
+          "sha256": "fcadd06dbe3c46d6ee02a7ca07e2d1c55c5861e916d8d2df84fb45381728c3c8"
+        },
+        "runtime.json": {
+          "bytes": 567837,
+          "sha256": "5a84b2b571b2820dacf7df35f55a07edcb451dbcce4b155e4bcb2306c32b4f32"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12396963158,
+        "name": "earthnano-source-windows-2022-baseline-2",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12396963158.zip",
+        "archiveBytes": 101530,
+        "archiveSha256": "7e5adb1c96fe40b1aa14c07e0216af81f172b35d402e2c72d57efad78e749124",
+        "apiDigest": "sha256:7e5adb1c96fe40b1aa14c07e0216af81f172b35d402e2c72d57efad78e749124",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12396963158,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5Njk2MzE1OA==",
+          "name": "earthnano-source-windows-2022-baseline-2",
+          "size_in_bytes": 101530,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396963158",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396963158/zip",
+          "expired": false,
+          "digest": "sha256:7e5adb1c96fe40b1aa14c07e0216af81f172b35d402e2c72d57efad78e749124",
+          "created_at": "2026-10-22T02:34:15Z",
+          "updated_at": "2026-10-22T02:34:15Z",
+          "expires_at": "2026-11-05T02:34:15Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2539,
+            "sha256": "6acddd3c0fb67cc51d478a96bb452d9d7ad7d712bc3c055b5b5d9a7738f36f16"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "48767821b0dbf83b0e67d668c820e08fef70140ec26afe5c949b25222f6efeff"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 567837,
+            "sha256": "5a84b2b571b2820dacf7df35f55a07edcb451dbcce4b155e4bcb2306c32b4f32"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 382754,
+            "sha256": "2878363f23a9decf12cecb2f4c034a896ede4fa1db5a39bdf49a080ab0ce3a76"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 312,
+            "sha256": "0a9aaf19f0087329a09110801a106b7b87ee65681162acd744bdf277c7831ada"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 319655,
+            "sha256": "fcadd06dbe3c46d6ee02a7ca07e2d1c55c5861e916d8d2df84fb45381728c3c8"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188124,
+        "name": "Source Windows baseline 2/8 / Source windows-2022 baseline 2/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:34:19Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188124"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-3",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 3,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-3",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 167,
+        "numPassedTestSuites": 165,
+        "numFailedTestSuites": 2,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 1635,
+        "numPassedTests": 1625,
+        "numFailedTests": 1,
+        "numPendingTests": 9,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 1635,
+      "runtimeLeaves": 1635,
+      "normalizedLeaves": 1635,
+      "normalizedCounts": {
+        "passed": 1625,
+        "failed": 1,
+        "skipped": 9
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "src/main/uploads/active-transfer-owner.test.ts :: ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging :: 0",
+          "path": "src/main/uploads/active-transfer-owner.test.ts",
+          "name": "ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected { Object (content) } to deeply equal { Object (error) }\n    at D:/a/EarthNano/earthnano-upstream-3/src/main/uploads/active-transfer-owner.test.ts:69:22\n    at file:///D:/a/EarthNano/earthnano-upstream-3/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 721809,
+          "sha256": "06db91fb4e927a6c2128ce34894b3ecd7b79b707a46a514b4798dbdf88f9fe90"
+        },
+        "vitest.json": {
+          "bytes": 580493,
+          "sha256": "e8215b0abdb784414ca1512fbedf71f53c4de8dd10d315c402353d6b55befadc"
+        },
+        "runtime.json": {
+          "bytes": 1022350,
+          "sha256": "4f2da1793dda938ceb7369261b265291f5f2b75dd87015764fb50173b1879e36"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397036165,
+        "name": "earthnano-source-windows-2022-baseline-3",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397036165.zip",
+        "archiveBytes": 179508,
+        "archiveSha256": "52094d9663b980ab9900a04c1210535cd2b9e6cd376d08f22291e3e34cfab7be",
+        "apiDigest": "sha256:52094d9663b980ab9900a04c1210535cd2b9e6cd376d08f22291e3e34cfab7be",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397036165,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5NzAzNjE2NQ==",
+          "name": "earthnano-source-windows-2022-baseline-3",
+          "size_in_bytes": 179508,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397036165",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397036165/zip",
+          "expired": false,
+          "digest": "sha256:52094d9663b980ab9900a04c1210535cd2b9e6cd376d08f22291e3e34cfab7be",
+          "created_at": "2026-10-22T02:24:34Z",
+          "updated_at": "2026-10-22T02:24:34Z",
+          "expires_at": "2026-11-05T02:24:33Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2534,
+            "sha256": "3ad52c22bb0c2c8b44f440b68d5263d893afedd0e4d0676aa3dea766916b1bc4"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "b9c47fff15994b2ac68fe8ce471b49c9b8099dbd79c358aeb7821bd4f0a189ec"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 1022350,
+            "sha256": "4f2da1793dda938ceb7369261b265291f5f2b75dd87015764fb50173b1879e36"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 721809,
+            "sha256": "06db91fb4e927a6c2128ce34894b3ecd7b79b707a46a514b4798dbdf88f9fe90"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 312,
+            "sha256": "f1598864f1eb93be7760c8cae0856f0ed9b64f060fdbb0a2ffd96bc138389675"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 580493,
+            "sha256": "e8215b0abdb784414ca1512fbedf71f53c4de8dd10d315c402353d6b55befadc"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188210,
+        "name": "Source Windows baseline 3/8 / Source windows-2022 baseline 3/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:24:38Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188210"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-4",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 4,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-4",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 1184,
+        "numPassedTestSuites": 1183,
+        "numFailedTestSuites": 1,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 10339,
+        "numPassedTests": 10333,
+        "numFailedTests": 2,
+        "numPendingTests": 4,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 10339,
+      "runtimeLeaves": 10339,
+      "normalizedLeaves": 10339,
+      "normalizedCounts": {
+        "passed": 10333,
+        "failed": 2,
+        "skipped": 4
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (installed) :: 0",
+          "path": "src/main/literature/pdf-translation/writer.test.ts",
+          "name": "generates a readable translated PDF from the configured physical backend boundary (installed)",
+          "status": "failed",
+          "failureMessages": [
+            "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-37UQKA\\installed\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/earthnano-upstream-4/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/earthnano-upstream-4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (安装 package) :: 0",
+          "path": "src/main/literature/pdf-translation/writer.test.ts",
+          "name": "generates a readable translated PDF from the configured physical backend boundary (安装 package)",
+          "status": "failed",
+          "failureMessages": [
+            "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-xI6SKp\\安装 package\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/earthnano-upstream-4/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/earthnano-upstream-4/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 4659889,
+          "sha256": "d7d039345931dc5252e30f3396fecb565b625be090de4ba9b9e539a6ec8aa6bd"
+        },
+        "vitest.json": {
+          "bytes": 3456272,
+          "sha256": "e4c57d39eff5c5767e6257746f440775e0841a88c06e2394a4006dd041d7ffeb"
+        },
+        "runtime.json": {
+          "bytes": 6205501,
+          "sha256": "79a736560b75cad688e066396e7d1c4e0b7eb5aeccbb7b77f1f410ef4e235815"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397872503,
+        "name": "earthnano-source-windows-2022-baseline-4",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397872503.zip",
+        "archiveBytes": 1112099,
+        "archiveSha256": "519950d3b20188e9ad8f50ae7ddefb7fc705acfbbe9e0a7488db17c9a937ab79",
+        "apiDigest": "sha256:519950d3b20188e9ad8f50ae7ddefb7fc705acfbbe9e0a7488db17c9a937ab79",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397872503,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5Nzg3MjUwMw==",
+          "name": "earthnano-source-windows-2022-baseline-4",
+          "size_in_bytes": 1112099,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397872503",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397872503/zip",
+          "expired": false,
+          "digest": "sha256:519950d3b20188e9ad8f50ae7ddefb7fc705acfbbe9e0a7488db17c9a937ab79",
+          "created_at": "2026-10-22T02:48:25Z",
+          "updated_at": "2026-10-22T02:48:25Z",
+          "expires_at": "2026-11-05T02:48:24Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2539,
+            "sha256": "6aadd85ef817d684e5a72c53ad4210ff92fa1e7c85bb0f649025553beba7ffba"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "83333291dddbc6c34e2c0bc1fb312f689e61cd48a492f6ca1cd46da9f3c04a1e"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 6205501,
+            "sha256": "79a736560b75cad688e066396e7d1c4e0b7eb5aeccbb7b77f1f410ef4e235815"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 4659889,
+            "sha256": "d7d039345931dc5252e30f3396fecb565b625be090de4ba9b9e539a6ec8aa6bd"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1168,
+            "sha256": "ad5d368625d77f6c69e5b4659b469b44861d82d7f4c8ce78c4ba082af799492d"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 3456272,
+            "sha256": "e4c57d39eff5c5767e6257746f440775e0841a88c06e2394a4006dd041d7ffeb"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188312,
+        "name": "Source Windows baseline 4/8 / Source windows-2022 baseline 4/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:48:29Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188312"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-5",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 5,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-5",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 424,
+        "numPassedTestSuites": 424,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 2149,
+        "numPassedTests": 2087,
+        "numFailedTests": 0,
+        "numPendingTests": 62,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 2149,
+      "runtimeLeaves": 2149,
+      "normalizedLeaves": 2149,
+      "normalizedCounts": {
+        "passed": 2087,
+        "failed": 0,
+        "skipped": 62
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 918040,
+          "sha256": "e7110caa120c069ce6e6d4a164ca7ae5bc6ece5c8e3c80a7ddb5ff024e0c6e76"
+        },
+        "vitest.json": {
+          "bytes": 773497,
+          "sha256": "5e91f88158e27ad9009961010809964d8e5b592ad1df1402d989d9f60ea99b92"
+        },
+        "runtime.json": {
+          "bytes": 1343792,
+          "sha256": "6701d8ae349294fe68da10af43bd3f1bc8b0ab0e1b2fc6a94be0b719eab910c7"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397036234,
+        "name": "earthnano-source-windows-2022-baseline-5",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397036234.zip",
+        "archiveBytes": 251344,
+        "archiveSha256": "914875628ef4286cd6ea87e2e50e1620ff5fee0779f18c10ec6221b6fe59fd5b",
+        "apiDigest": "sha256:914875628ef4286cd6ea87e2e50e1620ff5fee0779f18c10ec6221b6fe59fd5b",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397036234,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5NzAzNjIzNA==",
+          "name": "earthnano-source-windows-2022-baseline-5",
+          "size_in_bytes": 251344,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397036234",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397036234/zip",
+          "expired": false,
+          "digest": "sha256:914875628ef4286cd6ea87e2e50e1620ff5fee0779f18c10ec6221b6fe59fd5b",
+          "created_at": "2026-10-22T02:25:06Z",
+          "updated_at": "2026-10-22T02:25:06Z",
+          "expires_at": "2026-11-05T02:25:04Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2491,
+            "sha256": "8ad5b50cfb3aef801512b49cdac0b85d29fc836fe82e616ea4d859b209e8d1a3"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "48767821b0dbf83b0e67d668c820e08fef70140ec26afe5c949b25222f6efeff"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 1343792,
+            "sha256": "6701d8ae349294fe68da10af43bd3f1bc8b0ab0e1b2fc6a94be0b719eab910c7"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 918040,
+            "sha256": "e7110caa120c069ce6e6d4a164ca7ae5bc6ece5c8e3c80a7ddb5ff024e0c6e76"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 312,
+            "sha256": "5abce1676d9fbb3452f92215093c87a7b8578b0dbb653dc3f61676ea688162d3"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 773497,
+            "sha256": "5e91f88158e27ad9009961010809964d8e5b592ad1df1402d989d9f60ea99b92"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188341,
+        "name": "Source Windows baseline 5/8 / Source windows-2022 baseline 5/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:25:11Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188341"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-6",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 6,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-6",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 1266,
+        "numPassedTestSuites": 1266,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 10094,
+        "numPassedTests": 10035,
+        "numFailedTests": 0,
+        "numPendingTests": 59,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 10094,
+      "runtimeLeaves": 10094,
+      "normalizedLeaves": 10094,
+      "normalizedCounts": {
+        "passed": 10035,
+        "failed": 0,
+        "skipped": 59
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 4323215,
+          "sha256": "0d426cc091f3a43645349eadccfb74b98f5ccc361c09e01fd37351519c1d7268"
+        },
+        "vitest.json": {
+          "bytes": 3551994,
+          "sha256": "92a660870e8f7f3c0a24321484900bc64944512eaaab2586773f15bc155cf487"
+        },
+        "runtime.json": {
+          "bytes": 6235980,
+          "sha256": "a308a52d4073fde93b26071d335ff61befdf450426c68a55aa9a2c93bcf315d3"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12396959770,
+        "name": "earthnano-source-windows-2022-baseline-6",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12396959770.zip",
+        "archiveBytes": 1051880,
+        "archiveSha256": "af59b72a1664b236861d15615d720266da5f8d055f22b57841a5cbbad4456bfd",
+        "apiDigest": "sha256:af59b72a1664b236861d15615d720266da5f8d055f22b57841a5cbbad4456bfd",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12396959770,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5Njk1OTc3MA==",
+          "name": "earthnano-source-windows-2022-baseline-6",
+          "size_in_bytes": 1051880,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396959770",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12396959770/zip",
+          "expired": false,
+          "digest": "sha256:af59b72a1664b236861d15615d720266da5f8d055f22b57841a5cbbad4456bfd",
+          "created_at": "2026-10-22T02:34:53Z",
+          "updated_at": "2026-10-22T02:34:53Z",
+          "expires_at": "2026-11-05T02:34:53Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2534,
+            "sha256": "f05b65b551fd23a14237146faa6b9c973073fee8aeb7236ce15dc3ffd94fe6af"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "441cbb63935e489f9b4e490be5c7008ce03a2984e6d740142d068f8524f8a176"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 6235980,
+            "sha256": "a308a52d4073fde93b26071d335ff61befdf450426c68a55aa9a2c93bcf315d3"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 4323215,
+            "sha256": "0d426cc091f3a43645349eadccfb74b98f5ccc361c09e01fd37351519c1d7268"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1612,
+            "sha256": "f999272783ad22a0960804c304881a821677bd78b61447fa1ed6099f2d3b45f4"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 3551994,
+            "sha256": "92a660870e8f7f3c0a24321484900bc64944512eaaab2586773f15bc155cf487"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188214,
+        "name": "Source Windows baseline 6/8 / Source windows-2022 baseline 6/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:34:58Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188214"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-7",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 7,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-7",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 782,
+        "numPassedTestSuites": 782,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 52549,
+        "numPassedTests": 48889,
+        "numFailedTests": 0,
+        "numPendingTests": 3658,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 52549,
+      "runtimeLeaves": 52549,
+      "normalizedLeaves": 52549,
+      "normalizedCounts": {
+        "passed": 48889,
+        "failed": 0,
+        "skipped": 3660
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 28015552,
+          "sha256": "c139823a0f107d6365183bf8274a045de77f3921bdacf8fbd436a43ff142ef8d"
+        },
+        "vitest.json": {
+          "bytes": 22400494,
+          "sha256": "fc78b553064c38476234227a0bc98f9ef1aeddac1e78461775514573faca86df"
+        },
+        "runtime.json": {
+          "bytes": 42564467,
+          "sha256": "335436ca7c064cc82e0b908bcb3fd2f643cb6e7782aa4b274b85ad2aea240a90"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397650774,
+        "name": "earthnano-source-windows-2022-baseline-7",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397650774.zip",
+        "archiveBytes": 2632363,
+        "archiveSha256": "010374e10113e7b637f229d57a4205d4fd4c5f7ab5ecf826a9f93fe4aa631ba9",
+        "apiDigest": "sha256:010374e10113e7b637f229d57a4205d4fd4c5f7ab5ecf826a9f93fe4aa631ba9",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397650774,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5NzY1MDc3NA==",
+          "name": "earthnano-source-windows-2022-baseline-7",
+          "size_in_bytes": 2632363,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397650774",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397650774/zip",
+          "expired": false,
+          "digest": "sha256:010374e10113e7b637f229d57a4205d4fd4c5f7ab5ecf826a9f93fe4aa631ba9",
+          "created_at": "2026-10-22T02:24:19Z",
+          "updated_at": "2026-10-22T02:24:19Z",
+          "expires_at": "2026-11-05T02:24:17Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2534,
+            "sha256": "a6c3e903b744b1f0007f8b4984fb1e5ed94cecd2bf77673311f7a3346d27731e"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "930e8a98fc12c01ee6895d707f02a82cb27f3aa0fdb1d89b76dd2c60da0d3114"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 42564467,
+            "sha256": "335436ca7c064cc82e0b908bcb3fd2f643cb6e7782aa4b274b85ad2aea240a90"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 28015552,
+            "sha256": "c139823a0f107d6365183bf8274a045de77f3921bdacf8fbd436a43ff142ef8d"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 575,
+            "sha256": "e90d4d13e2b0b48b7c5a93cac8f81489d718ca6feaafd829da8dfc26772820ad"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 22400494,
+            "sha256": "fc78b553064c38476234227a0bc98f9ef1aeddac1e78461775514573faca86df"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188285,
+        "name": "Source Windows baseline 7/8 / Source windows-2022 baseline 7/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:24:23Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188285"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-baseline-8",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "baseline",
+        "shard": 8,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "3466bdf3f5f10907e32c363a568748b6413b3b9adf953c9f6dea7a5f3ec84ebd",
+        "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+        "testRoot": "D:\\a\\EarthNano\\earthnano-upstream-8",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 2450,
+        "numPassedTestSuites": 2445,
+        "numFailedTestSuites": 5,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 18731,
+        "numPassedTests": 18298,
+        "numFailedTests": 4,
+        "numPendingTests": 429,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 18731,
+      "runtimeLeaves": 18731,
+      "normalizedLeaves": 18731,
+      "normalizedCounts": {
+        "passed": 18298,
+        "failed": 4,
+        "skipped": 429
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "scripts/database-migration-ledger-smoke.test.ts :: packaged database migration ledger smoke blocks analysis constraints when a historical Compute Job has an invalid state :: 0",
+          "path": "scripts/database-migration-ledger-smoke.test.ts",
+          "name": "packaged database migration ledger smoke blocks analysis constraints when a historical Compute Job has an invalid state",
+          "status": "failed",
+          "failureMessages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/database-migration-ledger-smoke.test.ts:304:3\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+          ]
+        },
+        {
+          "id": "scripts/database-migration-ledger-smoke.test.ts :: packaged database migration ledger smoke blocks the global Memory index without deleting duplicate historical entries :: 0",
+          "path": "scripts/database-migration-ledger-smoke.test.ts",
+          "name": "packaged database migration ledger smoke blocks the global Memory index without deleting duplicate historical entries",
+          "status": "failed",
+          "failureMessages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/database-migration-ledger-smoke.test.ts:340:3\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+          ]
+        },
+        {
+          "id": "scripts/publish-npm-release.test.ts :: checks actual tarballs, a complete target set, source identity and identical entry bytes :: 0",
+          "path": "scripts/publish-npm-release.test.ts",
+          "name": "checks actual tarballs, a complete target set, source identity and identical entry bytes",
+          "status": "failed",
+          "failureMessages": [
+            "Error: Command failed: tar -czf C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-QYbeVB\\npm-darwin-arm64\\main.tgz -C C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-QYbeVB\\npm-darwin-arm64 package\ntar (child): Cannot connect to C: resolve failed\ntar: Child returned status 128\ntar: Error is not recoverable: exiting now\n\n    at genericNodeError (node:internal/errors:986:15)\n    at wrappedFn (node:internal/errors:540:14)\n    at checkExecSyncError (node:child_process:943:11)\n    at execFileSync (node:child_process:979:15)\n    at D:/a/EarthNano/earthnano-upstream-8/scripts/publish-npm-release.test.ts:38:16\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "id": "src/main/credential-identity/sqlite-snapshot.test.ts :: isolated SQLite ciphertext snapshots blocks source changes during copying: change-wal :: 0",
+          "path": "src/main/credential-identity/sqlite-snapshot.test.ts",
+          "name": "isolated SQLite ciphertext snapshots blocks source changes during copying: change-wal",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/expect/dist/index.js:1552:16)\n    at Proxy.<anonymous> (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/chai/index.js:1700:25)\n    at D:/a/EarthNano/earthnano-upstream-8/src/main/credential-identity/sqlite-snapshot.test.ts:344:58\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/EarthNano/earthnano-upstream-8/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 7620701,
+          "sha256": "fb49f054bb5b4105e1b7db8bd68c6f11dffeb4ad98aafdc021fc26e5ffdd6f2a"
+        },
+        "vitest.json": {
+          "bytes": 6306995,
+          "sha256": "64f810862c900f878198d44114afd341a18de2411893f1f6dfcfd0bcc5d5fbe2"
+        },
+        "runtime.json": {
+          "bytes": 10914168,
+          "sha256": "42ba13bc3b523b23ccd48b7ade0fd1175956ef60c2230a5228423e11a19f987f"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397244347,
+        "name": "earthnano-source-windows-2022-baseline-8",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397244347.zip",
+        "archiveBytes": 1885725,
+        "archiveSha256": "268928c9b03e1db702d766dee3c3017a728b353b24c1dd151a494e7d3544d4fe",
+        "apiDigest": "sha256:268928c9b03e1db702d766dee3c3017a728b353b24c1dd151a494e7d3544d4fe",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397244347,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5NzI0NDM0Nw==",
+          "name": "earthnano-source-windows-2022-baseline-8",
+          "size_in_bytes": 1885725,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397244347",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397244347/zip",
+          "expired": false,
+          "digest": "sha256:268928c9b03e1db702d766dee3c3017a728b353b24c1dd151a494e7d3544d4fe",
+          "created_at": "2026-10-22T02:42:11Z",
+          "updated_at": "2026-10-22T02:42:11Z",
+          "expires_at": "2026-11-05T02:42:10Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2534,
+            "sha256": "b2774ce278e3ef9d889b6757ae2b8cfb3d7238b04cdb230ee838570a4a873bbc"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 281,
+            "sha256": "930e8a98fc12c01ee6895d707f02a82cb27f3aa0fdb1d89b76dd2c60da0d3114"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 10914168,
+            "sha256": "42ba13bc3b523b23ccd48b7ade0fd1175956ef60c2230a5228423e11a19f987f"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 7620701,
+            "sha256": "fb49f054bb5b4105e1b7db8bd68c6f11dffeb4ad98aafdc021fc26e5ffdd6f2a"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 357581,
+            "sha256": "ae023d0a1751afe44a7cd8874a09428fbb449ccb3d5c8d6fccb53a64a3e56792"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 674,
+            "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 6306995,
+            "sha256": "64f810862c900f878198d44114afd341a18de2411893f1f6dfcfd0bcc5d5fbe2"
+          }
+        ]
+      },
+      "job": {
+        "id": 119596188131,
+        "name": "Source Windows baseline 8/8 / Source windows-2022 baseline 8/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:03:00Z",
+        "completed_at": "2026-10-22T02:42:15Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188131"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-1",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 1,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 663,
+        "numPassedTestSuites": 663,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 19156,
+        "numPassedTests": 19155,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 19156,
+      "runtimeLeaves": 19156,
+      "normalizedLeaves": 19156,
+      "normalizedCounts": {
+        "passed": 19155,
+        "failed": 0,
+        "skipped": 1
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 7709987,
+          "sha256": "40bb7e1e6684f903f6566613c2a60422973e959c354f56c4ca57484ab04a14ae"
+        },
+        "vitest.json": {
+          "bytes": 5681561,
+          "sha256": "fbb0c466bed099eb2a35b36b6d6e9924c1094d6b8446be4a274368c6c2bb0f10"
+        },
+        "runtime.json": {
+          "bytes": 8278818,
+          "sha256": "7f1b2f20a53247ea56a7d558d640163ede77aad578ca05bdb8d8d6569471cdaf"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12398925221,
+        "name": "earthnano-source-windows-2022-candidate-1",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12398925221.zip",
+        "archiveBytes": 1408522,
+        "archiveSha256": "60ed2039ff070f8187f00b91dd28c1d2efd100360bd8074a5371add7132ba530",
+        "apiDigest": "sha256:60ed2039ff070f8187f00b91dd28c1d2efd100360bd8074a5371add7132ba530",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12398925221,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5ODkyNTIyMQ==",
+          "name": "earthnano-source-windows-2022-candidate-1",
+          "size_in_bytes": 1408522,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398925221",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398925221/zip",
+          "expired": false,
+          "digest": "sha256:60ed2039ff070f8187f00b91dd28c1d2efd100360bd8074a5371add7132ba530",
+          "created_at": "2026-10-22T03:02:48Z",
+          "updated_at": "2026-10-22T03:02:48Z",
+          "expires_at": "2026-11-05T03:02:46Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2555,
+            "sha256": "69dacfc7a10517799f0918a768cd4fd442e9a47df85fe7d7288b9b96a26d12ba"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "e110d04ee66bd5245136cf391dca8c272c881602074b38fb9bb1bb0e45bef35d"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 8278818,
+            "sha256": "7f1b2f20a53247ea56a7d558d640163ede77aad578ca05bdb8d8d6569471cdaf"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 7709987,
+            "sha256": "40bb7e1e6684f903f6566613c2a60422973e959c354f56c4ca57484ab04a14ae"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1387,
+            "sha256": "74794054b63882493da255f5429400e5669b55153e0706e666e8a86108378360"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 5681561,
+            "sha256": "fbb0c466bed099eb2a35b36b6d6e9924c1094d6b8446be4a274368c6c2bb0f10"
+          }
+        ]
+      },
+      "job": {
+        "id": 119602664721,
+        "name": "Source Windows candidate 1/8 / Source windows-2022 candidate 1/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:24:26Z",
+        "completed_at": "2026-10-22T03:02:53Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602664721"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-2",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 2,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 134,
+        "numPassedTestSuites": 134,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 938,
+        "numPassedTests": 908,
+        "numFailedTests": 0,
+        "numPendingTests": 30,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 938,
+      "runtimeLeaves": 938,
+      "normalizedLeaves": 938,
+      "normalizedCounts": {
+        "passed": 908,
+        "failed": 0,
+        "skipped": 30
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 382744,
+          "sha256": "b2beeb405db74f6358ef60141b9f150a1404f4838cbe87486f13ea72cb42bf33"
+        },
+        "vitest.json": {
+          "bytes": 318905,
+          "sha256": "e51ae2b0abffc475af458d0cfac52ab5d4798a41e9a7f7e4978f8d1ff287df1b"
+        },
+        "runtime.json": {
+          "bytes": 557519,
+          "sha256": "d5454101e81844b60efe3646992b3c05dc7cb5e3e629881c51427fa9057a0c3a"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12398186080,
+        "name": "earthnano-source-windows-2022-candidate-2",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12398186080.zip",
+        "archiveBytes": 101492,
+        "archiveSha256": "d02aaa88b929c23d27af81d95ef238abcd89c819efb7a74b02d14c8d151d8872",
+        "apiDigest": "sha256:d02aaa88b929c23d27af81d95ef238abcd89c819efb7a74b02d14c8d151d8872",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12398186080,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5ODE4NjA4MA==",
+          "name": "earthnano-source-windows-2022-candidate-2",
+          "size_in_bytes": 101492,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398186080",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398186080/zip",
+          "expired": false,
+          "digest": "sha256:d02aaa88b929c23d27af81d95ef238abcd89c819efb7a74b02d14c8d151d8872",
+          "created_at": "2026-10-22T02:48:27Z",
+          "updated_at": "2026-10-22T02:48:27Z",
+          "expires_at": "2026-11-05T02:48:26Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2550,
+            "sha256": "6c1d043b100b1dd930f5739cc6cb7550e2558a1280cd4bd8bc5bef68f6047ed5"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "78ca9400a3eb88ddebc55403db6fa677e1c2e8d7e16394a79bf416a3604360b8"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 557519,
+            "sha256": "d5454101e81844b60efe3646992b3c05dc7cb5e3e629881c51427fa9057a0c3a"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 382744,
+            "sha256": "b2beeb405db74f6358ef60141b9f150a1404f4838cbe87486f13ea72cb42bf33"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 320,
+            "sha256": "b1c7b2da5c3c0deb540a0319fec5f7e0c955d882746114a11700bd6b0a7d9195"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 318905,
+            "sha256": "e51ae2b0abffc475af458d0cfac52ab5d4798a41e9a7f7e4978f8d1ff287df1b"
+          }
+        ]
+      },
+      "job": {
+        "id": 119602733090,
+        "name": "Source Windows candidate 2/8 / Source windows-2022 candidate 2/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:24:40Z",
+        "completed_at": "2026-10-22T02:48:30Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602733090"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-3",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 3,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 167,
+        "numPassedTestSuites": 165,
+        "numFailedTestSuites": 2,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 1635,
+        "numPassedTests": 1625,
+        "numFailedTests": 1,
+        "numPendingTests": 9,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 1635,
+      "runtimeLeaves": 1635,
+      "normalizedLeaves": 1635,
+      "normalizedCounts": {
+        "passed": 1625,
+        "failed": 1,
+        "skipped": 9
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "src/main/uploads/active-transfer-owner.test.ts :: ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging :: 0",
+          "path": "src/main/uploads/active-transfer-owner.test.ts",
+          "name": "ActiveTransferOwner staging initialization rejects a source rewrite (same size) during local import and removes staging",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected { Object (content) } to deeply equal { Object (error) }\n    at D:/a/EarthNano/EarthNano/src/main/uploads/active-transfer-owner.test.ts:69:22\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 721777,
+          "sha256": "8489f20e1c5a193443b8e6b5ae704102ed0c1063db122b2b0403d13ab461b2a7"
+        },
+        "vitest.json": {
+          "bytes": 579670,
+          "sha256": "11943a570a927db95e064301d8ad008100cf146e86ea49a8869eaa033924f30e"
+        },
+        "runtime.json": {
+          "bytes": 1004365,
+          "sha256": "07c8ed4b437c39bbcb6ad3642e6a6611bf66f75fd31dad204dde63adff0e27a0"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12398325248,
+        "name": "earthnano-source-windows-2022-candidate-3",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12398325248.zip",
+        "archiveBytes": 179288,
+        "archiveSha256": "df6e39b889012de45da5766ef5c3b71c717eafed4d956807d1187d9ba1373fc0",
+        "apiDigest": "sha256:df6e39b889012de45da5766ef5c3b71c717eafed4d956807d1187d9ba1373fc0",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12398325248,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5ODMyNTI0OA==",
+          "name": "earthnano-source-windows-2022-candidate-3",
+          "size_in_bytes": 179288,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398325248",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398325248/zip",
+          "expired": false,
+          "digest": "sha256:df6e39b889012de45da5766ef5c3b71c717eafed4d956807d1187d9ba1373fc0",
+          "created_at": "2026-10-22T02:46:30Z",
+          "updated_at": "2026-10-22T02:46:30Z",
+          "expires_at": "2026-11-05T02:46:29Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2507,
+            "sha256": "2b331c854ca627f36114c8144f2f83151ad8d4324a85013bbafdb1d26e649358"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "5965a2f3d384f21cd1042621c3c4a6c8a0d069691c34ffac75d7e2ec0a8b587a"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 1004365,
+            "sha256": "07c8ed4b437c39bbcb6ad3642e6a6611bf66f75fd31dad204dde63adff0e27a0"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 721777,
+            "sha256": "8489f20e1c5a193443b8e6b5ae704102ed0c1063db122b2b0403d13ab461b2a7"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 320,
+            "sha256": "69b81821d37aece1c1bb04a2d0dbe13b776cade8fd17ba30bae16a9773d1e59f"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 579670,
+            "sha256": "11943a570a927db95e064301d8ad008100cf146e86ea49a8869eaa033924f30e"
+          }
+        ]
+      },
+      "job": {
+        "id": 119602895482,
+        "name": "Source Windows candidate 3/8 / Source windows-2022 candidate 3/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:25:13Z",
+        "completed_at": "2026-10-22T02:46:34Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602895482"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-4",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 4,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 1186,
+        "numPassedTestSuites": 1185,
+        "numFailedTestSuites": 1,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 10390,
+        "numPassedTests": 10384,
+        "numFailedTests": 2,
+        "numPendingTests": 4,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 10390,
+      "runtimeLeaves": 10390,
+      "normalizedLeaves": 10390,
+      "normalizedCounts": {
+        "passed": 10384,
+        "failed": 2,
+        "skipped": 4
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (installed) :: 0",
+          "path": "src/main/literature/pdf-translation/writer.test.ts",
+          "name": "generates a readable translated PDF from the configured physical backend boundary (installed)",
+          "status": "failed",
+          "failureMessages": [
+            "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-5hWPCf\\installed\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/EarthNano/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "id": "src/main/literature/pdf-translation/writer.test.ts :: generates a readable translated PDF from the configured physical backend boundary (安装 package) :: 0",
+          "path": "src/main/literature/pdf-translation/writer.test.ts",
+          "name": "generates a readable translated PDF from the configured physical backend boundary (安装 package)",
+          "status": "failed",
+          "failureMessages": [
+            "Error: ENOENT: no such file or directory, open 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\pdf-translation-backend-9njMI1\\安装 package\\resources\\backend\\node_modules\\@aipoch\\pdf-translation\\resources\\worker.mjs'\n    at open (node:internal/fs/promises:1345:25)\n    at readFile (node:internal/fs/promises:2003:14)\n    at D:/a/EarthNano/EarthNano/src/main/literature/pdf-translation/writer.test.ts:125:43\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 4681183,
+          "sha256": "501dea40fa3196fc0e64344b37d86082ebd25dbcd96a32c6309e06b448422242"
+        },
+        "vitest.json": {
+          "bytes": 3466177,
+          "sha256": "b0eee5a45f0d29481c0d0f213809edc880e554256a98381aba5c0cca6b8e6c05"
+        },
+        "runtime.json": {
+          "bytes": 6114104,
+          "sha256": "a9efafa066a476370aa55077ed231cc2c6ae01817ce07aa8a557bab6b49e72f8"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12397954610,
+        "name": "earthnano-source-windows-2022-candidate-4",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12397954610.zip",
+        "archiveBytes": 1115631,
+        "archiveSha256": "1385f5ee0e2e0038e150d2289a09b7eb9d5ac385751cedc07afe8dc12f72a279",
+        "apiDigest": "sha256:1385f5ee0e2e0038e150d2289a09b7eb9d5ac385751cedc07afe8dc12f72a279",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12397954610,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5Nzk1NDYxMA==",
+          "name": "earthnano-source-windows-2022-candidate-4",
+          "size_in_bytes": 1115631,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397954610",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12397954610/zip",
+          "expired": false,
+          "digest": "sha256:1385f5ee0e2e0038e150d2289a09b7eb9d5ac385751cedc07afe8dc12f72a279",
+          "created_at": "2026-10-22T03:03:18Z",
+          "updated_at": "2026-10-22T03:03:18Z",
+          "expires_at": "2026-11-05T03:03:16Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2556,
+            "sha256": "d7a8a597a23b4937b7b5e55eaa595f399da988ec2e442eb5273d443e7b88557f"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "62959cb7bfd6a010101d64f88faf1498b004624508068168c3e78e9bfbc6981a"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 6114104,
+            "sha256": "a9efafa066a476370aa55077ed231cc2c6ae01817ce07aa8a557bab6b49e72f8"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 4681183,
+            "sha256": "501dea40fa3196fc0e64344b37d86082ebd25dbcd96a32c6309e06b448422242"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1042,
+            "sha256": "1e307327f7a270ab0c41f72512b1a28a75ba8b3e5802cee892979eedaa2b4ec3"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 3466177,
+            "sha256": "b0eee5a45f0d29481c0d0f213809edc880e554256a98381aba5c0cca6b8e6c05"
+          }
+        ]
+      },
+      "job": {
+        "id": 119604334643,
+        "name": "Source Windows candidate 4/8 / Source windows-2022 candidate 4/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:30:08Z",
+        "completed_at": "2026-10-22T03:03:21Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119604334643"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-5",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 5,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 424,
+        "numPassedTestSuites": 422,
+        "numFailedTestSuites": 2,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 2160,
+        "numPassedTests": 2097,
+        "numFailedTests": 1,
+        "numPendingTests": 62,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 2160,
+      "runtimeLeaves": 2160,
+      "normalizedLeaves": 2160,
+      "normalizedCounts": {
+        "passed": 2097,
+        "failed": 1,
+        "skipped": 62
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "src/main/database/migration-service.test.ts :: application database migrations adds journal storage to the previous release without changing historical references :: 0",
+          "path": "src/main/database/migration-service.test.ts",
+          "name": "application database migrations adds journal storage to the previous release without changing historical references",
+          "status": "failed",
+          "failureMessages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at D:/a/EarthNano/EarthNano/src/main/database/migration-service.test.ts:297:3\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 923299,
+          "sha256": "ae6fa6bde9d91a785f6cfb7dc8485c6093b519d0a6a7179ab128b8430150bdcb"
+        },
+        "vitest.json": {
+          "bytes": 776379,
+          "sha256": "74a6fa0d9c9c398b64632e9b7b404606e21c02efa3fc0b1f059495dee93d36fd"
+        },
+        "runtime.json": {
+          "bytes": 1326459,
+          "sha256": "06249ec31803d5517f2a56b34b65666b24b5d10621fcf0809378ed131035ff72"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12398615540,
+        "name": "earthnano-source-windows-2022-candidate-5",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12398615540.zip",
+        "archiveBytes": 252436,
+        "archiveSha256": "c2214a607cc759463bcf7fa6b3d0919131ee682e7c048620ebcf653dc812883f",
+        "apiDigest": "sha256:c2214a607cc759463bcf7fa6b3d0919131ee682e7c048620ebcf653dc812883f",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12398615540,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5ODYxNTU0MA==",
+          "name": "earthnano-source-windows-2022-candidate-5",
+          "size_in_bytes": 252436,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398615540",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398615540/zip",
+          "expired": false,
+          "digest": "sha256:c2214a607cc759463bcf7fa6b3d0919131ee682e7c048620ebcf653dc812883f",
+          "created_at": "2026-10-22T02:51:39Z",
+          "updated_at": "2026-10-22T02:51:39Z",
+          "expires_at": "2026-11-05T02:51:38Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2508,
+            "sha256": "8609041b7b96b56d70f878160f4ec2ddc4084b162607b046b518674018f0748c"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "0dc55fd387c498d0b8e06fc3c88e1503d30425beb7079a14e6a24e408bf8a280"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 1326459,
+            "sha256": "06249ec31803d5517f2a56b34b65666b24b5d10621fcf0809378ed131035ff72"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 923299,
+            "sha256": "ae6fa6bde9d91a785f6cfb7dc8485c6093b519d0a6a7179ab128b8430150bdcb"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 320,
+            "sha256": "a851a016665ec870b14c591572abfe1e77f0a57612da4a0649101f66cab7aa1f"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 776379,
+            "sha256": "74a6fa0d9c9c398b64632e9b7b404606e21c02efa3fc0b1f059495dee93d36fd"
+          }
+        ]
+      },
+      "job": {
+        "id": 119605613644,
+        "name": "Source Windows candidate 5/8 / Source windows-2022 candidate 5/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:34:21Z",
+        "completed_at": "2026-10-22T02:51:43Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119605613644"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-6",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 6,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 1277,
+        "numPassedTestSuites": 1277,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 10224,
+        "numPassedTests": 10119,
+        "numFailedTests": 0,
+        "numPendingTests": 105,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 10224,
+      "runtimeLeaves": 10224,
+      "normalizedLeaves": 10224,
+      "normalizedCounts": {
+        "passed": 10119,
+        "failed": 0,
+        "skipped": 105
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 4381977,
+          "sha256": "220fe21ef40c93f020464180f3958e8d55979b47e403b52a74878f7a93032636"
+        },
+        "vitest.json": {
+          "bytes": 3593702,
+          "sha256": "a323b35e70de75413c660dd2d4b98e361e00298a6bf6d3020ab3eca06a463312"
+        },
+        "runtime.json": {
+          "bytes": 6204577,
+          "sha256": "570e233fd69cfab7cc783de3eabfe959496ed266b187630cfcedbcbf568563c3"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12399040906,
+        "name": "earthnano-source-windows-2022-candidate-6",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12399040906.zip",
+        "archiveBytes": 1064815,
+        "archiveSha256": "dfe1b6cb2b938a416755ef2d37e8fb3fdba79f33612340de1b7a7edf70497c8d",
+        "apiDigest": "sha256:dfe1b6cb2b938a416755ef2d37e8fb3fdba79f33612340de1b7a7edf70497c8d",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12399040906,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5OTA0MDkwNg==",
+          "name": "earthnano-source-windows-2022-candidate-6",
+          "size_in_bytes": 1064815,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399040906",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399040906/zip",
+          "expired": false,
+          "digest": "sha256:dfe1b6cb2b938a416755ef2d37e8fb3fdba79f33612340de1b7a7edf70497c8d",
+          "created_at": "2026-10-22T03:09:28Z",
+          "updated_at": "2026-10-22T03:09:28Z",
+          "expires_at": "2026-11-05T03:09:27Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2550,
+            "sha256": "5b073c9654407f9fd4587d06fb007378d8d3f6322728d9cc266d13e2dc7c476f"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "0a7079e007dbe41f5fb1f31f6de95882a72063535b3a3d529dbc883de7a93c50"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 6204577,
+            "sha256": "570e233fd69cfab7cc783de3eabfe959496ed266b187630cfcedbcbf568563c3"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 4381977,
+            "sha256": "220fe21ef40c93f020464180f3958e8d55979b47e403b52a74878f7a93032636"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 1620,
+            "sha256": "17df980c0eba40d2aff098956dd8ed23d1419fd3934357fad7a61b18354a5b5b"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 3593702,
+            "sha256": "a323b35e70de75413c660dd2d4b98e361e00298a6bf6d3020ab3eca06a463312"
+          }
+        ]
+      },
+      "job": {
+        "id": 119605806613,
+        "name": "Source Windows candidate 6/8 / Source windows-2022 candidate 6/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:34:59Z",
+        "completed_at": "2026-10-22T03:09:31Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119605806613"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-7",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 7,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 0,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 784,
+        "numPassedTestSuites": 784,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 52569,
+        "numPassedTests": 48909,
+        "numFailedTests": 0,
+        "numPendingTests": 3658,
+        "numTodoTests": 0,
+        "success": true
+      },
+      "rawLeaves": 52569,
+      "runtimeLeaves": 52569,
+      "normalizedLeaves": 52569,
+      "normalizedCounts": {
+        "passed": 48909,
+        "failed": 0,
+        "skipped": 3660
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "passed",
+        "unhandledErrors": []
+      },
+      "failed": [],
+      "files": {
+        "source-report.json": {
+          "bytes": 28024776,
+          "sha256": "1f9d28230939e2dd7a0380e9cb721306480839972a724582e4dffd0395e279f5"
+        },
+        "vitest.json": {
+          "bytes": 22404331,
+          "sha256": "5bb3529adc633da7c390335490cbe59e9e3c3d7af71a6c5a9ca0ad39e9475fdf"
+        },
+        "runtime.json": {
+          "bytes": 41998906,
+          "sha256": "13de2ad6f142b3c9a456b1cf4aeb993f45652f1e521f21b7efda5997c80b035d"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12398273138,
+        "name": "earthnano-source-windows-2022-candidate-7",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12398273138.zip",
+        "archiveBytes": 2630792,
+        "archiveSha256": "5e6074c73e2645b811a1a8e9dd34ed0a0e5b82bd5aa5953120bef7f6bb02775d",
+        "apiDigest": "sha256:5e6074c73e2645b811a1a8e9dd34ed0a0e5b82bd5aa5953120bef7f6bb02775d",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12398273138,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5ODI3MzEzOA==",
+          "name": "earthnano-source-windows-2022-candidate-7",
+          "size_in_bytes": 2630792,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398273138",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12398273138/zip",
+          "expired": false,
+          "digest": "sha256:5e6074c73e2645b811a1a8e9dd34ed0a0e5b82bd5aa5953120bef7f6bb02775d",
+          "created_at": "2026-10-22T03:03:39Z",
+          "updated_at": "2026-10-22T03:03:39Z",
+          "expires_at": "2026-11-05T03:03:38Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2555,
+            "sha256": "45cc49c19d1676463d9365c32b93bfc484b25cb6ecdb970955a36e84c90bfba7"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "0a7079e007dbe41f5fb1f31f6de95882a72063535b3a3d529dbc883de7a93c50"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 41998906,
+            "sha256": "13de2ad6f142b3c9a456b1cf4aeb993f45652f1e521f21b7efda5997c80b035d"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 28024776,
+            "sha256": "1f9d28230939e2dd7a0380e9cb721306480839972a724582e4dffd0395e279f5"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 583,
+            "sha256": "7357859f2ccf4a48dcf8088fab6b1e4538cfb21d01317879f6636a0c02a73344"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 22404331,
+            "sha256": "5bb3529adc633da7c390335490cbe59e9e3c3d7af71a6c5a9ca0ad39e9475fdf"
+          }
+        ]
+      },
+      "job": {
+        "id": 119607953587,
+        "name": "Source Windows candidate 7/8 / Source windows-2022 candidate 7/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:42:17Z",
+        "completed_at": "2026-10-22T03:03:43Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119607953587"
+      }
+    },
+    {
+      "artifactName": "earthnano-source-windows-2022-candidate-8",
+      "identity": {
+        "schemaVersion": 1,
+        "kind": "candidate",
+        "shard": 8,
+        "total": 8,
+        "platform": "win32",
+        "arch": "x64",
+        "node": "v24.22.0",
+        "image": "win22:20261012.333.1",
+        "lockDigest": "fba51ea3e5859d4f72ec83c194fbde0d541808e6118b3124544a68ca5e70e811",
+        "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+        "testRoot": "D:\\a\\EarthNano\\EarthNano",
+        "profile": "original-windows-full",
+        "exclusions": [
+          "Original platform/test skipIf conditions and explicit opt-in model tests; all are retained in raw inventories"
+        ],
+        "pins": {
+          "openScience": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+          "harness": "1cfe254e8d25b15f37048c3730134686abe60335",
+          "harnessTree": "edc756a4d03a2826a248115482084a176e60e751"
+        },
+        "electron": "43.7.5"
+      },
+      "stages": [
+        {
+          "name": "npm-ci",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "pretest",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "typecheck",
+          "status": 0,
+          "signal": null
+        },
+        {
+          "name": "tests",
+          "status": 1,
+          "signal": null
+        }
+      ],
+      "rawCounters": {
+        "numTotalTestSuites": 2566,
+        "numPassedTestSuites": 2563,
+        "numFailedTestSuites": 3,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 19918,
+        "numPassedTests": 19423,
+        "numFailedTests": 2,
+        "numPendingTests": 493,
+        "numTodoTests": 0,
+        "success": false
+      },
+      "rawLeaves": 19918,
+      "runtimeLeaves": 19918,
+      "normalizedLeaves": 19918,
+      "normalizedCounts": {
+        "passed": 19423,
+        "failed": 2,
+        "skipped": 493
+      },
+      "rawEqualsStoredInventory": true,
+      "originalExecutionValidator": "passed",
+      "runtime": {
+        "schemaVersion": 1,
+        "reason": "failed",
+        "unhandledErrors": []
+      },
+      "failed": [
+        {
+          "id": "scripts/publish-npm-release.test.ts :: checks actual tarballs, a complete target set, source identity and identical entry bytes :: 0",
+          "path": "scripts/publish-npm-release.test.ts",
+          "name": "checks actual tarballs, a complete target set, source identity and identical entry bytes",
+          "status": "failed",
+          "failureMessages": [
+            "Error: Command failed: tar -czf C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-pnCwHA\\npm-darwin-arm64\\main.tgz -C C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\npm-publication-pnCwHA\\npm-darwin-arm64 package\ntar (child): Cannot connect to C: resolve failed\ntar: Child returned status 128\ntar: Error is not recoverable: exiting now\n\n    at genericNodeError (node:internal/errors:986:15)\n    at wrappedFn (node:internal/errors:540:14)\n    at checkExecSyncError (node:child_process:943:11)\n    at execFileSync (node:child_process:979:15)\n    at D:/a/EarthNano/EarthNano/scripts/publish-npm-release.test.ts:38:16\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "id": "packages/skills/src/user-skill-compatibility-index.test.ts :: UserSkillCompatibilityIndex includes prototype-like file names in package compatibility :: 0",
+          "path": "packages/skills/src/user-skill-compatibility-index.test.ts",
+          "name": "UserSkillCompatibilityIndex includes prototype-like file names in package compatibility",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected { …(2) } to not deeply equal { …(2) }\n    at D:/a/EarthNano/EarthNano/packages/skills/src/user-skill-compatibility-index.test.ts:170:23\n    at file:///D:/a/EarthNano/EarthNano/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ],
+      "files": {
+        "source-report.json": {
+          "bytes": 8262510,
+          "sha256": "0bfa087d4ae7350cff4b0d1ad4412de6add6fb67a112c438dcc2dfe5f0181ec4"
+        },
+        "vitest.json": {
+          "bytes": 6848931,
+          "sha256": "efcd27b3d99534e731948e801aa3df2bc53bb3f385a3b3f7ea452387b339cf6c"
+        },
+        "runtime.json": {
+          "bytes": 11485472,
+          "sha256": "3d70380f07915936e2c0a3bbb6b329f0247b1b820b1bd9ce4d7dcf83b969a6fb"
+        }
+      },
+      "artifact": {
+        "run": 39708999081,
+        "artifactId": 12399586649,
+        "name": "earthnano-source-windows-2022-candidate-8",
+        "archive": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifact-zips/12399586649.zip",
+        "archiveBytes": 2030757,
+        "archiveSha256": "4f5a77ba00857d8f00198d174533a7feaccb8854f270668a18e83d24172ac207",
+        "apiDigest": "sha256:4f5a77ba00857d8f00198d174533a7feaccb8854f270668a18e83d24172ac207",
+        "apiDigestMatches": true,
+        "apiArtifact": {
+          "id": 12399586649,
+          "node_id": "MDg6QXJ0aWZhY3QxMjM5OTU4NjY0OQ==",
+          "name": "earthnano-source-windows-2022-candidate-8",
+          "size_in_bytes": 2030757,
+          "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399586649",
+          "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12399586649/zip",
+          "expired": false,
+          "digest": "sha256:4f5a77ba00857d8f00198d174533a7feaccb8854f270668a18e83d24172ac207",
+          "created_at": "2026-10-22T03:28:01Z",
+          "updated_at": "2026-10-22T03:28:01Z",
+          "expires_at": "2026-11-05T03:27:59Z",
+          "workflow_run": {
+            "id": 39708999081,
+            "repository_id": 1426478825,
+            "head_repository_id": 1426478825,
+            "head_branch": "ci/earthnano-native",
+            "head_sha": "60e922b99ce77186374d219df2954de1c63acb5f"
+          }
+        },
+        "files": [
+          {
+            "path": "npm-ci.log",
+            "bytes": 2550,
+            "sha256": "cac0d25bd2f8f342549a08c1512d47e0b88dc1904a776ed37070c0ceee326afc"
+          },
+          {
+            "path": "pretest.log",
+            "bytes": 297,
+            "sha256": "69183463c751dca5624ff5c2c9fa1e05c9f9f729b4ba23b79875bb0fc7214469"
+          },
+          {
+            "path": "runtime.json",
+            "bytes": 11485472,
+            "sha256": "3d70380f07915936e2c0a3bbb6b329f0247b1b820b1bd9ce4d7dcf83b969a6fb"
+          },
+          {
+            "path": "source-report.json",
+            "bytes": 8262510,
+            "sha256": "0bfa087d4ae7350cff4b0d1ad4412de6add6fb67a112c438dcc2dfe5f0181ec4"
+          },
+          {
+            "path": "tests.log",
+            "bytes": 523895,
+            "sha256": "b9d51dd6fc1a5555b2a07465af2a9d3756cc7b39e65c546980576ac92ad22b62"
+          },
+          {
+            "path": "typecheck.log",
+            "bytes": 706,
+            "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+          },
+          {
+            "path": "vitest.json",
+            "bytes": 6848931,
+            "sha256": "efcd27b3d99534e731948e801aa3df2bc53bb3f385a3b3f7ea452387b339cf6c"
+          }
+        ]
+      },
+      "job": {
+        "id": 119609198653,
+        "name": "Source Windows candidate 8/8 / Source windows-2022 candidate 8/8",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T02:46:36Z",
+        "completed_at": "2026-10-22T03:28:05Z",
+        "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119609198653"
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "id": 119595876277,
+      "name": "Original pinned Windows Notebook runtime",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:02:00Z",
+      "completed_at": "2026-10-22T02:02:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595876277"
+    },
+    {
+      "id": 119595877593,
+      "name": "Resolve original platform sharding",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595877593"
+    },
+    {
+      "id": 119595877705,
+      "name": "Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595877705"
+    },
+    {
+      "id": 119595877732,
+      "name": "Unsigned native build and original launch ${{ matrix.os }}",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595877732"
+    },
+    {
+      "id": 119595877817,
+      "name": "Bundled upstream cases in the actual Mac ARM64 package",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595877817"
+    },
+    {
+      "id": 119595877906,
+      "name": "Pinned Harness source and original unittest comparison (Python 3.12)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:57Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595877906"
+    },
+    {
+      "id": 119595878683,
+      "name": "Enforce pinned original source comparison",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-22T02:01:58Z",
+      "completed_at": "2026-10-22T02:01:58Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119595878683"
+    },
+    {
+      "id": 119596188024,
+      "name": "Unsigned Windows install and original launch / Unsigned native build and original launch windows-2022",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:14:00Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188024"
+    },
+    {
+      "id": 119596188092,
+      "name": "Source Windows baseline 1/8 / Source windows-2022 baseline 1/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:30:06Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188092"
+    },
+    {
+      "id": 119596188124,
+      "name": "Source Windows baseline 2/8 / Source windows-2022 baseline 2/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:34:19Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188124"
+    },
+    {
+      "id": 119596188131,
+      "name": "Source Windows baseline 8/8 / Source windows-2022 baseline 8/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:42:15Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188131"
+    },
+    {
+      "id": 119596188210,
+      "name": "Source Windows baseline 3/8 / Source windows-2022 baseline 3/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:24:38Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188210"
+    },
+    {
+      "id": 119596188214,
+      "name": "Source Windows baseline 6/8 / Source windows-2022 baseline 6/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:34:58Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188214"
+    },
+    {
+      "id": 119596188285,
+      "name": "Source Windows baseline 7/8 / Source windows-2022 baseline 7/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:24:23Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188285"
+    },
+    {
+      "id": 119596188312,
+      "name": "Source Windows baseline 4/8 / Source windows-2022 baseline 4/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:48:29Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188312"
+    },
+    {
+      "id": 119596188341,
+      "name": "Source Windows baseline 5/8 / Source windows-2022 baseline 5/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:03:00Z",
+      "completed_at": "2026-10-22T02:25:11Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119596188341"
+    },
+    {
+      "id": 119602664721,
+      "name": "Source Windows candidate 1/8 / Source windows-2022 candidate 1/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:24:26Z",
+      "completed_at": "2026-10-22T03:02:53Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602664721"
+    },
+    {
+      "id": 119602733090,
+      "name": "Source Windows candidate 2/8 / Source windows-2022 candidate 2/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:24:40Z",
+      "completed_at": "2026-10-22T02:48:30Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602733090"
+    },
+    {
+      "id": 119602895482,
+      "name": "Source Windows candidate 3/8 / Source windows-2022 candidate 3/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:25:13Z",
+      "completed_at": "2026-10-22T02:46:34Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119602895482"
+    },
+    {
+      "id": 119604334643,
+      "name": "Source Windows candidate 4/8 / Source windows-2022 candidate 4/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:30:08Z",
+      "completed_at": "2026-10-22T03:03:21Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119604334643"
+    },
+    {
+      "id": 119605613644,
+      "name": "Source Windows candidate 5/8 / Source windows-2022 candidate 5/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:34:21Z",
+      "completed_at": "2026-10-22T02:51:43Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119605613644"
+    },
+    {
+      "id": 119605806613,
+      "name": "Source Windows candidate 6/8 / Source windows-2022 candidate 6/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:34:59Z",
+      "completed_at": "2026-10-22T03:09:31Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119605806613"
+    },
+    {
+      "id": 119607953587,
+      "name": "Source Windows candidate 7/8 / Source windows-2022 candidate 7/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:42:17Z",
+      "completed_at": "2026-10-22T03:03:43Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119607953587"
+    },
+    {
+      "id": 119609198653,
+      "name": "Source Windows candidate 8/8 / Source windows-2022 candidate 8/8",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-22T02:46:36Z",
+      "completed_at": "2026-10-22T03:28:05Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119609198653"
+    },
+    {
+      "id": 119621349456,
+      "name": "Enforce complete pinned Windows source comparison",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-22T03:28:08Z",
+      "completed_at": "2026-10-22T03:28:38Z",
+      "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39708999081/job/119621349456"
+    }
+  ],
+  "externalEvidence": {
+    "directory": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081",
+    "originalSourceZipCount": 16,
+    "sourceZipStorage": "All 16 original source artifact ZIPs are retained in the external artifact-zips directory and are not included in this repository archive. They have not been removed or rewritten. The original comparison artifact ZIP is also retained there.",
+    "rawReportsAndLogsStorage": "All extracted raw source-report.json, vitest.json, runtime.json, stage logs, API snapshots, and download receipts remain in the external directory; only the original comparison bytes (gzip) and this manifest are archived in the repository.",
+    "files": [
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/expected-run.json",
+        "bytes": 392,
+        "sha256": "3980fff19d517543a94d442000e1f827839937c3ba4d522a5534a76c5577e63c"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/run-api.json",
+        "bytes": 14484,
+        "sha256": "b5a921a9402251921d5a84af507838eccae6fe4f9be4f5db7b20d6149f9afc1e"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/jobs-api.json",
+        "bytes": 96313,
+        "sha256": "2acdef293a91f3a48e8fb5f4ec36e657e54813cf55d6892a05dbc91fb3fababf"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/artifacts-api.json",
+        "bytes": 17858,
+        "sha256": "ec1d2351ed7c3901c981ec12156be05fd7792e8b407dfc9c3b80b42f877d3c6d"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/collection-state.json",
+        "bytes": 12464,
+        "sha256": "89d01dfe333d90e2f541e356416af94404ad3d33961d158f7f913348c1cb42bc"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/original-earthnano-ci.yml",
+        "bytes": 12344,
+        "sha256": "87b8e5bb4c6f79b27b1aa2a616e6732a1208f9a827167a0e28b212a100a606a6"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/original-earthnano-source.yml",
+        "bytes": 2713,
+        "sha256": "ab5770b82a2bab9b3356fc5d0f42dbb4a3e863205144b5c8bc09e74a3b1545bd"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/original-UPSTREAMS.json",
+        "bytes": 6019,
+        "sha256": "7a2520381fd164ee014a8975b777cd823a37401add5fe0b9405d5b7b3e96d1ed"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/original-inventory-validation.json",
+        "bytes": 57911,
+        "sha256": "e5d91ab4792e8bdde9d40e6dec9dddd518d88024e24d3475a7eb7a5d605c4b80"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/validate-original-inventories.mjs",
+        "bytes": 3420,
+        "sha256": "3e2ebbb866801181959cf0d41ef1dc63e0632e760789e53324ca2c3b5f5adb12"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/final-39708999081/local-original-comparer.log",
+        "bytes": 511,
+        "sha256": "c979a707df89bbf4676d8b8e41dc35d72f7aaa40e1e4745750599ce17a75b182"
+      }
+    ]
+  },
+  "evidencePolicy": {
+    "dispatchesOrCancellationsByCollector": 0,
+    "comparisonRuleChanges": 0,
+    "originalReportRewrites": 0,
+    "futureFocusedRunsCannotOverrideThisResult": true,
+    "upstream011Fixture59dfde": "The later smart-collections.test.ts fixture adjustment is not part of this fixed 60e cohort. All four current candidate retry cases passed; any later focused evidence must remain separate."
+  }
+}
