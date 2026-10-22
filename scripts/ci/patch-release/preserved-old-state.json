@@ -1,0 +1,488 @@
+{
+  "v0.1.0-alpha.1": {
+    "release": {
+      "id": 420110278,
+      "tag_name": "v0.1.0-alpha.1",
+      "target_commitish": "bdc0246383a25990030854f4c2fa100895f29ea6",
+      "name": "EarthNano 0.1.0-alpha.1 - unsigned macOS/Linux preview",
+      "body": "# EarthNano 0.1.0-alpha.1\n\nEarthNano \u5c06 OpenScience \u79d1\u7814\u5de5\u4f5c\u53f0\u4e0e Harness\u00b2 \u7684\u914d\u7f6e\u4f18\u5316\u673a\u5236\u878d\u5165\u540c\u4e00\u6267\u884c\u6838\u5fc3\uff0c\u4e0d\u9884\u8bbe\u7814\u7a76\u5b66\u79d1\u3002\u666e\u901a\u4efb\u52a1\u548c\u4f18\u5316\u57fa\u7ebf/\u5019\u9009\u5171\u4eab\u4efb\u52a1\u3001\u914d\u7f6e\u4e0e\u8fd0\u884c\u5951\u7ea6\uff0c\u590d\u7528\u539f Session\u3001Notebook\u3001Compute/Job\u3001\u4e0d\u53ef\u53d8\u4ea7\u7269\u7248\u672c\u548c Review\uff1b\u539f Harness\u00b2 \u7684\u9012\u5f52\u63d0\u6848/\u7ec4\u5408\u3001seq/par/k\u3001\u4efb\u52a1\u6d41\u3001\u533f\u540d\u9009\u62e9\u3001\u53cd\u601d/Library \u4e0e\u663e\u5f0f\u7eed\u8dd1\u7ee7\u7eed\u4fdd\u7559\u3002\n\n\u672c\u7248\u63d0\u4f9b macOS Apple Silicon\u3001macOS Intel\u3001Linux x64\u3001Linux ARM64 \u7684 DMG/ZIP\u3001AppImage/DEB\u3002Windows \u5b89\u88c5\u5931\u8d25\u53ca Windows \u5206\u53d1\u5ef6\u671f\u81f3 0.2-Alpha\uff0c\u5df2\u6709\u6e90\u7801\u3001\u914d\u7f6e\u548c\u5931\u8d25\u8bc1\u636e\u4fdd\u7559\u3002\u672c\u7248\u4e3a Alpha \u9884\u89c8\uff0cmacOS \u5305\u6ca1\u6709 Developer ID \u7b7e\u540d\u6216\u516c\u8bc1\uff1b\u672a\u4ea7\u51fa\u6216\u58f0\u660e SLSA attestation\u3002\n\n\u9a8c\u8bc1\u8303\u56f4\uff1a\n\n- \u56db\u4e2a\u5b9e\u9645\u539f\u751f\u76ee\u6807\u7684\u539f\u6784\u5efa\u3001\u8d44\u6e90/\u5b89\u88c5/\u542f\u52a8\u4e0e fresh/legacy/reopen/special-path \u6570\u636e\u5e93\u68c0\u67e5\u901a\u8fc7\uff1a[\u539f\u751f\u8bb0\u5f55](https://github.com/lust0yixiong/EarthNano/actions/runs/39658781703)\u3002\n- \u540c\u6e90 Mac ARM64 \u5b9e\u9645\u5b89\u88c5\u5305\u901a\u8fc7\u539f Python \u540c\u4efb\u52a1 k=2 parallel \u79d1\u7814\u6d41\u7a0b\uff0c\u8986\u76d6\u666e\u901a Send\u30012 \u4e2a\u57fa\u7ebf/6 \u4e2a\u5019\u9009 Notebook producer\u3001\u56fa\u5b9a\u7248\u672c\u4e0e\u72ec\u7acb Review\u3001\u505c\u6b62/\u663e\u5f0f\u7eed\u8dd1\u53ca\u91cd\u5f00\uff1a[\u5b89\u88c5\u5305\u9a8c\u6536](https://github.com/lust0yixiong/EarthNano/actions/runs/39662102991)\u3002\u8be5\u6b21\u4e3a\u79bb\u7ebf\u6a21\u578b\u670d\u52a1\uff0c\u96f6\u4e0a\u6e38\u8bf7\u6c42\uff1b\u4e0d\u4ee3\u8868\u65b0\u7684 DeepSeek \u5b9e\u9a8c\u3001\u6240\u6709\u79d1\u7814\u4efb\u52a1\u6216\u5176\u4ed6\u5e73\u53f0 GUI \u5df2\u6d4b\u3002\n- \u56fa\u5b9a\u4e0a\u6e38\u540c\u73af\u5883\u7684\u5b8c\u6574 macOS/Linux \u6e90\u7801\u5bf9\u7167\u5747\u4e3a no-new-regressions\uff0c\u6d4b\u8bd5\u4e0e\u9636\u6bb5\u65b0\u589e\u56de\u5f52\u5747\u4e3a 0\uff1a[\u5b8c\u6574\u5bf9\u7167](https://github.com/lust0yixiong/EarthNano/actions/runs/39658771118)\u3002\u6bcf\u4e2a\u5e73\u53f0\u57fa\u7ebf 115,595\u3001\u5019\u9009 116,940 \u9879\uff1bmacOS \u4e24\u4fa7\u5404 2 \u9879\u5931\u8d25\uff0cLinux \u57fa\u7ebf 30\u3001\u5019\u9009 29 \u9879\u5931\u8d25\uff1b\u65e2\u6709\u5931\u8d25\u4e0e\u5168\u90e8\u8df3\u8fc7\u9879\u4fdd\u7559\uff0c\u4e0d\u80fd\u636e\u6b64\u58f0\u79f0\u6240\u6709\u6d4b\u8bd5\u901a\u8fc7\u3002\u539f Harness\u00b2 \u72ec\u7acb\u5bf9\u7167\u4e3a\u57fa\u7ebf 5\u3001\u5019\u9009 77 \u9879\u901a\u8fc7\uff0c\u65e0\u5931\u8d25\u6216\u8df3\u8fc7\u3002\n- \u65e2\u5f80\u6709\u754c Claude Code + DeepSeek\u3001R/\u4e8c\u8fdb\u5236\u53ca Compute \u539f\u670d\u52a1\u94fe\u5b9e\u9a8c\u4fdd\u7559\u5206\u5c42\u8bc1\u636e\u4e0e\u5931\u8d25\u8bb0\u5f55\u3002Compute transport/cipher \u4f7f\u7528\u53d7\u63a7 fixture\uff0c\u4e0d\u8bc1\u660e\u5916\u90e8 SSH/Slurm\uff1b\u90e8\u5206\u7528\u91cf\u53ca\u8d39\u7528\u4ecd\u663e\u793a unknown\u3002\u5355\u6b21\u8bc4\u5ba1\u9ad8\u5206\u3001\u4ea7\u7269\u9a8c\u6536\u6216\u914d\u7f6e eligible \u4e0d\u8bc1\u660e\u79d1\u7814\u6b63\u786e\u3001\u914d\u7f6e\u666e\u904d\u66f4\u4f18\u6216\u81ea\u52a8\u53d1\u5e03\u8d44\u683c\u3002\n\n\u4ece\u540c\u4e00 EarthNano Release \u4e0b\u8f7d\u5b89\u88c5\u5305\u4e0e `SHA256SUMS.txt`\uff0c\u6309\u771f\u5b9e\u6587\u4ef6\u540d\u6838\u5bf9\u5b8c\u6574 SHA-256\uff1b\u6458\u8981\u4e00\u81f4\u53ea\u8bc1\u660e\u5b57\u8282\u4e0e\u6e05\u5355\u4e00\u81f4\u3002\u5b89\u88c5\u3001Claude Code/\u81ea\u5b9a\u4e49 Messages/DeepSeek \u8bbe\u7f6e\u3001\u6743\u9650\u53ca\u4f18\u5316\u9884\u7b97\u89c1[\u4f7f\u7528\u6307\u5357](https://github.com/lust0yixiong/EarthNano/blob/main/docs/earthnano/ALPHA_USER_GUIDE.md)\u3002\u4f18\u5316\u4ecd\u7531\u7528\u6237\u663e\u5f0f\u89e6\u53d1\uff1b\u9ed8\u8ba4\u81ea\u52a8\u89e6\u53d1\u3001\u5e73\u53f0\u914d\u7f6e\u5ba1\u6279\u53d1\u5e03/\u56de\u6eda\u4e0e\u5b8c\u6574\u7cbe\u786e\u8d39\u7528\u8d26\u672c\u6ca1\u6709\u4f5c\u4e3a\u672c\u7248\u65b0\u589e\u529f\u80fd\u3002\n\n\u56fa\u5b9a\u4ea7\u54c1\u6e90\u7801\uff1a`bdc0246383a25990030854f4c2fa100895f29ea6`\u3002\u53d1\u5e03\u5305\u6765\u6e90\u4e0e\u540e\u7eed\u6587\u6863\u63d0\u4ea4\u5206\u522b\u8bb0\u5f55\uff1b\u767d\u5e95\u56fe\u6807\u6cbf\u7528\u539f Icon Composer \u6d41\u7a0b\u3002\u56fa\u5b9a\u4e0a\u6e38\u6765\u6e90\u53ca Apache-2.0 \u8bb8\u53ef\u8bc1\u89c1 [UPSTREAMS.json](https://github.com/lust0yixiong/EarthNano/blob/bdc0246383a25990030854f4c2fa100895f29ea6/UPSTREAMS.json)\u3002\n\nUnsigned macOS/Linux preview; Windows is deferred to 0.2. Not Developer ID signed or notarized.\n\nApplication source: bdc0246383a25990030854f4c2fa100895f29ea6\nPrepared run/attempt: 39683248168/1; artifact 12385377098, sha256:73d26b24720dceaf72237d05ffd7745dc7994c9b7ff3a14db4335a884e5c52a4.\n",
+      "draft": false,
+      "prerelease": true,
+      "published_at": "2026-10-21T22:26:33Z",
+      "assets": [
+        {
+          "id": 663948733,
+          "name": "EarthNano-0.1.0-alpha.1-linux-arm64.AppImage",
+          "size": 337968670,
+          "digest": "sha256:eefcf81b826a5f6406d65f663350cfa729c3d0ef7313aad937ed1a0ea19a76c3",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:18:05Z"
+        },
+        {
+          "id": 663949355,
+          "name": "EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage",
+          "size": 344270250,
+          "digest": "sha256:b5df89e003f8e5f32868dfa80a98964f75b06d3da55e3c74b27583c1b670d51d",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:18:19Z"
+        },
+        {
+          "id": 663950046,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.dmg",
+          "size": 286510398,
+          "digest": "sha256:8046796ba3dd690f8ab5e0ad10bd1b4e6f8783ee95c3fc49c8915490b95de36a",
+          "content_type": "application/x-apple-diskimage",
+          "created_at": "2026-10-21T22:18:35Z"
+        },
+        {
+          "id": 663950527,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.dmg.blockmap",
+          "size": 299914,
+          "digest": "sha256:48290c4f33b191833e30d7cca58bb084c0795297b3cecfe79c44536fb4c05c13",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:18:49Z"
+        },
+        {
+          "id": 663950561,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.zip",
+          "size": 327075998,
+          "digest": "sha256:86e1433eedd4083962e3c7aebc739be031cbb69107d83fcb85eaa48f566f5115",
+          "content_type": "application/zip",
+          "created_at": "2026-10-21T22:18:50Z"
+        },
+        {
+          "id": 663951047,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.zip.blockmap",
+          "size": 340164,
+          "digest": "sha256:31b5c29193bb0e8a8d7df627db898cbae538e58936fd7569d579aed29044aa1a",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:19:05Z"
+        },
+        {
+          "id": 663951087,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.dmg",
+          "size": 287951830,
+          "digest": "sha256:92588dc65632233648374dbf0e9ba664dac84bb9edb1f272037adfb4d056d224",
+          "content_type": "application/x-apple-diskimage",
+          "created_at": "2026-10-21T22:19:05Z"
+        },
+        {
+          "id": 663951491,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.dmg.blockmap",
+          "size": 303600,
+          "digest": "sha256:1f112f45f0e467dd4530335d3132ebf7779c4f47b9113ccd6a922d1688b06cff",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:19:17Z"
+        },
+        {
+          "id": 663951513,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.zip",
+          "size": 329903000,
+          "digest": "sha256:232f56d3c6190589b9bbac87fc2588f031a233b54d763ba92129c72a9f71c3f3",
+          "content_type": "application/zip",
+          "created_at": "2026-10-21T22:19:17Z"
+        },
+        {
+          "id": 663952043,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.zip.blockmap",
+          "size": 342719,
+          "digest": "sha256:a4e2d85a7ea72568edc3e38040df644d1f7e558d674f0f428b750ae1c2d0462a",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:19:32Z"
+        },
+        {
+          "id": 663952069,
+          "name": "EarthNano_0.1.0-alpha.1_amd64.deb",
+          "size": 272710756,
+          "digest": "sha256:12dd5e7d90be4ea02b1ee02cd0a02ede24cbc23957ef3e4bb18bba271818640f",
+          "content_type": "application/x-debian-package",
+          "created_at": "2026-10-21T22:19:32Z"
+        },
+        {
+          "id": 663952472,
+          "name": "EarthNano_0.1.0-alpha.1_arm64.deb",
+          "size": 253270988,
+          "digest": "sha256:3f02aeeeecab90c7f06b7204f7cd38336ebd4ab8323b51a8ef18e35b9d585718",
+          "content_type": "application/x-debian-package",
+          "created_at": "2026-10-21T22:19:43Z"
+        },
+        {
+          "id": 663952766,
+          "name": "RELEASE-CERTIFICATION.json",
+          "size": 5645,
+          "digest": "sha256:5b79b55c35e87964e797b716eb202ff6325da730ffb07e6dea35c7aed4b71df4",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:19:53Z"
+        },
+        {
+          "id": 663952791,
+          "name": "SHA256SUMS.txt",
+          "size": 835,
+          "digest": "sha256:8b5b4d08603812f51a2b2a7a37e80eb99b16919014a54341fdf9c3e091cc0dbb",
+          "content_type": "text/plain",
+          "created_at": "2026-10-21T22:19:53Z"
+        },
+        {
+          "id": 663952806,
+          "name": "alpha-linux-arm64.yml",
+          "size": 582,
+          "digest": "sha256:9c84508ef860b77a95a7667bd0b7ab78cc95ce6bd6ef463e02fb28d8f4cdc87c",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:19:54Z"
+        },
+        {
+          "id": 663952820,
+          "name": "alpha-linux.yml",
+          "size": 584,
+          "digest": "sha256:5419b5145e28b4cb0698a68ff4a8801d7c930a34fb9bcdf1d3b4df4777798bfd",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:19:55Z"
+        },
+        {
+          "id": 663952841,
+          "name": "alpha-mac.yml",
+          "size": 545,
+          "digest": "sha256:0d1d65e09043f93ab228fd56d3b824b0852cf799dd657b813d92832a290db01b",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:19:55Z"
+        },
+        {
+          "id": 663952862,
+          "name": "arm64-mac.yml",
+          "size": 547,
+          "digest": "sha256:424472ca20419198be98a5f14fdd0872d9c57d9ece3da1d3b81fd7bf50cbf328",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:19:56Z"
+        },
+        {
+          "id": 663952882,
+          "name": "certification-linux-arm64.json",
+          "size": 1170,
+          "digest": "sha256:4189631cc4ac472bad11ec96cb2c1b309b32b25cc69cf1e9b644c7dfb5faa007",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:19:57Z"
+        },
+        {
+          "id": 663952902,
+          "name": "certification-linux-x64.json",
+          "size": 1169,
+          "digest": "sha256:00773cca1f76b46262ff73991986a8c456d42ba19db29e74acd6cc9912870472",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:19:57Z"
+        },
+        {
+          "id": 663952924,
+          "name": "certification-macos-arm64.json",
+          "size": 1167,
+          "digest": "sha256:e6e1c7f67f0a87050d319bfdc201ada8335d521c28faa8318f8aa9a85c56a6e9",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:19:58Z"
+        },
+        {
+          "id": 663952953,
+          "name": "certification-macos-x64.json",
+          "size": 1161,
+          "digest": "sha256:309aa514f4d59c820f02fcc8e6413a330a68ed7c1a82a875a8031346f51a3dd5",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:19:59Z"
+        },
+        {
+          "id": 663952981,
+          "name": "database-migration-certification-linux-arm64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:20:00Z"
+        },
+        {
+          "id": 663953010,
+          "name": "database-migration-certification-linux-x64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:20:00Z"
+        },
+        {
+          "id": 663953038,
+          "name": "database-migration-certification-macos-arm64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:20:01Z"
+        },
+        {
+          "id": 663953053,
+          "name": "database-migration-certification-macos-x64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:20:02Z"
+        },
+        {
+          "id": 663953072,
+          "name": "version.json",
+          "size": 4776,
+          "digest": "sha256:90b02dd8f97d9d6bbc672ff043793cb6e4dbd58eee878a022f952b8feafa9a22",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:20:02Z"
+        },
+        {
+          "id": 663953105,
+          "name": "x64-mac.yml",
+          "size": 541,
+          "digest": "sha256:67b21edb39c4495850fb21f37d5abd3a35c825cc4ef46236dfb2f9d68f6b31ce",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:20:03Z"
+        }
+      ]
+    },
+    "ref": {
+      "sha": "bdc0246383a25990030854f4c2fa100895f29ea6",
+      "type": "commit",
+      "url": "https://api.github.com/repos/lust0yixiong/EarthNano/git/commits/bdc0246383a25990030854f4c2fa100895f29ea6"
+    }
+  },
+  "alpha": {
+    "release": {
+      "id": 420111671,
+      "tag_name": "alpha",
+      "target_commitish": "bdc0246383a25990030854f4c2fa100895f29ea6",
+      "name": "EarthNano Alpha preview channel - 0.1.0-alpha.1",
+      "body": "# EarthNano 0.1.0-alpha.1\n\nEarthNano \u5c06 OpenScience \u79d1\u7814\u5de5\u4f5c\u53f0\u4e0e Harness\u00b2 \u7684\u914d\u7f6e\u4f18\u5316\u673a\u5236\u878d\u5165\u540c\u4e00\u6267\u884c\u6838\u5fc3\uff0c\u4e0d\u9884\u8bbe\u7814\u7a76\u5b66\u79d1\u3002\u666e\u901a\u4efb\u52a1\u548c\u4f18\u5316\u57fa\u7ebf/\u5019\u9009\u5171\u4eab\u4efb\u52a1\u3001\u914d\u7f6e\u4e0e\u8fd0\u884c\u5951\u7ea6\uff0c\u590d\u7528\u539f Session\u3001Notebook\u3001Compute/Job\u3001\u4e0d\u53ef\u53d8\u4ea7\u7269\u7248\u672c\u548c Review\uff1b\u539f Harness\u00b2 \u7684\u9012\u5f52\u63d0\u6848/\u7ec4\u5408\u3001seq/par/k\u3001\u4efb\u52a1\u6d41\u3001\u533f\u540d\u9009\u62e9\u3001\u53cd\u601d/Library \u4e0e\u663e\u5f0f\u7eed\u8dd1\u7ee7\u7eed\u4fdd\u7559\u3002\n\n\u672c\u7248\u63d0\u4f9b macOS Apple Silicon\u3001macOS Intel\u3001Linux x64\u3001Linux ARM64 \u7684 DMG/ZIP\u3001AppImage/DEB\u3002Windows \u5b89\u88c5\u5931\u8d25\u53ca Windows \u5206\u53d1\u5ef6\u671f\u81f3 0.2-Alpha\uff0c\u5df2\u6709\u6e90\u7801\u3001\u914d\u7f6e\u548c\u5931\u8d25\u8bc1\u636e\u4fdd\u7559\u3002\u672c\u7248\u4e3a Alpha \u9884\u89c8\uff0cmacOS \u5305\u6ca1\u6709 Developer ID \u7b7e\u540d\u6216\u516c\u8bc1\uff1b\u672a\u4ea7\u51fa\u6216\u58f0\u660e SLSA attestation\u3002\n\n\u9a8c\u8bc1\u8303\u56f4\uff1a\n\n- \u56db\u4e2a\u5b9e\u9645\u539f\u751f\u76ee\u6807\u7684\u539f\u6784\u5efa\u3001\u8d44\u6e90/\u5b89\u88c5/\u542f\u52a8\u4e0e fresh/legacy/reopen/special-path \u6570\u636e\u5e93\u68c0\u67e5\u901a\u8fc7\uff1a[\u539f\u751f\u8bb0\u5f55](https://github.com/lust0yixiong/EarthNano/actions/runs/39658781703)\u3002\n- \u540c\u6e90 Mac ARM64 \u5b9e\u9645\u5b89\u88c5\u5305\u901a\u8fc7\u539f Python \u540c\u4efb\u52a1 k=2 parallel \u79d1\u7814\u6d41\u7a0b\uff0c\u8986\u76d6\u666e\u901a Send\u30012 \u4e2a\u57fa\u7ebf/6 \u4e2a\u5019\u9009 Notebook producer\u3001\u56fa\u5b9a\u7248\u672c\u4e0e\u72ec\u7acb Review\u3001\u505c\u6b62/\u663e\u5f0f\u7eed\u8dd1\u53ca\u91cd\u5f00\uff1a[\u5b89\u88c5\u5305\u9a8c\u6536](https://github.com/lust0yixiong/EarthNano/actions/runs/39662102991)\u3002\u8be5\u6b21\u4e3a\u79bb\u7ebf\u6a21\u578b\u670d\u52a1\uff0c\u96f6\u4e0a\u6e38\u8bf7\u6c42\uff1b\u4e0d\u4ee3\u8868\u65b0\u7684 DeepSeek \u5b9e\u9a8c\u3001\u6240\u6709\u79d1\u7814\u4efb\u52a1\u6216\u5176\u4ed6\u5e73\u53f0 GUI \u5df2\u6d4b\u3002\n- \u56fa\u5b9a\u4e0a\u6e38\u540c\u73af\u5883\u7684\u5b8c\u6574 macOS/Linux \u6e90\u7801\u5bf9\u7167\u5747\u4e3a no-new-regressions\uff0c\u6d4b\u8bd5\u4e0e\u9636\u6bb5\u65b0\u589e\u56de\u5f52\u5747\u4e3a 0\uff1a[\u5b8c\u6574\u5bf9\u7167](https://github.com/lust0yixiong/EarthNano/actions/runs/39658771118)\u3002\u6bcf\u4e2a\u5e73\u53f0\u57fa\u7ebf 115,595\u3001\u5019\u9009 116,940 \u9879\uff1bmacOS \u4e24\u4fa7\u5404 2 \u9879\u5931\u8d25\uff0cLinux \u57fa\u7ebf 30\u3001\u5019\u9009 29 \u9879\u5931\u8d25\uff1b\u65e2\u6709\u5931\u8d25\u4e0e\u5168\u90e8\u8df3\u8fc7\u9879\u4fdd\u7559\uff0c\u4e0d\u80fd\u636e\u6b64\u58f0\u79f0\u6240\u6709\u6d4b\u8bd5\u901a\u8fc7\u3002\u539f Harness\u00b2 \u72ec\u7acb\u5bf9\u7167\u4e3a\u57fa\u7ebf 5\u3001\u5019\u9009 77 \u9879\u901a\u8fc7\uff0c\u65e0\u5931\u8d25\u6216\u8df3\u8fc7\u3002\n- \u65e2\u5f80\u6709\u754c Claude Code + DeepSeek\u3001R/\u4e8c\u8fdb\u5236\u53ca Compute \u539f\u670d\u52a1\u94fe\u5b9e\u9a8c\u4fdd\u7559\u5206\u5c42\u8bc1\u636e\u4e0e\u5931\u8d25\u8bb0\u5f55\u3002Compute transport/cipher \u4f7f\u7528\u53d7\u63a7 fixture\uff0c\u4e0d\u8bc1\u660e\u5916\u90e8 SSH/Slurm\uff1b\u90e8\u5206\u7528\u91cf\u53ca\u8d39\u7528\u4ecd\u663e\u793a unknown\u3002\u5355\u6b21\u8bc4\u5ba1\u9ad8\u5206\u3001\u4ea7\u7269\u9a8c\u6536\u6216\u914d\u7f6e eligible \u4e0d\u8bc1\u660e\u79d1\u7814\u6b63\u786e\u3001\u914d\u7f6e\u666e\u904d\u66f4\u4f18\u6216\u81ea\u52a8\u53d1\u5e03\u8d44\u683c\u3002\n\n\u4ece\u540c\u4e00 EarthNano Release \u4e0b\u8f7d\u5b89\u88c5\u5305\u4e0e `SHA256SUMS.txt`\uff0c\u6309\u771f\u5b9e\u6587\u4ef6\u540d\u6838\u5bf9\u5b8c\u6574 SHA-256\uff1b\u6458\u8981\u4e00\u81f4\u53ea\u8bc1\u660e\u5b57\u8282\u4e0e\u6e05\u5355\u4e00\u81f4\u3002\u5b89\u88c5\u3001Claude Code/\u81ea\u5b9a\u4e49 Messages/DeepSeek \u8bbe\u7f6e\u3001\u6743\u9650\u53ca\u4f18\u5316\u9884\u7b97\u89c1[\u4f7f\u7528\u6307\u5357](https://github.com/lust0yixiong/EarthNano/blob/main/docs/earthnano/ALPHA_USER_GUIDE.md)\u3002\u4f18\u5316\u4ecd\u7531\u7528\u6237\u663e\u5f0f\u89e6\u53d1\uff1b\u9ed8\u8ba4\u81ea\u52a8\u89e6\u53d1\u3001\u5e73\u53f0\u914d\u7f6e\u5ba1\u6279\u53d1\u5e03/\u56de\u6eda\u4e0e\u5b8c\u6574\u7cbe\u786e\u8d39\u7528\u8d26\u672c\u6ca1\u6709\u4f5c\u4e3a\u672c\u7248\u65b0\u589e\u529f\u80fd\u3002\n\n\u56fa\u5b9a\u4ea7\u54c1\u6e90\u7801\uff1a`bdc0246383a25990030854f4c2fa100895f29ea6`\u3002\u53d1\u5e03\u5305\u6765\u6e90\u4e0e\u540e\u7eed\u6587\u6863\u63d0\u4ea4\u5206\u522b\u8bb0\u5f55\uff1b\u767d\u5e95\u56fe\u6807\u6cbf\u7528\u539f Icon Composer \u6d41\u7a0b\u3002\u56fa\u5b9a\u4e0a\u6e38\u6765\u6e90\u53ca Apache-2.0 \u8bb8\u53ef\u8bc1\u89c1 [UPSTREAMS.json](https://github.com/lust0yixiong/EarthNano/blob/bdc0246383a25990030854f4c2fa100895f29ea6/UPSTREAMS.json)\u3002\n\nUnsigned macOS/Linux preview; Windows is deferred to 0.2. Not Developer ID signed or notarized.\n\nApplication source: bdc0246383a25990030854f4c2fa100895f29ea6\nPrepared run/attempt: 39683248168/1; artifact 12385377098, sha256:73d26b24720dceaf72237d05ffd7745dc7994c9b7ff3a14db4335a884e5c52a4.\n",
+      "draft": false,
+      "prerelease": true,
+      "published_at": "2026-10-21T22:26:36Z",
+      "assets": [
+        {
+          "id": 663953442,
+          "name": "EarthNano-0.1.0-alpha.1-linux-arm64.AppImage",
+          "size": 337968670,
+          "digest": "sha256:eefcf81b826a5f6406d65f663350cfa729c3d0ef7313aad937ed1a0ea19a76c3",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:20:11Z"
+        },
+        {
+          "id": 663954010,
+          "name": "EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage",
+          "size": 344270250,
+          "digest": "sha256:b5df89e003f8e5f32868dfa80a98964f75b06d3da55e3c74b27583c1b670d51d",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:20:26Z"
+        },
+        {
+          "id": 663954601,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.dmg",
+          "size": 286510398,
+          "digest": "sha256:8046796ba3dd690f8ab5e0ad10bd1b4e6f8783ee95c3fc49c8915490b95de36a",
+          "content_type": "application/x-apple-diskimage",
+          "created_at": "2026-10-21T22:20:41Z"
+        },
+        {
+          "id": 663954879,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.dmg.blockmap",
+          "size": 299914,
+          "digest": "sha256:48290c4f33b191833e30d7cca58bb084c0795297b3cecfe79c44536fb4c05c13",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:20:51Z"
+        },
+        {
+          "id": 663954898,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.zip",
+          "size": 327075998,
+          "digest": "sha256:86e1433eedd4083962e3c7aebc739be031cbb69107d83fcb85eaa48f566f5115",
+          "content_type": "application/zip",
+          "created_at": "2026-10-21T22:20:52Z"
+        },
+        {
+          "id": 663955481,
+          "name": "EarthNano-0.1.0-alpha.1-mac-arm64.zip.blockmap",
+          "size": 340164,
+          "digest": "sha256:31b5c29193bb0e8a8d7df627db898cbae538e58936fd7569d579aed29044aa1a",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:21:06Z"
+        },
+        {
+          "id": 663955532,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.dmg",
+          "size": 287951830,
+          "digest": "sha256:92588dc65632233648374dbf0e9ba664dac84bb9edb1f272037adfb4d056d224",
+          "content_type": "application/x-apple-diskimage",
+          "created_at": "2026-10-21T22:21:07Z"
+        },
+        {
+          "id": 663955985,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.dmg.blockmap",
+          "size": 303600,
+          "digest": "sha256:1f112f45f0e467dd4530335d3132ebf7779c4f47b9113ccd6a922d1688b06cff",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:21:18Z"
+        },
+        {
+          "id": 663956019,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.zip",
+          "size": 329903000,
+          "digest": "sha256:232f56d3c6190589b9bbac87fc2588f031a233b54d763ba92129c72a9f71c3f3",
+          "content_type": "application/zip",
+          "created_at": "2026-10-21T22:21:19Z"
+        },
+        {
+          "id": 663956630,
+          "name": "EarthNano-0.1.0-alpha.1-mac-x64.zip.blockmap",
+          "size": 342719,
+          "digest": "sha256:a4e2d85a7ea72568edc3e38040df644d1f7e558d674f0f428b750ae1c2d0462a",
+          "content_type": "application/octet-stream",
+          "created_at": "2026-10-21T22:21:32Z"
+        },
+        {
+          "id": 663956667,
+          "name": "EarthNano_0.1.0-alpha.1_amd64.deb",
+          "size": 272710756,
+          "digest": "sha256:12dd5e7d90be4ea02b1ee02cd0a02ede24cbc23957ef3e4bb18bba271818640f",
+          "content_type": "application/x-debian-package",
+          "created_at": "2026-10-21T22:21:33Z"
+        },
+        {
+          "id": 663957044,
+          "name": "EarthNano_0.1.0-alpha.1_arm64.deb",
+          "size": 253270988,
+          "digest": "sha256:3f02aeeeecab90c7f06b7204f7cd38336ebd4ab8323b51a8ef18e35b9d585718",
+          "content_type": "application/x-debian-package",
+          "created_at": "2026-10-21T22:21:44Z"
+        },
+        {
+          "id": 663957401,
+          "name": "RELEASE-CERTIFICATION.json",
+          "size": 5645,
+          "digest": "sha256:5b79b55c35e87964e797b716eb202ff6325da730ffb07e6dea35c7aed4b71df4",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:53Z"
+        },
+        {
+          "id": 663957426,
+          "name": "SHA256SUMS.txt",
+          "size": 835,
+          "digest": "sha256:8b5b4d08603812f51a2b2a7a37e80eb99b16919014a54341fdf9c3e091cc0dbb",
+          "content_type": "text/plain",
+          "created_at": "2026-10-21T22:21:54Z"
+        },
+        {
+          "id": 663957465,
+          "name": "alpha-linux-arm64.yml",
+          "size": 582,
+          "digest": "sha256:9c84508ef860b77a95a7667bd0b7ab78cc95ce6bd6ef463e02fb28d8f4cdc87c",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:21:55Z"
+        },
+        {
+          "id": 663957488,
+          "name": "alpha-linux.yml",
+          "size": 584,
+          "digest": "sha256:5419b5145e28b4cb0698a68ff4a8801d7c930a34fb9bcdf1d3b4df4777798bfd",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:21:55Z"
+        },
+        {
+          "id": 663957530,
+          "name": "alpha-mac.yml",
+          "size": 545,
+          "digest": "sha256:0d1d65e09043f93ab228fd56d3b824b0852cf799dd657b813d92832a290db01b",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:21:56Z"
+        },
+        {
+          "id": 663957547,
+          "name": "arm64-mac.yml",
+          "size": 547,
+          "digest": "sha256:424472ca20419198be98a5f14fdd0872d9c57d9ece3da1d3b81fd7bf50cbf328",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:21:56Z"
+        },
+        {
+          "id": 663957592,
+          "name": "certification-linux-arm64.json",
+          "size": 1170,
+          "digest": "sha256:4189631cc4ac472bad11ec96cb2c1b309b32b25cc69cf1e9b644c7dfb5faa007",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:57Z"
+        },
+        {
+          "id": 663957665,
+          "name": "certification-linux-x64.json",
+          "size": 1169,
+          "digest": "sha256:00773cca1f76b46262ff73991986a8c456d42ba19db29e74acd6cc9912870472",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:58Z"
+        },
+        {
+          "id": 663957680,
+          "name": "certification-macos-arm64.json",
+          "size": 1167,
+          "digest": "sha256:e6e1c7f67f0a87050d319bfdc201ada8335d521c28faa8318f8aa9a85c56a6e9",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:58Z"
+        },
+        {
+          "id": 663957716,
+          "name": "certification-macos-x64.json",
+          "size": 1161,
+          "digest": "sha256:309aa514f4d59c820f02fcc8e6413a330a68ed7c1a82a875a8031346f51a3dd5",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:59Z"
+        },
+        {
+          "id": 663957762,
+          "name": "database-migration-certification-linux-arm64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:21:59Z"
+        },
+        {
+          "id": 663957795,
+          "name": "database-migration-certification-linux-x64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:22:00Z"
+        },
+        {
+          "id": 663957832,
+          "name": "database-migration-certification-macos-arm64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:22:00Z"
+        },
+        {
+          "id": 663957864,
+          "name": "database-migration-certification-macos-x64.json",
+          "size": 363,
+          "digest": "sha256:050a27daa552a754d3612a22a3718cded6e9dd23be51fdaa31c90c5c81f9bcb1",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:22:01Z"
+        },
+        {
+          "id": 663957875,
+          "name": "version.json",
+          "size": 4776,
+          "digest": "sha256:90b02dd8f97d9d6bbc672ff043793cb6e4dbd58eee878a022f952b8feafa9a22",
+          "content_type": "application/json",
+          "created_at": "2026-10-21T22:22:02Z"
+        },
+        {
+          "id": 663957913,
+          "name": "x64-mac.yml",
+          "size": 541,
+          "digest": "sha256:67b21edb39c4495850fb21f37d5abd3a35c825cc4ef46236dfb2f9d68f6b31ce",
+          "content_type": "text/yaml",
+          "created_at": "2026-10-21T22:22:02Z"
+        }
+      ]
+    },
+    "ref": {
+      "sha": "bdc0246383a25990030854f4c2fa100895f29ea6",
+      "type": "commit",
+      "url": "https://api.github.com/repos/lust0yixiong/EarthNano/git/commits/bdc0246383a25990030854f4c2fa100895f29ea6"
+    }
+  }
+}
