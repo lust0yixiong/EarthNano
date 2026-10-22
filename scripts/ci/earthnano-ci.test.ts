@@ -234,6 +234,31 @@ describe('EarthNano original-baseline gates', () => {
       )
     }
   })
+  it('keeps the requested About-line removal tied to one passing replacement assertion', () => {
+    const path = 'src/renderer/src/pages/settings/AppVersionSection.render.test.tsx'
+    const before = 'AppVersionSection shows the app name, version, and copyright'
+    const after =
+      'AppVersionSection shows the app name and version without the promotional copyright line'
+    const baseline = [{ path, name: before, id: `${path} :: ${before} :: 0`, status: 'passed' }]
+    const candidate = [{ path, name: after, id: `${path} :: ${after} :: 0`, status: 'passed' }]
+    const comparison = compareInventories(baseline, candidate)
+    expect(comparison.conclusion).toBe('no-new-regressions')
+    expect(comparison.reviewedTestRenames).toEqual([
+      {
+        originalId: baseline[0].id,
+        id: candidate[0].id,
+        reason: 'approved-about-copyright-line-removal'
+      }
+    ])
+    expect(compareInventories(baseline, []).conclusion).toBe('new-regressions')
+    for (const status of ['failed', 'pending'])
+      expect(compareInventories(baseline, [{ ...candidate[0], status }]).conclusion).toBe(
+        'new-regressions'
+      )
+    expect(
+      compareInventories([{ ...baseline[0], path: 'different.ts' }], candidate).conclusion
+    ).toBe('new-regressions')
+  })
   it('rejects global/runtime errors and dishonest success/counters instead of classifying them as assertions', () => {
     for (const extra of [
       { success: false },

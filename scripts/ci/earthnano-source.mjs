@@ -269,10 +269,16 @@ export function validateSourceExecution(report, runtime) {
     throw new Error('Test process outcome is not explained by assertion inventory')
 }
 export function compareInventories(baseline, candidate) {
-  // These five names changed only with the user-requested product/artwork replacement. Preserve
+  // These exact names changed only with user-requested branding/About changes. Preserve
   // raw reports and require the corresponding renamed assertion to pass; no arbitrary fuzzy match,
   // removed assertion waiver or exception for an actual failed/skipped candidate is allowed.
   const names = [
+    [
+      'src/renderer/src/pages/settings/AppVersionSection.render.test.tsx',
+      'AppVersionSection shows the app name, version, and copyright',
+      'AppVersionSection shows the app name and version without the promotional copyright line',
+      'approved-about-copyright-line-removal'
+    ],
     [
       'src/main/app-branding.test.ts',
       'app display branding uses the Open-Science display name in shell and workspace surfaces',
@@ -291,14 +297,14 @@ export function compareInventories(baseline, candidate) {
   ]
   const reviewedTestRenames = []
   baseline = baseline.map((test) => {
-    for (const [path, before, after] of names) {
+    for (const [path, before, after, reason] of names) {
       const prefix = `${path} :: ${before} :: `
       if (test.path === path && test.name === before && test.id.startsWith(prefix)) {
         const id = `${path} :: ${after} :: ${test.id.slice(prefix.length)}`
         reviewedTestRenames.push({
           originalId: test.id,
           id,
-          reason: 'approved-product-artwork-replacement'
+          reason: reason ?? 'approved-product-artwork-replacement'
         })
         return { ...test, id, originalId: test.id }
       }
