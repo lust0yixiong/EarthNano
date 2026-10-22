@@ -45,7 +45,8 @@ it('attaches source inputs without supplying held-out reference outputs to the a
     ['registry_source.json', 1669267]
   ])
   expect(upstreamTrialFiles('harness2-ledger').map((file) => file.name)).toEqual([
-    'ledger-1.csv', 'ledger-2.csv'
+    'ledger-1.csv',
+    'ledger-2.csv'
   ])
   expect(upstreamTrials['harness2-ledger'].prompt).not.toContain('85.15')
   expect(upstreamTrials['openscience-case16'].prompt).not.toContain('41.25')

@@ -27,7 +27,9 @@ export const UpstreamTrialExamples = ({
         {t('Try upstream examples')}
       </summary>
       <p className="mt-2 text-xs text-text-100">
-        {t('Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.')}
+        {t(
+          'Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.'
+        )}
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {cases.map(({ id, title, description }) => (
