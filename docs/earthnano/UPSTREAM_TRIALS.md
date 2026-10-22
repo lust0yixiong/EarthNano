@@ -23,9 +23,9 @@
 验收：`trial_calculations.csv` 和 `availability_summary.csv` 与原参考逐字节一致。
 候选 93、纳入 80、排除 13，纳入记录中有登记结果 33，比例 41.25%。参考 SHA-256：
 
-| 文件 | SHA-256 |
-| --- | --- |
-| trial_calculations.csv | `ce5be45173e72f859c525876424d87eacd4a9c88d79afce550fbf3232e719da6` |
+| 文件                     | SHA-256                                                            |
+| ------------------------ | ------------------------------------------------------------------ |
+| trial_calculations.csv   | `ce5be45173e72f859c525876424d87eacd4a9c88d79afce550fbf3232e719da6` |
 | availability_summary.csv | `64e40cf520346dd84f3e07310314b3b7a8e5ce44929aa9963967b23e42c8721e` |
 
 本案例只复算冻结输入，不重新采集登记库、不重放完整上游智能体，也不将数值一致称为结论的科学验证。
@@ -36,7 +36,7 @@
 使用 `Decimal` 对所有正负金额求和，发布 `ledger-results.json`：
 
 ```json
-{"ledger-1":{"count":3,"total":"85.15"},"ledger-2":{"count":3,"total":"20.25"}}
+{ "ledger-1": { "count": 3, "total": "85.15" }, "ledger-2": { "count": 3, "total": "20.25" } }
 ```
 
 普通运行完成后展开现有 **Optimize task**，勾选 **Repeat this task with Notebook**，选择 Python。

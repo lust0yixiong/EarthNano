@@ -2,9 +2,9 @@
 
 EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入同一执行核心：先在项目与会话中完成科研任务，再对同一个任务比较基线和候选配置，保留 Notebook、产物版本、来源与审阅记录。
 
-当前版本：**[0.1.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)**，支持 macOS 和 Linux。Windows 安装与分发延期至 0.2-Alpha，见[问题记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
+当前版本：**[0.1.1-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)**，支持 macOS 和 Linux。Windows 安装与分发延期至 0.2-Alpha，见[问题记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
 
-[安装](#安装) · [首次配置](#首次配置) · [第一次科研任务](#第一次科研任务) · [完整使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)
+[安装](#安装) · [首次配置](#首次配置) · [试用上游案例](#试用上游案例) · [第一次科研任务](#第一次科研任务) · [完整使用指南](docs/earthnano/ALPHA_USER_GUIDE.md)
 
 ## 安装
 
@@ -12,19 +12,19 @@ EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入�
 
 | 系统与架构 | 下载文件 |
 | --- | --- |
-| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-mac-arm64.dmg) |
-| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-mac-x64.dmg) |
-| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano_0.1.0-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage) |
-| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano_0.1.0-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/EarthNano-0.1.0-alpha.1-linux-arm64.AppImage) |
+| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-mac-arm64.dmg) |
+| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-mac-x64.dmg) |
+| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano_0.1.1-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage) |
+| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano_0.1.1-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/EarthNano-0.1.1-alpha.1-linux-arm64.AppImage) |
 
-macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
+macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.1.1-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
 
 ```bash
 # macOS：Apple Silicon DMG 示例
-shasum -a 256 EarthNano-0.1.0-alpha.1-mac-arm64.dmg
+shasum -a 256 EarthNano-0.1.1-alpha.1-mac-arm64.dmg
 
 # Linux：x64 AppImage 示例
-sha256sum EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
+sha256sum EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
 ```
 
 ### macOS
@@ -41,17 +41,17 @@ Debian/Ubuntu 在下载目录安装 `.deb`，只执行与你架构对应的一�
 
 ```bash
 # x64
-sudo apt install ./EarthNano_0.1.0-alpha.1_amd64.deb
+sudo apt install ./EarthNano_0.1.1-alpha.1_amd64.deb
 
 # ARM64
-sudo apt install ./EarthNano_0.1.0-alpha.1_arm64.deb
+sudo apt install ./EarthNano_0.1.1-alpha.1_arm64.deb
 ```
 
 其他支持 AppImage 的 Linux 环境可赋予文件执行权限后启动；ARM64 请替换为对应文件名：
 
 ```bash
-chmod +x EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
-./EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
+chmod +x EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
+./EarthNano-0.1.1-alpha.1-linux-x86_64.AppImage
 ```
 
 ## 首次配置
@@ -70,6 +70,17 @@ chmod +x EarthNano-0.1.0-alpha.1-linux-x86_64.AppImage
 4. 做 Notebook 科研计算时，在设置中安装或登记并启用需要的 **Python / R** 运行时。优化方法另需 Python 3.11+，本版本验证使用 Python 3.12。仅使用本地 Notebook 无需配置远端 Compute 主机。
 
 API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git。调用模型会产生提供商费用；应用的执行次数预算不等于 API 请求数、token 或美元额度。
+
+## 试用上游案例
+
+打开现有试用项目（或新建 EarthNano 试用项目），点击 **New** 新建会话，展开 **Try upstream examples（试用上游案例）**：
+
+- **OpenScience：复跑 Case16**，自动附上原脚本和冻结登记库输入，复算两张可逐字节核对的 CSV。
+- **Harness²：带符号账本核算**，附上原 demo 的两个账本；普通运行后，可用现有 Optimize task 对同一任务比较基线与候选。
+
+选择案例只准备草稿和附件，不自动执行；检查后再点击 Send。现有会话继续保留。所需环境、参考结果与优化操作见[案例指南](docs/earthnano/UPSTREAM_TRIALS.md)。
+
+旧版 [0.1.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.0-alpha.1) 及其安装包保留；本版本单独发布，不覆盖旧 `alpha` 发布入口。
 
 ## 第一次科研任务
 

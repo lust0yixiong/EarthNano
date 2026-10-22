@@ -517,16 +517,28 @@ export async function createEarthnanoMessagesProvider(
         }
         if (testOptions.trialCase) {
           const case16 = testOptions.trialCase === 'openscience-case16'
-          const inputs = /<open_science_notebook_inputs>\s*([\s\S]*?)\s*<\/open_science_notebook_inputs>/.exec(userText)?.[1]
+          const inputs =
+            /<open_science_notebook_inputs>\s*([\s\S]*?)\s*<\/open_science_notebook_inputs>/.exec(
+              userText
+            )?.[1]
           const paths = new Map<string, string>(
-            (inputs ? JSON.parse(inputs) : []).map((entry: { filename: string; notebookPath: string }) => [entry.filename, entry.notebookPath])
+            (inputs ? JSON.parse(inputs) : []).map(
+              (entry: { filename: string; notebookPath: string }) => [
+                entry.filename,
+                entry.notebookPath
+              ]
+            )
           )
           if (!called('notebook_execute')) {
-            const required = case16 ? ['analysis.py', 'registry_source.json'] : ['ledger-1.csv', 'ledger-2.csv']
-            if (required.some((name) => !paths.has(name))) throw new Error('Original trial inputs missing')
+            const required = case16
+              ? ['analysis.py', 'registry_source.json']
+              : ['ledger-1.csv', 'ledger-2.csv']
+            if (required.some((name) => !paths.has(name)))
+              throw new Error('Original trial inputs missing')
             const code = case16
               ? [
-                  'import json, hashlib', 'from pathlib import Path',
+                  'import json, hashlib',
+                  'from pathlib import Path',
                   `script = Path(${JSON.stringify(paths.get('analysis.py'))})`,
                   `source = Path(${JSON.stringify(paths.get('registry_source.json'))})`,
                   "scope = {'__name__': 'case16'}",
@@ -536,25 +548,43 @@ export async function createEarthnanoMessagesProvider(
                   "print(json.dumps({'candidates': len(rows), 'included': sum(r['included'] for r in rows)}))"
                 ].join('\n')
               : [
-                  'import csv, json', 'from pathlib import Path', 'from decimal import Decimal',
+                  'import csv, json',
+                  'from pathlib import Path',
+                  'from decimal import Decimal',
                   `sources = ${JSON.stringify(Object.fromEntries(paths))}`,
                   'report = {}',
                   "for name in ['ledger-1.csv', 'ledger-2.csv']:",
                   "    with open(sources[name], newline='', encoding='utf-8') as source:",
                   "        values = [Decimal(row['amount']) for row in csv.DictReader(source)]",
                   "    report[Path(name).stem] = {'count': len(values), 'total': format(sum(values, Decimal(0)), '.2f')}",
-                  "Path('ledger-results.json').write_text(json.dumps(report), encoding='utf-8')", 'print(json.dumps(report))'
+                  "Path('ledger-results.json').write_text(json.dumps(report), encoding='utf-8')",
+                  'print(json.dumps(report))'
                 ].join('\n')
             return call('notebook_execute', { language: 'python', code })
           }
-          const outputs = case16 ? ['trial_calculations.csv', 'availability_summary.csv'] : ['ledger-results.json']
+          const outputs = case16
+            ? ['trial_calculations.csv', 'availability_summary.csv']
+            : ['ledger-results.json']
           for (const filename of outputs) {
-            if (blocks.some((block) => block.type === 'tool_use' && block.name?.endsWith('write_artifact_file') && block.input?.filename === filename)) continue
-            const runId = nested(blocks.filter((block) => block.type === 'tool_result'), 'runId')
+            if (
+              blocks.some(
+                (block) =>
+                  block.type === 'tool_use' &&
+                  block.name?.endsWith('write_artifact_file') &&
+                  block.input?.filename === filename
+              )
+            )
+              continue
+            const runId = nested(
+              blocks.filter((block) => block.type === 'tool_result'),
+              'runId'
+            )
             if (typeof runId !== 'string') throw new Error('Trial Notebook producer missing')
             return call('write_artifact_file', {
-              filename, mimeType: case16 ? 'text/csv' : 'application/json',
-              source: { kind: 'localPath', path: case16 ? `case16-rerun/${filename}` : filename }, producerRunId: runId
+              filename,
+              mimeType: case16 ? 'text/csv' : 'application/json',
+              source: { kind: 'localPath', path: case16 ? `case16-rerun/${filename}` : filename },
+              producerRunId: runId
             })
           }
           emit(response, body.model, { text: 'Research analysis complete.' })
@@ -700,25 +730,43 @@ export async function createEarthnanoMessagesProvider(
           testOptions.trialCase
             ? `Follow the unchanged signed-ledger task. Read both frozen CSV inputs with the original Notebook tools, retain every sign with decimal.Decimal, and publish ledger-results.json with its actual producerRunId. Revision ${stats.requests}.`
             : scientificOptimization
-            ? scientificCompute
-              ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json bytes with node:fs, copy those exact bytes to metrics-source.json without parsing/reformatting the copy, then compute count/sum/mean from its values and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish metrics-source.json, research-results.json and the requested PNG through write_artifact_file with localPath sources and the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
-              : scientificLanguage === 'r'
-                ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
-                : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
-            : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
+              ? scientificCompute
+                ? `Use original repl_execute and host.compute.create('ssh:fixture').submitJob with command 'printf protocol-workload' and outputs metrics.json and figure.png. End the initial Turn after receipt; await original background delivery. In that application Turn use attachJob(job_id).result(), require result_final, read the harvested metrics.json bytes with node:fs, copy those exact bytes to metrics-source.json without parsing/reformatting the copy, then compute count/sum/mean from its values and write research-results.json. ${publishFigure ? 'Copy the harvested figure.png to measurements.png.' : ''} Publish metrics-source.json, research-results.json and the requested PNG through write_artifact_file with localPath sources and the actual original control producerRunId. Never invent remote execution or resubmit an existing Job. Revision ${stats.requests}.`
+                : scientificLanguage === 'r'
+                  ? `Use the original Notebook R tools with explicit language r to read the fixed measurements.csv input using read.csv, compute count, sum and arithmetic mean, and publish research-results.json written by jsonlite::write_json through write_artifact_file using the actual Notebook producerRunId. Follow the original task.${scientificFigure ? ' Also generate measurements.png with grDevices::png(type=cairo) and publish it through write_artifact_file with the same actual Notebook producerRunId.' : ''} Revision ${stats.requests}.`
+                  : `Use the original Notebook Python tools to read the fixed measurements.csv input, compute count, sum and arithmetic mean with csv and statistics, and publish research-results.json through write_artifact_file using the actual Notebook producerRunId. Follow the original task. Revision ${stats.requests}.`
+              : `Read the frozen research report, check arithmetic consistency, and preserve count, sum and mean in result.json. Revision ${stats.requests}.`
         )
       if (role === 'reviewer') {
         const artifacts = JSON.parse(await readFile(join(input, 'evidence/artifacts.json'), 'utf8'))
         const plan = JSON.parse(await readFile(join(input, 'evidence/criteria.json'), 'utf8'))
         if (testOptions.trialCase === 'harness2-ledger') {
-          const file = artifacts.find((entry: { path: string }) => entry.path === 'ledger-results.json')
+          const file = artifacts.find(
+            (entry: { path: string }) => entry.path === 'ledger-results.json'
+          )
           const value = JSON.parse(file.content)
-          const pass = value['ledger-1']?.count === 3 && value['ledger-1']?.total === '85.15' && value['ledger-2']?.count === 3 && value['ledger-2']?.total === '20.25'
-          return write(join(output, 'assessment.json'), JSON.stringify({
-            schemaVersion: 1, score: pass ? 100 : 0, outcome: pass ? 'pass' : 'flagged',
-            rationale: 'Offline fixture checks the published JSON against the two unchanged original ledger inputs; no general model-quality claim.',
-            checks: plan.criteria.map((criterion: { id: string }) => ({ criterionId: criterion.id, status: pass ? 'pass' : 'fail', evidence: [{ path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() }] }))
-          }))
+          const pass =
+            value['ledger-1']?.count === 3 &&
+            value['ledger-1']?.total === '85.15' &&
+            value['ledger-2']?.count === 3 &&
+            value['ledger-2']?.total === '20.25'
+          return write(
+            join(output, 'assessment.json'),
+            JSON.stringify({
+              schemaVersion: 1,
+              score: pass ? 100 : 0,
+              outcome: pass ? 'pass' : 'flagged',
+              rationale:
+                'Offline fixture checks the published JSON against the two unchanged original ledger inputs; no general model-quality claim.',
+              checks: plan.criteria.map((criterion: { id: string }) => ({
+                criterionId: criterion.id,
+                status: pass ? 'pass' : 'fail',
+                evidence: [
+                  { path: file.path, artifactRef: file.artifactRef, quote: file.content.trim() }
+                ]
+              }))
+            })
+          )
         }
         const file = artifacts.find(
           (file: { path: string }) =>
