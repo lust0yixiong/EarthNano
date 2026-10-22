@@ -11,7 +11,7 @@ import {
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 
@@ -576,7 +576,9 @@ describe('EarthNano 0.1 Unix CI scope', () => {
             'Retain validated unsigned packages (CI artifacts, no release publication)'
         )!
         const retained = globSync(String(upload.with!.path).trim().split('\n'), { cwd: root })
-        expect(retained.sort()).toEqual(produced.map((name) => `dist/${name}`).sort())
+        expect(retained.map((name) => name.split(sep).join('/')).sort()).toEqual(
+          produced.map((name) => `dist/${name}`).sort()
+        )
         const record = steps.find(
           (step) => step.name === 'Original Unix package certification evidence'
         )!

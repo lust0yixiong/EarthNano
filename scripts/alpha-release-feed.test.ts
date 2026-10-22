@@ -211,9 +211,12 @@ it.each(['#tail', '?tail', '%23tail', '%3Ftail'])(
   (suffix) => {
     const { dir } = unixRelease()
     expect(Object.keys(buildManifest(unixOptions(dir)).downloads)).toHaveLength(6)
-    const name = `EarthNano-${version}-win-x64-setup.exe${suffix}`
+    const filename = `EarthNano-${version}-win-x64-setup.exe`
+    const name = filename + suffix
     const bytes = 'synthetic forbidden installer bytes'
-    writeFileSync(join(dir, name), bytes)
+    // Keep real bytes under a literal basename on every host. The forbidden checksum/feed name
+    // must fail before artifact lookup; Windows cannot create a physical basename containing '?'.
+    writeFileSync(join(dir, filename), bytes)
     writeFileSync(
       join(dir, 'SHA256SUMS.txt'),
       readFileSync(join(dir, 'SHA256SUMS.txt'), 'utf8') + `${hash(bytes)}  ${name}\n`
