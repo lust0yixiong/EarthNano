@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { AddressInfo } from 'node:net'
-import { expect, it, onTestFinished, vi } from 'vitest'
+import { expect, it as baseIt, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: false } }))
 import { configureTestRuntimeMetadata } from '../../../test/runtime-metadata'
 import { createComputeWorkflowFixture } from '../../../test/earthnano/compute-workflow'
@@ -16,6 +16,8 @@ import { createClaudeCandidateDriver } from './claude-candidate-driver'
 import { ExecutionCore } from './execution-core'
 import { FileExecutionStore } from './execution-store'
 import type { ExecutionRequest } from '../../shared/earthnano/execution-port'
+
+const it = baseIt.skipIf(process.platform === 'win32')
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
@@ -110,9 +112,7 @@ configureTestRuntimeMetadata()
 
 // Every state owner below is original. Native messages use a fixed local provider; remote wire
 // operations and the local cipher port are fixtures, not SSH/Linux/Slurm/OS-keychain certification.
-it
-  .skipIf(process.platform === 'win32')
-  .each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
+it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
   'runs original candidate Compute workflow with %s',
   async (mode) => {
     const sourcePrompt =
