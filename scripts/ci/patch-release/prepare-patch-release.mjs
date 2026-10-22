@@ -129,6 +129,65 @@ async function gates(source, root, sha, runId) {
 }
 
 async function collect(source, root, sha, runId) {
+  const reports = [];
+  async function readTrialReports(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) await readTrialReports(path);
+      else if (entry.name === "upstream-trial.json")
+        reports.push(await json(path));
+    }
+  }
+  await readTrialReports(join(root, "evidence/packaged-trials"));
+  assert.deepEqual(reports.map((report) => report.trial).sort(), [
+    "harness2-ledger",
+    "openscience-case16",
+  ]);
+  for (const report of reports) {
+    assert.equal(report.status, "passed");
+    assert.equal(report.live, false);
+    assert.equal(report.provider.rejected, 0);
+    assert(
+      report.notebookRuns.some((run) => run.status === "completed"),
+      report.trial,
+    );
+  }
+  const scientific = reports.find(
+    (report) => report.trial === "openscience-case16",
+  );
+  assert.deepEqual(
+    scientific.artifacts.map(({ name, sha256 }) => ({ name, sha256 })),
+    [
+      {
+        name: "trial_calculations.csv",
+        sha256:
+          "ce5be45173e72f859c525876424d87eacd4a9c88d79afce550fbf3232e719da6",
+      },
+      {
+        name: "availability_summary.csv",
+        sha256:
+          "64e40cf520346dd84f3e07310314b3b7a8e5ce44929aa9963967b23e42c8721e",
+      },
+    ],
+  );
+  const optimization = reports.find(
+    (report) => report.trial === "harness2-ledger",
+  ).optimization;
+  assert.equal(optimization.state, "completed");
+  const tasks = optimization.sweep.domains.flatMap(
+    (domain) => domain.summary.tasks,
+  );
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].assessments.baseline.outcome, "pass");
+  assert.equal(tasks[0].assessments.candidate.outcome, "pass");
+  assert.equal(tasks[0].outcome.artifact.status, "passed");
+  await save(join(root, "evidence/verified-trial-outcomes.json"), {
+    verified: true,
+    source: sha,
+    runId,
+    trials: reports.map(({ trial }) => trial),
+    independentAssessmentOutcomes: "baseline and candidate pass",
+  });
   const assets = join(root, "assets");
   await mkdir(assets);
   const upstreams = await json(join(source, "UPSTREAMS.json"));
