@@ -97,7 +97,6 @@ const AppVersionSection = ({
                 <span className="text-sm font-semibold text-foreground">{APP.name}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">v{version}</span>
               </p>
-              <p className="mt-0.5 text-xs font-normal text-muted-foreground">{APP.copyright}</p>
               {statusLine ? (
                 !status.error && status.state !== 'error' ? (
                   <p className="mt-1 text-xs text-muted-foreground" role="status">
