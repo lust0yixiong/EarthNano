@@ -30,13 +30,27 @@
 | 安装器 exit 2 | [运行 39700451549](https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549) 的原安装 smoke 失败；隔离诊断定位到 `prepare` 的 `Add-Type -TypeDefinition`，原参数 probe 同时确认 verbatim `/D=` 的实际传递 | 参数修正不能单独解决运行时编译失败 |
 | 上游安装修复 | 定向移植 [OpenScience 814f30751](https://github.com/aipoch/open-science/commit/814f30751bbbe04efe3a03412ef17a7869d82524)：五个生产模块和 extractor 原测试逐字节复用；构建时编译、原签名钩子、私有 DLL 加载和 UTF-16LE 输出 | 不移植同一提交的六分片调度或其他无关改动；`UPSTREAMS.json` 的对照 pin 保持不变 |
 | PowerShell 回归 | [旧红 39702517939](https://github.com/lust0yixiong/EarthNano/actions/runs/39702517939)：x64/x86 中文 TEMP 两例失败、英文两例通过；[修复后 39703245660](https://github.com/lust0yixiong/EarthNano/actions/runs/39703245660)：四例原 prepare/publish/cleanup 断言全部通过，实际位数和 TEMP UTF-16 原字节已核对 | 新运行共 10 通过、15 条件跳过；窄例不代替原 NSIS 完整安装、资源和 RPC 启动 smoke |
-| 源码对照 | 从保留分支逐项恢复 durability、host 注入、UTF-8/ACL/攻击夹具修复，并补齐 0.1.1 文件的原模块登记；完整 Windows 分片和原比较器仍在验收 | 不以 job 绿色代替原断言结果，不将基线失败抵消候选新失败 |
+| 源码对照 | 历史 `ede07` 的 16 份报告与原比较器已完整执行；后续修复仍待新提交验收 | 不以 job 绿色代替原断言结果，不将基线失败抵消候选新失败 |
 
 安装模块的 Git blob、SHA256 与原 C# / 目录事务主体保真证明见
 [上游移植清单](validation/alpha/windows-0.2-upstream-installer/manifest.json)。
 原安装的目录身份、ACL、reparse-point、发布和清理事务主体保持逐字节一致。
 真实 PowerShell 红绿报告、四项 profile 的环境见证和原始 ZIP 摘要见
 [窄验证归档](validation/alpha/windows-0.2-publication/manifest.json)。
+
+历史 `ede07` 完整对照：基线 115,591 项、16 失败、4,254 跳过；候选 116,997 项、
+72 失败、4,350 跳过。原比较器退出 1，记录 68 个新增失败身份，0 全局错误、
+0 阶段回退。完整 inventory / sidecar / cohort 校验成立，不能将这次失败称为
+断言观测不完整或环境不可用。原 CLI 的通用异常收据虽名为 `validation-unavailable`，
+实际完整比较结果为 `new-regressions`，见
+[原始比较与 16 份 artifact 摘要](validation/alpha/windows-0.2-source-red/manifest.json)。
+本记录不覆盖后续修复提交的状态。
+
+本轮另修三个原测试夹具：以平台分隔符归一化 `globSync` 的文件名比较；将非法
+URL 后缀保留在原 checksum/feed 输入、真实文件使用字面 basename，避免 Windows
+在验证前就因 `?` 文件名失败；版本身份测试约束合法 Alpha 格式和原 package/lock/
+更新渠道一致性，移除写死旧 `0.1.0-alpha.1` 的构建号。生产发布范围、URL 拒绝规则、
+校验和、更新渠道及版本号均未改动。
 
 以下内容为 2026-10-21 的延期记录和恢复依据。其当时的“停止 Windows”与
 “0.1 尚待发布”描述不覆盖上面的恢复决定，也不把历史尝试标记为已验证修复。

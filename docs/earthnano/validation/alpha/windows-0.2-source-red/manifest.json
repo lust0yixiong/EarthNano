@@ -1,0 +1,770 @@
+{
+  "run": 39700451549,
+  "candidateSource": "ede07bd96263db8907260f2cc150abef8d8ad104",
+  "reportCount": 16,
+  "originalComparerExit": 1,
+  "originalComparisonFile": "original-comparison/comparison.json",
+  "cohortValidated": true,
+  "fullAcceptance": false,
+  "conclusion": "new-regressions",
+  "counts": {
+    "baseline": 115591,
+    "candidate": 116997,
+    "added": 1406
+  },
+  "baselineFailures": 16,
+  "candidateFailures": 72,
+  "baselineSkips": 4254,
+  "candidateSkips": 4350,
+  "newSkips": 96,
+  "regressionReasons": {
+    "passed-to-failed": 32,
+    "new-failure": 68
+  },
+  "uniqueRegressionIdentities": 68,
+  "stageRegressions": [],
+  "globalErrors": 0,
+  "rawFactsFile": "raw-shard-facts.json",
+  "note": "Original CLI also emitted its generic validation-unavailable receipt after throwing for source regressions; full comparison exists and reports intact source cohort. Do not reinterpret as missing inventory or runtime globals.",
+  "runUrl": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549",
+  "artifacts": [
+    {
+      "id": 12394746393,
+      "name": "earthnano-source-windows-2022-baseline-1",
+      "bytes": 1413293,
+      "sha256": "ed2c7a3ba7f50514c9947394ab0472ab0f3953ef670937db3c2929d198eaa1fa",
+      "apiDigest": "sha256:ed2c7a3ba7f50514c9947394ab0472ab0f3953ef670937db3c2929d198eaa1fa",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394746393",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2539,
+          "sha256": "29aeb5e9d8c90de5d0a3a2da34a4a66bdeeaa96ee0a21db45797e819a5ff6a0f"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "0c9066e22b87f12faec3e1ebcce6b20863705de67764e5f8c9c48fb82c6a84fa"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 8489534,
+          "sha256": "d8b092a70b7f3dca19c91dcae517cb1654b593d8a9dab19fd6f03776efdee1e3"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 7719817,
+          "sha256": "efe1f3fd8b6daa167af03b7be62a386058ea229f54eb443e75f7db2be6c9794d"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1379,
+          "sha256": "694e25f0e28a1dcda4ff5b71c2431a0ce3bd3d9d419d0d1f3326b8a94dd690cf"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 5700072,
+          "sha256": "aa440659a8b106ac1178092ac092b797f6ff78da7c7037ced3bc19cfbed09845"
+        }
+      ]
+    },
+    {
+      "id": 12393507969,
+      "name": "earthnano-source-windows-2022-baseline-2",
+      "bytes": 101475,
+      "sha256": "ad35dd5a502d88b95d4e4b20347ece99ff047702345ad2a51e49e2b75828ecd9",
+      "apiDigest": "sha256:ad35dd5a502d88b95d4e4b20347ece99ff047702345ad2a51e49e2b75828ecd9",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393507969",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2490,
+          "sha256": "76deaec7ebe90c5279486adcca2a5cfcb5d158fce46bf6221015b89f2d4070f2"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "80d0fde2837c31cd7b61a7659ac05288fb8d7977c38b112a7345a9800d4c6611"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 567837,
+          "sha256": "5a84b2b571b2820dacf7df35f55a07edcb451dbcce4b155e4bcb2306c32b4f32"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 382754,
+          "sha256": "2878363f23a9decf12cecb2f4c034a896ede4fa1db5a39bdf49a080ab0ce3a76"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 312,
+          "sha256": "0a9aaf19f0087329a09110801a106b7b87ee65681162acd744bdf277c7831ada"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 319617,
+          "sha256": "ae6ae0f28bf60c60a885c9039f7f87bafa72f978d39d198f2bd9bfc6dcac69b4"
+        }
+      ]
+    },
+    {
+      "id": 12393132527,
+      "name": "earthnano-source-windows-2022-baseline-3",
+      "bytes": 179527,
+      "sha256": "dfb1aad2e94bc4a1a05609de603cefff84ee7640dc89e9de5bf97b225516d01b",
+      "apiDigest": "sha256:dfb1aad2e94bc4a1a05609de603cefff84ee7640dc89e9de5bf97b225516d01b",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393132527",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2491,
+          "sha256": "f915b9eda6d0362f1b53780b7a1ff17e7de7661918a5d819e0571f29d19653b4"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "80d0fde2837c31cd7b61a7659ac05288fb8d7977c38b112a7345a9800d4c6611"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 1022350,
+          "sha256": "4f2da1793dda938ceb7369261b265291f5f2b75dd87015764fb50173b1879e36"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 721809,
+          "sha256": "06db91fb4e927a6c2128ce34894b3ecd7b79b707a46a514b4798dbdf88f9fe90"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 312,
+          "sha256": "f1598864f1eb93be7760c8cae0856f0ed9b64f060fdbb0a2ffd96bc138389675"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 580555,
+          "sha256": "644fc72c723b1a92cd31c410a32fe58d0bd38b69a9a5993c81057993c4b00b97"
+        }
+      ]
+    },
+    {
+      "id": 12395310514,
+      "name": "earthnano-source-windows-2022-baseline-4",
+      "bytes": 1112048,
+      "sha256": "4ebb54497d307d81b6b9e2fc4f95faf9b299b89fee70943cd8308e3e8b8cd883",
+      "apiDigest": "sha256:4ebb54497d307d81b6b9e2fc4f95faf9b299b89fee70943cd8308e3e8b8cd883",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12395310514",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2539,
+          "sha256": "ad44b56505528ab8b84ad2c356e8c4c8889154ffc0644a3535900644c1ed2ab8"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "83333291dddbc6c34e2c0bc1fb312f689e61cd48a492f6ca1cd46da9f3c04a1e"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 6205501,
+          "sha256": "205795359828f5caffc8c75bbb6b1ff700d4f8b04ba3fadec26eaf986cf8c163"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 4659889,
+          "sha256": "3ac28279207f8a2a7818ec65634b0c98fcef8dc4630c692d1bd273dc880e9c92"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1212,
+          "sha256": "baee2a72533f7c16009ef2c09079f8f239435daf4d35f90b5af5b22683b70ea7"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 3455918,
+          "sha256": "dbc6e2f2e0f9221fcd8ef89e8a1569cc2911eabbeacf6e9dbd3249425935dbab"
+        }
+      ]
+    },
+    {
+      "id": 12394107278,
+      "name": "earthnano-source-windows-2022-baseline-5",
+      "bytes": 251505,
+      "sha256": "7b082b5fcbdfc943892de2df78413d5d22931e442d4f80fb30f590589b06edaf",
+      "apiDigest": "sha256:7b082b5fcbdfc943892de2df78413d5d22931e442d4f80fb30f590589b06edaf",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394107278",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2539,
+          "sha256": "f743dda07c5a4e9b52ec6b5cfa6de8ab4324361c1bddeb1611b3d3f071c50557"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "930e8a98fc12c01ee6895d707f02a82cb27f3aa0fdb1d89b76dd2c60da0d3114"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 1343792,
+          "sha256": "9befe47b552fe195593f16e0b80bdd33c571181074241800dad75c8c3e4017b4"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 918040,
+          "sha256": "c5033b4340dc156a72cb77dd361cf3a0698caa8a3907e51db368fbe8afe3eeef"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 312,
+          "sha256": "5abce1676d9fbb3452f92215093c87a7b8578b0dbb653dc3f61676ea688162d3"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 773343,
+          "sha256": "9791af2cf3f2b4feebd8aa81dbf99befd38bee15d50422a04c45a2e5bd2a058d"
+        }
+      ]
+    },
+    {
+      "id": 12393192993,
+      "name": "earthnano-source-windows-2022-baseline-6",
+      "bytes": 1050674,
+      "sha256": "fc7916421ee190c2002008b4156f305d70ff5e676d2aaf963ed1d9be0f08cc4e",
+      "apiDigest": "sha256:fc7916421ee190c2002008b4156f305d70ff5e676d2aaf963ed1d9be0f08cc4e",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393192993",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2539,
+          "sha256": "6f36d8966816fe47c8ca8bfd394362e96d90dbaa9c4e3a244da81ac53ec53099"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "1a5622edb54c145017a9908a94a984f1556feb5c5c1ad9f65af1941b48ccba12"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 6235980,
+          "sha256": "5ea3a730120132e454b1938a2029caa5789e8a5c9b3d27044ad5b9dd5f430b06"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 4323899,
+          "sha256": "b3d59acea6715d32cc7a4be70814f36e9af1654aba20f4ebd088e6240da746c5"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1612,
+          "sha256": "f999272783ad22a0960804c304881a821677bd78b61447fa1ed6099f2d3b45f4"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 3554451,
+          "sha256": "f49cd42fa90acb3e648369981004596ba271c633ab72eb7450feffe71c13d550"
+        }
+      ]
+    },
+    {
+      "id": 12393313556,
+      "name": "earthnano-source-windows-2022-baseline-7",
+      "bytes": 2631680,
+      "sha256": "1b487b4ff4e8881514eaadc59640e0a698d1ff585f15566ab9bcd27acac86927",
+      "apiDigest": "sha256:1b487b4ff4e8881514eaadc59640e0a698d1ff585f15566ab9bcd27acac86927",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393313556",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2539,
+          "sha256": "ad87711ee32891ad286fc3bd36d1623925fe87b76bd4dbf91d26e10cd5ffd546"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "441cbb63935e489f9b4e490be5c7008ce03a2984e6d740142d068f8524f8a176"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 42564467,
+          "sha256": "335436ca7c064cc82e0b908bcb3fd2f643cb6e7782aa4b274b85ad2aea240a90"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 28015552,
+          "sha256": "c139823a0f107d6365183bf8274a045de77f3921bdacf8fbd436a43ff142ef8d"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 575,
+          "sha256": "5109306288a1feb0af3abb2688dada7b745b06d07c7b02d34694745a8a91a452"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 22400291,
+          "sha256": "8bcd8e740aedb0f1ee48b9de56f36eaa0bad556cd297be0827f8baaf629d5836"
+        }
+      ]
+    },
+    {
+      "id": 12394201840,
+      "name": "earthnano-source-windows-2022-baseline-8",
+      "bytes": 1885156,
+      "sha256": "0ca5786263f30c3a621ffa1058192fc0525d683454950c2bec774ecf4249fb4e",
+      "apiDigest": "sha256:0ca5786263f30c3a621ffa1058192fc0525d683454950c2bec774ecf4249fb4e",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394201840",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2491,
+          "sha256": "3b446d6cb4d27d5fc8c568f2fcca61bce0443403838b5b869fcd7e2661c953a2"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 281,
+          "sha256": "930e8a98fc12c01ee6895d707f02a82cb27f3aa0fdb1d89b76dd2c60da0d3114"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 10914168,
+          "sha256": "c3df8b32758c6f38219814f33e308731b2234c894515ded53cf8473f63cdbc5a"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 7618590,
+          "sha256": "11dab585f9229e1825590cc8b0423337fb94c3b3cdc3f62be8bb5ae395f39dbf"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 376522,
+          "sha256": "cce4e58f9524c5916912bc96dd5e53e65c99ed97a961c03d2d53b418ee6cd1d4"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 674,
+          "sha256": "7fbc2b987b555ea3429b8319bd1eef7888fb89522a87bc56dd82e19b1d6dcbd4"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 6305231,
+          "sha256": "91d070302e759fa090c56716ce55d20f988558757ec5ff130c295fd565304ef1"
+        }
+      ]
+    },
+    {
+      "id": 12393788985,
+      "name": "earthnano-source-windows-2022-candidate-1",
+      "bytes": 1408638,
+      "sha256": "6c0014d6d86fbeea17649dc2f61954398bfb124fb5431c0b13eebd77d45df2c7",
+      "apiDigest": "sha256:6c0014d6d86fbeea17649dc2f61954398bfb124fb5431c0b13eebd77d45df2c7",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393788985",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2507,
+          "sha256": "91f27d0e17b1d78f425bdf4292ed96bbcf063ec79d6165f7e5201e3ddf582fac"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "11e28bbfbb43d401820fc4074385a53eb2c67fc9b72231f60ec45f22d1d754be"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 8278818,
+          "sha256": "0b89b5c5b99e9b1591d24342ef8b149bfed1735e55c0a69216540aa9cc5aa521"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 7710269,
+          "sha256": "15d2dbf004cfed2b6169d8705b09b0e4e446caffdfd12838e2f61ac5de340115"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1387,
+          "sha256": "74794054b63882493da255f5429400e5669b55153e0706e666e8a86108378360"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 5682385,
+          "sha256": "b15defa07665b2dd401dfc1cf3f682d8e5b29f4b966b4548bfdbf809d6cb35ef"
+        }
+      ]
+    },
+    {
+      "id": 12394305529,
+      "name": "earthnano-source-windows-2022-candidate-2",
+      "bytes": 101337,
+      "sha256": "bff1ad591dfd8be80a02395f79d8386715d087e3df5978b0acb7a5288385b5e8",
+      "apiDigest": "sha256:bff1ad591dfd8be80a02395f79d8386715d087e3df5978b0acb7a5288385b5e8",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394305529",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2507,
+          "sha256": "c7487d478969225633b307c8f3212ef1c4c85b90f2ca5c01a04dc0aa7aa38892"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "0fff06e500723c4e8294dd60abe68679d22e845331e907174366ca048e841392"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 557519,
+          "sha256": "d5454101e81844b60efe3646992b3c05dc7cb5e3e629881c51427fa9057a0c3a"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 382744,
+          "sha256": "f319ef7a413c9233dd0a200af07febbcd75aa0614e72e4526269d1b5fbd36180"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 320,
+          "sha256": "b1c7b2da5c3c0deb540a0319fec5f7e0c955d882746114a11700bd6b0a7d9195"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 318978,
+          "sha256": "e04919bd8faf58f8a910e70639aee2cb8b33f5fbf1a1e70aba3148638882e901"
+        }
+      ]
+    },
+    {
+      "id": 12394136807,
+      "name": "earthnano-source-windows-2022-candidate-3",
+      "bytes": 179838,
+      "sha256": "3cfffdc710b4aa6c04673cc0b32043518f14f94ede7c4a00367c0eceaf5c513f",
+      "apiDigest": "sha256:3cfffdc710b4aa6c04673cc0b32043518f14f94ede7c4a00367c0eceaf5c513f",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394136807",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2555,
+          "sha256": "96805195280abb59fcb3c6a933e998a3a7568e335ab5c868a7321d9bb21169f9"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "5ad5639f47bda4f06632c878bdc22b21ee131f8f6b1bd405f50d52578eeb7b32"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 1004365,
+          "sha256": "053d06682139a82e2315809a232ef53160e7ae4a73dcbd51491c422959efe310"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 722174,
+          "sha256": "5596ebba790c213a4fc240df5df931b592e37b380e7fdef776ea6d5d869c2b56"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 744,
+          "sha256": "573b241177f1e68f102ab844ad6970599505f8d9f08e31a4641da8c5220c2920"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 580072,
+          "sha256": "8bc9ee1ca4180506e0f7ad73a667c8683b093439728531f2dc46befe08d3a2a7"
+        }
+      ]
+    },
+    {
+      "id": 12393884980,
+      "name": "earthnano-source-windows-2022-candidate-4",
+      "bytes": 1116165,
+      "sha256": "491fa7b3c49b36727a510e0dda08932686aee5c23dbaceeccbbe87566b0912e7",
+      "apiDigest": "sha256:491fa7b3c49b36727a510e0dda08932686aee5c23dbaceeccbbe87566b0912e7",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393884980",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2555,
+          "sha256": "d8b518bfe0c0aba4ae3c52c634856ef98d38e319c8409232e1ca0ccb829edb59"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "654fd7510cccac0be82e5153697db7c4c8aeb67ffa1bf5b05575b92d7e9581ab"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 6114050,
+          "sha256": "c61921b192ab6c03970faf35cb665772f1c3c6df1a1a7ae4343c9ee7904e647b"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 4681129,
+          "sha256": "6760c226823b2ab9e2d341a05153a38117c4d32da059a1b6c02b60dbd915776e"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1262,
+          "sha256": "994833bb75fdcbd5767af9496fa1ec8c1338ba093b4ca88b861b2a2b64bc598e"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 3465937,
+          "sha256": "a086dd0f9d628957bdbb84022d135bcd36e212146990652c4faa64400cbf684f"
+        }
+      ]
+    },
+    {
+      "id": 12393566427,
+      "name": "earthnano-source-windows-2022-candidate-5",
+      "bytes": 251768,
+      "sha256": "f23826d1bfe1a248409821b8923ce4e51ce5f17516aee642c32b7c7be900b3d9",
+      "apiDigest": "sha256:f23826d1bfe1a248409821b8923ce4e51ce5f17516aee642c32b7c7be900b3d9",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393566427",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2550,
+          "sha256": "2ad5669e1449deb2fd823187ab1e8bc769a059d5b1a7a66575757f79adf8a000"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "e8358d2dfbdd764ed0e25490bde1b1535e697ec17c66f01e430c0f51986f0188"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 1326459,
+          "sha256": "a1e6e6b79a6b3c56b023fdf44e918ca49eacf31c25690a253c8a600c925c9803"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 922194,
+          "sha256": "3574db26ccc8f1b48656968c4dcb6635d078f915e85a9c75de84393e5559b40e"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 320,
+          "sha256": "a851a016665ec870b14c591572abfe1e77f0a57612da4a0649101f66cab7aa1f"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 775403,
+          "sha256": "cb3c0ef5d424cf29f312cdeeeebe8a36f84115cc6473f196fe1b3c29ea7b2472"
+        }
+      ]
+    },
+    {
+      "id": 12393863465,
+      "name": "earthnano-source-windows-2022-candidate-6",
+      "bytes": 1066132,
+      "sha256": "518fceff539a36d0d654ca03a949996bd4d158ce20fb5feb332070cf4d0ea66e",
+      "apiDigest": "sha256:518fceff539a36d0d654ca03a949996bd4d158ce20fb5feb332070cf4d0ea66e",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12393863465",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2507,
+          "sha256": "bc874d048e39e46f99d29d14baf3ddf64749addf1fdf11e2a4d81f6063c9b76c"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "5965a2f3d384f21cd1042621c3c4a6c8a0d069691c34ffac75d7e2ec0a8b587a"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 6204189,
+          "sha256": "5514f89d8e37cf9fd6a198032a1dcc25d8d078a26daec4bbadb3d890f879fd80"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 4385058,
+          "sha256": "d110060afdc665d89428a3c8a9965f6d4495714dbe869a9f00c1d4880407a5a7"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 1620,
+          "sha256": "17df980c0eba40d2aff098956dd8ed23d1419fd3934357fad7a61b18354a5b5b"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 3596907,
+          "sha256": "a58633eee785d9cebf0a55651fcccf544741cd29b6872117c06fa581f0d7750f"
+        }
+      ]
+    },
+    {
+      "id": 12394056230,
+      "name": "earthnano-source-windows-2022-candidate-7",
+      "bytes": 2630899,
+      "sha256": "415c235c96b1a1663b564ed48aa6409744a7d8da25cc5ab41b79c7500f879a92",
+      "apiDigest": "sha256:415c235c96b1a1663b564ed48aa6409744a7d8da25cc5ab41b79c7500f879a92",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12394056230",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2550,
+          "sha256": "1f75d0b92f44cb3a3d62f387bd5d06f0b95c344b41cb668fb1e686229534e913"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "0a7079e007dbe41f5fb1f31f6de95882a72063535b3a3d529dbc883de7a93c50"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 41998906,
+          "sha256": "13de2ad6f142b3c9a456b1cf4aeb993f45652f1e521f21b7efda5997c80b035d"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 28024776,
+          "sha256": "deb0213256a3c3c90f47d93494a24cf9c774031293dad4560fdc66887b74b255"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 583,
+          "sha256": "f323dbe80ac96228cc601884a75c4fcb9d613ca89856f8cc66340d7cb9a3b662"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 22403905,
+          "sha256": "3a2911b7ddff122b179738572f8d7969e076de572880816ad39477f841d88aaa"
+        }
+      ]
+    },
+    {
+      "id": 12395135784,
+      "name": "earthnano-source-windows-2022-candidate-8",
+      "bytes": 2041538,
+      "sha256": "86d1b50aa7b1cca2b54f42eced7edcdb6d12bfa0f34d1f29e3d8453c93cc454a",
+      "apiDigest": "sha256:86d1b50aa7b1cca2b54f42eced7edcdb6d12bfa0f34d1f29e3d8453c93cc454a",
+      "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39700451549/artifacts/12395135784",
+      "rawFiles": [
+        {
+          "path": "npm-ci.log",
+          "bytes": 2550,
+          "sha256": "8babf44ab670d0b25e99b20ab2a5e972f8fb700c3dec3e068434a342aafc1d93"
+        },
+        {
+          "path": "pretest.log",
+          "bytes": 297,
+          "sha256": "5965a2f3d384f21cd1042621c3c4a6c8a0d069691c34ffac75d7e2ec0a8b587a"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 11490807,
+          "sha256": "4e18193cae75cb74c0a7b2f50e52f726ac68438ad5f8cc0d00fecb99a8d17652"
+        },
+        {
+          "path": "source-report.json",
+          "bytes": 8314766,
+          "sha256": "2a560e0cdc3369c6b6bcadaf9bf0063fdc18f74fe0a8ef48c7a9eec1bf77e738"
+        },
+        {
+          "path": "tests.log",
+          "bytes": 525645,
+          "sha256": "d18fc77759d7170e06f7219c326c025d7c8d5d80e0bff797c48cc49dade1ee87"
+        },
+        {
+          "path": "typecheck.log",
+          "bytes": 706,
+          "sha256": "959a4579955841950a6bfd415b81c44a36f8d288e0ef79a4d3cdb3da0a112d35"
+        },
+        {
+          "path": "vitest.json",
+          "bytes": 6899838,
+          "sha256": "127652a593a0775b2a00f3b8a48f2a55768de5f9d29178a0dc3a5e6c7531a9e6"
+        }
+      ]
+    }
+  ],
+  "archives": [
+    {
+      "path": "comparison.json.gz",
+      "rawBytes": 4492372,
+      "rawSha256": "4efc8a309355dcc377af91712a3e06cebea77bb5c60a6189cb2bfb132a9ec002",
+      "gzipBytes": 165269,
+      "gzipSha256": "9ab8940afa67c258d60aa82c1d286893b63c46220c640d0982894e2bc764132e"
+    },
+    {
+      "path": "comparison.md.gz",
+      "rawBytes": 386,
+      "rawSha256": "75a51e78f44e8ddcd6b65b38a70813e35a1b9d73a37c222be57d0957edc8e0cd",
+      "gzipBytes": 250,
+      "gzipSha256": "9c0bbba89807c65e8db1c9e21f3eb6a5ef566abc4cdb1ee54af1e78a2de78aed"
+    }
+  ],
+  "rawArtifactRetention": "All 16 original ZIPs and extracted files retained in the local validation archive; repository stores canonical full comparison plus artifact/file digests. Actions artifacts have their original retention policy.",
+  "boundary": "Historical ede07 regression evidence only, not acceptance of later fixes. Complete original inventories/cohort validated; result remained failure."
+}
