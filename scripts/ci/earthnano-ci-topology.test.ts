@@ -358,42 +358,12 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       // pruning case, Unix certification/feed retention and Linux-only bounded cohort dispatch
       // below to prove all other steps still match d4. No pin, condition, command
       // or artifact waiver.
-      const preservedSteps = structuredClone(shared.jobs[kind].steps!)
-      if (kind === 'native') {
-        // Only the two bounded Windows observers and the smoke step identity are new.
-        // Verify their exact conditions before removing them from the original recipe proof.
-        const diagnostics = preservedSteps.filter((step) =>
-          [
-            'Observe original NSIS argument parsing (diagnostic only)',
-            'Observe failed Windows installer stages (diagnostic package only)'
-          ].includes(step.name ?? '')
-        )
-        expect(diagnostics).toEqual([
-          {
-            name: 'Observe original NSIS argument parsing (diagnostic only)',
-            if: "runner.os == 'Windows'",
-            'continue-on-error': true,
-            run: 'node scripts/windows-nsis-arguments-probe.mjs --out test-results/native-evidence/nsis-arguments'
-          },
-          {
-            name: 'Observe failed Windows installer stages (diagnostic package only)',
-            if: "failure() && runner.os == 'Windows' && steps.windows_install_smoke.outcome == 'failure'",
-            'continue-on-error': true,
-            run: 'node scripts/windows-installer-stage-diagnostic.mjs --installer-dir dist --out test-results/native-evidence/installer-stages'
-          }
-        ])
-        for (const step of diagnostics) preservedSteps.splice(preservedSteps.indexOf(step), 1)
-        const smoke = preservedSteps.find((step) => step.id === 'windows_install_smoke')!
-        expect(smoke.run).toBe('node scripts/windows-installer-smoke.mjs --installer-dir dist')
-        expect(smoke).not.toHaveProperty('continue-on-error')
-        delete smoke.id
-      }
-      expect(digest(preservedSteps)).toBe(
+      expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
           ? 'd6168ae5600395d53c2b70c35625bbc0ef20fa20430e20c2346e40f625ec61a5'
           : '08ac1443440367a085a27392c3c707cd3f05fc14ff47c0491746cd17a768483f'
       )
-      const originalSteps = structuredClone(preservedSteps)
+      const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
       expect(python).toHaveLength(1)
       expect(python[0].uses).toBe('actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c')

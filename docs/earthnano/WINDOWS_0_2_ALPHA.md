@@ -37,6 +37,11 @@
 原安装的目录身份、ACL、reparse-point、发布和清理事务主体保持逐字节一致。
 真实 PowerShell 红绿报告、四项 profile 的环境见证和原始 ZIP 摘要见
 [窄验证归档](validation/alpha/windows-0.2-publication/manifest.json)。
+临时 NSIS 参数探针和隔离阶段诊断工具保留在验证提交
+[`cd292f8f0`](https://github.com/lust0yixiong/EarthNano/tree/cd292f8f0a14537c38666f5886ebae992c4b3400)，
+不进入最终产品维护范围。产品原生 workflow 与原 recipe 哈希证明已恢复；上游原
+publication、extractor、安装 smoke 和真实失败证据全部保留。诊断分支的额外观察
+不能将原 smoke 的失败改记为通过。
 
 历史 `ede07` 完整对照：基线 115,591 项、16 失败、4,254 跳过；候选 116,997 项、
 72 失败、4,350 跳过。原比较器退出 1，记录 68 个新增失败身份，0 全局错误、
