@@ -435,7 +435,11 @@ it.each(['refresh', 'recompute', 'preview', 'automatic'] as const)(
         collectionId: id,
         action: action === 'automatic' ? 'refresh' : action,
         ...(action === 'recompute'
-          ? { itemIds: ['paper', 'retry-0', 'retry-1', 'retry-2', 'retry-3'] }
+          ? {
+              // Four workers can refill the successful slot before a peer failure arrives.
+              // Keep pending work for the retry contract while retaining a targeted subset.
+              itemIds: ['paper', 'retry-0', 'retry-1', 'retry-2', 'retry-3', 'retry-4', 'retry-5']
+            }
           : {}),
         offset: 0
       },
