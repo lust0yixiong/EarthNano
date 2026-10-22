@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { ref: 0a1a1ac9365e0cdf40790503582adae5b98c0f0a, fetch-depth: 0, persist-credentials: false }
+        with: { ref: 463a78a159b384fd1136294b7091d12329ce16cd, fetch-depth: 0, persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: { node-version-file: .github/earthnano-node-version, cache: npm }
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
@@ -36,32 +36,24 @@ jobs:
         shell: bash
         env:
           EARTHNANO_RESEARCH_PYTHON: ${{ steps.python.outputs.python-path }}
+          OPEN_SCIENCE_TEST_MAX_WORKERS: '2'
+          VITEST_DEFER_COVERAGE_THRESHOLDS: '1'
+          VITEST_PORTABLE_CI: '0'
+          VITEST_WINDOWS_FULL_TEST: '1'
+          OPEN_SCIENCE_CI_EXCLUDED_PACKAGE_ROOTS: '[]'
+          OPEN_SCIENCE_CI_SELECTED_PACKAGE_ROOTS: '[]'
+          EARTHNANO_CI_RUNTIME_REPORT: test-results/windows-focused/runtime.json
         run: |
-          node node_modules/vitest/vitest.mjs run --maxWorkers=2 \
-            scripts/ci/audit-module-ownership.test.ts \
-            scripts/ci/earthnano-ci.test.ts \
-            scripts/ci/earthnano-ci-topology.test.ts \
-            scripts/ci/module-consumer-coverage.test.ts \
-            src/main/host-layer-dependencies.architecture.test.ts \
-            src/renderer/src/i18n/resources.test.ts \
-            src/shared/earthnano/release-identity.test.ts \
-            scripts/alpha-release-feed.test.ts \
-            src/main/acp/claude-candidate-preparation.test.ts \
-            src/main/session-package/browser-import.test.ts \
-            src/main/managed-file-versions/version-file-operator.test.ts \
-            src/main/earthnano/optimization-reconciliation.test.ts \
-            src/main/earthnano/persistent-candidate-owner.binary.test.ts \
-            src/main/earthnano/harness-optimization.test.ts \
-            src/main/composition/desktop-optimization.test.ts \
-            src/main/credential-identity/sqlite-snapshot.test.ts \
-            src/main/earthnano/desktop-optimization-manager.test.ts \
-            src/main/earthnano/execution-core.test.ts \
-            src/main/earthnano/execution-store.test.ts \
-            src/main/earthnano/candidate-snapshot.test.ts \
-            src/main/earthnano/optimization-failure-diagnostics.test.ts \
-            src/main/earthnano/optimization-resume.test.ts \
-            packages/durable-files/src/file-durability.test.ts \
-            --reporter=json --outputFile=test-results/windows-focused/vitest.json
+          node --input-type=module <<'JS'
+          import { mkdirSync } from 'node:fs';
+          import { spawnSync, execFileSync } from 'node:child_process';
+          import { sourceTestInvocation } from './scripts/ci/earthnano-source.mjs';
+          mkdirSync('test-results/windows-focused', { recursive: true });
+          console.log(JSON.stringify({phase:'focused-product-checkout',source:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()}));
+          const invocation=sourceTestInvocation(["scripts/ci/audit-module-ownership.test.ts", "scripts/ci/earthnano-ci.test.ts", "scripts/ci/earthnano-ci-topology.test.ts", "scripts/ci/module-consumer-coverage.test.ts", "src/main/host-layer-dependencies.architecture.test.ts", "src/renderer/src/i18n/resources.test.ts", "src/shared/earthnano/release-identity.test.ts", "scripts/alpha-release-feed.test.ts", "src/main/acp/claude-candidate-preparation.test.ts", "src/main/session-package/browser-import.test.ts", "src/main/managed-file-versions/version-file-operator.test.ts", "src/main/earthnano/optimization-reconciliation.test.ts", "src/main/earthnano/persistent-candidate-owner.binary.test.ts", "src/main/earthnano/harness-optimization.test.ts", "src/main/composition/desktop-optimization.test.ts", "src/main/credential-identity/sqlite-snapshot.test.ts", "src/main/earthnano/desktop-optimization-manager.test.ts", "src/main/earthnano/execution-core.test.ts", "src/main/earthnano/execution-store.test.ts", "src/main/earthnano/candidate-snapshot.test.ts", "src/main/earthnano/optimization-failure-diagnostics.test.ts", "src/main/earthnano/optimization-resume.test.ts", "packages/durable-files/src/file-durability.test.ts", "src/main/earthnano/harness-large-evidence.test.ts", "src/main/earthnano/persistent-compute-candidate.integration.test.ts", "src/main/earthnano/persistent-compute-workflow.integration.test.ts", "src/main/earthnano/persistent-compute-sweep.integration.test.ts", "--maxWorkers=2", "--testTimeout=30000", "--hookTimeout=60000", "--reporter=default", "--reporter=json", "--reporter=./scripts/ci/earthnano-runtime-reporter.mjs", "--outputFile=test-results/windows-focused/vitest.json"]);
+          const result=spawnSync(invocation.command,invocation.args,{stdio:'inherit',shell:invocation.shell});
+          process.exit(result.status ?? 1);
+          JS
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
