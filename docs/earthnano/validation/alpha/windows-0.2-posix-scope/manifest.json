@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "d2247b393cd28e15919e62b9ff306b1db58804be",
+  "scope": "Only four EarthNano integration-test registrations gain the existing it.skipIf(process.platform === 'win32') boundary. Original names, callbacks, timeout budgets and Unix assertions are retained; Prettier formatting is the only other test-file change.",
+  "patternSources": [
+    "src/main/earthnano/persistent-scientific-candidate.integration.test.ts",
+    "src/main/earthnano/persistent-optimization.integration.test.ts",
+    "vendor/harness2/tests/test_earthnano_sweep.py",
+    "vendor/harness2/tests/test_earthnano_sweep_binding_v2.py"
+  ],
+  "windowsPlatformNotApplicable": {
+    "newlySkipped": 13,
+    "countedAsPass": false,
+    "tests": [
+      {
+        "path": "src/main/earthnano/persistent-compute-candidate.integration.test.ts",
+        "cases": 8
+      },
+      {
+        "path": "src/main/earthnano/persistent-compute-workflow.integration.test.ts",
+        "cases": 3
+      },
+      {
+        "path": "src/main/earthnano/persistent-compute-sweep.integration.test.ts",
+        "cases": 1
+      },
+      {
+        "path": "src/main/earthnano/harness-large-evidence.test.ts",
+        "cases": 1
+      }
+    ],
+    "reason": "Compute cases execute real native Claude candidate command hooks through the unchanged POSIX-only prepare guard and original POSIX remote scratch contract. Large-evidence executes the original Python method whose summary uses POSIX fcntl/flock.",
+    "windowsOptimizationSupported": false,
+    "historicalFailuresPreserved": true,
+    "historicalLargeEvidenceExit2DirectCauseConfirmed": false,
+    "allFourFilesAbsentFromFixedOpenScienceBaseline": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5"
+  },
+  "unchanged": [
+    "Production code and Windows refusal guards",
+    "SDK path resolution, command hooks, Python file locks and upstream pins",
+    "Unix test selection and original assertions",
+    "Source comparison rules and assertion inventory accounting",
+    "Other cross-platform Compute/protocol/permission/core and actual-host guard tests"
+  ],
+  "validation": {
+    "host": "darwin-arm64",
+    "node": "v24.19.0",
+    "windowsEvidence": "Static AST registration count and isolated evaluation of only the original platform predicate; no Windows test callback or native executable was run.",
+    "platformSelection": {
+      "win32": {
+        "run": 0,
+        "skip": 13
+      },
+      "darwin": {
+        "run": 13,
+        "skip": 0
+      },
+      "linux": {
+        "run": 13,
+        "skip": 0
+      }
+    },
+    "originalBodiesPreserved": "For every file, formatting the base bytes with only the registration prefix substituted equals the final file byte for byte.",
+    "registrationProofSha256": "aeff2da74569a4a8579460fb613c58ca288912c87a635943b1ea7578d57afa0d",
+    "localNativeDependencyNote": "Initial local run lacked the borrowed process-tree native binary: 2 passed and 11 failed. Its original report is retained externally. Unchanged native package sources were built only inside this worktree with the original node-gyp recipe for the local Node; shared modules and published runtime bytes were not changed.",
+    "macIntegration": {
+      "files": 4,
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "sameOriginalTestNamesAsInitialRun": true
+    },
+    "checks": {
+      "eslint": true,
+      "prettier": true,
+      "nodeCompiledTypes": true,
+      "sandboxTypes": true,
+      "webCompiledTypes": true
+    },
+    "paidModelCalls": 0,
+    "actualSSHOrScheduler": false,
+    "windowsAcceptance": false,
+    "macReportSha256": "8589feb2fe89f5f0e431badee5e371b4e83368910bd053587a23b08a778b0674",
+    "externalReceiptSha256": "85d48499c4d5420da5a42cca95d5ce5a578bb9387bee3f76969ebdc81b7a637a"
+  }
+}

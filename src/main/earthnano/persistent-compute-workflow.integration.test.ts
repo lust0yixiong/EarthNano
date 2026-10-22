@@ -110,7 +110,9 @@ configureTestRuntimeMetadata()
 
 // Every state owner below is original. Native messages use a fixed local provider; remote wire
 // operations and the local cipher port are fixtures, not SSH/Linux/Slurm/OS-keychain certification.
-it.each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
+it
+  .skipIf(process.platform === 'win32')
+  .each(['authorized', 'no-grant', 'protection-unavailable'] as const)(
   'runs original candidate Compute workflow with %s',
   async (mode) => {
     const sourcePrompt =

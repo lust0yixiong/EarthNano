@@ -149,16 +149,18 @@ configureTestRuntimeMetadata()
 
 // This fixture exercises real native ACP, original Node REPL/RPC, SQLite Job/delivery owners,
 // producer capture, Version leases and Reviews. Only the remote submit/harvest transport is injected.
-it.each([
-  'complete',
-  'continuation-failure',
-  'tool-failure-repaired',
-  'multi-batch',
-  'stop-continuation',
-  'prepare-failure',
-  'stop-unknown',
-  'source-revoked'
-] as const)(
+it
+  .skipIf(process.platform === 'win32')
+  .each([
+    'complete',
+    'continuation-failure',
+    'tool-failure-repaired',
+    'multi-batch',
+    'stop-continuation',
+    'prepare-failure',
+    'stop-unknown',
+    'source-revoked'
+  ] as const)(
   'joins original Compute lifecycle (%s) without replacing initial identity',
   async (mode) => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'earthnano-compute-owner-')))
