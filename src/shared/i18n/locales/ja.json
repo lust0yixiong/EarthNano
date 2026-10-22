@@ -7430,6 +7430,12 @@
     "Task filter": "タスクフィルター",
     "Tasks per domain (empty means all)": "ドメインごとのタスク数（空欄ですべて）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "プレビューしたフィルターに一致するタスクはありません。フィルターを調整して再度プレビューしてください。",
-    "Repeat this task with Notebook": "Notebook でこのタスクを再実行"
+    "Repeat this task with Notebook": "Notebook でこのタスクを再実行",
+    "Try upstream examples": "上流の事例を試す",
+    "OpenScience: reproduce Case16": "OpenScience：Case16 を再実行",
+    "Rerun the original registry calculation with its frozen input.": "固定された入力で元の登録データ計算を再実行します。",
+    "Harness²: reconcile signed ledgers": "Harness²：符号付き台帳の照合",
+    "Run the original demo task, then compare configurations with Optimize task.": "元のデモのタスクを実行し、タスク最適化で設定を比較します。",
+    "Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.": "空の下書きで事例を選ぶと入力ファイルが添付されます。送信前に確認してください。モデルの呼び出しには料金が発生する場合があります。"
   }
 }

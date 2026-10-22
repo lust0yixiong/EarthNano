@@ -7430,6 +7430,12 @@
     "Task filter": "任務篩選",
     "Tasks per domain (empty means all)": "每個任務領域的任務數（留空表示全部）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "沒有任務符合預覽的篩選條件。請調整篩選條件後重新預覽。",
-    "Repeat this task with Notebook": "使用 Notebook 重新執行此任務"
+    "Repeat this task with Notebook": "使用 Notebook 重新執行此任務",
+    "Try upstream examples": "試用上游案例",
+    "OpenScience: reproduce Case16": "OpenScience：重跑 Case16",
+    "Rerun the original registry calculation with its frozen input.": "使用凍結輸入重跑原始登記庫計算。",
+    "Harness²: reconcile signed ledgers": "Harness²：帶正負號帳本核算",
+    "Run the original demo task, then compare configurations with Optimize task.": "先執行原 demo 的任務，再透過「最佳化任務」比較設定。",
+    "Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.": "在空白草稿中選擇案例以加入輸入檔案。傳送前請檢查內容；模型呼叫可能產生費用。"
   }
 }

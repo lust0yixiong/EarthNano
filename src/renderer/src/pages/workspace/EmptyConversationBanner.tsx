@@ -24,6 +24,8 @@ import { sessionPackageImportAvailable } from '@/lib/session-package-capabilitie
 import { importSessionPackage } from '@/lib/session-package-import'
 
 import { FlaskLogo } from '@/components/flask-logo'
+import type { UpstreamTrialId } from '@/lib/upstream-trials'
+import { UpstreamTrialExamples } from './UpstreamTrialExamples'
 
 const SessionPackageEntryRow = ({
   projectId,
@@ -287,9 +289,11 @@ const EmptyConversationBanner = ({
 
 // Native scrolling preserves trackpad/touch behavior and the user's position while editing.
 const NewConversationStart = ({
-  onStartResearch
+  onStartResearch,
+  onStartTrial
 }: {
   onStartResearch?: (prompt: string) => void
+  onStartTrial?: (id: UpstreamTrialId) => void
 }): React.JSX.Element => {
   const { t } = useTranslation()
   const railRef = useRef<HTMLDivElement>(null)
@@ -441,6 +445,7 @@ const NewConversationStart = ({
           </Button>
         </div>
       </div>
+      <UpstreamTrialExamples onSelect={onStartTrial} />
     </section>
   )
 }

@@ -1,0 +1,19 @@
+﻿scenario,stratum,total_trials,results_yes,results_no,results_unknown,known_denominator,percent_with_results_known,percent_with_results_all
+midpoint,Overall,80,33,47,0,80,41.25,41.25
+midpoint,<1 year,1,0,1,0,1,0.0,0.0
+midpoint,1–<3 years,33,11,22,0,33,33.33,33.33
+midpoint,3–<5 years,24,10,14,0,24,41.67,41.67
+midpoint,≥5 years,22,12,10,0,22,54.55,54.55
+midpoint,Unknown/invalid date,0,0,0,0,0,,
+latest_completion,Overall,80,33,47,0,80,41.25,41.25
+latest_completion,<1 year,1,0,1,0,1,0.0,0.0
+latest_completion,1–<3 years,33,11,22,0,33,33.33,33.33
+latest_completion,3–<5 years,24,10,14,0,24,41.67,41.67
+latest_completion,≥5 years,22,12,10,0,22,54.55,54.55
+latest_completion,Unknown/invalid date,0,0,0,0,0,,
+earliest_completion,Overall,80,33,47,0,80,41.25,41.25
+earliest_completion,<1 year,1,0,1,0,1,0.0,0.0
+earliest_completion,1–<3 years,33,11,22,0,33,33.33,33.33
+earliest_completion,3–<5 years,24,10,14,0,24,41.67,41.67
+earliest_completion,≥5 years,22,12,10,0,22,54.55,54.55
+earliest_completion,Unknown/invalid date,0,0,0,0,0,,

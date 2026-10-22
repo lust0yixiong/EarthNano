@@ -7430,6 +7430,12 @@
     "Task filter": "任务筛选",
     "Tasks per domain (empty means all)": "每个任务域的任务数（留空表示全部）",
     "No tasks match the previewed filters. Adjust the filters and preview again.": "没有任务符合预览的筛选条件。请调整筛选条件后重新预览。",
-    "Repeat this task with Notebook": "使用 Notebook 重新执行此任务"
+    "Repeat this task with Notebook": "使用 Notebook 重新执行此任务",
+    "Try upstream examples": "试用上游案例",
+    "OpenScience: reproduce Case16": "OpenScience：复跑 Case16",
+    "Rerun the original registry calculation with its frozen input.": "使用冻结输入复跑原始登记库计算。",
+    "Harness²: reconcile signed ledgers": "Harness²：带符号账本核算",
+    "Run the original demo task, then compare configurations with Optimize task.": "先执行原 demo 的任务，再通过“优化任务”比较配置。",
+    "Choose a case in an empty draft to attach its inputs. Review it before sending; model calls may incur fees.": "在空白草稿中选择案例以添加输入文件。发送前请检查内容；模型调用可能产生费用。"
   }
 }

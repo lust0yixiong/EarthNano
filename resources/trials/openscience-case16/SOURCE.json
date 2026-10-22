@@ -1,0 +1,33 @@
+{
+  "source": "AIPOCH OpenScience paper Case16 fixed-input rerun",
+  "repository": "https://huggingface.co/datasets/AIPOCH-AI/case-validation",
+  "commit": "5a775981cc7142651116960b0b96501088670c98",
+  "license": "Apache-2.0",
+  "scope": "Fixed input calculation only; no fresh registry retrieval or full agent replay.",
+  "files": [
+    {
+      "path": "analysis.py",
+      "url": "https://huggingface.co/datasets/AIPOCH-AI/case-validation/resolve/5a775981cc7142651116960b0b96501088670c98/releases/2026-10-13-deidentified/case16/derived/analysis.py",
+      "bytes": 8249,
+      "sha256": "3f205758d35b962e0fa47af2997493b8476e86ff6657d493a4d7bb936514bea2"
+    },
+    {
+      "path": "registry_source.json",
+      "url": "https://huggingface.co/datasets/AIPOCH-AI/case-validation/resolve/5a775981cc7142651116960b0b96501088670c98/releases/2026-10-13-deidentified/case16/derived/registry_source.json",
+      "bytes": 1669267,
+      "sha256": "ff62342b855b76e7a4d8810e9864d295f041b5258b9df2b7fdace1d524b38630"
+    },
+    {
+      "path": "trial_calculations.csv",
+      "url": "https://huggingface.co/datasets/AIPOCH-AI/case-validation/resolve/5a775981cc7142651116960b0b96501088670c98/releases/2026-10-13-deidentified/case16/derived/trial_calculations.csv",
+      "bytes": 50430,
+      "sha256": "ce5be45173e72f859c525876424d87eacd4a9c88d79afce550fbf3232e719da6"
+    },
+    {
+      "path": "availability_summary.csv",
+      "url": "https://huggingface.co/datasets/AIPOCH-AI/case-validation/resolve/5a775981cc7142651116960b0b96501088670c98/releases/2026-10-13-deidentified/case16/derived/availability_summary.csv",
+      "bytes": 1067,
+      "sha256": "64e40cf520346dd84f3e07310314b3b7a8e5ce44929aa9963967b23e42c8721e"
+    }
+  ]
+}
