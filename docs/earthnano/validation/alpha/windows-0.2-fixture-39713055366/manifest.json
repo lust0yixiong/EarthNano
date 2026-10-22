@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "id": 39713055366,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39713055366",
+    "attempt": 1,
+    "conclusion": "success"
+  },
+  "launcherSource": "65cab13248c71d6fbf3d0f16735eb72876b146d2",
+  "productSource": "4f209c180114f1d96d02c9c48805d24b39463932",
+  "actualCheckoutCheckpoint": "4f209c180114f1d96d02c9c48805d24b39463932",
+  "job": {
+    "id": 119608660181,
+    "name": "Focused original Windows regression tests (not full source acceptance)",
+    "conclusion": "success",
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39713055366/job/119608660181"
+  },
+  "selectedFile": "src/main/literature/smart-collections.test.ts",
+  "fixtureMerge": {
+    "commit": "4f209c180114f1d96d02c9c48805d24b39463932",
+    "firstParent": "e209234d3f4a584ba6c9d1de6c9522614cc4d4f4",
+    "fixtureCommit": "59dfde65a2b6368dd5603667aef7305a0ed23ef3",
+    "changedPaths": ["src/main/literature/smart-collections.test.ts"],
+    "productionChanged": false
+  },
+  "invocation": {
+    "usesOriginalSourceTestInvocation": true,
+    "node": "v24.22.0",
+    "runner": "windows-2022",
+    "testTimeoutMs": 30000,
+    "hookTimeoutMs": 60000,
+    "maxWorkers": 2,
+    "originalPretestEnvironmentAndJsonRuntimeReporters": true,
+    "normalizerGitBlob": "e27f40a992857b029eb1307978908ea47ed3b6c0"
+  },
+  "result": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "globalErrors": 0,
+    "rawLeaves": 59,
+    "runtimeLeaves": 59,
+    "normalizedLeaves": 59,
+    "expectedSourceTitlesExactlyMatch": true
+  },
+  "evidence": {
+    "artifact": {
+      "id": 12398490024,
+      "name": "earthnano-windows-focused-regressions",
+      "apiDigest": "sha256:b52fd612d910327da6bd964164e9c5af2126c707070acedb3caabfc9927d4e67",
+      "bytes": 5978,
+      "sha256": "b52fd612d910327da6bd964164e9c5af2126c707070acedb3caabfc9927d4e67",
+      "apiDigestMatches": true,
+      "repositoryArchive": "raw-artifact.zip"
+    },
+    "rawFiles": [
+      {
+        "path": "vitest.json",
+        "bytes": 18222,
+        "sha256": "bc6cafe89c1f2d247adf4e46398480789ac74c0469f9ea3fcb33a647a2d8f2ab"
+      },
+      {
+        "path": "runtime.json",
+        "bytes": 24827,
+        "sha256": "287bda63ba035a5182795ea15ed45605592f39b7f0586954e88d821a3b541c23"
+      }
+    ],
+    "jobLog": {
+      "repositoryArchive": "original-job.log.gz",
+      "rawBytes": 53501,
+      "rawSha256": "71b0ec1723cf14213edb503691ce597cf93e5b15c128cc5aad1f52b387399a00",
+      "storedBytes": 12835,
+      "storedSha256": "4c66b9f29620167a7ee701cc3e775c3f984d693c3e0e974f7a6b568ec601e795"
+    },
+    "externalReceiptSha256": "f90623f2a1c6a817977848629d05617ed976ee3e013ea3e7fe5e60f22a30d1f1"
+  },
+  "canonicalRelationship": {
+    "run": 39708999081,
+    "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+    "changedPaths": [
+      "docs/earthnano/WINDOWS_0_2_ALPHA.md",
+      "docs/earthnano/validation/alpha/README.md",
+      "docs/earthnano/validation/alpha/windows-0.2-native/canonical-evidence.zip",
+      "docs/earthnano/validation/alpha/windows-0.2-native/canonical-native-job.log.gz",
+      "docs/earthnano/validation/alpha/windows-0.2-native/manifest.json",
+      "docs/earthnano/validation/alpha/windows-0.2-native/prior-shutdown-failure.zip",
+      "docs/earthnano/validation/alpha/windows-0.2-native/prior-shutdown-native-job.log.gz",
+      "src/main/literature/smart-collections.test.ts"
+    ],
+    "onlyNonDocumentationChange": "src/main/literature/smart-collections.test.ts",
+    "allProductionRecipesComparatorsAndOtherTestSourcesUnchanged": true
+  },
+  "boundary": "The original 16-shard source cohort belongs only to run39708999081/source60e922b99. This independent one-file Windows result belongs only to product4f209c180. Except documentation and smart-collections.test.ts, the production/native/execution/comparison recipes and all other test sources are unchanged. Do not merge reports or claim that product4f ran the original 16 shards. The launcher tree is distinct; its explicit checkout and actual logged git HEAD both identify product4f. No publication, model call, dispatch or cancellation was performed by this evidence collector."
+}
