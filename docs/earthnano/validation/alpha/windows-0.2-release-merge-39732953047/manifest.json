@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Narrow post-release Windows verification of merging the released 0.1.1 baseline into the already validated Windows changes. Preserve this run separately from the previous complete sixteen-shard source comparison.",
+  "run": {
+    "id": 39732953047,
+    "html_url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39732953047",
+    "head_sha": "ef296a30710d7b6836382c884c4df60e4bf939da",
+    "head_branch": "ci/earthnano-windows-focused-02",
+    "event": "workflow_dispatch",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-22T06:16:43Z",
+    "updated_at": "2026-10-22T06:21:01Z",
+    "run_attempt": 1
+  },
+  "launcherSource": "ef296a30710d7b6836382c884c4df60e4bf939da",
+  "actualProductSource": "c44d8820a0b82aa847b8dba09234740c195e4882",
+  "actualProductCheckoutCheckpoint": "2026-10-22T06:19:36.1435306Z {\"phase\":\"focused-product-checkout\",\"source\":\"c44d8820a0b82aa847b8dba09234740c195e4882\"}",
+  "productSourceDiffScope": "Relative to complete cohort 39719225703 product 2982f4d1d, this merged product changes only release-identity/topology/config assertions and places pr-gate-workflow.test.ts into the existing architecture project. Production/build/lock/pins do not change. Documentation evidence also exists separately.",
+  "scope": {
+    "files": [
+      "scripts/ci/earthnano-ci.test.ts",
+      "scripts/ci/earthnano-ci-topology.test.ts",
+      "src/shared/earthnano/release-identity.test.ts",
+      "test/config/vitest.config.test.ts",
+      "scripts/ci/pr-gate-workflow.test.ts",
+      "scripts/ci/module-consumer-coverage.test.ts"
+    ],
+    "shard": "8/8",
+    "entry": "Original sourceTestInvocation from the actual product checkout: npm.cmd --ignore-scripts test -- <six file filters> --shard=8/8 --maxWorkers=2 --testTimeout=30000 --hookTimeout=60000 --reporter=default --reporter=json --reporter=./scripts/ci/earthnano-runtime-reporter.mjs --outputFile=test-results/windows-focused/vitest.json",
+    "environment": {
+      "OPEN_SCIENCE_TEST_MAX_WORKERS": "2",
+      "VITEST_DEFER_COVERAGE_THRESHOLDS": "1",
+      "VITEST_PORTABLE_CI": "0",
+      "VITEST_WINDOWS_FULL_TEST": "1",
+      "OPEN_SCIENCE_CI_EXCLUDED_PACKAGE_ROOTS": "[]",
+      "OPEN_SCIENCE_CI_SELECTED_PACKAGE_ROOTS": "[]",
+      "EARTHNANO_CI_RUNTIME_REPORT": "test-results/windows-focused/runtime.json",
+      "EARTHNANO_RESEARCH_PYTHON": "Original actions/setup-python python-path output"
+    },
+    "fullSourceComparison": false,
+    "nativeRerun": false,
+    "coverageRun": false
+  },
+  "environmentEvidence": {
+    "nodeLogLine": "2026-10-22T06:17:20.7424786Z node: v24.22.0",
+    "vitestBanner": "2026-10-22T06:19:37.1660901Z  RUN  v4.1.11 D:/a/EarthNano/EarthNano",
+    "runnerImage": "windows-2022",
+    "runnerImageVersion": "20261012.333.1",
+    "electronExpectedFromActualProductLock": "43.7.5",
+    "electronEvidence": "Original Require original pinned Electron step succeeded; it executes the existing exact lock/installed/binary version equality probe.",
+    "jobId": 119671950980,
+    "steps": [
+      {
+        "number": 1,
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:16:47Z",
+        "completed_at": "2026-10-22T06:16:50Z"
+      },
+      {
+        "number": 2,
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:16:50Z",
+        "completed_at": "2026-10-22T06:17:11Z"
+      },
+      {
+        "number": 3,
+        "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:17:11Z",
+        "completed_at": "2026-10-22T06:18:04Z"
+      },
+      {
+        "number": 4,
+        "name": "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:18:04Z",
+        "completed_at": "2026-10-22T06:18:04Z"
+      },
+      {
+        "number": 5,
+        "name": "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:18:04Z",
+        "completed_at": "2026-10-22T06:18:10Z"
+      },
+      {
+        "number": 6,
+        "name": "Original dependency installation",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:18:10Z",
+        "completed_at": "2026-10-22T06:19:33Z"
+      },
+      {
+        "number": 7,
+        "name": "Require original pinned Electron",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:19:33Z",
+        "completed_at": "2026-10-22T06:19:33Z"
+      },
+      {
+        "number": 8,
+        "name": "Original pretest",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:19:33Z",
+        "completed_at": "2026-10-22T06:19:35Z"
+      },
+      {
+        "number": 9,
+        "name": "Selected original regression tests",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:19:35Z",
+        "completed_at": "2026-10-22T06:20:55Z"
+      },
+      {
+        "number": 10,
+        "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:20:55Z",
+        "completed_at": "2026-10-22T06:20:57Z"
+      },
+      {
+        "number": 18,
+        "name": "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:20:57Z",
+        "completed_at": "2026-10-22T06:20:57Z"
+      },
+      {
+        "number": 19,
+        "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:20:57Z",
+        "completed_at": "2026-10-22T06:20:57Z"
+      },
+      {
+        "number": 20,
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:20:57Z",
+        "completed_at": "2026-10-22T06:20:59Z"
+      },
+      {
+        "number": 21,
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-22T06:20:59Z",
+        "completed_at": "2026-10-22T06:20:59Z"
+      }
+    ]
+  },
+  "validation": {
+    "focusedAssertionsAccepted": true,
+    "fileCount": 6,
+    "uniqueIdentityCount": 241,
+    "passed": 233,
+    "failed": 0,
+    "skipped": 8,
+    "globalErrors": 0,
+    "runtimeReason": "passed",
+    "normalizationError": null,
+    "inventory": {
+      "normalizationError": null,
+      "expectedFileCount": 6,
+      "actualFileCount": 6,
+      "missingFiles": [],
+      "duplicateFiles": [],
+      "rawLeafCount": 241,
+      "runtimeLeafCount": 241,
+      "normalizedLeafCount": 241,
+      "uniqueIdentityCount": 241,
+      "expectedIdentityCount": 241,
+      "missingIdentities": [],
+      "addedIdentities": [],
+      "skipIdentityChanges": {
+        "missing": [],
+        "added": []
+      }
+    },
+    "byFile": [
+      {
+        "path": "test/config/vitest.config.test.ts",
+        "total": 46,
+        "statuses": {
+          "passed": 46
+        }
+      },
+      {
+        "path": "scripts/ci/earthnano-ci-topology.test.ts",
+        "total": 40,
+        "statuses": {
+          "passed": 40
+        }
+      },
+      {
+        "path": "scripts/ci/earthnano-ci.test.ts",
+        "total": 68,
+        "statuses": {
+          "passed": 68
+        }
+      },
+      {
+        "path": "src/shared/earthnano/release-identity.test.ts",
+        "total": 1,
+        "statuses": {
+          "passed": 1
+        }
+      },
+      {
+        "path": "scripts/ci/module-consumer-coverage.test.ts",
+        "total": 3,
+        "statuses": {
+          "passed": 3
+        }
+      },
+      {
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "total": 83,
+        "statuses": {
+          "skipped": 8,
+          "passed": 75
+        }
+      }
+    ],
+    "originalSkippedAssertions": [
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow allocates package runners only for trusted affected package evidence :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow allocates package runners only for trusted affected package evidence",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow retains all Windows mainlines when the trusted selector returns no focused journeys :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow retains all Windows mainlines when the trusted selector returns no focused journeys",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow retains unique static checks when dedicated tests are true :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow retains unique static checks when dedicated tests are true",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow retains unique static checks when dedicated tests are false :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow retains unique static checks when dedicated tests are false",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow executes the focused windows-e2e plan through the real preflight script :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow executes the focused windows-e2e plan through the real preflight script",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow executes the focused windows-e2e-mainline plan through the real preflight script :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow executes the focused windows-e2e-mainline plan through the real preflight script",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow executes the focused windows-process plan through the real preflight script :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow executes the focused windows-process plan through the real preflight script",
+        "status": "skipped",
+        "failureMessages": []
+      },
+      {
+        "id": "scripts/ci/pr-gate-workflow.test.ts :: PR Gate workflow executes the focused windows-notebook-runtime plan through the real preflight script :: 0",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "name": "PR Gate workflow executes the focused windows-notebook-runtime plan through the real preflight script",
+        "status": "skipped",
+        "failureMessages": []
+      }
+    ],
+    "skipPolicy": "The exact same eight original Windows skip identities are retained; no added skip, relaxed assertion, timeout change or missing identity is accepted.",
+    "normalizer": {
+      "source": "c44d8820a0b82aa847b8dba09234740c195e4882",
+      "snapshot": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/product-earthnano-source.mjs",
+        "bytes": 36917,
+        "sha256": "82a598ca445dafdadb71cc046671c6e075d3e3b47e50ee114ecf74bf58f8907e"
+      },
+      "gitBlob": "c33cb4d33e2a69689f7ca3ba214178411350ea20",
+      "modificationsByCollector": 0
+    }
+  },
+  "scheduling": {
+    "projectAssignments": [
+      {
+        "line": 698,
+        "project": "architecture",
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:07.2609152Z  ✓  architecture  scripts/ci/pr-gate-workflow.test.ts (83 tests | 8 skipped) 28807ms"
+      },
+      {
+        "line": 710,
+        "project": "architecture",
+        "path": "scripts/ci/module-consumer-coverage.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:26.0335988Z  ✓  architecture  scripts/ci/module-consumer-coverage.test.ts (3 tests) 18346ms"
+      },
+      {
+        "line": 714,
+        "project": "default",
+        "path": "scripts/ci/earthnano-ci.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:40.8907352Z  ✓  default  scripts/ci/earthnano-ci.test.ts (68 tests) 14040ms"
+      },
+      {
+        "line": 726,
+        "project": "default",
+        "path": "scripts/ci/earthnano-ci-topology.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:43.0350583Z  ✓  default  scripts/ci/earthnano-ci-topology.test.ts (40 tests) 1558ms"
+      },
+      {
+        "line": 727,
+        "project": "default",
+        "path": "test/config/vitest.config.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:55.3096499Z  ✓  default  test/config/vitest.config.test.ts (46 tests) 11451ms"
+      },
+      {
+        "line": 743,
+        "project": "default",
+        "path": "src/shared/earthnano/release-identity.test.ts",
+        "originalLogLineWithoutAnsi": "2026-10-22T06:20:55.8281831Z  ✓  default  src/shared/earthnano/release-identity.test.ts (1 test) 17ms"
+      }
+    ],
+    "executionIntervals": [
+      {
+        "path": "scripts/ci/pr-gate-workflow.test.ts",
+        "projectObservedInDefaultLog": "architecture",
+        "startTimeMs": 1792649978439,
+        "endTimeMs": 1792650007244.5298,
+        "startTimeUtc": "2026-10-22T06:19:38.439000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:07.244530+00:00"
+      },
+      {
+        "path": "scripts/ci/module-consumer-coverage.test.ts",
+        "projectObservedInDefaultLog": "architecture",
+        "startTimeMs": 1792650007672,
+        "endTimeMs": 1792650026017.992,
+        "startTimeUtc": "2026-10-22T06:20:07.672000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:26.017992+00:00"
+      },
+      {
+        "path": "scripts/ci/earthnano-ci.test.ts",
+        "projectObservedInDefaultLog": "default",
+        "startTimeMs": 1792650026842,
+        "endTimeMs": 1792650040880.9304,
+        "startTimeUtc": "2026-10-22T06:20:26.842000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:40.880930+00:00"
+      },
+      {
+        "path": "scripts/ci/earthnano-ci-topology.test.ts",
+        "projectObservedInDefaultLog": "default",
+        "startTimeMs": 1792650041474,
+        "endTimeMs": 1792650043030.9873,
+        "startTimeUtc": "2026-10-22T06:20:41.474000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:43.030987+00:00"
+      },
+      {
+        "path": "test/config/vitest.config.test.ts",
+        "projectObservedInDefaultLog": "default",
+        "startTimeMs": 1792650043842,
+        "endTimeMs": 1792650055291.1653,
+        "startTimeUtc": "2026-10-22T06:20:43.842000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:55.291165+00:00"
+      },
+      {
+        "path": "src/shared/earthnano/release-identity.test.ts",
+        "projectObservedInDefaultLog": "default",
+        "startTimeMs": 1792650055808,
+        "endTimeMs": 1792650055823.9692,
+        "startTimeUtc": "2026-10-22T06:20:55.808000+00:00",
+        "endTimeUtc": "2026-10-22T06:20:55.823969+00:00"
+      }
+    ],
+    "architectureNeighborsObserved": [
+      "scripts/ci/module-consumer-coverage.test.ts",
+      "scripts/ci/pr-gate-workflow.test.ts"
+    ],
+    "fileIntervalsDoNotOverlap": true,
+    "actualOrder": "architecture pr-gate, architecture module-consumer-coverage, then the four default files",
+    "defaultFirstWasAnIncorrectPriorHypothesis": true,
+    "originalConfigAssertionsPass": true,
+    "interpretation": "The actual project labels, non-overlapping raw file intervals and original config assertions validate the intended architecture serial grouping. The locked original runner code explains single-worker non-isolated batching and the observed architecture-before-default order.",
+    "pidLimitation": "The unmodified original runtime reporter records leaves/ancestors, not worker PIDs. Shared-worker batching is inferred from the exact config plus locked Vitest implementation; no observed same-PID claim or added PID telemetry is made.",
+    "implementationDetails": "See scheduling-analysis.json.gz for the exact original locked runner excerpts and hashes; no runner or product configuration was edited."
+  },
+  "artifact": {
+    "artifact": {
+      "id": 12406316978,
+      "node_id": "MDg6QXJ0aWZhY3QxMjQwNjMxNjk3OA==",
+      "name": "earthnano-windows-focused-regressions",
+      "size_in_bytes": 17939,
+      "url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12406316978",
+      "archive_download_url": "https://api.github.com/repos/lust0yixiong/EarthNano/actions/artifacts/12406316978/zip",
+      "expired": false,
+      "digest": "sha256:d8b83feb65dc9262542e39cadd50672e2c03b0dfa76e642cbe5fe183e03cd61a",
+      "created_at": "2026-10-22T06:20:56Z",
+      "updated_at": "2026-10-22T06:20:56Z",
+      "expires_at": "2026-11-05T06:20:56Z",
+      "workflow_run": {
+        "id": 39732953047,
+        "repository_id": 1426478825,
+        "head_repository_id": 1426478825,
+        "head_branch": "ci/earthnano-windows-focused-02",
+        "head_sha": "ef296a30710d7b6836382c884c4df60e4bf939da"
+      }
+    },
+    "zip": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/12406316978.zip",
+    "bytes": 17939,
+    "actualDigest": "sha256:d8b83feb65dc9262542e39cadd50672e2c03b0dfa76e642cbe5fe183e03cd61a",
+    "apiDigestMatches": true,
+    "productSource": "c44d8820a0b82aa847b8dba09234740c195e4882",
+    "downloadedAtUtc": "2026-10-22T06:21:27.088862+00:00",
+    "scope": "focused only; not original full source cohort",
+    "repositoryArchive": {
+      "file": "raw-evidence.zip",
+      "bytes": 17939,
+      "sha256": "d8b83feb65dc9262542e39cadd50672e2c03b0dfa76e642cbe5fe183e03cd61a",
+      "exactApiDownloadBytes": true
+    },
+    "extractedOriginalFiles": [
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/original-artifact/vitest.json",
+        "bytes": 80208,
+        "sha256": "e354f0d66b66583accc7985889cd58a32444bf5478b82237e473ea70c61ea250"
+      },
+      {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/original-artifact/runtime.json",
+        "bytes": 129937,
+        "sha256": "5f1b4d17e254900ee8f6d099da32fc3eeaa792389ce217deaa1e4dce9c8dc099"
+      }
+    ]
+  },
+  "localMacSupplement": {
+    "source": {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/post-release-merge-local.json",
+      "bytes": 79593,
+      "sha256": "26899cfadbc435391199cfb59d115e30f78e1a4aac29edde5701477b0727cf29"
+    },
+    "archivedFile": "post-release-merge-local.json.gz",
+    "actualFileCount": 5,
+    "total": 238,
+    "passed": 238,
+    "failed": 0,
+    "skipped": 0,
+    "node": "v24.19.0",
+    "platform": "darwin",
+    "runtimeAttribution": "Parent execution record; the untouched Vitest JSON itself does not embed Node/platform.",
+    "scope": "Five original files, supplementary local validation only; does not substitute for the six-file real Windows 241-identity run. No additional tests were run for this archive."
+  },
+  "archives": [
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/original-job.log",
+        "bytes": 90641,
+        "sha256": "188d55a86cae555c1ab6bf057c3fee9130e7cdb00f0286576877042db12db1cf"
+      },
+      "archivedFile": "original-job.log.gz",
+      "archivedBytes": 15516,
+      "archivedSha256": "8602bf084029a2694d210cfb3982450ebe1e385bee22af8118c5357dd79f925a",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/run-api.json",
+        "bytes": 14039,
+        "sha256": "22a2ae21982924fa9be67a0dd615f9023e87ef7b47d9e47f1d44a36c6fcf12fa"
+      },
+      "archivedFile": "run-api.json.gz",
+      "archivedBytes": 1706,
+      "archivedSha256": "8907d9e462b99a4afccf0f801833b332c4c91bcafcf0ac9625586be25bee1dff",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/jobs-api.json",
+        "bytes": 5179,
+        "sha256": "ae5c73ae7d47c3cb7d58733ecfc1514754b3b2e706b3d7c602a3619e68c83cf3"
+      },
+      "archivedFile": "jobs-api.json.gz",
+      "archivedBytes": 986,
+      "archivedSha256": "4d907f79e9b579440327190c1a8adaa922b2c63034711c3abb4c0f5d8bcd9842",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/artifacts-api.json",
+        "bytes": 943,
+        "sha256": "24bf9428faf19459d3f7d2316658fd5a58b245b6c40a6fe8d949872e1b1f9ca6"
+      },
+      "archivedFile": "artifacts-api.json.gz",
+      "archivedBytes": 481,
+      "archivedSha256": "7b41b0e42da6b326074dc21f42abe4c6a02aa441a38b8175abb2b66101954a40",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/expected-files.json",
+        "bytes": 87794,
+        "sha256": "3214946dc6da53a6ed70bdffb3306a396784a0fee7810d39c896e8472ea6e368"
+      },
+      "archivedFile": "expected-files.json.gz",
+      "archivedBytes": 7779,
+      "archivedSha256": "fbe0233d88cd81a05415f8aca80ac074fb508398fcd96d177fa4240dddb41ecf",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/focused-analysis.json",
+        "bytes": 5525,
+        "sha256": "17f280426984db4a57110c86b7cad6c1e5afd7ef4c18deb92308a05fa48de3c4"
+      },
+      "archivedFile": "focused-analysis.json.gz",
+      "archivedBytes": 1235,
+      "archivedSha256": "06eebdbc64af1932e0f0ce13ab599b9bfde8cce821f433a73efd2b81c9ea74d6",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/scheduling-analysis.json",
+        "bytes": 15506,
+        "sha256": "3438f37c45307383b0472050644d84f726f7c20cf0e65d4bfe921744b2c0f1ab"
+      },
+      "archivedFile": "scheduling-analysis.json.gz",
+      "archivedBytes": 4664,
+      "archivedSha256": "c250450f39f851affad645b413b919733b16944e33b666d2b4df6862379c1a27",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/launcher-workflow.yml",
+        "bytes": 3499,
+        "sha256": "24581c1f02df395b9a1cbd4fbf0b130f4a628f3e9ce975f607669bb3a36a33d3"
+      },
+      "archivedFile": "launcher-workflow.yml.gz",
+      "archivedBytes": 1550,
+      "archivedSha256": "3459b74437b5accdd4ac4353cf4f10022cab64c0bc0e21d4951b4f336db3351e",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047/product-vitest.config.ts",
+        "bytes": 13611,
+        "sha256": "5ae2483a946ecc7686e759d2d01ea38b29c06245b650680610c2716dbd500c21"
+      },
+      "archivedFile": "product-vitest.config.ts.gz",
+      "archivedBytes": 4923,
+      "archivedSha256": "1d51a8f7343e481b933cd8e3a7d96bf671277fd95706e843549a71543c276b0d",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    },
+    {
+      "original": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/post-release-merge-local.json",
+        "bytes": 79593,
+        "sha256": "26899cfadbc435391199cfb59d115e30f78e1a4aac29edde5701477b0727cf29"
+      },
+      "archivedFile": "post-release-merge-local.json.gz",
+      "archivedBytes": 9720,
+      "archivedSha256": "f90d780d81adf3cfee14c24c17f436d08e704476a2e7e79f8771dc9f90d5cb54",
+      "compression": "gzip level 9, mtime 0",
+      "decompressedEqualsOriginal": true
+    }
+  ],
+  "externalEvidenceDirectory": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/release-merge-39732953047",
+  "completeSourceEvidenceRetainedSeparately": {
+    "run": 39719225703,
+    "productSource": "2982f4d1dcbce13746c40b25f1045aecec24cec6",
+    "archive": "../windows-0.2-source-39719225703/manifest.json",
+    "conclusion": "no-new-regressions",
+    "baselineFailures": 13,
+    "candidateFailures": 3,
+    "explicitPosixIntegrationSkipped": 13,
+    "limitation": "This new focused result does not erase the earlier full-cohort failures/skips or convert it into full testing of c44. Full Windows optimization/POSIX-hook/Compute support remains unproven."
+  },
+  "observerPolicy": {
+    "newDispatchesOrCancellationsByCollector": 0,
+    "productEdits": 0,
+    "ruleChanges": 0,
+    "newSkips": 0,
+    "modelOrCredentialAccess": 0,
+    "evidenceWasNotCombinedAcrossRuns": true,
+    "nextAction": "Return docs-only archive commit to parent. Do not automatically repair, rerun, create a PR, merge or publish."
+  }
+}
