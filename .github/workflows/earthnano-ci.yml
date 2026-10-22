@@ -166,6 +166,8 @@ jobs:
     needs: windows_runtime
     strategy:
       fail-fast: false
+      # Leave shared runner capacity for the concurrent 0.1.1 iteration.
+      max-parallel: 8
       matrix:
         kind: [baseline, candidate]
         shard: [1, 2, 3, 4, 5, 6, 7, 8]

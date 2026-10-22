@@ -856,6 +856,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
     expect(source.uses).toBe('./.github/workflows/earthnano-source.yml')
     expect(source.strategy).toEqual({
       'fail-fast': false,
+      'max-parallel': 8,
       matrix: { kind: ['baseline', 'candidate'], shard: [1, 2, 3, 4, 5, 6, 7, 8] }
     })
     expect(source.with).toEqual({
