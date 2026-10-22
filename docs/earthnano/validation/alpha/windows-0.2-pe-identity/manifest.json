@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "id": 39706440979,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39706440979",
+    "head": "fa8ba724be162f3bd27b3f63f43c9266f7d72f55",
+    "conclusion": "failure",
+    "attempt": 1
+  },
+  "productSource": {
+    "head": "6e1106abba80d713029d75ad9526593e94b609f8",
+    "difference": [
+      "Temporary earthnano-ci.yml dispatch wrapper only"
+    ],
+    "version": "0.1.1-alpha.1",
+    "distribution": "unsigned-ci",
+    "sourceDirty": false,
+    "electron": {
+      "expected": "43.7.5",
+      "installed": "43.7.5",
+      "binary": "43.7.5",
+      "status": 0
+    }
+  },
+  "job": {
+    "id": 119587620934,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39706440979/job/119587620934",
+    "conclusion": "failure",
+    "steps": {
+      "Set up job": "success",
+      "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1": "success",
+      "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1": "success",
+      "Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c": "success",
+      "Require original Icon Composer compiler": "skipped",
+      "Original Linux build and smoke dependencies": "skipped",
+      "Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333": "success",
+      "Install original dependencies": "success",
+      "Require exact lockfile Electron binary": "success",
+      "Stage original pinned resources": "success",
+      "Original full application build": "success",
+      "Original target Prisma engine pruning": "success",
+      "Native unsigned packaging (never publish)": "success",
+      "Original macOS DMG/ZIP resource, catalog/fallback and launch smoke": "skipped",
+      "Observe original NSIS argument parsing (diagnostic only)": "success",
+      "Original Windows installed resource, RPC and launch smoke": "failure",
+      "Observe failed Windows installer stages (diagnostic package only)": "success",
+      "Original Linux DEB lifecycle, AppImage resources and installed launch smoke": "skipped",
+      "Original Unix package certification evidence": "skipped",
+      "Retain validated unsigned packages (CI artifacts, no release publication)": "skipped",
+      "Source identity, license and streamed artifact digests": "success",
+      "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9": "success",
+      "Post Run actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c": "skipped",
+      "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1": "skipped",
+      "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1": "success",
+      "Complete job": "success"
+    }
+  },
+  "evidenceArtifact": {
+    "id": 12395915724,
+    "apiDigest": "sha256:758d40d5e92dbd75a880ff4c33e4a9dd6ddac12ca54676f2c4c048ed8e43aa2a",
+    "archive": {
+      "path": "native-39706440979-evidence/artifact.zip",
+      "bytes": 788410,
+      "sha256": "758d40d5e92dbd75a880ff4c33e4a9dd6ddac12ca54676f2c4c048ed8e43aa2a"
+    },
+    "digestMatches": true,
+    "repositoryArchive": "raw-evidence.zip"
+  },
+  "jobLog": {
+    "path": "native-39706440979-evidence/native-job.log",
+    "bytes": 315466,
+    "sha256": "b35897f2d514126807688b2319f1490cbdfba94448a515ae3cad7d0eeafaf8b6"
+  },
+  "sourceManifest": {
+    "path": "native-39706440979-evidence/test-results/native-evidence/artifact-manifest.json",
+    "bytes": 2456791,
+    "sha256": "29998ce9ec5b2fe6a1ac60c5960cd6e63a812227330299de40970bbaf1a4d7c8"
+  },
+  "probe": [
+    {
+      "raw": {
+        "path": "native-39706440979-evidence/test-results/native-evidence/nsis-arguments/nsis-arguments-POXJPl/report.json",
+        "bytes": 25272,
+        "sha256": "b2f637d2c01062ebc0e1ecc354abbbc3cd9257b298ef088acaa0fd2320f6d00c"
+      },
+      "passed": true,
+      "error": null,
+      "node": "v24.22.0",
+      "platform": "win32",
+      "compiler": {
+        "directory": "C:\\Users\\runneradmin\\AppData\\Local\\electron-builder\\Cache\\nsis-3.0.4.1\\nsis-3.0.4.1-1mx3n",
+        "executable": "C:\\Users\\runneradmin\\AppData\\Local\\electron-builder\\Cache\\nsis-3.0.4.1\\nsis-3.0.4.1-1mx3n\\Bin\\makensis.exe",
+        "archive": "C:\\Users\\runneradmin\\AppData\\Local\\electron-builder\\Cache\\nsis-3.0.4.1\\nsis-3.0.4.1.7z",
+        "archiveSha256": "9877df902530f96357d13a7a31ae2b9df67f48b11ffc9a1700a7c961574ec5fa",
+        "archiveCompilerSha256": "e277b7378931b74392015f5ad6b1d744dcd8a347baa4480350a75ebeab8d8e3d",
+        "sha256": "e277b7378931b74392015f5ad6b1d744dcd8a347baa4480350a75ebeab8d8e3d"
+      },
+      "cases": [
+        {
+          "mode": "default",
+          "executable": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\default executable 程序\\probe.exe",
+          "args": [
+            "/S",
+            "/D=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序"
+          ],
+          "target": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "windowsVerbatimArguments": false,
+          "exitCode": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": "",
+          "error": null,
+          "executionSucceeded": true,
+          "rawCommandLine": "\"D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\default executable 程序\\probe.exe\" /S \"/D=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序\"",
+          "nsisCommandLine": "\"D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\default executable 程序\\probe.exe\" /S \"/D=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序\"",
+          "installDirectory": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "dParameter": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序\"",
+          "builtinInstallDirectory": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\default executable 程序\\default-target",
+          "targetSelected": true,
+          "targetCreated": false
+        },
+        {
+          "mode": "verbatim-observation",
+          "executable": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\verbatim-observation executable 程序\\probe.exe",
+          "args": [
+            "/S",
+            "/D=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序"
+          ],
+          "target": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "argv0": "\"D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\verbatim-observation executable 程序\\probe.exe\"",
+          "windowsVerbatimArguments": true,
+          "exitCode": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": "",
+          "error": null,
+          "executionSucceeded": true,
+          "rawCommandLine": "\"D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\verbatim-observation executable 程序\\probe.exe\" /S /D=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "nsisCommandLine": "\"D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\verbatim-observation executable 程序\\probe.exe\" /S",
+          "installDirectory": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "dParameter": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "builtinInstallDirectory": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\nsis-arguments\\nsis-arguments-POXJPl\\installed app 程序",
+          "targetSelected": true,
+          "targetCreated": false
+        }
+      ]
+    }
+  ],
+  "diagnosticStages": [
+    {
+      "raw": {
+        "path": "native-39706440979-evidence/test-results/native-evidence/installer-stages/installer-stage-TngEMm/report.json",
+        "bytes": 8380,
+        "sha256": "afeb0b32dde70c0e41a81e318ca8bb7813a6ac8b310b349a537c85aa5c7bc8f8"
+      },
+      "status": "observed",
+      "error": null,
+      "traceError": null,
+      "markers": [
+        "PREINIT",
+        "CUSTOM_INIT_BEGIN",
+        "CUSTOM_INIT_BEFORE_UNINSTALLER_PROBE",
+        "QUIT_FAILED_UPDATE",
+        "PREINIT",
+        "CUSTOM_INIT_BEGIN",
+        "CUSTOM_INIT_BEFORE_UNINSTALLER_PROBE",
+        "CUSTOM_INIT_AFTER_UNINSTALLER_PROBE",
+        "CUSTOM_INIT_BEFORE_MODE_PROTECTION",
+        "CUSTOM_INIT_AFTER_MODE_PROTECTION",
+        "CUSTOM_INIT_END",
+        "PUBLICATION_PREPARE_BEGIN",
+        "PUBLICATION_PREPARE_RETURN_OK",
+        "PUBLICATION_EXTRACT_BEGIN",
+        "PUBLICATION_EXTRACT_RETURN_OK",
+        "PUBLICATION_PUBLISH_BEGIN",
+        "PUBLICATION_PUBLISH_RETURN_OK",
+        "CUSTOM_INSTALL_BEGIN",
+        "CUSTOM_INSTALL_END"
+      ],
+      "publication": [
+        {
+          "stage": "PUBLICATION_PREPARE_RETURN_OK",
+          "path": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\installer-stages\\installer-stage-TngEMm\\stages.txt.PUBLICATION_PREPARE_RETURN_OK.txt",
+          "output": "0\r\nD:\\a\\_temp\\open-science-installer-smoke-GJsTsI\\profile 数据 with spaces\\Temp\\nsn14D6.tmp\\7z-out",
+          "exitCode": "0",
+          "detail": "D:\\a\\_temp\\open-science-installer-smoke-GJsTsI\\profile 数据 with spaces\\Temp\\nsn14D6.tmp\\7z-out"
+        },
+        {
+          "stage": "PUBLICATION_EXTRACT_RETURN_OK",
+          "path": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\installer-stages\\installer-stage-TngEMm\\stages.txt.PUBLICATION_EXTRACT_RETURN_OK.txt",
+          "output": "0\r\n",
+          "exitCode": "0",
+          "detail": ""
+        },
+        {
+          "stage": "PUBLICATION_PUBLISH_RETURN_OK",
+          "path": "D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\installer-stages\\installer-stage-TngEMm\\stages.txt.PUBLICATION_PUBLISH_RETURN_OK.txt",
+          "output": "0\r\n",
+          "exitCode": "0",
+          "detail": ""
+        }
+      ],
+      "originalsUnchanged": true,
+      "build": {
+        "command": "C:\\hostedtoolcache\\windows\\node\\24.22.0\\x64\\node.exe",
+        "args": [
+          "D:\\a\\EarthNano\\EarthNano\\node_modules\\electron-builder\\cli.js",
+          "--win",
+          "nsis",
+          "--x64",
+          "--publish",
+          "never",
+          "--prepackaged",
+          "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\earthnano-installer-stage-cCjsCu\\payload",
+          "-c.directories.output=C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\earthnano-installer-stage-cCjsCu\\diagnostic-output",
+          "-c.nsis.include=D:\\a\\EarthNano\\EarthNano\\test-results\\native-evidence\\installer-stages\\installer-stage-TngEMm\\overlay\\installer-license.nsh"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "outputBytes": 1782,
+        "cleanupConfirmed": true
+      },
+      "smoke": {
+        "command": "C:\\hostedtoolcache\\windows\\node\\24.22.0\\x64\\node.exe",
+        "args": [
+          "D:\\a\\EarthNano\\EarthNano\\scripts\\windows-installer-smoke.mjs",
+          "--installer-dir",
+          "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\earthnano-installer-stage-cCjsCu\\diagnostic-output"
+        ],
+        "exitCode": 1,
+        "signal": null,
+        "error": null,
+        "outputBytes": 1655,
+        "cleanupConfirmed": true
+      }
+    }
+  ],
+  "packageArtifacts": [],
+  "manifestPackageFiles": [
+    {
+      "path": "dist/EarthNano-0.1.1-alpha.1-win-x64-setup.exe",
+      "bytes": 273010766,
+      "sha256": "5e667dca1bcdf7e8a762887b4a0550f1d3a3b372012d9531056957465b89ef5d"
+    }
+  ],
+  "databaseCertificates": [],
+  "installerObservations": [
+    {
+      "installer": "EarthNano-0.1.1-alpha.1-win-x64-setup.exe",
+      "elapsedMs": 59531,
+      "installedEntries": [
+        "chrome_100_percent.pak",
+        "chrome_200_percent.pak",
+        "d3dcompiler_47.dll",
+        "dxcompiler.dll",
+        "dxil.dll",
+        "ffmpeg.dll",
+        "icudtl.dat",
+        "libEGL.dll",
+        "libGLESv2.dll",
+        "LICENSE.electron.txt",
+        "LICENSES.chromium.html",
+        "locales",
+        "open-science.exe",
+        "resources",
+        "resources.pak",
+        "snapshot_blob.bin",
+        "Uninstall open-science.exe",
+        "v8_context_snapshot.bin",
+        "vk_swiftshader.dll",
+        "vk_swiftshader_icd.json",
+        "vulkan-1.dll"
+      ],
+      "archiveBytes": 133238501
+    }
+  ],
+  "installedPeIdentityObservations": [
+    {
+      "phase": "assertInstalledWindowsIdentity",
+      "actual": {
+        "FileDescription": "EarthNano",
+        "ProductName": "EarthNano",
+        "ProductVersion": "0.1.1.0",
+        "FileVersion": "0.1.1-alpha.1"
+      },
+      "expected": {
+        "FileDescription": "EarthNano",
+        "ProductName": "EarthNano",
+        "ProductVersion": "0.1.1-alpha.1"
+      }
+    }
+  ],
+  "originalSuccessMarkers": {
+    "Packaged Windows MCP local RPC smoke completed successfully.": false,
+    "Windows installer smoke completed successfully.": false
+  },
+  "scope": "Original Windows unsigned installer smoke: current install and reopen; original packaged resources/licenses/identity, local MCP/Artifact RPC, Python Notebook environment provisioning, fresh and seeded-legacy DB reopen/certificate, orphaned uninstaller lock drill and uninstall. No previous installer argument, so no claim of released-version upgrade; no R scientific execution, DeepSeek or GUI/scientific result proof.",
+  "installationAcceptance": false,
+  "publication": "CI artifacts only; no Release, tag or public 0.2 installer was published.",
+  "actualFailure": {
+    "phase": "assertInstalledWindowsIdentity",
+    "error": "Windows executable version metadata differs from expected builder identity",
+    "strictRuleMismatch": [
+      "ProductVersion"
+    ],
+    "brandingFieldsMatch": true,
+    "observedFileVersionMatchesFullPackageSemver": true,
+    "fourFieldOriginalAndDiagnosticObservationsAgree": true,
+    "diagnosticObservations": [
+      {
+        "path": "test-results/native-evidence/installer-stages/installer-stage-TngEMm/smoke.log",
+        "observation": {
+          "phase": "assertInstalledWindowsIdentity",
+          "actual": {
+            "FileDescription": "EarthNano",
+            "ProductName": "EarthNano",
+            "ProductVersion": "0.1.1.0",
+            "FileVersion": "0.1.1-alpha.1"
+          },
+          "expected": {
+            "FileDescription": "EarthNano",
+            "ProductName": "EarthNano",
+            "ProductVersion": "0.1.1-alpha.1"
+          }
+        }
+      }
+    ],
+    "blockedBefore": [
+      "packaged resources",
+      "local MCP/Artifact RPC",
+      "Notebook runtime provisioning",
+      "installed application startup",
+      "database certification"
+    ],
+    "sourceClassification": "The EarthNano-added strict ProductVersion comparison expects the full semver; locked app-builder-lib 26.15.3 writes a four-component Windows ProductVersion and preserves full semver in FileVersion. No validator or production metadata changes have been made in this evidence run."
+  },
+  "boundary": "Historical failure before PE field correction. Installation publication succeeded, strict original smoke stopped at PE identity; resource/RPC/startup checks had not run. Not full installation acceptance."
+}

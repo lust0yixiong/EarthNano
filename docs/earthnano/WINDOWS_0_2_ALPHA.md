@@ -63,6 +63,8 @@ PE 身份检查由 EarthNano 提交 `d8af1a7bb19e3994a0ffdd10336098cdd17208ef` �
 [真实取证 39706440979](https://github.com/lust0yixiong/EarthNano/actions/runs/39706440979) 确认锁定构建器写入 `ProductVersion=0.1.1.0`，保留完整版本的字段是 `FileVersion=0.1.1-alpha.1`。
 因此 PE 检查改为精确比较 `FileVersion`，继续精确检查 `FileDescription`、`ProductName`，并保留原上游 `bootstrap.appVersion` 精确检查；`ProductVersion` 继续取证，不作版本匹配的替代或回退。
 这只修正本项目的字段假设，不改包配置、版本或频道；完整安装 smoke 仍须重跑通过。
+四字段实测、阶段记录及原始证据 ZIP 见
+[PE 身份取证](validation/alpha/windows-0.2-pe-identity/manifest.json)。
 
 以下内容为 2026-10-21 的延期记录和恢复依据。其当时的“停止 Windows”与
 “0.1 尚待发布”描述不覆盖上面的恢复决定，也不把历史尝试标记为已验证修复。
