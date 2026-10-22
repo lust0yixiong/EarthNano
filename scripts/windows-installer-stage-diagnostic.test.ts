@@ -10,7 +10,9 @@ import {
   copyOwnedPayload,
   createStageOverlay,
   executeDiagnostic,
-  parseStageTrace
+  parseStageTrace,
+  readStageEvidence,
+  readPublicationEvidence
 } from './windows-installer-stage-diagnostic.mjs'
 
 const stripObservation = (source: string): string =>
@@ -56,6 +58,7 @@ describe('isolated failed-installer stage observation', () => {
     expect(result['installer.nsh']).toContain(
       'IfErrors diagnostic_saved_error diagnostic_saved_clear'
     )
+    expect(result['installer.nsh']).toContain('FileSeek $1 0 END')
     expect(result['installer.nsh']).toContain(
       'FileWriteUTF16LE /BOM $1 "$publicationResult$\\r$\\n$publicationOutput"'
     )
@@ -92,6 +95,41 @@ describe('isolated failed-installer stage observation', () => {
     expect(() => parseStageTrace(Buffer.from('PREINIT'))).toThrow(/Invalid/)
     expect(() => parseStageTrace(Buffer.from('UNRECOGNIZED\r\n'))).toThrow(/Invalid/)
     expect(() => parseStageTrace(Buffer.alloc(1024 * 1024 + 1))).toThrow(/bounded/)
+  })
+
+  it('retains overwritten legacy trace as partial and reads independent publication failures', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'earthnano-stage-legacy-'))
+    const trace = join(root, 'stages.txt')
+    try {
+      expect(
+        readStageEvidence(Buffer.from('QUIT_FAILED_UPDATE\\r\\nRETURN_FAILED\\r\\n\n\n\n'))
+      ).toEqual({
+        complete: false,
+        markers: ['QUIT_FAILED_UPDATE'],
+        unrecognized: ['RETURN_FAILED'],
+        error: 'Invalid fixed-stage trace.',
+        raw: 'QUIT_FAILED_UPDATE\\r\\nRETURN_FAILED\\r\\n\n\n\n'
+      })
+      await writeFile(
+        `${trace}.PUBLICATION_PREPARE_RETURN_FAILED.txt`,
+        Buffer.from('\ufeff1\\r\\nAdd-Type : retained actual failure', 'utf16le')
+      )
+      expect(await readPublicationEvidence(trace)).toEqual([
+        {
+          stage: 'PUBLICATION_PREPARE_RETURN_FAILED',
+          path: `${trace}.PUBLICATION_PREPARE_RETURN_FAILED.txt`,
+          output: '1\\r\\nAdd-Type : retained actual failure',
+          exitCode: '1',
+          detail: 'Add-Type : retained actual failure'
+        }
+      ])
+      expect(readStageEvidence(Buffer.from('PREINIT\r\nCUSTOM_INIT_BEGIN\r\n'))).toEqual({
+        complete: true,
+        markers: ['PREINIT', 'CUSTOM_INIT_BEGIN']
+      })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   it('copies real payload bytes without exposing the original to packaging tools and rejects links', async () => {

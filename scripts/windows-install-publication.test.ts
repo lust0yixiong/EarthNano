@@ -11,6 +11,7 @@ import {
 } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { windowsProfileEnvironment } from './windows-installer-smoke.mjs'
 
 const script = resolve('build/windows-install-publication.ps1')
 const powershell = join(
@@ -43,16 +44,20 @@ function fixture(): { root: string; install: string; payload: string; state: str
   return { root, install, payload, state: join(root, 'state.json') }
 }
 
-function action(f: ReturnType<typeof fixture>, operation: string): SpawnSyncReturns<string> {
+function action(
+  f: ReturnType<typeof fixture>,
+  operation: string,
+  options: { env?: NodeJS.ProcessEnv; script?: string; powershell?: string } = {}
+): SpawnSyncReturns<string> {
   const result = spawnSync(
-    powershell,
+    options.powershell ?? powershell,
     [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy',
       'Bypass',
       '-File',
-      script,
+      options.script ?? script,
       '-Action',
       operation,
       '-InstallPath',
@@ -63,7 +68,8 @@ function action(f: ReturnType<typeof fixture>, operation: string): SpawnSyncRetu
     {
       encoding: 'utf8',
       windowsHide: true,
-      timeout: 60_000
+      timeout: 60_000,
+      env: options.env
     }
   )
   writeFileSync(
@@ -72,7 +78,8 @@ function action(f: ReturnType<typeof fixture>, operation: string): SpawnSyncRetu
       code: result.status,
       stdout: result.stdout,
       stderr: result.stderr,
-      error: result.error?.message
+      error: result.error?.message,
+      environment: options.env ? { TEMP: options.env.TEMP, TMP: options.env.TMP } : undefined
     })
   )
   expect(result.error).toBeUndefined()
@@ -96,6 +103,77 @@ function setFixtureAcl(path: string, nonPropagating = false): void {
 }
 
 describe.skipIf(process.platform !== 'win32')('real Windows payload publication', () => {
+  it.each([
+    { architecture: 'x64', executable: powershell, profileName: 'profile ascii with spaces' },
+    { architecture: 'x64', executable: powershell, profileName: 'profile 数据 with spaces' },
+    {
+      architecture: 'x86',
+      executable: join(
+        process.env.SystemRoot || 'C:\\Windows',
+        'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
+      ),
+      profileName: 'profile ascii with spaces'
+    },
+    {
+      architecture: 'x86',
+      executable: join(
+        process.env.SystemRoot || 'C:\\Windows',
+        'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
+      ),
+      profileName: 'profile 数据 with spaces'
+    }
+  ])(
+    'publishes through the original script with isolated $architecture $profileName TEMP',
+    ({ architecture, executable, profileName }) => {
+      const f = fixture()
+      const env = windowsProfileEnvironment(join(f.root, profileName))
+      for (const key of ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'])
+        mkdirSync(env[key]!, { recursive: true })
+      const copiedScript = join(env.TEMP!, 'ns-repro.tmp', 'windows-install-publication.ps1')
+      mkdirSync(join(env.TEMP!, 'ns-repro.tmp'))
+      writeFileSync(copiedScript, readFileSync(script))
+      const quote = (value: string): string => `'${value.replaceAll("'", "''")}'`
+      const observation = `[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $facts=[ordered]@{ version=$PSVersionTable.PSVersion.ToString(); is64BitProcess=[Environment]::Is64BitProcess; codePage=[Text.Encoding]::Default.CodePage; temp=$env:TEMP; tmp=$env:TMP; tempUtf16=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($env:TEMP)); tempExists=[IO.Directory]::Exists($env:TEMP); scriptExists=[IO.File]::Exists(${quote(copiedScript)}); currentDirectory=[Environment]::CurrentDirectory }; try { $facts.tempPath=[IO.Path]::GetTempPath() } catch { $facts.tempPathError=$_.Exception.ToString() }; $facts | ConvertTo-Json -Compress`
+      const facts = spawnSync(
+        executable,
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-EncodedCommand',
+          Buffer.from(observation, 'utf16le').toString('base64')
+        ],
+        { encoding: 'utf8', env, windowsHide: true, timeout: 30000 }
+      )
+      writeFileSync(
+        join(f.root, 'profile-environment.json'),
+        JSON.stringify({
+          architecture,
+          executable,
+          status: facts.status,
+          stdout: facts.stdout,
+          stderr: facts.stderr,
+          error: facts.error?.message
+        })
+      )
+      const options = { env, script: copiedScript, powershell: executable }
+      const prepared = action(f, 'prepare', options)
+      expect(prepared.status, prepared.stderr).toBe(0)
+      const { stage } = JSON.parse(readFileSync(f.state, 'utf8'))
+      copyFixture(f.payload, stage)
+      const published = action(f, 'publish', options)
+      expect(published.status, published.stderr).toBe(0)
+      copyFixture(stage, f.install)
+      const cleanup = action(f, 'cleanup', options)
+      expect(cleanup.status, cleanup.stderr).toBe(0)
+      expect(existsSync(stage)).toBe(false)
+      expect(existsSync(f.state)).toBe(false)
+      expect(readFileSync(join(f.install, 'resources/backend/index.js'), 'utf8')).toBe(
+        'synthetic backend'
+      )
+    },
+    60_000
+  )
+
   it.skipIf(process.env.OPEN_SCIENCE_INSTALL_PUBLICATION_NATIVE !== '1')(
     'moves eligible directories and rejects changed ACLs under an ordinary user',
     async () => {
