@@ -1,8 +1,10 @@
 import { mkdtemp, readFile, rm, writeFile, mkdir, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { EventEmitter } from 'node:events'
+import { PassThrough } from 'node:stream'
 import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   copyOwnedPayload,
@@ -108,6 +110,38 @@ describe('isolated failed-installer stage observation', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+
+  it.each(['completed-without-close', 'never-completed'])(
+    'settles with cleanup-unconfirmed when teardown is %s',
+    async (mode) => {
+      const root = await mkdtemp(join(tmpdir(), 'earthnano-stage-unconfirmed-'))
+      const child = Object.assign(new EventEmitter(), {
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        unref: vi.fn()
+      })
+      const terminate = vi.fn(() =>
+        mode === 'never-completed' ? new Promise<void>(() => {}) : Promise.resolve()
+      )
+      try {
+        const result = await executeDiagnostic(
+          'fixture-child',
+          [],
+          { log: join(root, 'bounded.log'), timeoutMs: 5, cleanupTimeoutMs: 10 },
+          terminate,
+          () => child as never
+        )
+        expect(result).toMatchObject({ exitCode: null, signal: null, cleanupConfirmed: false })
+        expect(result.error).toMatch(/cleanup-unconfirmed/)
+        expect(terminate).toHaveBeenCalledOnce()
+        expect(child.unref).toHaveBeenCalledOnce()
+        expect(child.stdout.destroyed).toBe(true)
+        expect(child.stderr.destroyed).toBe(true)
+      } finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    }
+  )
 
   it('retains actual nonzero exit/output and bounds a stuck real child', async () => {
     const root = await mkdtemp(join(tmpdir(), 'earthnano-stage-process-'))

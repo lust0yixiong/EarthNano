@@ -285,20 +285,84 @@ const originalTools = async () => {
 }
 // Reuse the original smoke's process-tree teardown for a finite diagnostic build/run.
 // Bounds apply to this observation only; no product install timeout or success rule changes.
-export const executeDiagnostic = (command, args, options) =>
-  new Promise((finish) => {
+export const executeDiagnostic = (
+  command,
+  args,
+  options,
+  terminate = terminateProcessTree,
+  spawnProcess = spawn
+) =>
+  new Promise((resolveProcess) => {
     const output = createWriteStream(options.log, { flags: 'wx' })
-    const child = spawn(command, args, { cwd: options.cwd, env: options.env, windowsHide: true })
+    const child = spawnProcess(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      windowsHide: true
+    })
     let error
     let bytes = 0
     let stopping = false
+    let settled = false
+    let closed = false
+    let cleanupTimer
+    const finish = (exitCode, signal, cleanupConfirmed) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      clearTimeout(cleanupTimer)
+      child.stdout?.removeListener('data', observe)
+      child.stderr?.removeListener('data', observe)
+      if (!cleanupConfirmed) {
+        error = `${error}; cleanup-unconfirmed: child exit was not observed.`
+        // A failed teardown must not keep the reporting parent alive through child/pipe handles.
+        child.stdout?.destroy()
+        child.stderr?.destroy()
+        child.unref?.()
+      }
+      let reported = false
+      const report = () => {
+        if (reported) return
+        reported = true
+        clearTimeout(flushTimer)
+        resolveProcess({
+          exitCode,
+          signal,
+          error: error ?? null,
+          outputBytes: bytes,
+          cleanupConfirmed
+        })
+      }
+      const flushTimer = setTimeout(() => {
+        error = `${error ?? 'Diagnostic log'}; log flush was not confirmed.`
+        output.destroy()
+        report()
+      }, 1000)
+      output.once('error', report)
+      output.end(report)
+    }
     const stop = (reason) => {
-      if (stopping) return
+      if (stopping || settled) return
       stopping = true
       error = reason
-      void terminateProcessTree(child).catch((failure) => {
-        error += `; teardown: ${String(failure?.message ?? failure)}`
-      })
+      clearTimeout(timer)
+      const cleanupTimeoutMs = options.cleanupTimeoutMs ?? 10_000
+      cleanupTimer = setTimeout(() => {
+        error += '; teardown exceeded its finite time budget.'
+        finish(null, null, false)
+      }, cleanupTimeoutMs)
+      // Like the original smoke runner, settle after finite teardown even if close never arrives.
+      // Only an observed close confirms cleanup; a successful taskkill invocation alone does not.
+      void Promise.resolve()
+        .then(() => terminate(child, cleanupTimeoutMs))
+        .then(
+          () => {
+            if (!closed) finish(null, null, false)
+          },
+          (failure) => {
+            error += `; teardown: ${String(failure?.message ?? failure)}`
+            finish(null, null, false)
+          }
+        )
     }
     const observe = (chunk) => {
       bytes += chunk.length
@@ -311,13 +375,16 @@ export const executeDiagnostic = (command, args, options) =>
     )
     child.stdout?.on('data', observe)
     child.stderr?.on('data', observe)
-    output.on('error', (failure) => stop(`Diagnostic log: ${failure.message}`))
+    output.on('error', (failure) => {
+      if (!settled) stop(`Diagnostic log: ${failure.message}`)
+      else error = `${error ?? 'Diagnostic log'}; ${failure.message}`
+    })
     child.on('error', (value) => {
       error = value.message
     })
-    child.on('close', (exitCode, signal) => {
-      clearTimeout(timer)
-      output.end(() => finish({ exitCode, signal, error: error ?? null, outputBytes: bytes }))
+    child.once('close', (exitCode, signal) => {
+      closed = true
+      finish(exitCode, signal, true)
     })
   })
 export const parseStageTrace = (bytes) => {
