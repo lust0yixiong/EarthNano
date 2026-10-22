@@ -362,7 +362,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
       expect(digest(shared.jobs[kind].steps)).toBe(
         kind === 'source'
           ? 'd6168ae5600395d53c2b70c35625bbc0ef20fa20430e20c2346e40f625ec61a5'
-          : '08ac1443440367a085a27392c3c707cd3f05fc14ff47c0491746cd17a768483f'
+          : 'ad8e6b0a517b477addf20fffaff61e032876d3c1169af035a9a2e56f351e7daf'
       )
       const originalSteps = structuredClone(shared.jobs[kind].steps!)
       const python = originalSteps.filter((step) => step.uses?.startsWith('actions/setup-python@'))
@@ -438,7 +438,7 @@ describe('EarthNano 0.1 Unix CI scope', () => {
             'Retain validated unsigned packages (CI artifacts, no release publication)'
         )!
         const retained =
-          'dist/alpha-mac.yml\ndist/alpha-linux.yml\ndist/alpha-linux-arm64.yml\ndist/*.blockmap\n'
+          'dist/alpha.yml\ndist/alpha-mac.yml\ndist/alpha-linux.yml\ndist/alpha-linux-arm64.yml\ndist/*.blockmap\n'
         expect(String(packages.with!.path).split(retained)).toHaveLength(2)
         packages.with!.path = String(packages.with!.path).replace(retained, '')
       }

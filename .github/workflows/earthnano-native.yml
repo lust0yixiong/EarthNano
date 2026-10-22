@@ -133,6 +133,7 @@ jobs:
             dist/*.exe
             dist/*.AppImage
             dist/*.deb
+            dist/alpha.yml
             dist/alpha-mac.yml
             dist/alpha-linux.yml
             dist/alpha-linux-arm64.yml
