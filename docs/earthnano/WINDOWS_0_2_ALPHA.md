@@ -2,8 +2,9 @@
 
 ## 当前验收状态：2026-10-22
 
-最终代码冻结在 `2982f4d1dcbce13746c40b25f1045aecec24cec6`，已整合 0.1.1 PR #27
-的 `8829c1596f55449267945716e8d47f3714935144`。后续只添加证据与说明；构建版本仍为
+完整 Windows 验收的执行版本为 `2982f4d1dcbce13746c40b25f1045aecec24cec6`，包含
+0.1.1 PR #27 的 `8829c1596f55449267945716e8d47f3714935144`。正式发布基线的后续
+测试调度调整已单独整合并定向验证，见下文；本轮构建版本仍为
 `0.1.1-alpha.1`，尚未发布 0.2 标签、签名安装包或更新频道。
 
 [最终规范运行 39719225703](https://github.com/lust0yixiong/EarthNano/actions/runs/39719225703)
@@ -13,12 +14,45 @@ Electron 与证据摘要经独立复核：真实安装、MCP／Artifact RPC、Py
 四项及卸载通过。原 ZIP 的 SHA256 为
 `83b125b1656e969536ba7f5569d352928e1547bd53304e42d68941d25854ab53`，见
 [最终原生证据](validation/alpha/windows-0.2-native-39719225703/manifest.json)。同一 run 的
-16 分片源码比较仍在执行；不得据原生绿色称源码验收已完成。
+16 分片源码比较也已完成，原比较器及两次独立复算均为 `no-new-regressions`：
+新增回归 0、阶段回退 0、全局错误 0。基线 115,591 项（111,324 通过、13 失败、
+4,254 跳过）；候选 116,991 项（112,624 通过、3 失败、4,364 跳过）。候选三项
+失败为原两项 PDF worker 路径和 npm tar 路径断言，均在本轮基线有同身份失败，
+不据此认定同一原因。110 个新增跳过身份和明确的 13 项 POSIX 平台边界完整保留，
+未计为通过。见[完整源码原证据](validation/alpha/windows-0.2-source-39719225703/manifest.json)。
+这不是全部测试通过或 Windows 完整科研／优化能力验收。
 
 首次选择新的 integration ref 的 `39718566493` 因无法读取既有 ci 分支 runtime
 缓存，仅进入原运行时源码构建即取消，源码报告／原生安装均未执行，既非产品通过
 也非产品失败。同一冻结提交随后回到原 ci 分支完成上述正式运行；自动 push run
 `39719223845` 也已取消。没有改产品或原验收规则，不混用这些未完成运行的结果。
+
+### 整合已发布的 0.1.1
+
+用户告知版本已发布后，核实正式标签为
+[`v0.1.1-alpha.1`](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.1.1-alpha.1)，
+指向 `47c341466728a8fe2a2486b7665e100c810ae0b2`；PR #27 已合并到 main
+`abb0b3264c4d151817fa8bdf4d1a290642c733f6`。本轮整合提交为
+`c44d8820a0b82aa847b8dba09234740c195e4882`。
+
+相对 Windows 完整验收版本，只有发布基线的四个测试／调度文件变化：
+`pr-gate-workflow.test.ts` 移到原 architecture 串行共享 worker 组、其配置断言、
+原 packaged trial 依赖断言，以及发布版精确 `0.1.1-alpha.1` 版本断言。
+实际应用、安装／退出代码、依赖、版本、固定上游、原比较器与其余七片路由均未改变；
+没有因合并重新运行安装或完整 16 片。原完整证据仍仅归属于 `2982f4d1d`。
+
+本地 Node 24.19 的五个相关原测试文件 238/238 通过。针对共享 worker 变化，
+另以原 Windows `sourceTestInvocation`、完整原环境、`--shard=8/8`、2 workers、
+30 秒测试／60 秒 hook 时限，执行上述相关测试及原 module consumer 邻居。
+[定向运行 39732953047](https://github.com/lust0yixiong/EarthNano/actions/runs/39732953047)
+明确检出合并后的精确 `c44d8820a`：六个文件 241 项身份完整，233 通过、8 项
+原有跳过、0 失败、0 全局错误，原 JSON／runtime／normalizer 一致。原日志证实
+pr-gate 与 module consumer 均进入 architecture 项目；实际顺序为两者先执行，
+再执行四个 default 文件，不把先前的调度预期当作实测。源码、环境、原时限和
+原断言未为匹配顺序而修改。见
+[合并补验原证据](validation/alpha/windows-0.2-release-merge-39732953047/manifest.json)。
+本次补验结果不拼入旧完整 16 份报告。
+本轮只提交 Windows 恢复整合 PR，不改发布标签、应用版本或更新频道。
 
 以下为此前运行与修正的历史记录。
 
@@ -136,9 +170,9 @@ Windows 结果以最终完整 cohort 单独记录，不用本地绿色覆盖旧�
 
 ### 本轮定位和移植
 
-开发分支已整合 `0.1.1-Alpha` PR #27 的 `8829c1596f55449267945716e8d47f3714935144`；
-规范完整矩阵的冻结基线及后续单文件验证分别见上文。
-0.1.1 仍在独立迭代，最终 PR 以其届时已公布的提交为合并基础；本轮不提前改版本号或发布。
+开发分支已整合正式发布 `v0.1.1-alpha.1` 及其 main 合并提交；原完整 Windows
+矩阵和合并后的定向验证分别记录，均见上文。本轮 PR 以已发布 main 为基础，
+不再追逐迭代中的分支，也不提前改版本号或发布。
 
 | 工作 | 实际证据与处理 | 当前边界 |
 | --- | --- | --- |
@@ -183,7 +217,7 @@ host guard 拒绝用例继续执行。范围与别名注册证明见
 PE 身份检查由 EarthNano 提交 `d8af1a7bb19e3994a0ffdd10336098cdd17208ef` 额外引入；原上游通过启动后的 `bootstrap.appVersion` 精确检查完整版本。
 [真实取证 39706440979](https://github.com/lust0yixiong/EarthNano/actions/runs/39706440979) 确认锁定构建器写入 `ProductVersion=0.1.1.0`，保留完整版本的字段是 `FileVersion=0.1.1-alpha.1`。
 因此 PE 检查改为精确比较 `FileVersion`，继续精确检查 `FileDescription`、`ProductName`，并保留原上游 `bootstrap.appVersion` 精确检查；`ProductVersion` 继续取证，不作版本匹配的替代或回退。
-这只修正本项目的字段假设，不改包配置、版本或频道；完整安装 smoke 仍须重跑通过。
+这只修正本项目的字段假设，不改包配置、版本或频道；最终原完整安装 smoke 已通过，见上文。
 四字段实测、阶段记录及原始证据 ZIP 见
 [PE 身份取证](validation/alpha/windows-0.2-pe-identity/manifest.json)。
 
@@ -201,7 +235,8 @@ PE 身份检查由 EarthNano 提交 `d8af1a7bb19e3994a0ffdd10336098cdd17208ef` �
 本轮只沿用相邻上游测试的方法：同大小改写并恢复原 mtime，等待并明确断言 ctime
 已变化，再执行原 `INTEGRITY_FAILED`、缓存复用和四倍／五倍读取计数断言。
 受控元数据别名探针可复现原失败，补足前提后通过；原 50 项正常测试全部保留。
-这不证明历史 Windows 跑次的具体时序，实际 Windows 仍须在新提交完整复验。
+这不证明历史 Windows 跑次的具体时序；最终完整 Windows 对照中该原用例已通过，
+继承的缓存限制仍保留。
 原始红绿报告、受控观测脚本和摘要见
 [缓存夹具证据](validation/alpha/windows-0.2-cache-fixture/manifest.json)。
 
@@ -222,7 +257,8 @@ Windows 夹具只使用现有锁文件固定的 `@anthropic-ai/claude-agent-sdk`
 把实际输出版本冻结进 snapshot；gate 仍由实际 Node 执行。新增的实际 host 用例
 在 Windows 保留默认拒绝，并用不存在的 executable 验证该拒绝早于 prepare 自身
 的版本探针。本地 macOS 验证不能证明 Windows 探针或候选执行支持，实际 Windows
-版本输出和原对照仍待新提交复验；本轮没有调用模型、凭证或真实 POSIX hook。
+版本探针、策略与实际 host 拒绝用例已在最终完整 Windows 对照中通过；
+本轮没有调用模型、凭证或真实 POSIX hook。
 
 ### 本轮原 owner 文件系统边界修复
 

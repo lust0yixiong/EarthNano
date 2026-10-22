@@ -144,9 +144,16 @@ Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordina
 Windows 0.2 原生恢复：见 [独立原证据](windows-0.2-native/manifest.json)。规范运行 `39708999081` 的 Windows x64 原 smoke 通过；旧 `39708148492` 的 shutdown 超时保持失败记录。源码完整比较状态以 [Windows 恢复清单](../../WINDOWS_0_2_ALPHA.md) 为准。
 
 Windows 最终冻结提交 `2982f4d1d` 的原生运行 `39719225703` 已通过，见
-[原始 ZIP、日志和 API](windows-0.2-native-39719225703/manifest.json)。完整源码比较另行记录，不能用原生绿色替代。
+[原始 ZIP、日志和 API](windows-0.2-native-39719225703/manifest.json)。完整源码比较也已完成，见[16 片原证据](windows-0.2-source-39719225703/manifest.json)：
+新增回归、阶段回退和全局错误均为 0；基线 13 失败、候选 3 失败及原跳过均保留，
+不称全部测试通过。
 历史迁移夹具的真实 Windows 77 项与本地等价控制分别见
 [Windows 原测试](windows-0.2-historical-fixture-39716802777/manifest.json)和
 [本地补充控制](windows-0.2-historical-fixture/manifest.json)；技能索引夹具的原字节和正负控制见
 [技能夹具证据](windows-0.2-skills-fixture/manifest.json)。旧完整源码新增失败见
 [39708999081 原比较](windows-0.2-source-39708999081/manifest.json)，不被后续窄验证覆盖。
+
+已发布 0.1.1 基线整合后的精确 `c44d8820a` 补验见
+[Windows 定向原证据](windows-0.2-release-merge-39732953047/manifest.json)：六文件
+241 项，233 通过、8 原有跳过、0 失败／全局错误；本地 Node24.19 的 238 项补充
+报告单列，不拼入旧 `2982f4d1d` 完整 cohort。
