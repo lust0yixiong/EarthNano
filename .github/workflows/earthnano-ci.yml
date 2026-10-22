@@ -1,71 +1,271 @@
-name: EarthNano Windows focused regression checks
+name: EarthNano CI
 
 on:
+  pull_request:
+    branches: [main, feat/alpha-*, fix/alpha-*]
+  push:
+    branches: [main, ci/earthnano-native]
   workflow_dispatch:
+    inputs:
+      native:
+        description: Build unsigned native packages and execute original launch/resource smoke (required before Alpha acceptance)
+        type: boolean
+        default: false
+      windows:
+        description: Focused Windows 0.2 validation; does not publish or replace Unix acceptance
+        type: choice
+        options: ['off', source, native, all]
+        default: 'off'
 
 permissions:
   contents: read
-  actions: read
+
+concurrency:
+  group: earthnano-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  focused:
-    name: Focused original Windows regression tests (not full source acceptance)
-    runs-on: windows-2022
-    timeout-minutes: 45
+  plan:
+    name: Resolve original platform sharding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
+    outputs:
+      unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with: { node-version-file: .github/earthnano-node-version, cache: npm }
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
-        id: python
-        with: { python-version-file: .github/earthnano-python-version }
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with:
-          name: earthnano-windows-runtime
-          run-id: 39700451549
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
-      - name: Original dependency installation
-        run: node scripts/ci/npm-ci.mjs
-      - name: Require original pinned Electron
-        run: node scripts/ci/earthnano-source.mjs electron
-      - name: Original pretest
-        run: npm run pretest
-      - name: Selected original regression tests
-        shell: bash
-        env:
-          EARTHNANO_RESEARCH_PYTHON: ${{ steps.python.outputs.python-path }}
+      - id: matrix
+        shell: node {0}
         run: |
-          node node_modules/vitest/vitest.mjs run --maxWorkers=2 \
-            scripts/ci/audit-module-ownership.test.ts \
-            scripts/ci/earthnano-ci.test.ts \
-            scripts/ci/earthnano-ci-topology.test.ts \
-            scripts/ci/module-consumer-coverage.test.ts \
-            src/main/host-layer-dependencies.architecture.test.ts \
-            src/renderer/src/i18n/resources.test.ts \
-            src/shared/earthnano/release-identity.test.ts \
-            scripts/alpha-release-feed.test.ts \
-            src/main/acp/claude-candidate-preparation.test.ts \
-            src/main/session-package/browser-import.test.ts \
-            src/main/managed-file-versions/version-file-operator.test.ts \
-            src/main/earthnano/optimization-reconciliation.test.ts \
-            src/main/earthnano/persistent-candidate-owner.binary.test.ts \
-            src/main/earthnano/harness-optimization.test.ts \
-            src/main/composition/desktop-optimization.test.ts \
-            src/main/credential-identity/sqlite-snapshot.test.ts \
-            src/main/earthnano/desktop-optimization-manager.test.ts \
-            src/main/earthnano/execution-core.test.ts \
-            src/main/earthnano/execution-store.test.ts \
-            src/main/earthnano/candidate-snapshot.test.ts \
-            src/main/earthnano/optimization-failure-diagnostics.test.ts \
-            src/main/earthnano/optimization-resume.test.ts \
-            packages/durable-files/src/file-durability.test.ts \
-            --reporter=json --outputFile=test-results/windows-focused/vitest.json
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+          const fs = require('node:fs')
+          const include = [{os: 'ubuntu-24.04', kind: 'cohort', shard: 1, total: 4, batch: true}]
+          for (const [os, total] of [['macos-15', 4]])
+            for (const kind of ['baseline', 'candidate'])
+              for (let shard = 1; shard <= total; shard++) include.push({os, kind, shard, total, batch: false})
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `unix_matrix=${JSON.stringify({include})}\n`)
+
+  source_unix:
+    name: Source ${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.shard }}/${{ matrix.total }}
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.unix_matrix) }}
+    uses: ./.github/workflows/earthnano-source.yml
+    with:
+      os: ${{ matrix.os }}
+      kind: ${{ matrix.kind }}
+      shard: ${{ matrix.shard }}
+      total: ${{ matrix.total }}
+      batch: ${{ matrix.batch }}
+
+  comparison:
+    name: Enforce pinned original source comparison
+    needs: source_unix
+    if: always() && github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - name: Require complete Unix source matrix
+        shell: node {0}
+        env:
+          SOURCE_UNIX_RESULT: ${{ needs.source_unix.result }}
+        run: |
+          for (const key of ['SOURCE_UNIX_RESULT'])
+            if (process.env[key] !== 'success') throw new Error(`Required source matrix did not succeed: ${key}`)
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with: { pattern: earthnano-source-*, path: source-reports }
+      - run: node scripts/ci/earthnano-source.mjs compare --platforms darwin,linux --reports source-reports --out test-results/earthnano-ci
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
-          name: earthnano-windows-focused-regressions
-          path: test-results/windows-focused/
+          name: earthnano-source-comparison
+          path: test-results/earthnano-ci/
+          retention-days: 14
+          if-no-files-found: error
+
+  harness:
+    name: Pinned Harness source and original unittest comparison (Python 3.12)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with: { python-version-file: .github/earthnano-python-version }
+      - name: Fetch exact original Harness source (no model packages)
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/google-research/harness2.git "$RUNNER_TEMP/harness-original"
+          git -C "$RUNNER_TEMP/harness-original" checkout --detach 1cfe254e8d25b15f37048c3730134686abe60335
+          test "$(git -C "$RUNNER_TEMP/harness-original" rev-parse 'HEAD^{tree}')" = edc756a4d03a2826a248115482084a176e60e751
+          cmp "$RUNNER_TEMP/harness-original/LICENSE" vendor/harness2/LICENSE
+      - name: Execute original and integrated tests with identical Python
+        run: |
+          python scripts/ci/earthnano-harness.py "$RUNNER_TEMP/harness-original" test-results/harness-baseline.json --kind baseline
+          python scripts/ci/earthnano-harness.py vendor/harness2 test-results/harness-candidate.json --kind candidate
+          node scripts/ci/earthnano-harness-compare.mjs
+      - name: Execute bundled unchanged upstream trial calculations
+        run: python scripts/earthnano/verify-upstream-trials.py --output test-results/upstream-trials
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: earthnano-harness-comparison
+          path: |
+            test-results/harness-*.json
+            test-results/upstream-trials/
+          retention-days: 14
+          if-no-files-found: error
+
+  native_unix:
+    name: Unsigned native build and original launch ${{ matrix.os }}
+    if: >-
+      ((github.event_name == 'workflow_dispatch' && inputs.native) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')) &&
+      !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-26, platform: mac, arch: arm64, subdir: osx-arm64 }
+          - { os: macos-26-intel, platform: mac, arch: x64, subdir: osx-64 }
+          - { os: ubuntu-24.04, platform: linux, arch: x64, subdir: linux-64 }
+          - { os: ubuntu-24.04-arm, platform: linux, arch: arm64, subdir: linux-aarch64 }
+    uses: ./.github/workflows/earthnano-native.yml
+    with:
+      os: ${{ matrix.os }}
+      platform: ${{ matrix.platform }}
+      arch: ${{ matrix.arch }}
+      subdir: ${{ matrix.subdir }}
+
+  windows_runtime:
+    name: Original pinned Windows Notebook runtime
+    if: github.event_name == 'workflow_dispatch' && inputs.windows != 'off'
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - uses: ./.github/actions/windows-notebook-runtime
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-windows-runtime
+          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
+          retention-days: 3
+          if-no-files-found: error
+
+  source_windows:
+    name: Source Windows ${{ matrix.kind }} ${{ matrix.shard }}/8
+    if: github.event_name == 'workflow_dispatch' && (inputs.windows == 'source' || inputs.windows == 'all')
+    needs: windows_runtime
+    strategy:
+      fail-fast: false
+      # Leave shared runner capacity for the concurrent 0.1.1 iteration.
+      max-parallel: 8
+      matrix:
+        kind: [baseline, candidate]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    uses: ./.github/workflows/earthnano-source.yml
+    with:
+      os: windows-2022
+      kind: ${{ matrix.kind }}
+      shard: ${{ matrix.shard }}
+      total: 8
+
+  comparison_windows:
+    name: Enforce complete pinned Windows source comparison
+    needs: source_windows
+    if: always() && github.event_name == 'workflow_dispatch' && (inputs.windows == 'source' || inputs.windows == 'all')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - name: Require complete Windows source matrix
+        shell: node {0}
+        env:
+          SOURCE_WINDOWS_RESULT: ${{ needs.source_windows.result }}
+        run: |
+          if (process.env.SOURCE_WINDOWS_RESULT !== 'success')
+            throw new Error('Required source matrix did not succeed: SOURCE_WINDOWS_RESULT')
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with: { pattern: earthnano-source-windows-*, path: source-reports }
+      - run: node scripts/ci/earthnano-source.mjs compare --platforms win32 --reports source-reports --out test-results/earthnano-windows
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: earthnano-windows-source-comparison
+          path: test-results/earthnano-windows/
+          retention-days: 14
+          if-no-files-found: error
+
+  native_windows:
+    name: Unsigned Windows install and original launch
+    if: github.event_name == 'workflow_dispatch' && (inputs.windows == 'native' || inputs.windows == 'all')
+    needs: windows_runtime
+    uses: ./.github/workflows/earthnano-native.yml
+    with:
+      os: windows-2022
+      platform: win
+      arch: x64
+      subdir: win-64
+
+  trials_packaged:
+    name: Bundled upstream cases in the actual Mac ARM64 package
+    needs: native_unix
+    if: github.event_name == 'workflow_dispatch' && inputs.native
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version, cache: npm }
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with: { python-version-file: .github/earthnano-python-version }
+      - name: Prepare original test dependencies
+        run: node scripts/ci/npm-ci.mjs
+      - name: Prepare pinned test-only Claude Code runtime
+        run: |
+          prefix="$RUNNER_TEMP/earthnano-trial-claude"
+          npm install --no-audit --no-fund --prefix "$prefix" @anthropic-ai/claude-code@2.1.232
+          "$prefix/node_modules/.bin/claude" --version
+          echo "$prefix/node_modules/.bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: earthnano-unsigned-macos-26
+          path: trial-package
+      - name: Extract the exact same-run package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          ditto -x -k "trial-package/EarthNano-$version-mac-arm64.zip" "$RUNNER_TEMP/earthnano-trial-app"
+          app="$RUNNER_TEMP/earthnano-trial-app/EarthNano.app"
+          test -x "$app/Contents/MacOS/EarthNano"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$version"
+          echo "OPEN_SCIENCE_E2E_EXECUTABLE=$app/Contents/MacOS/EarthNano" >> "$GITHUB_ENV"
+      - name: Original isolated Keychain and real Notebook, Session, Version and Review acceptance
+        env:
+          OPEN_SCIENCE_E2E_ISOLATE_HOME: '1'
+          EARTHNANO_LIVE_DEEPSEEK: '0'
+        run: |
+          bash scripts/ci/run-macos-packaged-e2e.sh \
+            node node_modules/@playwright/test/cli.js test e2e/earthnano-upstream-trials.spec.ts --workers=1 --retries=0 --trace=on
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: earthnano-upstream-trials-packaged
+          path: |
+            test-results/
+            playwright-report/
           retention-days: 14
           if-no-files-found: error
