@@ -140,7 +140,9 @@ jobs:
           set -euo pipefail
           test "$(find assets -maxdepth 1 -type f | wc -l)" -eq 28
           (cd assets && sha256sum --check --strict SHA256SUMS.txt)
-          gh release create v0.1.1-alpha.1 --target "$PATCH_SOURCE_SHA" --draft --prerelease --latest=false \
+          gh api --method POST "repos/$GH_REPO/git/refs" \
+            -f ref=refs/tags/v0.1.1-alpha.1 -f sha="$PATCH_SOURCE_SHA"
+          gh release create v0.1.1-alpha.1 --verify-tag --draft --prerelease --latest=false \
             --title 'EarthNano 0.1.1-Alpha — upstream trial examples' \
             --notes-file operation/scripts/ci/patch-release/release-notes.md
           gh release upload v0.1.1-alpha.1 assets/*
