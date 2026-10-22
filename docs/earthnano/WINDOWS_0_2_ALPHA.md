@@ -89,6 +89,21 @@ Windows 夹具只使用现有锁文件固定的 `@anthropic-ai/claude-agent-sdk`
 56 项全部通过。本地结果不代替新 head 的完整 Windows 对照，也不解除候选运行的
 POSIX 限制。原 consumer 生成器重建无差异，未增加边界规则。
 
+### 本轮二进制 JSONL 单测的范围
+
+`harness-optimization.test.ts` 的六处真实 Python 调用统一使用原 workflow 已提供的
+`EARTHNANO_RESEARCH_PYTHON`，没有值时沿用 `python3`；子进程只保留 PATH、系统根与
+临时目录等必要环境，不继承凭证。历史报告只给出经过收敛的失败信息，不能仅凭它
+断言 Windows 的 `python3` alias 是唯一根因。
+
+原 `JsonLineClient` 真实 fd 分支使用 POSIX `select`。二进制 envelope 单测只验证
+TS 关联字段分离和 payload 校验，现以仅转发真实 `sys.stdin.readline(size)` 的
+file-like 代理走客户端已有无 fileno 分支，没有伪造或预置回复。真实 Python／TS
+管道、原 MAX 长度、3 秒停止界限和所有正负断言保留，生产客户端与 vendor 未改。
+实际本地 Python 3.12.13 全文件 52 项通过；受控 Windows stdin select 拒绝条件下，
+该两项由一项失败变为全部通过。此单测不验证 POSIX select／fcntl transport，也不
+宣称 Windows 原 Harness 方法已受支持；真实 Windows 必须继续在最终 head 复验。
+
 ## 原延期记录：2026-10-21
 
 2026-10-21 用户决定：**Windows 安装失败留到 0.2-Alpha 修复，0.1-Alpha 先跳过 Windows 版本。**
