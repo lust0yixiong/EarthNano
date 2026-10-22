@@ -53,10 +53,41 @@
 已变化，再执行原 `INTEGRITY_FAILED`、缓存复用和四倍／五倍读取计数断言。
 受控元数据别名探针可复现原失败，补足前提后通过；原 50 项正常测试全部保留。
 这不证明历史 Windows 跑次的具体时序，实际 Windows 仍须在新提交完整复验。
+原始红绿报告、受控观测脚本和摘要见
+[缓存夹具证据](validation/alpha/windows-0.2-cache-fixture/manifest.json)。
 
 **该修改不是生产完整性修复。** 继承实现中，若 dev、ino、size、mtime 和 ctime
 全部不变，缓存 lease 可能沿用既有摘要；本轮未修改该生产缓存规则，也未增加
 每次读取重新哈希等机制。旧失败和此限制均保留，不能以夹具通过宣称该限制已修复。
+
+### 本轮 Claude 策略单测的实际平台边界
+
+同一历史运行的 candidate 6 有三个 Python/R 策略用例在 Windows 命中生产 POSIX
+guard。它们检查编译后的工具 gate 与原 broker 权限，没有运行 POSIX hook 命令。
+本轮仅在这些单测里沿用原 `process.platform` descriptor／finally 恢复模式，显式
+构造 POSIX 策略；生产 guard、原 ask／deny 断言和已有跳过范围均不变。
+
+Windows 夹具只使用现有锁文件固定的 `@anthropic-ai/claude-agent-sdk` `0.3.232`
+平台包，路径为 `@anthropic-ai/claude-agent-sdk-win32-{arch}/claude.exe`，与原 ACP
+集成测试的解析方式一致。它在隔离 HOME、无凭证的环境中仅执行有界 `--version`，
+把实际输出版本冻结进 snapshot；gate 仍由实际 Node 执行。新增的实际 host 用例
+在 Windows 保留默认拒绝，并用不存在的 executable 验证该拒绝早于 prepare 自身
+的版本探针。本地 macOS 验证不能证明 Windows 探针或候选执行支持，实际 Windows
+版本输出和原对照仍待新提交复验；本轮没有调用模型、凭证或真实 POSIX hook。
+
+### 本轮原 owner 文件系统边界修复
+
+历史 candidate 8 的原审阅恢复测试有六项在 owner settlement 目录 `fsync` 抛出
+`EPERM`；二进制投影有七项在 `mkdir('C:\\')` 失败。本轮分别复用已有
+`@aipoch/durable-files` 同步目录契约，并按原生 `dirname(root) === root` 语义避免
+创建已存在的文件系统根。普通文件同步仍必须成功，根和所有祖先仍经过原目录／
+符号链接检查，子目录仍逐层创建。既有 receipt 重开使用原 durability owner 的
+`r+` 文件 flush 前提，不改变独占写入和内容验证。
+
+外部受控 EPERM 探针只改变这两项系统操作，保留真实文件、原生产调用和全部原断言，
+原 26 项中 14 项失败，修正后 26 项全部通过；含 store／resume 的原正常回归为
+56 项全部通过。本地结果不代替新 head 的完整 Windows 对照，也不解除候选运行的
+POSIX 限制。原 consumer 生成器重建无差异，未增加边界规则。
 
 ## 原延期记录：2026-10-21
 

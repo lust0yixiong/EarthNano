@@ -13,6 +13,7 @@ import {
   readdir
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -55,6 +56,46 @@ const fixture = async (
 }> => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'claude-candidate-prep-')))
   roots.push(root)
+  let executablePath = join(root, 'claude')
+  let runtimeVersion = '2.1.232'
+  if (process.platform === 'win32') {
+    // These policy fixtures run only the lock-pinned SDK CLI's version probe on Windows.
+    // The POSIX hook command itself remains unsupported and is never executed here.
+    executablePath = createRequire(import.meta.url).resolve(
+      `@anthropic-ai/claude-agent-sdk-win32-${process.arch}/claude.exe`
+    )
+    const env = {
+      ...Object.fromEntries(
+        ['SYSTEMROOT', 'SystemRoot', 'WINDIR'].flatMap((key) =>
+          process.env[key] === undefined ? [] : [[key, process.env[key]!]]
+        )
+      ),
+      HOME: root,
+      USERPROFILE: root,
+      CLAUDE_CONFIG_DIR: join(root, 'probe-home'),
+      TEMP: root,
+      TMP: root,
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+      DISABLE_AUTOUPDATER: '1'
+    }
+    const version = spawnSync(executablePath, ['--version'], {
+      cwd: root,
+      env,
+      encoding: 'utf8',
+      timeout: 10_000,
+      maxBuffer: 4096,
+      windowsHide: true,
+      shell: false
+    })
+    expect(version.error).toBeUndefined()
+    expect(version.status).toBe(0)
+    expect(version.stdout.trim()).toMatch(/^\S+ \(Claude Code\)$/)
+    runtimeVersion = version.stdout.trim().replace(/ \(Claude Code\)$/, '')
+  } else {
+    await writeFile(executablePath, `#!/bin/sh\necho '${runtimeVersion} (Claude Code)'\n`, {
+      mode: 0o700
+    })
+  }
   const binarySource = join(root, 'original.png')
   const binaryArtifact: CandidateBinaryArtifactFile | undefined = binary && {
     path: 'figure.png',
@@ -104,7 +145,7 @@ const fixture = async (
       backend: 'claude-code',
       model: 'claude-sonnet-4-5',
       providerRef: 'local-probe',
-      runtimeVersion: '2.1.232'
+      runtimeVersion
     },
     environment: scientific
       ? {
@@ -137,7 +178,7 @@ const fixture = async (
   const resolved = await store.resolve(allRefs)
   const materialized = await store.materialize({ executionId: 'unit', refs: allRefs })
   const binding: ClaudeCandidateBinding = {
-    executablePath: join(root, 'claude'),
+    executablePath,
     runtimeVersion: resolved.agent.runtimeVersion,
     providerRef: resolved.agent.providerRef,
     provider: {
@@ -148,10 +189,18 @@ const fixture = async (
       apiEndpoints: ['messages']
     }
   }
-  await writeFile(binding.executablePath, "#!/bin/sh\necho '2.1.232 (Claude Code)'\n", {
-    mode: 0o700
-  })
   return { resolved, materialized, binding }
+}
+const preparePosixPolicyFixture = async (
+  input: Parameters<typeof prepareClaudeCandidate>[0]
+): ReturnType<typeof prepareClaudeCandidate> => {
+  const descriptor = Object.getOwnPropertyDescriptor(process, 'platform')!
+  try {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    return await prepareClaudeCandidate(input)
+  } finally {
+    Object.defineProperty(process, 'platform', descriptor)
+  }
 }
 const runGate = (root: string, tool: string, args: object): string => {
   const result = spawnSync(process.execPath, [join(root, 'runtime/tool-gate.cjs')], {
@@ -576,7 +625,7 @@ describe.skipIf(process.platform === 'win32')('frozen POSIX Claude candidate pre
 
 it('routes only exact foreground Python/artifact MCP calls to the original broker', async () => {
   const f = await fixture([], true)
-  await prepareClaudeCandidate(f)
+  await preparePosixPolicyFixture(f)
   const root = f.materialized.root
   expect(
     runGate(root, 'mcp__open_science_notebook__notebook_execute', {
@@ -619,7 +668,7 @@ it('routes only exact foreground Python/artifact MCP calls to the original broke
 
 it('requires explicit R in the R native gate and keeps original scoped broker ownership', async () => {
   const f = await fixture([], 'r')
-  await prepareClaudeCandidate(f)
+  await preparePosixPolicyFixture(f)
   const root = f.materialized.root
   for (const prefix of ['mcp__open_science_notebook__', 'mcp__open-science-notebook__']) {
     expect(
@@ -672,7 +721,19 @@ it('rejects an R profile whose runtime language was replaced before native prepa
       }
     }
   }
-  await expect(prepareClaudeCandidate({ ...f, resolved })).rejects.toThrow(
+  await expect(preparePosixPolicyFixture({ ...f, resolved })).rejects.toThrow(
     'Unsupported Claude candidate profile'
   )
+})
+
+it('retains the actual host boundary before command-hook preparation', async () => {
+  const f = await fixture()
+  if (process.platform === 'win32') {
+    // An absent executable proves that the real host guard precedes its version probe.
+    f.binding.executablePath = join(f.materialized.root, 'absent-claude.exe')
+    await expect(prepareClaudeCandidate(f)).rejects.toThrow('POSIX profile')
+    expect(await readdir(f.materialized.runtimeHome)).toEqual([])
+  } else {
+    await expect(prepareClaudeCandidate(f)).resolves.toHaveProperty('backend')
+  }
 })

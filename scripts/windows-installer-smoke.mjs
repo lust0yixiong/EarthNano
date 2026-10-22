@@ -1253,7 +1253,7 @@ const assertInstalledWindowsIdentity = async ({
     [
       '-NoProfile',
       '-Command',
-      '$info = (Get-Item -LiteralPath $env:OPEN_SCIENCE_SMOKE_EXECUTABLE).VersionInfo; @{FileDescription=$info.FileDescription; ProductName=$info.ProductName; ProductVersion=$info.ProductVersion} | ConvertTo-Json -Compress'
+      '$info = (Get-Item -LiteralPath $env:OPEN_SCIENCE_SMOKE_EXECUTABLE).VersionInfo; @{FileDescription=$info.FileDescription; ProductName=$info.ProductName; ProductVersion=$info.ProductVersion; FileVersion=$info.FileVersion} | ConvertTo-Json -Compress'
     ],
     {
       env: {
@@ -1265,10 +1265,32 @@ const assertInstalledWindowsIdentity = async ({
       }
     }
   )
-  validateWindowsVersionInfo(JSON.parse(metadata.stdout), {
+  const info = JSON.parse(metadata.stdout)
+  const expected = {
     ...packageSmokeIdentity(),
     version: expectedVersion ?? packageSmokeIdentity().version
-  })
+  }
+  try {
+    validateWindowsVersionInfo(info, expected)
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        phase: 'assertInstalledWindowsIdentity',
+        actual: {
+          FileDescription: info?.FileDescription ?? null,
+          ProductName: info?.ProductName ?? null,
+          ProductVersion: info?.ProductVersion ?? null,
+          FileVersion: info?.FileVersion ?? null
+        },
+        expected: {
+          FileDescription: expected.productName,
+          ProductName: expected.productName,
+          ProductVersion: expected.version ?? null
+        }
+      })
+    )
+    throw error
+  }
 }
 
 const installAndProbe = async ({
