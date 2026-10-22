@@ -60,6 +60,21 @@
 全部不变，缓存 lease 可能沿用既有摘要；本轮未修改该生产缓存规则，也未增加
 每次读取重新哈希等机制。旧失败和此限制均保留，不能以夹具通过宣称该限制已修复。
 
+### 本轮 Claude 策略单测的实际平台边界
+
+同一历史运行的 candidate 6 有三个 Python/R 策略用例在 Windows 命中生产 POSIX
+guard。它们检查编译后的工具 gate 与原 broker 权限，没有运行 POSIX hook 命令。
+本轮仅在这些单测里沿用原 `process.platform` descriptor／finally 恢复模式，显式
+构造 POSIX 策略；生产 guard、原 ask／deny 断言和已有跳过范围均不变。
+
+Windows 夹具只使用现有锁文件固定的 `@anthropic-ai/claude-agent-sdk` `0.3.232`
+平台包，路径为 `@anthropic-ai/claude-agent-sdk-win32-{arch}/claude.exe`，与原 ACP
+集成测试的解析方式一致。它在隔离 HOME、无凭证的环境中仅执行有界 `--version`，
+把实际输出版本冻结进 snapshot；gate 仍由实际 Node 执行。新增的实际 host 用例
+在 Windows 保留默认拒绝，并用不存在的 executable 验证该拒绝早于 prepare 自身
+的版本探针。本地 macOS 验证不能证明 Windows 探针或候选执行支持，实际 Windows
+版本输出和原对照仍待新提交复验；本轮没有调用模型、凭证或真实 POSIX hook。
+
 ## 原延期记录：2026-10-21
 
 2026-10-21 用户决定：**Windows 安装失败留到 0.2-Alpha 修复，0.1-Alpha 先跳过 Windows 版本。**
