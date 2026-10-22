@@ -1,4 +1,4 @@
-# EarthNano v0.1.0-alpha.1
+# EarthNano v0.1.1-alpha.1
 
 当前为融合 OpenScience 与 Harness² 的开发版本，Alpha 验收及发布尚未完成。以下保留上游项目原说明；下载、发布与性能信息不代表 EarthNano 已发布对应版本或通过对应验证。
 
