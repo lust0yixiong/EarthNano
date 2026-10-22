@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "id": 39714645856,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39714645856",
+    "attempt": 1,
+    "conclusion": "failure"
+  },
+  "launcherSource": "f67a8539483caa61d3325dc769c142880089c47f",
+  "productSource": "60e922b99ce77186374d219df2954de1c63acb5f",
+  "actualCheckoutCheckpoint": "60e922b99ce77186374d219df2954de1c63acb5f",
+  "job": {
+    "id": 119613743960,
+    "url": "https://github.com/lust0yixiong/EarthNano/actions/runs/39714645856/job/119613743960",
+    "conclusion": "failure"
+  },
+  "scope": "Complete original migration-service.test.ts diagnostic only, on the same failed product60e; no source or runtime implementation change. Default reporter is added to the original JSON/runtime reporters to retain the timeout message. This is an explicitly failing result.",
+  "invocation": {
+    "sourceTestInvocation": true,
+    "runner": "windows-2022",
+    "node": "v24.22.0",
+    "onlyFile": "src/main/database/migration-service.test.ts",
+    "maxWorkers": 2,
+    "testTimeoutMs": 30000,
+    "hookTimeoutMs": 60000,
+    "defaultReporterAddedForDiagnosis": true,
+    "jsonAndOriginalRuntimeReportersRetained": true,
+    "originalNormalizerGitBlob": "e27f40a992857b029eb1307978908ea47ed3b6c0",
+    "environment": {
+      "EARTHNANO_RESEARCH_PYTHON": "${{ steps.python.outputs.python-path }}",
+      "OPEN_SCIENCE_TEST_MAX_WORKERS": "2",
+      "VITEST_DEFER_COVERAGE_THRESHOLDS": "1",
+      "VITEST_PORTABLE_CI": "0",
+      "VITEST_WINDOWS_FULL_TEST": "1",
+      "OPEN_SCIENCE_CI_EXCLUDED_PACKAGE_ROOTS": "[]",
+      "OPEN_SCIENCE_CI_SELECTED_PACKAGE_ROOTS": "[]",
+      "EARTHNANO_CI_RUNTIME_REPORT": "test-results/windows-focused/runtime.json"
+    }
+  },
+  "result": {
+    "total": 77,
+    "passed": 76,
+    "failed": 1,
+    "skipped": 0,
+    "todo": 0,
+    "globalErrors": 0,
+    "rawLeaves": 77,
+    "runtimeLeaves": 77,
+    "normalizedLeaves": 77,
+    "allOriginalTitlesExactlyMatch": true,
+    "cases": [
+      {
+        "name": "application database migrations adds journal storage to the previous release without changing historical references",
+        "status": "passed",
+        "durationMs": 25809.4427
+      },
+      {
+        "name": "application database migrations adds empty metadata commit receipts without inventing proof for historical references",
+        "status": "failed",
+        "durationMs": 30037.496600000002
+      }
+    ],
+    "defaultReporterError": "Test timed out in 30000ms.",
+    "failedSourceLocation": "src/main/database/migration-service.test.ts:343:3",
+    "jsonStackHead": "Error: STACK_TRACE_ERROR",
+    "databaseSpecificErrorObserved": false
+  },
+  "evidence": {
+    "artifact": {
+      "id": 12398528901,
+      "bytes": 7184,
+      "sha256": "ca7e63fcfede3d4ecb850cadd9b1310792e01b1d9ac0217e182663b6ce5987aa",
+      "apiDigest": "sha256:ca7e63fcfede3d4ecb850cadd9b1310792e01b1d9ac0217e182663b6ce5987aa",
+      "apiDigestMatches": true,
+      "repositoryArchive": "raw-artifact.zip"
+    },
+    "rawFiles": [
+      {
+        "path": "vitest.json",
+        "bytes": 27364,
+        "sha256": "2073078c6167ac7b04cba257bfa65082e06c57c0f6a56a1ce411e185e28f2fc8"
+      },
+      {
+        "path": "runtime.json",
+        "bytes": 46223,
+        "sha256": "d1c11261f588366b8ffebbdd38925b095b8a31864c69496cb878d5bf47a32144"
+      }
+    ],
+    "defaultJobLog": {
+      "repositoryArchive": "default-job.log.gz",
+      "rawBytes": 60131,
+      "rawSha256": "03a8800ad5a961157643d6b0f7c3a675b711c241e4e456f1f92ec0906fb93079",
+      "storedBytes": 14562,
+      "storedSha256": "4318f22d46993aff0921aa95f2e8a7b06e6b7b3e11ea363e3844498824e0a754"
+    },
+    "externalReceiptSha256": "5294b00b708fc2ee8d325a47ee84a5eeb4a1c38990e507d146f44877ff0558ca"
+  },
+  "originalCanonicalComparisons": [
+    {
+      "run": 39708999081,
+      "source": "60e922b99ce77186374d219df2954de1c63acb5f",
+      "kind": "candidate",
+      "shard": 5,
+      "cases": [
+        {
+          "name": "application database migrations adds journal storage to the previous release without changing historical references",
+          "status": "failed",
+          "durationMs": 30060.158499999998
+        },
+        {
+          "name": "application database migrations adds empty metadata commit receipts without inventing proof for historical references",
+          "status": "passed",
+          "durationMs": 17484.2405
+        }
+      ]
+    },
+    {
+      "run": 39708999081,
+      "source": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+      "kind": "baseline",
+      "shard": 5,
+      "cases": [
+        {
+          "name": "application database migrations adds journal storage to the previous release without changing historical references",
+          "status": "passed",
+          "durationMs": 16108.6238
+        },
+        {
+          "name": "application database migrations adds empty metadata commit receipts without inventing proof for historical references",
+          "status": "passed",
+          "durationMs": 16238.485599999996
+        }
+      ]
+    }
+  ],
+  "boundary": "The original run39708999081 candidate5 journal timeout remains an observed new failure. Here the journal case passed at 25.81s while its neighboring metadata-receipt case timed out at 30.04s. This does not fix, withdraw or replace the original cohort result, prove an environment cause, or identify the slow SQL/fixture step. Do not splice these results into a passing 16-shard report. Production code, source pins, dependency/reporting implementations, 30s test/60s hook budgets, assertions, skip and comparison rules were not changed. No further fixture fix is presumed correct; the separate candidate must be reviewed and validated on its own."
+}
