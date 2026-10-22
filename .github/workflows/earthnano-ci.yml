@@ -91,7 +91,7 @@ jobs:
           import {writeFile,appendFile} from 'node:fs/promises'
           import {join} from 'node:path'
           const key=process.env.TEST_DEEPSEEK_KEY
-          assert(key && /^sk-[A-Za-z0-9]+$/.test(key),'Explicit test credential is required')
+          assert(key && /^sk-[A-Za-z0-9_-]+$/.test(key),'Explicit test credential is required')
           const path=join(process.env.RUNNER_TEMP,'earthnano-live-deepseek.key')
           await writeFile(path,key,{mode:0o600,flag:'wx'})
           await appendFile(process.env.GITHUB_ENV,'EARTHNANO_LIVE_DEEPSEEK_KEY_FILE='+path+'\n')
