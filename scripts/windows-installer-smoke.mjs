@@ -308,6 +308,8 @@ const runProcess = (executable, args, options = {}, terminate = terminateProcess
     const child = spawn(executable, args, {
       cwd: options.cwd,
       env: options.env,
+      argv0: options.argv0,
+      windowsVerbatimArguments: options.windowsVerbatimArguments,
       windowsHide: true
     })
     let stdout = ''
@@ -368,12 +370,15 @@ const runProcess = (executable, args, options = {}, terminate = terminateProcess
     child.once('error', (error) => {
       if (!stopping) finish(error)
     })
-    child.once('exit', (code) => {
+    child.once('exit', (code, signal) => {
       if (stopping) return
       if (code !== 0 && !options.allowNonZero) {
         finish(
-          new Error(
-            `${basename(executable)} exited with ${code}.\n${stdout}${stderr ? `\n${stderr}` : ''}`
+          Object.assign(
+            new Error(
+              `${basename(executable)} exited with ${code}.\n${stdout}${stderr ? `\n${stderr}` : ''}`
+            ),
+            { exitCode: code, signal, stdout, stderr }
           )
         )
         return
@@ -1190,8 +1195,37 @@ const installApplication = async (installer, installDirectory, env, run = runPro
   try {
     await run(installer, ['/S', `/D=${installDirectory}`], {
       env,
-      timeoutMs: INSTALLER_TIMEOUT_MS
+      timeoutMs: INSTALLER_TIMEOUT_MS,
+      // NSIS requires an unquoted final /D suffix, including spaces. With verbatim Windows
+      // arguments, quote only argv[0]; CreateProcess still receives the executable separately.
+      windowsVerbatimArguments: true,
+      argv0: `"${installer}"`
     })
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        phase: 'installApplication',
+        installer,
+        args: ['/S', `/D=${installDirectory}`],
+        windowsVerbatimArguments: true,
+        argv0: `"${installer}"`,
+        installDirectory,
+        profile: Object.fromEntries(
+          ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'].map((key) => [
+            key,
+            env?.[key]
+          ])
+        ),
+        error: {
+          message: String(error?.message ?? error).slice(0, 8192),
+          exitCode: error?.exitCode ?? null,
+          signal: error?.signal ?? null,
+          stdout: String(error?.stdout ?? '').slice(0, 8192),
+          stderr: String(error?.stderr ?? '').slice(0, 8192)
+        }
+      })
+    )
+    throw error
   } finally {
     const entries = await readdir(installDirectory).catch(() => [])
     const archive = await stat(join(installDirectory, 'resources', 'app.asar')).catch(
