@@ -9,10 +9,24 @@ import {
   unlinkSync,
   writeFileSync
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
-const script = resolve('build/windows-install-publication.ps1')
+let script = resolve('build/windows-install-publication.ps1')
+let helper: string
+beforeAll(() => {
+  if (process.platform !== 'win32') return
+  const root = fixture().root
+  helper = join(root, 'windows-install-publication.dll')
+  createRequire(import.meta.url)('../build/compile-windows-install-publication.cjs')(
+    resolve('build/windows-install-publication.cs'),
+    helper
+  )
+  const source = readFileSync(script)
+  script = join(root, 'windows-install-publication.ps1')
+  writeFileSync(script, source)
+}, 30_000)
 const powershell = join(
   process.env.SystemRoot || 'C:\\Windows',
   'System32/WindowsPowerShell/v1.0/powershell.exe'
@@ -65,10 +79,10 @@ function action(
       f.state
     ],
     {
-      encoding: 'utf8',
+      encoding: 'utf16le',
       windowsHide: true,
-      timeout: 60_000,
-      env: options.env
+      env: options.env,
+      timeout: 60_000
     }
   )
   writeFileSync(
@@ -142,6 +156,10 @@ describe.skipIf(process.platform !== 'win32')('real Windows payload publication'
       const copiedScript = join(env.TEMP!, 'ns-repro.tmp', 'windows-install-publication.ps1')
       mkdirSync(join(env.TEMP!, 'ns-repro.tmp'))
       writeFileSync(copiedScript, readFileSync(script))
+      writeFileSync(
+        join(env.TEMP!, 'ns-repro.tmp', 'windows-install-publication.dll'),
+        readFileSync(helper)
+      )
       const quote = (value: string): string => `'${value.replaceAll("'", "''")}'`
       const observation = `[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $facts=[ordered]@{ version=$PSVersionTable.PSVersion.ToString(); is64BitProcess=[Environment]::Is64BitProcess; codePage=[Text.Encoding]::Default.CodePage; temp=$env:TEMP; tmp=$env:TMP; tempUtf16=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($env:TEMP)); tempExists=[IO.Directory]::Exists($env:TEMP); scriptExists=[IO.File]::Exists(${quote(copiedScript)}); currentDirectory=[Environment]::CurrentDirectory }; try { $facts.tempPath=[IO.Path]::GetTempPath() } catch { $facts.tempPathError=$_.Exception.ToString() }; $facts | ConvertTo-Json -Compress`
       const facts = spawnSync(
@@ -183,6 +201,18 @@ describe.skipIf(process.platform !== 'win32')('real Windows payload publication'
     },
     60_000
   )
+
+  it('prepares and cleans up with a Unicode temporary profile', () => {
+    const f = fixture()
+    const temporary = join(f.root, 'profile 数据 with spaces', 'Temp')
+    mkdirSync(temporary, { recursive: true })
+    const env = { ...process.env, TEMP: temporary, TMP: temporary }
+    f.state = join(temporary, 'state.json')
+    const prepared = action(f, 'prepare', { env })
+    expect(prepared.status, prepared.stdout + prepared.stderr).toBe(0)
+    expect(prepared.stdout).toBe(JSON.parse(readFileSync(f.state, 'utf8')).stage)
+    expect(action(f, 'cleanup', { env }).status).toBe(0)
+  }, 30_000)
 
   it.skipIf(process.env.OPEN_SCIENCE_INSTALL_PUBLICATION_NATIVE !== '1')(
     'moves eligible directories and rejects changed ACLs under an ordinary user',
@@ -335,6 +365,7 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
   () => {
     it.each([
       'valid',
+      'unicode-profile',
       'copy-fallback',
       'truncated',
       'corrupt',
@@ -355,7 +386,11 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
           mode === 'copy-fallback' || mode === 'long-copy-fallback' || mode === 'fallback-boundary'
         )
         const boundaryRelative = 'resources/' + 'nested-'.repeat(7) + 'leaf.txt'
-        const temporary = join(f.root, 'temp-' + 't'.repeat(45))
+        const temporary = join(
+          f.root,
+          mode === 'unicode-profile' ? 'profile 数据 with spaces/Temp' : 'temp-' + 't'.repeat(45)
+        )
+        if (mode === 'unicode-profile') mkdirSync(temporary, { recursive: true })
         if (mode === 'fallback-boundary') {
           mkdirSync(temporary)
           mkdirSync(join(f.payload, boundaryRelative, '..'), { recursive: true })
@@ -385,10 +420,18 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
         mkdirSync(extractorDirectory, { recursive: true })
         const extractor = join(extractorDirectory, '7za.exe')
         writeFileSync(extractor, readFileSync(sevenZip!))
+        writeFileSync(
+          join(extractorDirectory, 'windows-install-publication.dll'),
+          readFileSync(helper)
+        )
         if (mode === 'universal-x64') {
           mkdirSync(join(f.root, 'out/windows-installer/arm64'), { recursive: true })
           // Wrong selection must fail to launch instead of accidentally passing on x64.
           writeFileSync(join(f.root, 'out/windows-installer/arm64/7za.exe'), 'not an x64 tool')
+          writeFileSync(
+            join(f.root, 'out/windows-installer/arm64/windows-install-publication.dll'),
+            'wrong helper'
+          )
         }
         if (mode === 'launch-failure') writeFileSync(extractor, 'not an executable')
         if (mode === 'warning' || mode === 'cancelled') {
@@ -428,6 +471,9 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
               ...(mode === 'universal-x64' ? [`!define APP_ARM64 "${archive}"`] : []),
               `!define BUILD_RESOURCES_DIR "${resolve('build')}"`,
               '!macro quitFailedUpdate',
+              'FileOpen $0 "$EXEDIR\\failure.txt" w',
+              'FileWrite $0 "$publicationResult $publicationOutput | stage=$publicationDirectory"',
+              'FileClose $0',
               'Call cleanupInstallPublication',
               'SetErrorLevel 2',
               'Quit',
@@ -479,7 +525,7 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
                 encoding: 'utf8',
                 windowsHide: true,
                 timeout: 60_000,
-                ...(mode === 'fallback-boundary'
+                ...(['fallback-boundary', 'unicode-profile'].includes(mode)
                   ? { env: { ...process.env, TEMP: temporary, TMP: temporary } }
                   : {})
               })
@@ -490,12 +536,18 @@ describe.skipIf(process.platform !== 'win32' || !compiler || !sevenZip)(
         expect(run.error).toBeUndefined()
         const success = [
           'valid',
+          'unicode-profile',
           'copy-fallback',
           'long-path',
           'fallback-boundary',
           'universal-x64'
         ].includes(mode)
-        expect(run.status).toBe(success ? 0 : 2)
+        expect(
+          run.status,
+          existsSync(join(f.root, 'failure.txt'))
+            ? readFileSync(join(f.root, 'failure.txt'), 'utf8')
+            : run.stdout + run.stderr
+        ).toBe(success ? 0 : 2)
         expect(existsSync(join(f.root, 'success.txt'))).toBe(success)
         expect(
           readdirSync(f.install).filter((name) => name.startsWith('.open-science-install-'))
