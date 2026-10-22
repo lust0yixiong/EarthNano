@@ -245,6 +245,10 @@ async function gates(source, root, operation, windowsRun) {
   requireSuccessfulRun(windows.run, configuration.source, 'workflow_dispatch')
   assert.equal(windows.run.head_branch, 'ci/earthnano-native')
   requireJob(windows.jobs, 'Original pinned Windows Notebook runtime')
+  // Newer gh versions require explicit permission to capture ANSI bytes in raw job logs.
+  // These bytes are only gzip-archived, never rendered or interpreted; older gh lacks this flag.
+  const rawLogFlags = command('gh', ['api', '--help']).includes('--allow-escape-sequences')
+    ? ['--allow-escape-sequences'] : []
   for (const [os, target, platform] of targets) {
     const record = platform === 'win32' ? windows : unix
     const job = requireJob(record.jobs, `Unsigned native build and original launch ${os}`)
@@ -256,7 +260,7 @@ async function gates(source, root, operation, windowsRun) {
     assert.equal(job.steps.filter(step => step.name === smokeName && step.conclusion === 'success').length, 1)
     requireArtifact(record, `earthnano-unsigned-${os}`, job)
     requireArtifact(record, `earthnano-native-evidence-${os}`, job)
-    const log = command('gh', ['api', `repos/${configuration.repository}/actions/jobs/${job.id}/logs`], { encoding: null })
+    const log = command('gh', ['api', ...rawLogFlags, `repos/${configuration.repository}/actions/jobs/${job.id}/logs`], { encoding: null })
     await writeFile(join(evidence, `native-${target}-job.log.gz`), gzipSync(log))
   }
   await save(join(evidence, 'gates.json'), {
