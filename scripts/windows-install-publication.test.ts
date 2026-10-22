@@ -11,7 +11,6 @@ import {
 } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { windowsProfileEnvironment } from './windows-installer-smoke.mjs'
 
 const script = resolve('build/windows-install-publication.ps1')
 const powershell = join(
@@ -126,9 +125,20 @@ describe.skipIf(process.platform !== 'win32')('real Windows payload publication'
     'publishes through the original script with isolated $architecture $profileName TEMP',
     ({ architecture, executable, profileName }) => {
       const f = fixture()
-      const env = windowsProfileEnvironment(join(f.root, profileName))
+      // Match the original installer smoke's isolated profile without importing its application/DB dependencies.
+      const profileDirectory = join(f.root, profileName)
+      const temporaryDirectory = join(profileDirectory, 'Temp')
+      const env = {
+        ...process.env,
+        HOME: profileDirectory,
+        USERPROFILE: profileDirectory,
+        APPDATA: join(profileDirectory, 'AppData', 'Roaming'),
+        LOCALAPPDATA: join(profileDirectory, 'AppData', 'Local'),
+        TEMP: temporaryDirectory,
+        TMP: temporaryDirectory
+      }
       for (const key of ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'])
-        mkdirSync(env[key]!, { recursive: true })
+        mkdirSync(env[key as keyof typeof env]!, { recursive: true })
       const copiedScript = join(env.TEMP!, 'ns-repro.tmp', 'windows-install-publication.ps1')
       mkdirSync(join(env.TEMP!, 'ns-repro.tmp'))
       writeFileSync(copiedScript, readFileSync(script))
