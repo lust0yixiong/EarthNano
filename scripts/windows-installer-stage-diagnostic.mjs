@@ -75,6 +75,7 @@ const traceFunction = (trace) => `Function earthNanoDiagnosticStage
     ClearErrors
     FileOpen $1 "${absoluteNsisPath(trace)}" a
     IfErrors diagnostic_restore
+    FileSeek $1 0 END
     FileWrite $1 "$0$\\r$\\n"
     FileClose $1
   StrCpy $1 $0 12
@@ -394,6 +395,51 @@ export const parseStageTrace = (bytes) => {
     throw new Error('Invalid fixed-stage trace.')
   return markers
 }
+// A legacy writer could overwrite earlier markers and emit literal backslash-r/backslash-n.
+// Retain only known surviving markers; a partial trace can never become complete evidence.
+export const readStageEvidence = (bytes) => {
+  try {
+    return { complete: true, markers: parseStageTrace(bytes) }
+  } catch (failure) {
+    if (bytes.length > 1024 * 1024) throw failure
+    const raw = bytes.toString('utf8')
+    const fragments = raw.split(/\\r\\n|\r\n|\n/u).filter(Boolean)
+    return {
+      complete: false,
+      markers: fragments.filter((name) => MARKERS.includes(name)),
+      unrecognized: fragments.filter((name) => !MARKERS.includes(name)),
+      error: String(failure?.message ?? failure),
+      raw
+    }
+  }
+}
+
+export const readPublicationEvidence = async (trace) => {
+  const result = []
+  for (const name of MARKERS.filter(
+    (value) => value.startsWith('PUBLICATION_') && value.includes('_RETURN_')
+  )) {
+    const path = `${trace}.${name}.txt`
+    const bytes = await readFile(path).catch(() => undefined)
+    if (!bytes) continue
+    if (bytes.length > 128 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xfe) {
+      result.push({ stage: name, path, error: 'Invalid bounded publication observation.' })
+      continue
+    }
+    const output = bytes.subarray(2).toString('utf16le')
+    const separator = output.includes('\r\n') ? '\r\n' : '\\r\\n'
+    const offset = output.indexOf(separator)
+    result.push({
+      stage: name,
+      path,
+      output,
+      exitCode: offset < 0 ? null : output.slice(0, offset),
+      detail: offset < 0 ? output : output.slice(offset + separator.length)
+    })
+  }
+  return result
+}
+
 export const runStageDiagnostic = async ({
   root = process.cwd(),
   installerDirectory = join(root, 'dist'),
@@ -510,28 +556,15 @@ export const runStageDiagnostic = async ({
     report.error = String(error?.message ?? error)
   } finally {
     try {
-      report.stageMarkers = parseStageTrace(await readFile(trace))
-      report.publication = []
-      for (const name of new Set(
-        report.stageMarkers.filter(
-          (value) => value.startsWith('PUBLICATION_') && value.includes('_RETURN_')
-        )
-      )) {
-        const path = `${trace}.${name}.txt`
-        const bytes = await readFile(path).catch(() => undefined)
-        if (!bytes) continue
-        if (bytes.length > 128 * 1024 || bytes[0] !== 0xff || bytes[1] !== 0xfe)
-          report.traceError = 'Invalid bounded publication observation.'
-        else
-          report.publication.push({
-            stage: name,
-            path,
-            output: bytes.subarray(2).toString('utf16le')
-          })
-      }
+      report.traceEvidence = readStageEvidence(await readFile(trace))
+      report.stageMarkers = report.traceEvidence.markers
+      if (!report.traceEvidence.complete) report.traceError = report.traceEvidence.error
     } catch (error) {
       report.traceError = String(error?.message ?? error)
     }
+    report.publication = await readPublicationEvidence(trace).catch((failure) => [
+      { error: String(failure?.message ?? failure) }
+    ])
     if (before) {
       try {
         report.originalAfter = await protectedManifest(
