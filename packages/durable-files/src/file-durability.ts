@@ -1,4 +1,5 @@
 import { open, type FileHandle } from 'node:fs/promises'
+import { closeSync, fsyncSync, openSync } from 'node:fs'
 
 type SyncHandle = Pick<FileHandle, 'sync' | 'close'>
 type OpenSyncHandle = (path: string, flags: 'r' | 'r+') => Promise<SyncHandle>
@@ -14,6 +15,13 @@ type FileDurabilityOptions = {
 }
 
 const defaultOpenHandle: OpenSyncHandle = (path, flags) => open(path, flags)
+
+const isUnsupportedDirectorySync = (error: unknown, platform: NodeJS.Platform): boolean =>
+  platform === 'win32' &&
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  ['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'].includes(String(error.code))
 
 const syncOpenPath = async (
   openHandle: OpenSyncHandle,
@@ -42,13 +50,7 @@ export const createFileDurability = (options: FileDurabilityOptions = {}): FileD
       } catch (error) {
         // Node cannot open or flush directory handles on Windows. File barriers still protect the
         // payload there; POSIX platforms additionally make directory publication durable.
-        if (
-          platform === 'win32' &&
-          typeof error === 'object' &&
-          error !== null &&
-          'code' in error &&
-          ['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'].includes(String(error.code))
-        ) {
+        if (isUnsupportedDirectorySync(error, platform)) {
           return
         }
         throw error
@@ -58,3 +60,45 @@ export const createFileDurability = (options: FileDurabilityOptions = {}): FileD
 }
 
 export const defaultFileDurability = createFileDurability()
+
+type SynchronousHandle = { sync: () => void; close: () => void }
+export type SynchronousFileDurability = {
+  syncFile: (path: string) => void
+  syncDirectory: (path: string) => void
+}
+type SynchronousFileDurabilityOptions = {
+  openHandle?: (path: string, flags: 'r' | 'r+') => SynchronousHandle
+  platform?: NodeJS.Platform
+}
+
+/** Same file/directory barriers for owners whose publication transaction is synchronous. */
+export const createSynchronousFileDurability = (
+  options: SynchronousFileDurabilityOptions = {}
+): SynchronousFileDurability => {
+  const openHandle =
+    options.openHandle ??
+    ((path, flags) => {
+      const handle = openSync(path, flags)
+      return { sync: () => fsyncSync(handle), close: () => closeSync(handle) }
+    })
+  const syncPath = (path: string, flags: 'r' | 'r+'): void => {
+    const handle = openHandle(path, flags)
+    try {
+      handle.sync()
+    } finally {
+      handle.close()
+    }
+  }
+  return {
+    syncFile: (path) => syncPath(path, 'r+'),
+    syncDirectory: (path) => {
+      try {
+        syncPath(path, 'r')
+      } catch (error) {
+        if (!isUnsupportedDirectorySync(error, options.platform ?? process.platform)) throw error
+      }
+    }
+  }
+}
+
+export const defaultSynchronousFileDurability = createSynchronousFileDurability()

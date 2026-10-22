@@ -75,7 +75,8 @@ describe('source-driven package smoke identity', () => {
       const version = {
         FileDescription: productName,
         ProductName: productName,
-        ProductVersion: identity.version
+        ProductVersion: '0.1.0.0',
+        FileVersion: identity.version
       }
       expect(() => validateWindowsVersionInfo(version)).not.toThrow()
       const run = vi.fn(async () => ({ stdout: JSON.stringify(version) }))
@@ -99,6 +100,7 @@ describe('source-driven package smoke identity', () => {
       )
 
       expect(() => validateWindowsVersionInfo({ ...version, FileDescription: 'Foreign' })).toThrow()
+      expect(() => validateWindowsVersionInfo({ ...version, ProductName: 'Foreign' })).toThrow()
       await expect(
         readPackagedAppConfigRoot(
           {
@@ -112,10 +114,63 @@ describe('source-driven package smoke identity', () => {
       ).resolves.toBe('C:\\profile\\.open-science')
       await expect(
         readPackagedAppConfigRoot(
-          { appName: 'Foreign', appVersion: identity.version, platform: 'win32' },
+          {
+            appName: 'Foreign',
+            appVersion: identity.version,
+            platform: 'win32',
+            configRoot: 'C:\\profile\\.open-science'
+          },
           identity.version
         )
-      ).rejects.toThrow()
+      ).rejects.toThrow('Unexpected installed app bootstrap')
+      await expect(
+        readPackagedAppConfigRoot(
+          {
+            appName: productName,
+            appVersion: '0.1.0-alpha.2',
+            platform: 'win32',
+            configRoot: 'C:\\profile\\.open-science'
+          },
+          identity.version
+        )
+      ).rejects.toThrow('Unexpected installed app bootstrap')
+    }
+  )
+  it('accepts the actual Windows PE fields while checking the full FileVersion', () => {
+    expect(() =>
+      validateWindowsVersionInfo(
+        {
+          FileDescription: 'EarthNano',
+          ProductName: 'EarthNano',
+          ProductVersion: '0.1.1.0',
+          FileVersion: '0.1.1-alpha.1'
+        },
+        {
+          ...ORIGINAL_SMOKE_IDENTITY,
+          productName: 'EarthNano',
+          version: '0.1.1-alpha.1'
+        }
+      )
+    ).not.toThrow()
+  })
+  it.each(['0.1.1-alpha.2', '0.1.1', '0.1.1.0', undefined])(
+    'rejects FileVersion %s even when ProductVersion matches the full expected version',
+    (fileVersion) => {
+      expect(() =>
+        validateWindowsVersionInfo(
+          {
+            FileDescription: 'EarthNano',
+            ProductName: 'EarthNano',
+            ProductVersion: '0.1.1-alpha.1',
+            FileVersion: fileVersion
+          },
+          {
+            ...ORIGINAL_SMOKE_IDENTITY,
+            productName: 'EarthNano',
+            version: '0.1.1-alpha.1'
+          }
+        )
+      ).toThrow('Windows executable version metadata differs')
     }
   )
   it('derives exact artifact templates from trusted source metadata and rejects package/builder drift', async () => {

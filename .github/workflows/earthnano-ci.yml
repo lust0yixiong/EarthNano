@@ -11,6 +11,11 @@ on:
         description: Build unsigned native packages and execute original launch/resource smoke (required before Alpha acceptance)
         type: boolean
         default: false
+      windows:
+        description: Focused Windows 0.2 validation; does not publish or replace Unix acceptance
+        type: choice
+        options: ['off', source, native, all]
+        default: 'off'
 
 permissions:
   contents: read
@@ -24,7 +29,7 @@ jobs:
     name: Resolve original platform sharding
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    if: github.ref != 'refs/heads/ci/earthnano-native'
+    if: github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
     outputs:
       unix_matrix: ${{ steps.matrix.outputs.unix_matrix }}
     steps:
@@ -55,7 +60,7 @@ jobs:
   comparison:
     name: Enforce pinned original source comparison
     needs: source_unix
-    if: always() && github.ref != 'refs/heads/ci/earthnano-native'
+    if: always() && github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -85,7 +90,7 @@ jobs:
     name: Pinned Harness source and original unittest comparison (Python 3.12)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    if: github.ref != 'refs/heads/ci/earthnano-native'
+    if: github.ref != 'refs/heads/ci/earthnano-native' && !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { persist-credentials: false }
@@ -119,8 +124,9 @@ jobs:
   native_unix:
     name: Unsigned native build and original launch ${{ matrix.os }}
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.native) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')
+      ((github.event_name == 'workflow_dispatch' && inputs.native) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')) &&
+      !(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')
     strategy:
       fail-fast: false
       matrix:
@@ -135,6 +141,82 @@ jobs:
       platform: ${{ matrix.platform }}
       arch: ${{ matrix.arch }}
       subdir: ${{ matrix.subdir }}
+
+  windows_runtime:
+    name: Original pinned Windows Notebook runtime
+    if: github.event_name == 'workflow_dispatch' && inputs.windows != 'off'
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - uses: ./.github/actions/windows-notebook-runtime
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: earthnano-windows-runtime
+          path: packages/notebook-network-sandbox/vendor/windows-runtime/x64/
+          retention-days: 3
+          if-no-files-found: error
+
+  source_windows:
+    name: Source Windows ${{ matrix.kind }} ${{ matrix.shard }}/8
+    if: github.event_name == 'workflow_dispatch' && (inputs.windows == 'source' || inputs.windows == 'all')
+    needs: windows_runtime
+    strategy:
+      fail-fast: false
+      # Leave shared runner capacity for the concurrent 0.1.1 iteration.
+      max-parallel: 8
+      matrix:
+        kind: [baseline, candidate]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    uses: ./.github/workflows/earthnano-source.yml
+    with:
+      os: windows-2022
+      kind: ${{ matrix.kind }}
+      shard: ${{ matrix.shard }}
+      total: 8
+
+  comparison_windows:
+    name: Enforce complete pinned Windows source comparison
+    needs: source_windows
+    if: always() && github.event_name == 'workflow_dispatch' && (inputs.windows == 'source' || inputs.windows == 'all')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with: { node-version-file: .github/earthnano-node-version }
+      - name: Require complete Windows source matrix
+        shell: node {0}
+        env:
+          SOURCE_WINDOWS_RESULT: ${{ needs.source_windows.result }}
+        run: |
+          if (process.env.SOURCE_WINDOWS_RESULT !== 'success')
+            throw new Error('Required source matrix did not succeed: SOURCE_WINDOWS_RESULT')
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with: { pattern: earthnano-source-windows-*, path: source-reports }
+      - run: node scripts/ci/earthnano-source.mjs compare --platforms win32 --reports source-reports --out test-results/earthnano-windows
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: earthnano-windows-source-comparison
+          path: test-results/earthnano-windows/
+          retention-days: 14
+          if-no-files-found: error
+
+  native_windows:
+    name: Unsigned Windows install and original launch
+    if: github.event_name == 'workflow_dispatch' && (inputs.windows == 'native' || inputs.windows == 'all')
+    needs: windows_runtime
+    uses: ./.github/workflows/earthnano-native.yml
+    with:
+      os: windows-2022
+      platform: win
+      arch: x64
+      subdir: win-64
 
   trials_packaged:
     name: Bundled upstream cases in the actual Mac ARM64 package

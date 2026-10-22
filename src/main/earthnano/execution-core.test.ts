@@ -148,12 +148,13 @@ describe('shared wire contract', () => {
   })
   it('has the same validated Unicode request digest in TypeScript and Python', () => {
     expect(requestDigest(fixtures.valid as ExecutionRequest)).toBe(fixtures.digest)
+    // A Windows legacy text default must not reinterpret this UTF-8 shared fixture.
     const out = execFileSync(
       'python3',
       [
         '-B',
         '-c',
-        `import json; from harness2.core.execution_contract import request_digest; f=json.load(open('contracts/execution/fixtures.json')); print(request_digest(f['valid']))`
+        `import builtins,json; from functools import partial; from harness2.core.execution_contract import request_digest; builtins.open=partial(builtins.open,encoding='cp1252'); f=json.load(open('contracts/execution/fixtures.json',encoding='utf-8')); print(request_digest(f['valid']))`
       ],
       {
         env: { ...process.env, PYTHONPATH: resolve('vendor/harness2') },

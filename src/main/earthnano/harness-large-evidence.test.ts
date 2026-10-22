@@ -2,14 +2,17 @@ import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { expect, it } from 'vitest'
+import { expect, it as baseIt } from 'vitest'
 import { createCandidateSnapshotStore, type CandidateSnapshotInput } from './candidate-snapshot'
 import { emptyExecutionState, ExecutionCore } from './execution-core'
+import { HarnessProcessFailure } from './optimization-failure-diagnostics'
 import {
   HarnessOptimizationBinding,
   runHarnessProcess,
   type PersistentExecutionExport
 } from './harness-optimization'
+
+const it = baseIt.skipIf(process.platform === 'win32')
 
 it('carries four MiB of fixed outputs through the original Python method and TS ownership without truncating evidence', async () => {
   const root = await mkdtemp(join(tmpdir(), 'harness-large-evidence-'))
@@ -132,6 +135,10 @@ it('carries four MiB of fixed outputs through the original Python method and TS 
       cwd: resolve('vendor/harness2'),
       env: { PATH: process.env.PATH },
       timeoutMs: 30000
+    }).catch((error) => {
+      if (error instanceof HarnessProcessFailure)
+        throw new Error(`Fixed offline Harness evidence failed: ${JSON.stringify(error.details)}`)
+      throw error
     })) as {
       status: string
       chosenArtifacts: unknown[]

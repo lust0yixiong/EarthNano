@@ -114,10 +114,11 @@ export const readMacBundleExecutable = async (appBundle, identity = current) =>
     identity
   )
 export function validateWindowsVersionInfo(info, identity = current) {
+  // The locked builder preserves full SemVer in FileVersion; ProductVersion is numeric.
   if (
     info.FileDescription !== identity.productName ||
     info.ProductName !== identity.productName ||
-    (identity.version && info.ProductVersion !== identity.version)
+    (identity.version && info.FileVersion !== identity.version)
   )
     throw new Error('Windows executable version metadata differs from expected builder identity')
 }

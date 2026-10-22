@@ -138,3 +138,22 @@ Run [39464594843](https://github.com/lust0yixiong/EarthNano/actions/runs/3946459
 首次 DeepSeek 两来源双模式 k1 通过：40/48 核心接纳、210 本地/209 上游请求，零拒绝、1 上游取消、用量不完整1项。生产覆盖38/40；API/美元未知。两来源同任务/固定版本/实际 Notebook producer/6个独立评审、停止/重开零重放通过。单任务 k2 的本轮原生验证为离线；更广 Alpha 与平台打包未因此完成。
 
 Windows 检出路径修复：`catalog/archive-path-map.json` 保存三份 ordinary journal 的原路径到短路径映射。只缩短归档文件名，gzip 存储字节、解压后的原始字节及两组 SHA-256 均保持不变；`catalog/manifest.json` 指向现有短路径。保留证据中的历史文件名通过映射追溯。
+
+2026-10-22 Windows 恢复：真实运行 `39699282330` 在检出时遇到六份后期证据的长路径。`windows-0.2-archive-path-map.json` 保留旧路径到短路径的映射；只改归档文件名及 manifest 定位字段，gzip 字节、原始字节和两组 SHA-256 不变。没有删除证据或改动原测试。
+
+Windows 0.2 原生恢复：见 [独立原证据](windows-0.2-native/manifest.json)。规范运行 `39708999081` 的 Windows x64 原 smoke 通过；旧 `39708148492` 的 shutdown 超时保持失败记录。源码完整比较状态以 [Windows 恢复清单](../../WINDOWS_0_2_ALPHA.md) 为准。
+
+Windows 最终冻结提交 `2982f4d1d` 的原生运行 `39719225703` 已通过，见
+[原始 ZIP、日志和 API](windows-0.2-native-39719225703/manifest.json)。完整源码比较也已完成，见[16 片原证据](windows-0.2-source-39719225703/manifest.json)：
+新增回归、阶段回退和全局错误均为 0；基线 13 失败、候选 3 失败及原跳过均保留，
+不称全部测试通过。
+历史迁移夹具的真实 Windows 77 项与本地等价控制分别见
+[Windows 原测试](windows-0.2-historical-fixture-39716802777/manifest.json)和
+[本地补充控制](windows-0.2-historical-fixture/manifest.json)；技能索引夹具的原字节和正负控制见
+[技能夹具证据](windows-0.2-skills-fixture/manifest.json)。旧完整源码新增失败见
+[39708999081 原比较](windows-0.2-source-39708999081/manifest.json)，不被后续窄验证覆盖。
+
+已发布 0.1.1 基线整合后的精确 `c44d8820a` 补验见
+[Windows 定向原证据](windows-0.2-release-merge-39732953047/manifest.json)：六文件
+241 项，233 通过、8 原有跳过、0 失败／全局错误；本地 Node24.19 的 238 项补充
+报告单列，不拼入旧 `2982f4d1d` 完整 cohort。

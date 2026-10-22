@@ -12,11 +12,44 @@ import {
   writeSync,
   type BigIntStats
 } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 
-type SourceFile = { path: string; descriptor: number; initial: BigIntStats }
+type SourceFile = { path: string; descriptor: number; initial: BigIntStats; digest: string }
+
+// Bound memory independently of database size, using the same positioned reads as the copy.
+const readSource = (
+  source: Pick<SourceFile, 'descriptor' | 'initial'>,
+  consume: (bytes: Buffer, position: number) => void
+): void => {
+  if (source.initial.size > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('SQLite snapshot source cannot be copied reliably')
+  }
+  const buffer = Buffer.allocUnsafe(1024 * 1024)
+  const size = Number(source.initial.size)
+  for (let position = 0; position < size;) {
+    const count = readSync(
+      source.descriptor,
+      buffer,
+      0,
+      Math.min(buffer.length, size - position),
+      position
+    )
+    if (count === 0) throw new Error('SQLite snapshot source changed while copying')
+    consume(buffer.subarray(0, count), position)
+    position += count
+  }
+}
+
+const sourceDigest = (source: Pick<SourceFile, 'descriptor' | 'initial'>): string => {
+  const hash = createHash('sha256')
+  readSource(source, (bytes) => {
+    hash.update(bytes)
+  })
+  return hash.digest('hex')
+}
 
 const sameFileState = (left: BigIntStats, right: BigIntStats): boolean =>
   right.isFile() &&
@@ -60,7 +93,8 @@ const openSource = (path: string): SourceFile | undefined => {
     if (!sameFileState(initial, fstatSync(descriptor, { bigint: true }))) {
       throw new Error('SQLite snapshot source changed while opening')
     }
-    return { path, descriptor, initial }
+    const source = { path, descriptor, initial }
+    return { ...source, digest: sourceDigest(source) }
   } catch (error) {
     closeSync(descriptor)
     throw error
@@ -72,37 +106,29 @@ const verifySource = (source: SourceFile): void => {
   if (
     !current ||
     !sameFileState(source.initial, current) ||
-    !sameFileState(source.initial, fstatSync(source.descriptor, { bigint: true }))
+    !sameFileState(source.initial, fstatSync(source.descriptor, { bigint: true })) ||
+    sourceDigest(source) !== source.digest
   ) {
     throw new Error('SQLite snapshot source changed while copying')
   }
 }
 
 const copySource = (source: SourceFile, destination: string): void => {
-  if (source.initial.size > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error('SQLite snapshot source cannot be copied reliably')
-  }
   const target = openSync(destination, 'wx', 0o600)
   try {
     fchmodSync(target, 0o600)
-    const buffer = Buffer.allocUnsafe(1024 * 1024)
-    const size = Number(source.initial.size)
-    for (let position = 0; position < size;) {
-      const count = readSync(
-        source.descriptor,
-        buffer,
-        0,
-        Math.min(buffer.length, size - position),
-        position
-      )
-      if (count === 0) throw new Error('SQLite snapshot source changed while copying')
+    const hash = createHash('sha256')
+    readSource(source, (bytes, position) => {
+      hash.update(bytes)
       let written = 0
-      while (written < count) {
-        const next = writeSync(target, buffer, written, count - written, position + written)
+      while (written < bytes.length) {
+        const next = writeSync(target, bytes, written, bytes.length - written, position + written)
         if (next === 0) throw new Error('SQLite snapshot copy could not complete')
         written += next
       }
-      position += count
+    })
+    if (hash.digest('hex') !== source.digest) {
+      throw new Error('SQLite snapshot source changed while copying')
     }
   } finally {
     closeSync(target)
@@ -141,6 +167,7 @@ export const withReadOnlySqliteSnapshot = (
     if (journal) copySource(journal, `${snapshot}-journal`)
 
     // File descriptors pin the copied objects; path checks also catch replacement or rename.
+    // Content checks catch in-place writes even when filesystem timestamps do not change.
     // If WAL was absent initially, a newly created WAL invalidates the main-only snapshot.
     for (const source of sources) verifySource(source)
     if (!wal && sourceState(walPath)) throw new Error('SQLite WAL changed while copying')

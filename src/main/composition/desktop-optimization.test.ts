@@ -95,6 +95,7 @@ const selected = () => ({
 })
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- preserve concrete Vitest mocks
 const dependencies = () => ({
+  platform: 'linux' as const,
   settings: {
     getStoredSettings: vi.fn(),
     captureActiveExplicitAgentBackendTarget: vi.fn().mockResolvedValue(target),
@@ -116,6 +117,7 @@ beforeEach(async () => {
   mocks.corrupt = false
 })
 afterEach(async () => {
+  vi.unstubAllGlobals()
   await rm(mocks.root, { recursive: true, force: true })
 })
 it('captures only an explicit custom messages route and holds original admission until cleanup', async () => {
@@ -240,8 +242,14 @@ it.each([undefined, 'unverified', '2.1.117'])(
 )
 it('uses the existing version probe on the selected executable when no test probe is supplied', async () => {
   const deps = dependencies()
-  const executable = join(mocks.root, 'claude')
-  await writeFile(executable, '#!/bin/sh\nprintf "2.1.250 (Claude Code)\\n"\n', { mode: 0o700 })
+  const executable = join(mocks.root, process.platform === 'win32' ? 'claude.cmd' : 'claude')
+  await writeFile(
+    executable,
+    process.platform === 'win32'
+      ? '@echo off\r\necho 2.1.250\r\n'
+      : '#!/bin/sh\nprintf "2.1.250 (Claude Code)\\n"\n',
+    { mode: 0o700 }
+  )
   deps.settings.resolveIsolatedClaudeExecutable.mockResolvedValue(executable)
   const options = await createDesktopOptimizationOptions(request, {
     ...deps,
@@ -1035,4 +1043,27 @@ it('retries retained original owners during desktop teardown without promoting t
   expect(await lifecycle.current!.prepareForUpdateGate()).toEqual({ reaped: false })
   expect(candidateOwners.shutdown).toHaveBeenCalledTimes(2)
   expect(lifecycle.current!.hasActiveWork()).toBe(true)
+})
+
+it('uses an explicit supported-platform dependency view for platform-independent composition', async () => {
+  const deps = dependencies()
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  const options = await createDesktopOptimizationOptions(request, deps)
+  expect(options.input.task).toEqual({ prompt: request.prompt, files: request.files })
+  expect(options.input.agent.runtimeVersion).toBe('2.1.232')
+  options.releaseAdmission()
+})
+
+it('keeps the default Windows runtime refusal before provider, version and Python admission', async () => {
+  const deps = { ...dependencies(), platform: undefined }
+  vi.stubGlobal('process', { ...process, platform: 'win32' })
+  await expect(createDesktopOptimizationOptions(request, deps)).rejects.toThrow(
+    'Optimization requires a supported Claude Code runtime.'
+  )
+  expect(deps.settings.resolveIsolatedClaudeProvider).not.toHaveBeenCalled()
+  expect(deps.settings.resolveIsolatedClaudeExecutable).not.toHaveBeenCalled()
+  expect(deps.probeClaudeVersion).not.toHaveBeenCalled()
+  expect(deps.resolvePython).not.toHaveBeenCalled()
+  expect(mocks.releaseWriter).toHaveBeenCalledOnce()
+  expect(deps.admitSessionWork.mock.results[0].value).toHaveBeenCalledOnce()
 })

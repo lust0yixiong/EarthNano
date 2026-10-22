@@ -27,6 +27,13 @@ import {
 } from './harness-optimization'
 import type { ExecutionRequest, ExecutionHandle } from '../../shared/earthnano/execution-port'
 
+// Reuse the exact interpreter supplied by the original source workflow, with only process roots.
+const python = process.env.EARTHNANO_RESEARCH_PYTHON ?? 'python3'
+const pythonEnv = Object.fromEntries(
+  ['PATH', 'Path', 'SYSTEMROOT', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR'].flatMap((key) =>
+    process.env[key] === undefined ? [] : [[key, process.env[key]!]]
+  )
+)
 const roots: string[] = []
 const cores: ExecutionCore[] = []
 const writableFixture = async (path: string): Promise<void> => {
@@ -254,13 +261,13 @@ describe('trusted Harness optimization binding', () => {
   it('keeps Python and TS evidence/frame limits identical', () => {
     const limits = JSON.parse(
       execFileSync(
-        'python3',
+        python,
         [
           '-B',
           '-c',
           'import json; from harness2.core.earthnano_binding import MAX_MESSAGE_BYTES,MAX_EVIDENCE_BYTES,MAX_FILES; print(json.dumps([MAX_MESSAGE_BYTES,MAX_EVIDENCE_BYTES,MAX_FILES]))'
         ],
-        { cwd: resolve('vendor/harness2'), encoding: 'utf8' }
+        { cwd: resolve('vendor/harness2'), env: pythonEnv, encoding: 'utf8' }
       )
     )
     expect(limits).toEqual([
@@ -295,13 +302,13 @@ describe('trusted Harness optimization binding', () => {
     await expect(
       runHarnessProcess({
         binding: { dispatch, stop },
-        python: 'python3',
+        python,
         args: [
           '-c',
           `import sys,time; sys.stdout.write('x'*${MAX_HARNESS_FRAME_BYTES + 1}); sys.stdout.flush(); time.sleep(2)`
         ],
         cwd: process.cwd(),
-        env: { PATH: process.env.PATH },
+        env: pythonEnv,
         timeoutMs: 3000
       })
     ).rejects.toThrow('did not complete')
@@ -311,9 +318,9 @@ describe('trusted Harness optimization binding', () => {
   it('rejects oversized responses and floods while retaining finite queued work', async () => {
     const responseDispatch = vi.fn(async () => 'x'.repeat(MAX_HARNESS_FRAME_BYTES))
     const options = {
-      python: 'python3',
+      python,
       cwd: process.cwd(),
-      env: { PATH: process.env.PATH },
+      env: pythonEnv,
       timeoutMs: 3000
     }
     const script =
@@ -343,9 +350,9 @@ describe('trusted Harness optimization binding', () => {
     const f = await setup()
     const options = {
       binding: f.binding,
-      python: 'python3',
+      python,
       cwd: f.root,
-      env: { PATH: process.env.PATH },
+      env: pythonEnv,
       timeoutMs: 3000
     }
     await expect(
@@ -375,9 +382,9 @@ describe('trusted Harness optimization binding', () => {
     await expect(
       runHarnessProcess({
         binding: f.binding,
-        python: 'python3',
+        python,
         cwd: f.root,
-        env: { PATH: process.env.PATH },
+        env: pythonEnv,
         timeoutMs: 500,
         args: [
           '-c',
@@ -907,16 +914,20 @@ describe('version-backed binary binding', () => {
       const executionId = await admitted(f)
       const operation = runHarnessProcess({
         binding: f.binding,
-        python: 'python3',
+        python,
         cwd: resolve('vendor/harness2'),
-        env: { PATH: process.env.PATH },
+        env: pythonEnv,
         timeoutMs: 3000,
         args: [
           '-c',
           [
             'import json, sys',
             'from harness2.core.earthnano_binding import JsonLineClient',
-            'client = JsonLineClient(sys.stdin, sys.stdout)',
+            // Exercise the original file-like reader branch over the real pipe. This envelope
+            // fixture does not certify the production POSIX select/fcntl transport on Windows.
+            'class FixtureReader:',
+            '    def readline(self, size=-1): return sys.stdin.readline(size)',
+            'client = JsonLineClient(FixtureReader(), sys.stdout)',
             'result = client.exchange("materializeArtifact", **json.loads(sys.argv[1]))',
             'client.exchange("done", result=result)'
           ].join('\n'),

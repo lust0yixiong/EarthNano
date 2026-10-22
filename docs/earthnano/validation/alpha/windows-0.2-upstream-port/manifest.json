@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/aipoch/open-science/blob/ce523b029a1692a6e6308baf14572a6654fe1cea/src/main/session-package/test-helpers/browser-import-port.ts",
+  "sourceCommit": "ce523b029a1692a6e6308baf14572a6654fe1cea",
+  "path": "src/main/session-package/test-helpers/browser-import-port.ts",
+  "gitBlob": "e74e451941d14c295ff308476e64b5d0363dd556",
+  "sha256": "5b0453a96c96d1aeedc67ff01e453b9bf1de75800ecaf72c9e8328a4667ca767",
+  "bytes": 1092,
+  "copiedByteForByte": true,
+  "fixedBaselinesUnchanged": true,
+  "scope": "Copy only the upstream test helper, not the rest of commit ce523b0. Keep loopback ports 49152..65535; retry EADDRINUSE/EACCES at most 32 times and rethrow the original final error. No production listener, protocol, skip or comparison rule changes.",
+  "validation": {
+    "node": "v24.19.0",
+    "platform": "darwin-arm64",
+    "externalFaultControlsPassed": 5,
+    "negativeControls": "EACCES then success; 32 EACCES original error; EADDRINUSE then success; 32 EADDRINUSE original error; EPERM immediately preserved.",
+    "realLocalHelperPassed": true,
+    "originalBrowserImportFiles": 2,
+    "originalBrowserImportTests": {
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0
+    },
+    "externalProbeReceiptSha256": "0f070125161049f397ed459540d2dd87328c646466d9e7fa5b5d2676c1fa0566",
+    "windowsAcceptance": false,
+    "historicalWindows53008CauseConfirmed": false,
+    "paidModelCalls": 0
+  }
+}

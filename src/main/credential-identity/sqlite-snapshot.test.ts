@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process'
 import {
   existsSync,
+  fstatSync,
+  lstatSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -17,15 +19,37 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { withReadOnlySqliteSnapshot } from './sqlite-snapshot'
 
-const hooks = vi.hoisted(() => ({ afterRead: undefined as (() => void) | undefined }))
+const hooks = vi.hoisted(() => ({
+  afterCopyWrite: undefined as (() => void) | undefined,
+  stableMetadata: new Map<string, import('node:fs').BigIntStats>(),
+  descriptors: new Map<number, string>(),
+  temporary: [] as string[]
+}))
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
-    readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number) {
-      const count = actual.readSync(fd, buffer, offset, length, position)
-      const callback = hooks.afterRead
-      hooks.afterRead = undefined
+    openSync(path: string, flags: string | number, mode?: number) {
+      const descriptor = actual.openSync(path, flags, mode)
+      if (hooks.stableMetadata.has(path)) hooks.descriptors.set(descriptor, path)
+      return descriptor
+    },
+    lstatSync(path: string, options: { bigint: true; throwIfNoEntry: false }) {
+      return hooks.stableMetadata.get(path) ?? actual.lstatSync(path, options)
+    },
+    fstatSync(descriptor: number, options: { bigint: true }) {
+      const path = hooks.descriptors.get(descriptor)
+      return (path && hooks.stableMetadata.get(path)) || actual.fstatSync(descriptor, options)
+    },
+    mkdtempSync(prefix: string) {
+      const path = actual.mkdtempSync(prefix)
+      if (prefix === join(tmpdir(), 'credential-snapshot-')) hooks.temporary.push(path)
+      return path
+    },
+    writeSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number) {
+      const count = actual.writeSync(fd, buffer, offset, length, position)
+      const callback = hooks.afterCopyWrite
+      hooks.afterCopyWrite = undefined
       callback?.()
       return count
     }
@@ -97,7 +121,10 @@ const createCompletedRollback = (path: string, mode = 'PERSIST'): void => {
 }
 
 afterEach(() => {
-  hooks.afterRead = undefined
+  hooks.afterCopyWrite = undefined
+  hooks.stableMetadata.clear()
+  hooks.descriptors.clear()
+  hooks.temporary.length = 0
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
@@ -151,7 +178,7 @@ describe('isolated SQLite ciphertext snapshots', () => {
       createCompletedRollback(path)
       const journal = `${path}-journal`
       const original = readFileSync(journal)
-      hooks.afterRead = () => {
+      hooks.afterCopyWrite = () => {
         if (mutation === 'remove') unlinkSync(journal)
         else if (mutation === 'replace') {
           renameSync(journal, `${journal}.old`)
@@ -233,7 +260,7 @@ describe('isolated SQLite ciphertext snapshots', () => {
       createRollback(path)
       const journal = `${path}-journal`
       const original = readFileSync(journal)
-      hooks.afterRead = () => {
+      hooks.afterCopyWrite = () => {
         if (mutation === 'remove') unlinkSync(journal)
         else if (mutation === 'replace') {
           renameSync(journal, `${journal}.old`)
@@ -316,7 +343,7 @@ describe('isolated SQLite ciphertext snapshots', () => {
     createWal(path)
     if (mutation === 'add-wal') unlinkSync(`${path}-wal`)
     const original = readFileSync(path)
-    hooks.afterRead = () => {
+    hooks.afterCopyWrite = () => {
       if (mutation === 'replace-main') {
         renameSync(path, `${path}.old`)
         writeFileSync(path, original)
@@ -344,6 +371,42 @@ describe('isolated SQLite ciphertext snapshots', () => {
     expect(() => withReadOnlySqliteSnapshot(path, read)).toThrow(/changed|stable/i)
     expect(read).not.toHaveBeenCalled()
   })
+
+  it.each(['main', 'wal'])(
+    'rejects real same-size %s mutations even when source metadata observations stay unchanged',
+    (kind) => {
+      const { path } = fixture()
+      createWal(path)
+      const changedPath = kind === 'main' ? path : `${path}-wal`
+      const before = readFileSync(changedPath)
+      for (const source of [path, `${path}-wal`]) {
+        hooks.stableMetadata.set(source, lstatSync(source, { bigint: true }))
+      }
+      // Control only the existing metadata observations. The files, readonly source handles,
+      // private copies and same-size content mutation all use the real filesystem.
+      let mutated = false
+      hooks.afterCopyWrite = () => {
+        const bytes = Buffer.from(before)
+        bytes[bytes.length - 1] ^= 1
+        writeFileSync(changedPath, bytes)
+        mutated = true
+      }
+      const read = vi.fn()
+      expect(() => withReadOnlySqliteSnapshot(path, read)).toThrow(/changed|stable/i)
+      expect(mutated).toBe(true)
+      expect(readFileSync(changedPath)).toHaveLength(before.length)
+      expect(readFileSync(changedPath)).not.toEqual(before)
+      expect(read).not.toHaveBeenCalled()
+      expect(hooks.temporary).toHaveLength(1)
+      for (const temporary of hooks.temporary) expect(existsSync(temporary)).toBe(false)
+      expect(hooks.descriptors.size).toBe(2)
+      // fstatSync itself remains real once the controlled metadata view is removed.
+      hooks.stableMetadata.clear()
+      for (const descriptor of hooks.descriptors.keys()) {
+        expect(() => fstatSync(descriptor, { bigint: true })).toThrow(/bad file descriptor|EBADF/i)
+      }
+    }
+  )
 
   it('rejects a symbolic-link source before opening SQLite', () => {
     const { root, path } = fixture()
@@ -374,7 +437,7 @@ describe('isolated SQLite ciphertext snapshots', () => {
       source.exec('CREATE TABLE secrets(value TEXT)')
       source.close()
       const addJournal = (): void => writeFileSync(`${path}-journal`, 'pending-rollback')
-      if (duringCopy) hooks.afterRead = addJournal
+      if (duringCopy) hooks.afterCopyWrite = addJournal
       else addJournal()
       const read = vi.fn()
       expect(() => withReadOnlySqliteSnapshot(path, read)).toThrow(/journal|recovery/i)

@@ -224,7 +224,9 @@ const projectionDirectory = async (
   // Check each existing ancestor before creating its child; recursive mkdir could otherwise
   // follow a linked ancestor before the post-creation identity check.
   for (const current of parents) {
-    if (create) {
+    // A filesystem root already exists; Windows can reject mkdir(root) with EPERM rather than
+    // EEXIST. It still receives the same lstat directory/symlink check before any child is created.
+    if (create && current !== dirname(current)) {
       try {
         await mkdir(current, { mode: 0o700 })
       } catch (error) {

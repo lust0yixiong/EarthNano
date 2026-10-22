@@ -112,7 +112,10 @@
       "upstreamRequests": 198,
       "http200": 198,
       "proxyRejections": 0,
-      "assessments": [88, 93],
+      "assessments": [
+        88,
+        93
+      ],
       "cause": "New fixture wrongly required every intermediate Notebook tool Run to succeed. Original host-compute contract permits failed tool followed by repair; all24 published Versions had actual completed producer Runs. Original11 failed tool Runs retained."
     },
     {
@@ -138,7 +141,10 @@
       "cumulativeExperimentRequests": 156,
       "http200": 7,
       "proxyRejections": 0,
-      "assessments": [88, 92],
+      "assessments": [
+        88,
+        92
+      ],
       "cause": "Original method18 executions/8Jobs reused; only2 new reviewers. Test wrongly required an experience entry despite original parser returning{} on incomplete experience block. Production Library/resume unchanged."
     },
     {
@@ -368,28 +374,28 @@
       "gzipSha256": "2bbfab641799358b1d386391d573462953288d3b09fa09a589e40d34b5caed82"
     },
     {
-      "file": "continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.068741954994c985d329395b0d1a8733d2b4b84c0555d1931ac4233c7f64ef38.json.gz",
+      "file": "continuation-session-068741954994c985.json.gz",
       "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/continuation-terminal-failure/observed-journals/config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.068741954994c985d329395b0d1a8733d2b4b84c0555d1931ac4233c7f64ef38.json",
       "originalBytes": 46711,
       "sha256": "068741954994c985d329395b0d1a8733d2b4b84c0555d1931ac4233c7f64ef38",
       "gzipSha256": "de284edd69cadf8f5963bec42b98f8e3f9fbb3a19946ee8480c8b125af9129b8"
     },
     {
-      "file": "continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.0dfbbd33df2e6e04f222ef267b6f99161add8d87a57d6bd660690ceb72a92482.json.gz",
+      "file": "continuation-session-0dfbbd33df2e6e04.json.gz",
       "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/continuation-terminal-failure/observed-journals/config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.0dfbbd33df2e6e04f222ef267b6f99161add8d87a57d6bd660690ceb72a92482.json",
       "originalBytes": 46791,
       "sha256": "0dfbbd33df2e6e04f222ef267b6f99161add8d87a57d6bd660690ceb72a92482",
       "gzipSha256": "94c5916fa4e4fb258bce8d73680d2898e6e08f4151c02d4d52b884d42c11e7e7"
     },
     {
-      "file": "continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.1cea3b0bf6312981bf633e714c030092debb0056aa3b017ff987bb9df74ec878.json.gz",
+      "file": "continuation-session-1cea3b0bf6312981.json.gz",
       "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/continuation-terminal-failure/observed-journals/config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.1cea3b0bf6312981bf633e714c030092debb0056aa3b017ff987bb9df74ec878.json",
       "originalBytes": 46787,
       "sha256": "1cea3b0bf6312981bf633e714c030092debb0056aa3b017ff987bb9df74ec878",
       "gzipSha256": "c042de60d2d0e9770fc193f48a4dc0a41323c8126651d64a219b83994c4b2d4d"
     },
     {
-      "file": "continuation-boundary__observed-journals__config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.854000ab7758bb9ea7f78774a0d4e8dce1facbc510be476e488d9f93807df61d.json.gz",
+      "file": "continuation-session-854000ab7758bb9e.json.gz",
       "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/continuation-terminal-failure/observed-journals/config__sessions__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6.json.854000ab7758bb9ea7f78774a0d4e8dce1facbc510be476e488d9f93807df61d.json",
       "originalBytes": 48594,
       "sha256": "854000ab7758bb9ea7f78774a0d4e8dce1facbc510be476e488d9f93807df61d",
@@ -410,7 +416,7 @@
       "gzipSha256": "3201ea248fcf99292b84ae96792577f0060dd1e3ab160b8a3f80771107741ddf"
     },
     {
-      "file": "continuation-boundary__observed-journals__notebooks__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6__run.json.7eebbaddce70f5d54fced93f3c9746494e5e7f8f5f0f91935c8e1ed292750f54.json.gz",
+      "file": "continuation-notebook-7eebbaddce70f5d5.json.gz",
       "source": "/Users/yxmac_mini/Developer/EarthNano-validation/compute-fusion-20261021/continuation-terminal-failure/observed-journals/notebooks__compute-project__d0288938-3bdc-4c4e-a726-bdeca6f737b6__run.json.7eebbaddce70f5d54fced93f3c9746494e5e7f8f5f0f91935c8e1ed292750f54.json",
       "originalBytes": 11876,
       "sha256": "7eebbaddce70f5d54fced93f3c9746494e5e7f8f5f0f91935c8e1ed292750f54",

@@ -610,6 +610,8 @@ describe('candidate paths, policy, and secrets', () => {
     await fs.link(copy, path)
     await expect(store.resolve(refs)).rejects.toThrow('regular file')
     expect((await fs.readFile(copy, 'utf8')).length).toBeGreaterThan(0)
+    // Clear Windows readonly attributes only in this owned attack fixture before replacing its namespace.
+    await writable(join(root, 'store/objects'))
     await fs.rename(join(root, 'store/objects'), join(root, 'old-objects'))
     await fs.symlink(elsewhere, join(root, 'store/objects'), 'dir')
     await expect(store.freeze(input())).rejects.toThrow('identity changed')

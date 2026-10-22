@@ -1,3 +1,4 @@
+import { defaultSynchronousFileDurability } from '@aipoch/durable-files'
 import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import {
   closeSync,
@@ -101,25 +102,7 @@ export class FileExecutionStore implements ExecutionStore {
         closeSync(fd)
       }
       renameSync(temp, this.filename)
-      try {
-        const directory = openSync(dirname(this.filename), 'r')
-        try {
-          fsyncSync(directory)
-        } finally {
-          closeSync(directory)
-        }
-      } catch (error) {
-        // Match the pinned durable-files policy: Node cannot open/flush Windows directories.
-        // The payload above is always flushed; all other failures retain the durability barrier.
-        if (
-          process.platform !== 'win32' ||
-          typeof error !== 'object' ||
-          error === null ||
-          !('code' in error) ||
-          !['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'].includes(String(error.code))
-        )
-          throw error
-      }
+      defaultSynchronousFileDurability.syncDirectory(dirname(this.filename))
     } finally {
       if (existsSync(temp)) unlinkSync(temp)
     }

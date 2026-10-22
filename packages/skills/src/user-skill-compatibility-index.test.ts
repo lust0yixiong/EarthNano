@@ -164,7 +164,7 @@ describe('UserSkillCompatibilityIndex', () => {
 
     const index = new UserSkillCompatibilityIndex(storageRoot, { hashFile: hashFileContents })
     const [before] = await index.scan([sourceDir])
-    await writeFile(prototypePath, 'after!')
+    await writeFile(prototypePath, 'after!!')
     const [after] = await index.scan([sourceDir])
 
     expect(after).not.toEqual(before)

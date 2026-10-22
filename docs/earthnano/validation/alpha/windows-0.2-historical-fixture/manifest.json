@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "project": "EarthNano",
+  "purpose": "Local supplemental evidence for the minimal historical test-fixture transaction change; no production migration or acceptance rule changes.",
+  "createdAt": "2026-10-22T03:33:11.502926+00:00",
+  "candidateCommit": "adc84b9c5312daf224fe5e24afced7bf57fd452f",
+  "onlyImplementationFile": "test/fixtures/application-database.ts",
+  "fixtureSources": {
+    "originalSha256": "0b35b43b60e320f922ec0001dd33a0966023383dd5038ea36ae5cd6d7c137758",
+    "candidateSha256": "f1b513c5bd216ccb8bc71ecf4bb4e43ea895a6a30c96f2df4148824e5464d046",
+    "originalSnapshot": {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original-fixture.ts.txt",
+      "bytes": 1827,
+      "sha256": "0b35b43b60e320f922ec0001dd33a0966023383dd5038ea36ae5cd6d7c137758"
+    }
+  },
+  "environment": {
+    "node": "v26.0.0",
+    "platform": "macOS arm64",
+    "prisma": "6.19.3",
+    "windowsEvidenceClaimed": false
+  },
+  "implementation": {
+    "description": "One actual Prisma interactive transaction; original statement/operation/0025 repair/ledger order and SQL unchanged. No timeout/options added. FK OFF and finally ON remain outside transaction.",
+    "replayOrder": [
+      "each original manifest entry: statements in original order",
+      "that entry original operations",
+      "original VisionEvidence repair immediately after frozen 0025",
+      "after all history: unchanged original ledger CREATE SQL",
+      "original manifest ID/checksum inserts in original order"
+    ],
+    "transactionOptionsAdded": false,
+    "originalPrismaInteractiveTimeoutUnchanged": true,
+    "foreignKeyPragmasOutsideTransaction": true,
+    "noCacheOrReplacementData": true,
+    "productionManifestAssertionsTimeoutsSkipsDurabilityChanged": false
+  },
+  "results": {
+    "originalMigration": {
+      "success": true,
+      "files": 1,
+      "numTotalTests": 77,
+      "numPassedTests": 77,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    },
+    "candidateMigration": {
+      "success": true,
+      "files": 1,
+      "numTotalTests": 77,
+      "numPassedTests": 77,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    },
+    "candidateConsumers": {
+      "success": true,
+      "files": 15,
+      "numTotalTests": 83,
+      "numPassedTests": 83,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    },
+    "originalControl": {
+      "success": true,
+      "files": 1,
+      "numTotalTests": 6,
+      "numPassedTests": 6,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    },
+    "candidateControl": {
+      "success": true,
+      "files": 1,
+      "numTotalTests": 6,
+      "numPassedTests": 6,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    },
+    "candidateFaultControls": {
+      "success": true,
+      "files": 1,
+      "numTotalTests": 2,
+      "numPassedTests": 2,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "numFailedTestSuites": 0
+    }
+  },
+  "candidateOriginalConsumerTotal": {
+    "files": 16,
+    "passed": 160,
+    "failed": 0,
+    "skipped": 0,
+    "evidenceBoundary": "Two unchanged original test invocations: migration-service 77 plus the other 15 consumers 83. Original JSON files remain separate."
+  },
+  "contentEquivalence": {
+    "pairs": 6,
+    "allEqual": true,
+    "compared": [
+      "original schema SQL (tables/indexes/triggers)",
+      "column definitions",
+      "foreign-key definitions and foreign_key_check",
+      "every stored row and ID",
+      "all ledger migration IDs and immutable checksums",
+      "migration payloads and replay order from unchanged helper inputs"
+    ],
+    "onlyExcludedGeneratedTimestampFields": [
+      {
+        "table": "_open_science_migrations",
+        "column": "appliedAt",
+        "source": "test/fixtures/application-database.ts",
+        "sql": "\"appliedAt\" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "Tag",
+        "column": "createdAt",
+        "source": "src/main/database/migrations/0011-cross-resource-tags.ts:40",
+        "rowId": "tag-favorite",
+        "sql": "INSERT OR IGNORE INTO \"Tag\" (\"id\", \"systemKey\", \"createdAt\", \"updatedAt\") VALUES ('tag-favorite', 'favorite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "Tag",
+        "column": "updatedAt",
+        "source": "src/main/database/migrations/0011-cross-resource-tags.ts:40",
+        "rowId": "tag-favorite",
+        "sql": "INSERT OR IGNORE INTO \"Tag\" (\"id\", \"systemKey\", \"createdAt\", \"updatedAt\") VALUES ('tag-favorite', 'favorite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "MemorySettings",
+        "column": "createdAt",
+        "source": "src/main/database/migrations/0017-agent-memory-project-scope.ts:169",
+        "rowId": "memory-settings",
+        "sql": "INSERT OR IGNORE INTO \"MemorySettings\" (\"id\", \"enabled\", \"revision\", \"createdAt\", \"updatedAt\") VALUES ('memory-settings', false, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "MemorySettings",
+        "column": "updatedAt",
+        "source": "src/main/database/migrations/0017-agent-memory-project-scope.ts:169",
+        "rowId": "memory-settings",
+        "sql": "INSERT OR IGNORE INTO \"MemorySettings\" (\"id\", \"enabled\", \"revision\", \"createdAt\", \"updatedAt\") VALUES ('memory-settings', false, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "MemoryCategory",
+        "column": "createdAt",
+        "source": "src/main/database/migrations/0017-agent-memory-project-scope.ts:170",
+        "rowId": "memory-category-about-you",
+        "sql": "INSERT OR IGNORE INTO \"MemoryCategory\" (\"id\", \"systemKey\", \"guidance\", \"autoRecall\", \"revision\", \"createdAt\", \"updatedAt\") VALUES ('memory-category-about-you', 'about-you', '', true, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      },
+      {
+        "table": "MemoryCategory",
+        "column": "updatedAt",
+        "source": "src/main/database/migrations/0017-agent-memory-project-scope.ts:170",
+        "rowId": "memory-category-about-you",
+        "sql": "INSERT OR IGNORE INTO \"MemoryCategory\" (\"id\", \"systemKey\", \"guidance\", \"autoRecall\", \"revision\", \"createdAt\", \"updatedAt\") VALUES ('memory-category-about-you', 'about-you', '', true, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        "sourceLiteralUnchanged": true
+      }
+    ],
+    "rawStoredValuesOrSqlRewritten": false,
+    "exclusionBoundary": "Raw original/new timestamp values and complete dumps retained. Only the listed CURRENT_TIMESTAMP-generated columns are excluded from equality comparison; original SQL, stored values, clocks and application data are not rewritten. All IDs/checksums and all remaining stored values compare exactly.",
+    "rawTimestampsRetainedInLogicalEquivalenceArchive": true,
+    "pragmaResults": {
+      "foreign_keys": "ON after every successful helper call",
+      "journal_mode": "delete before/after for both original and candidate",
+      "synchronous": "2 before/after for both original and candidate",
+      "legacy_alter_table": "unchanged, including the original ON consumer case"
+    },
+    "caseResults": [
+      {
+        "case": "baseline-only",
+        "schemaTables": 24,
+        "ledgerRows": 1,
+        "normalizedContentSha256": "3299f3142c09cbf122236ed5525a9ac5f0d6bc4b449955a4391a3725a055585a",
+        "originalMs": 19.797666999999933,
+        "candidateMs": 5.2735830000000306,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      },
+      {
+        "case": "before-bookmarks",
+        "schemaTables": 66,
+        "ledgerRows": 40,
+        "normalizedContentSha256": "54e10dd62744f27eda0fa029f8d93e703e719f6c64717528ec2c1d38590306f1",
+        "originalMs": 243.25479199999995,
+        "candidateMs": 120.407917,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      },
+      {
+        "case": "before-managed",
+        "schemaTables": 48,
+        "ledgerRows": 24,
+        "normalizedContentSha256": "97883c1a7e58adbe1c0c88cc701076cf41c9ce3e0d83971c7a090baac6d20803",
+        "originalMs": 133.40804200000002,
+        "candidateMs": 60.41158299999995,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      },
+      {
+        "case": "before-search-legacy-alter",
+        "schemaTables": 65,
+        "ledgerRows": 37,
+        "normalizedContentSha256": "ddae1c54597648f2103da5257d81fade492b6a213a698103f4c1c56c7e982ca7",
+        "originalMs": 239.71941700000002,
+        "candidateMs": 117.003917,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      },
+      {
+        "case": "before-vision",
+        "schemaTables": 25,
+        "ledgerRows": 8,
+        "normalizedContentSha256": "f1658a9386edd71af6ed56339f71e2ea941298bd1e4a32f80a7aae62821e5978",
+        "originalMs": 84.426916,
+        "candidateMs": 38.237167,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      },
+      {
+        "case": "released-default",
+        "schemaTables": 86,
+        "ledgerRows": 48,
+        "normalizedContentSha256": "cf88c685352732e975eee9290be6902ba53a3157847b226c561ffc8571c6123a",
+        "originalMs": 288.531625,
+        "candidateMs": 148.09337499999998,
+        "foreignKeyAndDurabilityPragmasEqual": true
+      }
+    ],
+    "performanceBoundary": "Single local observations only. They do not establish performance or a pass on hosted Windows Node 24.22."
+  },
+  "negativeControl": {
+    "tests": 2,
+    "scope": "External controls only, not added repository tests or alternate fixture implementation. Deliberate invalid SQL after actual baseline statements produces a real rollback; original full history then succeeds on the same client. Another call starts with FK OFF and retains the original successful-call contract of enabling FK at completion.",
+    "rollbackResult": "error propagated, no partial tables remain, FK ON, same-client full-history retry has exact ledger IDs/checksums",
+    "faultInjectionSqlIsNotPartOfActualHistory": true
+  },
+  "unchangedSource": {
+    "pin": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+    "sourceByteHashes": [
+      {
+        "path": "src/main/database/migration-service.ts",
+        "sha256": "1208e53e6418e2d859258f4c45157c1a118c154ea98b32fa249610c5ee5d22b4",
+        "equalsPinnedUpstreamBytes": true
+      },
+      {
+        "path": "src/main/database/sqlite-schema-migrations.ts",
+        "sha256": "d5b9cb87591a31224c3fdccae86db4a9b955b002685ebf75124e9b728fe52577",
+        "equalsPinnedUpstreamBytes": true
+      },
+      {
+        "path": "prisma/schema.prisma",
+        "sha256": "e362eb7bb73c4db03fcef543db167f08428e0aba54e8b79da08d21d4182dc915",
+        "equalsPinnedUpstreamBytes": true
+      },
+      {
+        "path": "src/main/database/migrations/0011-cross-resource-tags.ts",
+        "sha256": "976f0b269d28428a23b84985fbfb2340825912189a944db64d1a5ed7e01e5e86",
+        "equalsPinnedUpstreamBytes": true
+      },
+      {
+        "path": "src/main/database/migrations/0017-agent-memory-project-scope.ts",
+        "sha256": "b851b788fcbebd25b703e3c37b1e9bcb69d3f93540064210423ed35703dfc2f8",
+        "equalsPinnedUpstreamBytes": true
+      }
+    ],
+    "originalLedgerCreateSqlLiteralSha256": "be9851302620933d9c0c4f2d9bfe21859e5f1fb7c0466a20ca621031ec076f89",
+    "originalLedgerCreateSqlLiteralUnchanged": true
+  },
+  "archives": {
+    "originalMigration": {
+      "path": "original-migration-tests.json.gz",
+      "bytes": 3728,
+      "sha256": "47a5fe2cc717fb67b89cb34c9338c6df75eee612b45f917dd8bb148435f580df",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 26323,
+      "uncompressedSha256": "051f52e28f5f2581f57f7344ce95e0574f5eacf0011f1b94b4225d46129acfcf",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original-migration-tests.json"
+    },
+    "candidateMigration": {
+      "path": "candidate-migration-tests.json.gz",
+      "bytes": 3711,
+      "sha256": "45518985e3271347ab7e5569eb33763d098147ef049e946cb41e4ec5be774cd2",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 26319,
+      "uncompressedSha256": "4d6aad51047bef80acbb8377bf916d700d3d6b072a4dd607a88337bca9a0b477",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate-migration-tests.json"
+    },
+    "candidateConsumers": {
+      "path": "candidate-consumers.json.gz",
+      "bytes": 4683,
+      "sha256": "92a6baf8668d67ab92d5232a2e25321506b1eaedd33169b4fe12e5b2d9e75b32",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 32910,
+      "uncompressedSha256": "0f3154f4df47158b1291684a6728ea4643d04526ad566a71ccd1400fcb987686",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate-consumers.json"
+    },
+    "originalControl": {
+      "path": "original-control.json.gz",
+      "bytes": 578,
+      "sha256": "fe8706a59fda31ffd113615924727e2dbf074ebaa24f03581095aeb8ead54aaa",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 1710,
+      "uncompressedSha256": "07a370a29b5f54eb01a1d82ea5ac3dd9f02fc0618c66c1e60a0b14366d4534ad",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original-control.json"
+    },
+    "candidateControl": {
+      "path": "candidate-control.json.gz",
+      "bytes": 568,
+      "sha256": "99aabceb7d61a18b49b1b1f05e8abfffcf71be279c46969101a687d04b0322ef",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 1709,
+      "uncompressedSha256": "5a96562a9073db4907337408e8760e08aa64cf7b9205d49855eaf7c1375d98d8",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate-control.json"
+    },
+    "logicalEquivalence": {
+      "path": "logical-equivalence.json.gz",
+      "bytes": 1492,
+      "sha256": "704e58874f110a86c3a98b665129b73c05f21b57d09648e5b29fd03dec3f6d9b",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 34428,
+      "uncompressedSha256": "b03724d916718cf432098b30c9291d2e57e2993c4e0787c3b5c85bc036fc55d6",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/logical-equivalence.json"
+    },
+    "candidateFaultControls": {
+      "path": "candidate-rollback.json.gz",
+      "bytes": 550,
+      "sha256": "b310448664910ff13158c28d673e43a21936d13c268e13779e4f29e5bec1f408",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 1338,
+      "uncompressedSha256": "93e5789517a6b965e25cbe08349a8194be869c6e52634c289f013e437f91b641",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate-rollback.json"
+    },
+    "rollbackRetryReceipt": {
+      "path": "rollback-retry-receipt.json.gz",
+      "bytes": 2968,
+      "sha256": "201bdfb9485bc668c268cf8aa5c730447309d760a0fe2c69783db07d7f732a83",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 7253,
+      "uncompressedSha256": "65d47f61b212b04e2a10c13015f1d80a7be6a1e5f745b223b35a64bd24755635",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/rollback-retry/receipt.json"
+    },
+    "initialForeignKeysOffReceipt": {
+      "path": "initial-fk-off-receipt.json.gz",
+      "bytes": 79,
+      "sha256": "27a11551511a7527380fd68cbe59d7ba7983543b7a7fdbfec531c988116e5842",
+      "encoding": "gzip of unchanged original JSON bytes",
+      "uncompressedBytes": 115,
+      "uncompressedSha256": "6316415b4bb755c3365ff47fa5c651b59fc74cc98085da660e811f0b4cdb8e06",
+      "externalOriginal": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/initial-fk-off/receipt.json"
+    }
+  },
+  "externalRealDatabasePairs": [
+    {
+      "case": "baseline-only",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/baseline-only/open-science.db",
+          "bytes": 401408,
+          "sha256": "834b58777ea34982bf8faf4e04bf90ecc242e19a0ae4ef1628ee473b17dbd83a"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/baseline-only/logical-dump.json",
+          "bytes": 120029,
+          "sha256": "547d30e45b63117a50ef2fb7ec3e395d3c619e35fed1f3f0b9e571b5a8b3e70f"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/baseline-only/receipt.json",
+          "bytes": 1202,
+          "sha256": "74509620ff3f3c3a1642786f53c761445f5bc4d1a41166512fccc5ee021760a5"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/baseline-only/open-science.db",
+          "bytes": 401408,
+          "sha256": "f57d7086ca45af87554807ef436b12684a01e4192cdf5885d839dcc23f008d15"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/baseline-only/logical-dump.json",
+          "bytes": 120029,
+          "sha256": "afc69ccebe5422b5212ac5dcf7d79e7bdfd6598e7a4327ab296aa1e37e0f56ff"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/baseline-only/receipt.json",
+          "bytes": 1203,
+          "sha256": "bca519f08d985386efd69d42d7b7eb09d89e17f61e0b945fd0dac5f9426635b2"
+        }
+      }
+    },
+    {
+      "case": "before-bookmarks",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-bookmarks/open-science.db",
+          "bytes": 1183744,
+          "sha256": "075ac4cb4857fb4011bc51f5001ba882a36cbc26de76809a6ca380ad7a88cdfe"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-bookmarks/logical-dump.json",
+          "bytes": 342912,
+          "sha256": "b8e3e8de962d415545225b389d1fd17373a07da0ee2b4afa86ae562f31233814"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-bookmarks/receipt.json",
+          "bytes": 2694,
+          "sha256": "a8b85127beba2e5b3779d19cf03997adf67936f130f93ade92760a9c4a772e25"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-bookmarks/open-science.db",
+          "bytes": 1183744,
+          "sha256": "ddb96dc32d38e5d0dd9e362d92690d0e7376be59b46bd64da7e501d6c6ea952f"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-bookmarks/logical-dump.json",
+          "bytes": 342912,
+          "sha256": "71af2bb88179e9fc745ade9b1ecd9c88edf21d76b1e43af0cc26e08047215550"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-bookmarks/receipt.json",
+          "bytes": 2687,
+          "sha256": "8cd6ba24adff06862e86de2a1131c4987920ac204c791dcfabd3bc4fbbb30650"
+        }
+      }
+    },
+    {
+      "case": "before-managed",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-managed/open-science.db",
+          "bytes": 753664,
+          "sha256": "833b92ab2364fb6665bea73fe61b9e67b66292e47751865204b2031f39aa8fcb"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-managed/logical-dump.json",
+          "bytes": 230716,
+          "sha256": "705fcc737637065321ae56dc044e6b2928d9f254a6684ae1e270085be4098002"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-managed/receipt.json",
+          "bytes": 2069,
+          "sha256": "4d1003f0f07d522c9c1666aba17d39203bcd0d9d8dd43ec14faeb56cc5d96b73"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-managed/open-science.db",
+          "bytes": 753664,
+          "sha256": "d0c84e7cfe2bc5150919fec892a694228fe949baeeae4f7e3bb72ea18a9f300b"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-managed/logical-dump.json",
+          "bytes": 230716,
+          "sha256": "c126e47cea6240e1249cd3deff371655520c5453ff7af8ee25eab074a0d28522"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-managed/receipt.json",
+          "bytes": 2069,
+          "sha256": "534abf6325476effbc608208a263c1e9a4bcd6c2951608e7ba2ce9cdf281626c"
+        }
+      }
+    },
+    {
+      "case": "before-search-legacy-alter",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-search-legacy-alter/open-science.db",
+          "bytes": 1171456,
+          "sha256": "550bf34a5df73c99d0cd63f9572fc35ab26853d5bc60efe53159840ab4dfa192"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-search-legacy-alter/logical-dump.json",
+          "bytes": 337928,
+          "sha256": "4d9d3bdad16ff318113b04cd7268c599141aeb7654e3a9a4927c2c5bb05a2382"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-search-legacy-alter/receipt.json",
+          "bytes": 2617,
+          "sha256": "835598179f6b3dfce1625179411bd2f3e56c3bcda30a9544996f287f00dc1540"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-search-legacy-alter/open-science.db",
+          "bytes": 1171456,
+          "sha256": "c2b2ef25091f6276d9fa78a66a6ee65aa1b23b4d9e88112e480ca4fb8de1c189"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-search-legacy-alter/logical-dump.json",
+          "bytes": 337928,
+          "sha256": "4c5e77e9654ff41857bd8fcefcb36c60e9e7e822fd508a4d99ba91d12dc57d11"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-search-legacy-alter/receipt.json",
+          "bytes": 2610,
+          "sha256": "2b2d22500a66fba1ad89a4bd9ee5de9d3c35a0c8bbd77f2f4c5409626cb17818"
+        }
+      }
+    },
+    {
+      "case": "before-vision",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-vision/open-science.db",
+          "bytes": 491520,
+          "sha256": "79ad6d62b4327f5f2335f8566f7d019df1e971ee74ac01071e073de93d97c86e"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-vision/logical-dump.json",
+          "bytes": 135522,
+          "sha256": "9eee148b3bd288f3dc3a6d28bcb18381041a39e60399e8c1dc96f331b58be176"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/before-vision/receipt.json",
+          "bytes": 1458,
+          "sha256": "7124c4d61ca9245919227f7787bf528cd9b6cb07ac2fd1e99f2cfd376fd9c1c7"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-vision/open-science.db",
+          "bytes": 491520,
+          "sha256": "682b17b69452c1f0cbb48c258a3aee2faf51f4e0fc41e724c6545d038b6a0974"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-vision/logical-dump.json",
+          "bytes": 135522,
+          "sha256": "78a46d8b08d1bf406ee69eeae9a8ad8a46a85e27501e5ab6745cb04fd2e288ed"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/before-vision/receipt.json",
+          "bytes": 1459,
+          "sha256": "5b13e3b15cd98cf0b737a822654259b1434849c6062e775db4cf0f076170676f"
+        }
+      }
+    },
+    {
+      "case": "released-default",
+      "original": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/released-default/open-science.db",
+          "bytes": 1503232,
+          "sha256": "b67bac1f203bc5a4e106d376703253b93319e7157115b3f6d8e2aec38fafb52a"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/released-default/logical-dump.json",
+          "bytes": 429127,
+          "sha256": "0a4318d7f9cd171b2ca5939aca63d708ed5876c62383430dd849ff86429e1483"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/original/released-default/receipt.json",
+          "bytes": 2955,
+          "sha256": "d5b4a7388ce553e0c6a07d78c44e9b070f6984b72767fb2239e63c7fed58cece"
+        }
+      },
+      "candidate": {
+        "realDatabase": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/released-default/open-science.db",
+          "bytes": 1503232,
+          "sha256": "a9bbd34d0e0480d463f0e2c7fadc432ff3ba4add4b70168cb6faf6ab9b197c21"
+        },
+        "fullLogicalDump": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/released-default/logical-dump.json",
+          "bytes": 429127,
+          "sha256": "b07383f559fd963c0a70f61cbd423d3d97e952490af73332416a8c7c2f49591e"
+        },
+        "invocationReceipt": {
+          "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/candidate/released-default/receipt.json",
+          "bytes": 2964,
+          "sha256": "19c35a844e27266f274080bcc5816fc9b2d361a8be5537240ac779869cedca0f"
+        }
+      }
+    }
+  ],
+  "externalControlSources": [
+    {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/control.test.ts",
+      "bytes": 4292,
+      "sha256": "9f687296aa0975c518ef6a0e2859895a6ae8a81ba64bb99764955f530bfdd641"
+    },
+    {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/control.config.mjs",
+      "bytes": 408,
+      "sha256": "71ab97870a6d41dd1c376ffed3a1ef9d2e1e53c5e962c404085c93a251554a2e"
+    },
+    {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/rollback.test.ts",
+      "bytes": 3135,
+      "sha256": "233d3c7ab2a6215965e0570a8ea7d4dbe8fa865fe5c8b79a47229a97147ce916"
+    },
+    {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/consumer-command.json",
+      "bytes": 2304,
+      "sha256": "b996fb0787c3f9f7343c198a16c81230aa318409dc5e39a04959ecd7f1fc63ba"
+    },
+    {
+      "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/receipt.json",
+      "bytes": 6253,
+      "sha256": "124f9b50af0f52fefc47bc591efc5ba9cd04707fc9b9097aaf492117cc04d958"
+    }
+  ],
+  "typecheckBoundary": {
+    "nativeTypecheck": "Handled separately by the main integration agent using original typescript-native; this local archive does not assert or certify that result.",
+    "nonNativeAttemptExcludedFromPassEvidence": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit -p tsconfig.node.json",
+      "exitCode": 134,
+      "result": "Classic TypeScript used inadvertently; stopped at the default 4 GB heap limit. Not the original native TypeScript check. No source or heap setting was changed and no further check was started after the main agent completed the correct one.",
+      "log": {
+        "path": "/Users/yxmac_mini/Developer/EarthNano-validation/windows-0.2-20261022/historical-fixture-transaction/native-types.log",
+        "bytes": 9670,
+        "sha256": "002960c7987b47a69b756b40108efdc22e823871012845e2483dbc9029a340c0"
+      }
+    }
+  },
+  "windowsBoundary": {
+    "localNodeVersion": "v26.0.0",
+    "targetHostedNodeVersion": "24.22.0",
+    "windowsPassClaimed": false,
+    "separateOriginal77Run": "https://github.com/lust0yixiong/EarthNano/actions/runs/39716802777",
+    "runResultCollectedHere": false,
+    "oldWindowsFailuresReclassified": false,
+    "originalTestOrHookTimeoutChanged": false
+  },
+  "scope": "Database files, complete logical dumps and external control sources remain outside the repository and are listed with SHA-256. Only this manifest and unchanged JSON gzip evidence are added. No new product code, mirrored fixture implementation test, workflow, package version or channel is included."
+}

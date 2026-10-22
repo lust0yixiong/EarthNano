@@ -852,12 +852,17 @@ describe('EarthNano original-baseline gates', () => {
     expect(recipes).not.toContain('secrets.')
     expect(recipes).not.toMatch(/permissions:[\s\S]{0,80}write/u)
     const nativeCondition =
-      "(github.event_name == 'workflow_dispatch' && inputs.native) || " +
-      "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')"
+      "((github.event_name == 'workflow_dispatch' && inputs.native) || " +
+      "(github.event_name == 'push' && github.ref == 'refs/heads/ci/earthnano-native')) && " +
+      "!(github.event_name == 'workflow_dispatch' && inputs.windows != 'off')"
     expect(workflow.jobs.native_unix.if).toBe(nativeCondition)
-    expect(workflow.jobs.native_windows).toBeUndefined()
-    expect(workflow.jobs.source_windows).toBeUndefined()
-    expect(workflow.jobs.windows_runtime).toBeUndefined()
+    for (const name of [
+      'native_windows',
+      'source_windows',
+      'windows_runtime',
+      'comparison_windows'
+    ])
+      expect(workflow.jobs[name].if).toContain("github.event_name == 'workflow_dispatch'")
     expect((workflow.on.push as { branches: string[] }).branches).toEqual([
       'main',
       'ci/earthnano-native'
@@ -867,7 +872,7 @@ describe('EarthNano original-baseline gates', () => {
       if (!action[1].startsWith('./')) expect(action[1]).toMatch(/@[a-f0-9]{40}$/)
     expect(recipes).toContain('xcrun actool --version')
     expect(source).toContain('macos-26-intel')
-    expect(source).not.toContain('windows-2022')
+    expect(source).toContain('windows-2022')
     expect(source).toContain('--platforms darwin,linux')
     expect(recipes).toContain('scripts/ci/npm-ci.mjs')
     expect(recipes).toContain('npm run build')

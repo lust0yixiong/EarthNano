@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import {
   link,
+  lstat,
   mkdir,
   mkdtemp,
   open as openFile,
@@ -693,8 +694,14 @@ describe('NodeVersionFileOperator', () => {
     await auditLease.close()
     expect(verifiedBytesRead).toBe(content.byteLength * 2)
 
-    await writeFile(immutablePath, Buffer.alloc(content.byteLength, 8))
-    await utimes(immutablePath, fixedTime, fixedTime)
+    const beforeRewrite = await lstat(immutablePath, { bigint: true })
+    // Match the upstream range-restoration fault above: Windows same-tick writes may share ctime.
+    // Establish the metadata change that drives this cache revalidation before asserting its result.
+    await vi.waitFor(async () => {
+      await writeFile(immutablePath, Buffer.alloc(content.byteLength, 8))
+      await utimes(immutablePath, fixedTime, fixedTime)
+      expect((await lstat(immutablePath, { bigint: true })).ctimeNs).not.toBe(beforeRewrite.ctimeNs)
+    })
     await expect(secondLease.readRange(0, content.byteLength)).rejects.toMatchObject({
       code: 'INTEGRITY_FAILED'
     })

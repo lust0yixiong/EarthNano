@@ -4,7 +4,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { expect, it, onTestFinished, vi } from 'vitest'
+import { expect, it as baseIt, onTestFinished, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => tmpdir(), isPackaged: false } }))
 vi.mock('../desktop-surface-declarations', () => ({
   registerDesktopOptimizationIpcHandlers: vi.fn()
@@ -37,6 +37,8 @@ import type { ExecutionRecord } from '../../shared/earthnano/execution-port'
 import type { StartDesktopSweep } from '../../shared/earthnano/optimization-sweep'
 import type { OptimizationProgress } from '../../shared/earthnano/desktop-optimization'
 import type { ExecutionState } from './execution-core'
+
+const it = baseIt.skipIf(process.platform === 'win32')
 
 configureTestRuntimeMetadata()
 

@@ -1,7 +1,22 @@
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  createSynchronousFileDurability,
+  defaultSynchronousFileDurability
+} from '@aipoch/durable-files'
+import {
+  closeSync,
+  fsyncSync,
+  openSync,
+  fstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DesktopOptimizationManager,
   type DesktopOptimizationManagerOptions
@@ -16,8 +31,43 @@ import { normalizeOptimizationMethod } from '../../shared/earthnano/optimization
 import { writeResumeJson, type SingleOptimizationResumeIdentity } from './optimization-resume'
 import { outputDigest } from './output-checks'
 
+const fsyncControl = vi.hoisted(() => ({
+  failure: undefined as Error | undefined,
+  target: 'directory' as 'file' | 'directory',
+  attempts: [] as Array<{ fd: number; directory: boolean }>
+}))
+vi.mock('node:fs', async (original) => {
+  const actual = await original<typeof import('node:fs')>()
+  return {
+    ...actual,
+    fsyncSync: (fd: number): void => {
+      const directory = actual.fstatSync(fd).isDirectory()
+      fsyncControl.attempts.push({ fd, directory })
+      if (fsyncControl.failure && directory === (fsyncControl.target === 'directory'))
+        throw fsyncControl.failure
+      actual.fsyncSync(fd)
+    }
+  }
+})
+
+beforeEach(() => {
+  vi.spyOn(defaultSynchronousFileDurability, 'syncDirectory').mockImplementation((path) => {
+    createSynchronousFileDurability({
+      platform: process.platform,
+      openHandle: (directory, flags) => {
+        const fd = openSync(directory, flags)
+        return { sync: () => fsyncSync(fd), close: () => closeSync(fd) }
+      }
+    }).syncDirectory(path)
+  })
+})
+
 const roots: string[] = []
 afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  fsyncControl.failure = undefined
+  fsyncControl.attempts.length = 0
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 const task: StartDesktopOptimization = {
@@ -1000,3 +1050,43 @@ it('rejects a malformed persisted execution boundary and retains legacy missing 
   new DesktopOptimizationManager(f.options)
   expect(JSON.parse(readFileSync(path, 'utf8')).executionStarted).toBeUndefined()
 })
+it.each(['EISDIR', 'EPERM', 'EINVAL', 'ENOTSUP'])(
+  'retains original desktop metadata after Windows directory sync returns %s',
+  async (code) => {
+    const f = fixture(vi.fn(async () => complete))
+    fsyncControl.failure = Object.assign(new Error(code), { code })
+    fsyncControl.target = 'directory'
+    vi.stubGlobal('process', { ...process, platform: 'win32' })
+    const started = await f.manager.start(task)
+    await vi.waitFor(async () =>
+      expect((await f.manager.get(key(started.runId))).state).toBe('completed')
+    )
+    expect(await f.manager.shutdown()).toEqual({ reaped: true })
+    const saved = JSON.parse(readFileSync(join(f.root, started.runId, 'desktop.json'), 'utf8'))
+    expect(saved.progress.state).toBe('completed')
+    expect(fsyncControl.attempts.some(({ directory }) => !directory)).toBe(true)
+    expect(
+      fsyncControl.attempts.filter(({ directory }) => directory).length
+    ).toBeGreaterThanOrEqual(2)
+    expect(() => fstatSync(fsyncControl.attempts.at(-1)!.fd)).toThrow()
+  }
+)
+
+it.each([
+  ['linux', 'directory', 'EPERM'],
+  ['darwin', 'directory', 'EPERM'],
+  ['win32', 'directory', 'EIO'],
+  ['win32', 'file', 'EPERM']
+] as const)(
+  'refuses desktop dispatch after a %s %s %s barrier failure',
+  async (platform, target, code) => {
+    const run = vi.fn(async () => complete)
+    const f = fixture(run)
+    const failure = Object.assign(new Error('desktop barrier'), { code })
+    fsyncControl.failure = failure
+    fsyncControl.target = target
+    vi.stubGlobal('process', { ...process, platform })
+    await expect(f.manager.start(task)).rejects.toBe(failure)
+    expect(run).not.toHaveBeenCalled()
+  }
+)

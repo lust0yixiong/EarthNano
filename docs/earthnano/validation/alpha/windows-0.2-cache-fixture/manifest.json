@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "head": "8e9a711c98a74c2c3772f11dd779bbe81af67342",
+  "upstream": "9e18c7d3c143a9dba49c7a586ad6cac8096f6dd5",
+  "productionUnchangedFromUpstream": true,
+  "productionSha256": "de86a1cf47d3e6895fd353cc75fe93e61962dee00983f1ee09bf2088f04ac06f",
+  "node": "v24.19.0",
+  "platform": "darwin-arm64",
+  "nativeHistoricalRun": 39700451549,
+  "nativeHistoricalCandidateShard": 3,
+  "oldTestAndProductionWereIdenticalToUpstream": true,
+  "controlledProof": "Only metadata observations alias; file bytes, handles and writes remain real. First tamper write aliases ctime; subsequent write exposes the real changed ctime.",
+  "redControl": {
+    "tamperWrites": 1,
+    "controlledMetadataOnly": true,
+    "realFilesAndContent": true,
+    "clockReleasedAfterSecondWrite": false
+  },
+  "greenControl": {
+    "tamperWrites": 2,
+    "controlledMetadataOnly": true,
+    "realFilesAndContent": true,
+    "clockReleasedAfterSecondWrite": true
+  },
+  "reports": {
+    "same-tick-red": {
+      "numTotalTests": 50,
+      "numPassedTests": 0,
+      "numFailedTests": 1,
+      "numPendingTests": 49,
+      "success": false
+    },
+    "same-tick-green": {
+      "numTotalTests": 50,
+      "numPassedTests": 1,
+      "numFailedTests": 0,
+      "numPendingTests": 49,
+      "success": true
+    },
+    "version-file-fixture-normal": {
+      "numTotalTests": 50,
+      "numPassedTests": 50,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true
+    }
+  },
+  "filtered49AreNotNewSkips": true,
+  "originalRejectionAndReadCountAssertionsRetained": true,
+  "inheritedSameAllMetadataCacheLimitationUnfixed": true,
+  "historicalNativeCtimeValuesNotObserved": true,
+  "actualNewWindowsAcceptance": false,
+  "paidModelCalls": 0,
+  "archives": [
+    {
+      "source": "same-tick-red.json",
+      "path": "same-tick-red.json.gz",
+      "rawBytes": 16442,
+      "rawSha256": "07ab55065bd47dcfa9131e82c1120976fb23c991bf7cd5a3db8250558eac1eee",
+      "gzipBytes": 2316,
+      "gzipSha256": "cfad8ee6d9ce56b3c5e5ba264e0660c7e1510dee3e57302e4d9104fea2751bfb"
+    },
+    {
+      "source": "same-tick-green.json",
+      "path": "same-tick-green.json.gz",
+      "rawBytes": 15581,
+      "rawSha256": "fb4095ea3a50a7c1befb2aefd206b0b52b1c58314ff83d248f322b7c671a7465",
+      "gzipBytes": 2040,
+      "gzipSha256": "1313b727d5d2aed8b0c65ced54657b26abe9dc44f429734202bf0249c8dae5ce"
+    },
+    {
+      "source": "version-file-fixture-normal.json",
+      "path": "version-file-fixture-normal.json.gz",
+      "rawBytes": 16972,
+      "rawSha256": "d117c459adf796a87e8db380e65199d73277c8e0f9e36f1692fd5e42fd799217",
+      "gzipBytes": 2554,
+      "gzipSha256": "05d9a9271b77d10d0417c262621baee122c7771c2aa3a69d453d95d991176bf9"
+    },
+    {
+      "source": "same-tick-red-control.json",
+      "path": "same-tick-red-control.json.gz",
+      "rawBytes": 131,
+      "rawSha256": "8e024f5d0b88004f48bdb4ca819ccc8691d7d2c66b42a4d73e89337339606428",
+      "gzipBytes": 125,
+      "gzipSha256": "512226fe86a67f703ea93ca56cc7a2453af0df68a188d82cdb098f18074cd1d3"
+    },
+    {
+      "source": "same-tick-green-control.json",
+      "path": "same-tick-green-control.json.gz",
+      "rawBytes": 130,
+      "rawSha256": "f34cc8fbb184724dfcbb22635e27d6a97421b62b4c45f70ab1762ffd3c625528",
+      "gzipBytes": 123,
+      "gzipSha256": "70b9aa50a2cce1143a08fc5718b829fec7ef7a35ca98f92000d059e18765e9a5"
+    },
+    {
+      "source": "same-tick-metadata-setup.ts",
+      "path": "same-tick-metadata-setup.ts.gz",
+      "rawBytes": 2105,
+      "rawSha256": "a1fb7d052f6e43060b43d846654d8be5d410fa26ae51d933053a96f89d1577a3",
+      "gzipBytes": 873,
+      "gzipSha256": "8a74cb71dc2218c5f5a7aa31ee34c547e69598bc231a20e17aa8ae2d47f2f6a9"
+    }
+  ],
+  "boundary": "Controlled darwin metadata-observation proof only. The archived actual Windows run did not observe ctime. Full new Windows source acceptance is separately required; inherited same-all-metadata cache semantics remain unchanged."
+}
