@@ -36,8 +36,8 @@ const componentSizes = (mask: Uint8Array, width: number, diagonal = false): numb
   return sizes.sort((a, b) => b - a)
 }
 
-describe('EarthNano original artwork cutout', () => {
-  it('ships both themes and startup particles from the same original artwork', async () => {
+describe('EarthNano approved vector artwork', () => {
+  it('ships both themes and startup particles from the same approved vector', async () => {
     await expect(exportEarthNanoLogo(true)).resolves.toBeUndefined()
     const mark = await readFile(resolve('src/renderer/src/assets/logo.png'))
     const dark = await readFile(resolve('src/renderer/src/assets/logo-dark.png'))
@@ -56,7 +56,8 @@ describe('EarthNano original artwork cutout', () => {
     )
     const sizes = componentSizes(foreground, 512, true)
     expect(sizes).toHaveLength(10)
-    expect(sizes[4]).toBeGreaterThan(8000)
+    // The smallest lobe in the approved v27 artwork occupies about 7,214 pixels.
+    expect(sizes[4]).toBeGreaterThan(7000)
     expect(sizes[5]).toBeLessThan(1000)
     expect(sizes[9]).toBeGreaterThan(60)
     expect(
@@ -74,45 +75,17 @@ describe('EarthNano original artwork cutout', () => {
       expect(data[(y * 512 + x) * 4 + 3]).toBe(0)
   })
 
-  it('preserves the original curved silhouette and spacing instead of imposing a circle', async () => {
-    const original = await sharp(resolve('build/earthnano-icon-master.png'))
-      .extract({ left: 80, top: 80, width: 860, height: 860 })
-      .resize(512, 512)
-      .removeAlpha()
+  it('keeps the white platform master and Icon Composer layer in sync with the vector', async () => {
+    const expected = await sharp(resolve('build/earthnano-logo.svg'), { density: 144 })
+      .flatten({ background: '#ffffff' })
       .raw()
       .toBuffer()
-    const actual = await sharp(resolve('src/renderer/src/assets/logo.png'))
-      .ensureAlpha()
-      .raw()
-      .toBuffer()
-    let intersection = 0
-    let union = 0
-    const reference = Uint8Array.from({ length: 512 * 512 }, (_, p) => {
-      const rgb = original.subarray(p * 3, p * 3 + 3)
-      return Math.max(...rgb) - Math.min(...rgb) > 32 ? 1 : 0
-    })
-    let changesOutsideEdge = 0
-    for (let p = 0; p < 512 * 512; p++) {
-      const wasArtwork = reference[p] === 1
-      const isArtwork = actual[p * 4 + 3] >= 128
-      if (wasArtwork && isArtwork) intersection++
-      if (wasArtwork || isArtwork) union++
-      if (wasArtwork === isArtwork) continue
-      const x = p % 512
-      const y = Math.floor(p / 512)
-      let touchesOriginalEdge = false
-      for (let dy = -2; dy <= 2; dy++)
-        for (let dx = -2; dx <= 2; dx++) {
-          const nx = x + dx
-          const ny = y + dy
-          if (nx >= 0 && nx < 512 && ny >= 0 && ny < 512)
-            touchesOriginalEdge ||= reference[ny * 512 + nx] !== reference[p]
-        }
-      if (!touchesOriginalEdge) changesOutsideEdge++
+    for (const path of [
+      'build/earthnano-icon-master.png',
+      'build/icon.icon/Assets/earthnano.png'
+    ]) {
+      const actual = await sharp(resolve(path)).removeAlpha().raw().toBuffer()
+      expect(actual.equals(expected)).toBe(true)
     }
-    // Edge decontamination may remove the old white matte, but cannot alter a curve's interior,
-    // invent a circular boundary, or change the internal gaps. All changed pixels stay at the edge.
-    expect(changesOutsideEdge).toBe(0)
-    expect(intersection / union).toBeGreaterThan(0.97)
   })
 })

@@ -1,29 +1,15 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- standalone JavaScript asset exporter. */
-// Renderer cutout and startup particles use the existing white platform master and its traced
-// original silhouette. Keep the curves/spacing; do not replace them with a circular envelope.
-import { createHash } from 'node:crypto'
+// Approved v27 vector: shared by renderer, startup particles and platform icon exports.
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-/** @returns {Promise<Buffer>} */
-export const renderEarthNanoLogo = async () => {
-  const master = await readFile(join(root, 'build/earthnano-icon-master.png'))
-  const mask = await readFile(join(root, 'build/earthnano-logo-mask.svg'))
-  const digest = createHash('sha256').update(master).digest('hex')
-  if (!mask.toString().includes(`source SHA-256: ${digest}.`))
-    throw new Error('The original artwork changed; review its contour mask before exporting.')
-  const masked = await sharp(master)
-    .ensureAlpha()
-    .composite([{ input: mask, blend: 'dest-in' }])
-    .png()
-    .toBuffer()
-  // The original artwork's composition is retained; only the empty square canvas is trimmed.
-  return sharp(masked)
-    .extract({ left: 80, top: 80, width: 860, height: 860 })
-    .resize(512, 512)
+/** @param {number} size @returns {Promise<Buffer>} */
+export const renderEarthNanoLogo = async (size = 512) => {
+  const source = await readFile(join(root, 'build/earthnano-logo.svg'))
+  return sharp(source, { density: (72 * size) / 512 })
     .png()
     .toBuffer()
 }
