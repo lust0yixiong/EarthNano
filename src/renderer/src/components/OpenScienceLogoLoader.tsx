@@ -1,151 +1,143 @@
 import { useEffect, useRef } from 'react'
-
+import { useTranslation } from 'react-i18next'
+import logoUrl from '@/assets/logo.png'
+import { APP } from '../../../shared/app-config'
 import {
   createLogoParticles,
-  drawOpenScienceLogoFrame,
+  drawEarthNanoLogoFrame,
+  LOGO_INTRO_DURATION_MS,
   resolveLogoFrame,
+  resolveLogoPresentation,
   type LogoCanvasMetrics,
   type LogoParticle
-} from './open-science-logo-motion'
+} from './earthnano-logo-motion'
 
-const LOOP_DURATION_MS = 4800
-const MAX_ANIMATION_FPS = 30
-const MIN_FRAME_INTERVAL_MS = 1000 / MAX_ANIMATION_FPS
-// The startup surface is short-lived; 2x keeps the logo crisp without allocating a 3x/4x canvas.
+const MIN_FRAME_INTERVAL_MS = 1000 / 30
 const MAX_DEVICE_PIXEL_RATIO = 2
-const FALLBACK_CANVAS_SIZE = 448
+// Shared across startup gate remounts; completing hydration never waits for this timeline.
 let animationStartedAt: number | undefined
 
-const resolveAnimationTime = (now: number): number => {
-  animationStartedAt ??= now
-  return now - animationStartedAt
-}
-
-const OpenScienceLogoLoader = (): React.JSX.Element => {
+const EarthNanoLogoLoader = (): React.JSX.Element => {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-
+  const imageRef = useRef<HTMLImageElement>(null)
+  const wordmarkRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const canvas = canvasRef.current
     const context = canvas?.getContext('2d')
-
-    if (!canvas || !context) return
-
-    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
-    let dprMediaQuery: MediaQueryList | undefined
-    let prefersReducedMotion = mediaQuery?.matches ?? false
+    const image = imageRef.current
+    const wordmark = wordmarkRef.current
+    // The regular image and wordmark remain visible before effects, including without Canvas.
+    if (!canvas || !context || !image || !wordmark) return
+    const motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    let resolutionQuery: MediaQueryList | undefined
+    let reducedMotion = motionQuery?.matches ?? false
     let animationFrame: number | undefined
+    let lastDrawnAt: number | undefined
     let metrics: LogoCanvasMetrics = { width: 1, height: 1, dpr: 1 }
     let particles: LogoParticle[] = []
-    let color = getComputedStyle(canvas).color
-    let lastDrawnAt: number | undefined
-
+    animationStartedAt ??= performance.now()
+    const elapsed = (now: number): number => Math.max(0, now - animationStartedAt!)
     const draw = (time: number): void => {
-      drawOpenScienceLogoFrame(
-        context,
-        particles,
-        metrics,
-        color,
-        resolveLogoFrame(time, LOOP_DURATION_MS, prefersReducedMotion),
-        prefersReducedMotion ? 0 : time
-      )
+      const frame = resolveLogoFrame(time, LOGO_INTRO_DURATION_MS, reducedMotion)
+      drawEarthNanoLogoFrame(context, particles, metrics, frame)
+      const presentation = resolveLogoPresentation(frame)
+      image.style.opacity = String(presentation.imageOpacity)
+      // Positioning belongs to the Tailwind translate property; transform only animates the mark.
+      image.style.transform = `scale(${0.93 + presentation.settle * 0.07}) rotate(${-9 * (1 - presentation.settle)}deg)`
+      wordmark.style.opacity = String(presentation.wordmarkOpacity)
+      wordmark.style.transform = `translateY(${7 * (1 - presentation.wordmarkOpacity)}px)`
     }
-
     const animate = (now: number): void => {
-      if (lastDrawnAt === undefined || now - lastDrawnAt >= MIN_FRAME_INTERVAL_MS) {
-        draw(resolveAnimationTime(now))
+      animationFrame = undefined
+      const time = elapsed(now)
+      if (
+        lastDrawnAt === undefined ||
+        now - lastDrawnAt >= MIN_FRAME_INTERVAL_MS ||
+        time >= LOGO_INTRO_DURATION_MS
+      ) {
+        draw(time)
         lastDrawnAt = now
       }
-      animationFrame = requestAnimationFrame(animate)
+      if (time < LOGO_INTRO_DURATION_MS && !reducedMotion && !document.hidden)
+        animationFrame = requestAnimationFrame(animate)
     }
-
-    const restartLoop = (): void => {
+    const restart = (): void => {
       if (animationFrame !== undefined) cancelAnimationFrame(animationFrame)
-
       animationFrame = undefined
       const now = performance.now()
       lastDrawnAt = now
-
-      if (prefersReducedMotion) draw(0)
-      else {
-        draw(resolveAnimationTime(now))
+      const time = elapsed(now)
+      draw(time)
+      if (time < LOGO_INTRO_DURATION_MS && !reducedMotion && !document.hidden)
         animationFrame = requestAnimationFrame(animate)
-      }
     }
-
     const resize = (): void => {
       const bounds = canvas.getBoundingClientRect()
-      const cssWidth = bounds.width || FALLBACK_CANVAS_SIZE
-      const cssHeight = bounds.height || FALLBACK_CANVAS_SIZE
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO)
-      const width = Math.max(1, Math.round(cssWidth * dpr))
-      const height = Math.max(1, Math.round(cssHeight * dpr))
-
-      if (canvas.width === width && canvas.height === height && particles.length > 0) return
-
+      const width = Math.max(1, Math.round((bounds.width || 448) * dpr))
+      const height = Math.max(1, Math.round((bounds.height || 224) * dpr))
+      if (canvas.width === width && canvas.height === height && particles.length) return
       canvas.width = width
       canvas.height = height
       metrics = { width, height, dpr }
       particles = createLogoParticles(metrics)
-      color = getComputedStyle(canvas).color
-      restartLoop()
+      restart()
     }
-
-    const handleMotionPreferenceChange = (event: MediaQueryListEvent): void => {
-      prefersReducedMotion = event.matches
-      restartLoop()
+    const onMotionChange = (event: MediaQueryListEvent): void => {
+      reducedMotion = event.matches
+      restart()
     }
-
-    const handleDevicePixelRatioChange = (): void => {
-      dprMediaQuery?.removeEventListener('change', handleDevicePixelRatioChange)
+    const observeResolution = (): void => {
+      resolutionQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
+      resolutionQuery?.addEventListener('change', onResolutionChange)
+    }
+    const onResolutionChange = (): void => {
+      resolutionQuery?.removeEventListener('change', onResolutionChange)
       resize()
-      observeDevicePixelRatio()
+      observeResolution()
     }
-
-    // Resolution media queries fire when an Electron window crosses displays without changing CSS size.
-    const observeDevicePixelRatio = (): void => {
-      dprMediaQuery = window.matchMedia?.(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
-      dprMediaQuery?.addEventListener('change', handleDevicePixelRatioChange)
-    }
-
-    const handleThemeChange = (): void => {
-      color = getComputedStyle(canvas).color
-      if (prefersReducedMotion) draw(0)
-    }
-
     const resizeObserver =
       typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(resize)
-    const themeObserver = new MutationObserver(handleThemeChange)
-
     resizeObserver?.observe(canvas)
     if (!resizeObserver) window.addEventListener('resize', resize, { passive: true })
-    mediaQuery?.addEventListener('change', handleMotionPreferenceChange)
-    observeDevicePixelRatio()
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    })
+    motionQuery?.addEventListener('change', onMotionChange)
+    document.addEventListener('visibilitychange', restart)
+    observeResolution()
     resize()
-
     return () => {
       if (animationFrame !== undefined) cancelAnimationFrame(animationFrame)
       resizeObserver?.disconnect()
       if (!resizeObserver) window.removeEventListener('resize', resize)
-      mediaQuery?.removeEventListener('change', handleMotionPreferenceChange)
-      dprMediaQuery?.removeEventListener('change', handleDevicePixelRatioChange)
-      themeObserver.disconnect()
+      motionQuery?.removeEventListener('change', onMotionChange)
+      resolutionQuery?.removeEventListener('change', onResolutionChange)
+      document.removeEventListener('visibilitychange', restart)
     }
   }, [])
-
   return (
-    <div className="relative size-56 shrink-0" aria-hidden="true">
-      <canvas
-        ref={canvasRef}
-        data-testid="open-science-logo-loader"
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[min(200%,100vw)] -translate-x-1/2 -translate-y-1/2 text-foreground"
-      />
+    <div className="flex shrink-0 flex-col items-center gap-3 text-foreground" aria-hidden="true">
+      <div className="relative size-44">
+        <canvas
+          ref={canvasRef}
+          data-testid="open-science-logo-loader"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-[min(28rem,100vw)] -translate-x-1/2 -translate-y-1/2"
+        />
+        <img
+          ref={imageRef}
+          src={logoUrl}
+          alt=""
+          className="pointer-events-none absolute left-1/2 top-1/2 size-29 -translate-x-1/2 -translate-y-1/2 object-contain"
+        />
+      </div>
+      <div ref={wordmarkRef} className="flex flex-col items-center gap-3">
+        <span className="text-3xl font-medium tracking-tight">{APP.name}</span>
+        <span className="text-xs tracking-widest text-muted-foreground">
+          {t('Research workspace')}
+        </span>
+      </div>
     </div>
   )
 }
-
-export { OpenScienceLogoLoader }
+// Keep existing startup gate imports and test selectors compatible with upstream.
+export { EarthNanoLogoLoader, EarthNanoLogoLoader as OpenScienceLogoLoader }
