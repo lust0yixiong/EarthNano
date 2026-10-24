@@ -207,7 +207,7 @@ describe('EarthNano original-baseline gates', () => {
     const before =
       'app display branding uses the Open-Science display name in shell and workspace surfaces'
     const after =
-      'app display branding uses the EarthNano display name in shell and workspace surfaces'
+      'app display branding uses the OneEarth display name in shell and workspace surfaces'
     const baseline = [{ path, name: before, id: `${path} :: ${before} :: 0`, status: 'passed' }]
     const candidate = [{ path, name: after, id: `${path} :: ${after} :: 0`, status: 'passed' }]
     const comparison = compareInventories(baseline, candidate)

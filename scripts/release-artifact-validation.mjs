@@ -78,9 +78,9 @@ export function validateReleaseVersion(version, channel = 'latest') {
 }
 
 export function validateArtifactName(name, version, allowLegacyNames = false) {
-  // EarthNano changes the published product filename. Retain the original release family for
-  // historical manifests and upstream tooling; both families use the same version/path checks.
-  const productPrefixes = ['aipoch-open-science', 'EarthNano']
+  // OneEarth changes the published product filename. Retain the earlier release families for
+  // historical manifests and upstream tooling; all families use the same version/path checks.
+  const productPrefixes = ['aipoch-open-science', 'EarthNano', 'OneEarth']
   if (
     typeof name !== 'string' ||
     /[/\\\r\n]/.test(name) ||

@@ -1,6 +1,13 @@
-# EarthNano
+# OneEarth
 
-EarthNano 将 OpenScience 科研工作台与 Harness² 配置优化机制融入同一执行核心：先在项目与会话中完成科研任务，再对同一个任务比较基线和候选配置，保留 Notebook、产物版本、来源与审阅记录。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/earthnano/assets/oneearth-lockup-dark.svg" />
+  <img alt="OneEarth" src="docs/earthnano/assets/oneearth-lockup.svg" width="660" />
+</picture>
+
+项目自 0.3-Alpha 开发轮起使用 **OneEarth** 名称；下方已发布的 0.2 安装包仍使用 EarthNano 名称及文件名。
+
+OneEarth 将 OpenScience 科研工作台与 Harness² 配置优化机制融入同一执行核心：先在项目与会话中完成科研任务，再对同一个任务比较基线和候选配置，保留 Notebook、产物版本、来源与审阅记录。
 
 当前版本：**[0.2.0-alpha.1](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.2.0-alpha.1)**，提供 macOS ARM64/x64、Linux x64/ARM64 和 Windows x64 安装包。本版为未签名 Alpha 预览；Windows 配置优化仍不受支持，安装验收和已知限制见 [Windows 记录](docs/earthnano/WINDOWS_0_2_ALPHA.md)。
 

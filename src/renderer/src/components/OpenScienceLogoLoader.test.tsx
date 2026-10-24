@@ -124,7 +124,7 @@ describe('EarthNano loader through existing upstream entry point', () => {
     expect(context.arc).toHaveBeenCalled()
     frameAt(3300)
     expect(image().style.opacity).toBe('1')
-    expect(container.textContent).toContain('EarthNano')
+    expect(container.querySelector('img[alt="OneEarth"]')).not.toBeNull()
     expect(frames.size).toBe(0)
     act(() => root.render(null))
     now = 10_000
@@ -197,7 +197,7 @@ describe('EarthNano loader through existing upstream entry point', () => {
     mount()
     expect(image().getAttribute('src')).toContain('logo.png')
     expect(image().style.opacity).not.toBe('0')
-    expect(container.textContent).toContain('EarthNano')
+    expect(container.querySelector('img[alt="OneEarth"]')).not.toBeNull()
     expect(frames.size).toBe(0)
   })
   it('tracks the rendered mark size without shifting it during the particle handoff', () => {

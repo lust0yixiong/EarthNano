@@ -130,7 +130,7 @@ catalog.groups = [
     layers: [
       {
         'image-name': 'earthnano.png',
-        name: 'EarthNano',
+        name: 'OneEarth',
         glass: false,
         opacity: 1,
         position: { scale: 1, 'translation-in-points': [0, 0] }

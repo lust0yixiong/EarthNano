@@ -1,4 +1,18 @@
-# EarthNano application icon
+# OneEarth application icon
+
+## OneEarth wordmark and combined brand
+
+On 2026-10-24 the user renamed the application to **OneEarth** and supplied `logo.svg`.
+`build/oneearth-wordmark.svg` retains its nine original letter/rectangle shapes, including the
+thin ONE, bold EARTH and red R stem. The accepted blue/green vortex is combined with these
+letters without changing the mark's geometry or palette.
+
+`node scripts/oneearth-brand.mjs` exports the renderer's light/dark wordmarks and the horizontal
+lockup used in the README; `--check` verifies these files. Dark mode changes only the dark letter
+fill to a light foreground, retaining the red stem. The startup loader uses the existing vortex
+animation above this wordmark. Small application and tray icons retain the standalone vortex.
+
+![OneEarth combined brand](assets/oneearth-lockup.png)
 
 ## Approved 0.3-Alpha artwork
 

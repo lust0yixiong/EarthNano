@@ -282,7 +282,7 @@ export function compareInventories(baseline, candidate) {
     [
       'src/main/app-branding.test.ts',
       'app display branding uses the Open-Science display name in shell and workspace surfaces',
-      'app display branding uses the EarthNano display name in shell and workspace surfaces'
+      'app display branding uses the OneEarth display name in shell and workspace surfaces'
     ],
     [
       'src/main/windows-icon-assets.test.ts',

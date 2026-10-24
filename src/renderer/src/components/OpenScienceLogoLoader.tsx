@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import logoUrl from '@/assets/logo.png'
-import { APP } from '../../../shared/app-config'
+import { AppWordmark } from './AppWordmark'
 import {
   createLogoParticles,
   drawEarthNanoLogoFrame,
@@ -138,7 +138,7 @@ const EarthNanoLogoLoader = (): React.JSX.Element => {
         />
       </div>
       <div ref={wordmarkRef} className="flex flex-col items-center gap-3">
-        <span className="text-3xl font-medium tracking-tight">{APP.name}</span>
+        <AppWordmark className="h-auto w-48" />
         <span className="text-xs tracking-widest text-muted-foreground">
           {t('Research workspace')}
         </span>

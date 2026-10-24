@@ -11,7 +11,7 @@ const CDN_BASE_URL = 'https://statics.aipoch.com/open-science'
 const ALPHA_UPDATE_URL = `${GITHUB_REPO_URL}/releases/download/alpha`
 
 export const APP = {
-  name: 'EarthNano',
+  name: 'OneEarth',
   githubOwner: GITHUB_OWNER,
   githubRepo: GITHUB_REPO,
   cdnBaseUrl: CDN_BASE_URL,

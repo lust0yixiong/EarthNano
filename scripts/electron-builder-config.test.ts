@@ -612,9 +612,9 @@ it('registers .science as a viewable document without changing the per-user inst
   )
   expect(config.win.fileAssociations[0]).toMatchObject({
     name: 'Open Science Session package',
-    description: 'EarthNano Session package'
+    description: 'OneEarth Session package'
   })
-  expect(config.mac.fileAssociations[0].name).toBe('EarthNano Session package')
-  expect(config.linux.fileAssociations[0].name).toBe('EarthNano Session package')
+  expect(config.mac.fileAssociations[0].name).toBe('OneEarth Session package')
+  expect(config.linux.fileAssociations[0].name).toBe('OneEarth Session package')
   expect(config.nsis).toMatchObject({ perMachine: false, allowElevation: false })
 })

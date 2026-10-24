@@ -1,6 +1,8 @@
-# EarthNano v0.2.0-alpha.1
+# OneEarth v0.2.0-alpha.1
 
-Dieser Entwicklungsstand integriert OpenScience und Harness². Die Alpha-Abnahme und Veröffentlichung stehen noch aus. Die folgende Originaldokumentation beschreibt das vorgelagerte Projekt; dessen Downloads und Leistungsangaben gelten nicht als Veröffentlichung oder Prüfergebnis von EarthNano.
+Der Anzeigename lautet ab dem Entwicklungszyklus 0.3-Alpha OneEarth; veröffentlichte 0.2-Pakete behalten den Namen EarthNano.
+
+Dieser Entwicklungsstand integriert OpenScience und Harness². Die Alpha-Abnahme und Veröffentlichung stehen noch aus. Die folgende Originaldokumentation beschreibt das vorgelagerte Projekt; dessen Downloads und Leistungsangaben gelten nicht als Veröffentlichung oder Prüfergebnis von OneEarth.
 
 ---
 

@@ -1,9 +1,9 @@
 {
   "name": "open-science",
-  "productName": "EarthNano",
+  "productName": "OneEarth",
   "desktopName": "open-science.desktop",
   "version": "0.2.0-alpha.1",
-  "description": "EarthNano \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
+  "description": "OneEarth \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
   "main": "./out/main/index.js",
   "author": "aipoch",
   "license": "Apache-2.0",

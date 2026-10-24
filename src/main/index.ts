@@ -114,7 +114,7 @@ import {
 } from './renderer-diagnostics'
 import type { DiagnosticOperation } from '@aipoch/diagnostics/node'
 
-const APP_NAME = 'EarthNano'
+const APP_NAME = 'OneEarth'
 const APP_USER_MODEL_ID = 'com.aipoch.open-science'
 const bootstrapLog = createLogger('desktop-bootstrap')
 const webServiceLog = createLogger('web-service')

@@ -1,8 +1,8 @@
-# EarthNano — Agent Notes
+# OneEarth — Agent Notes
 
 ## Project identity
 
-The integrated project and application are **EarthNano**. Use EarthNano in new product copy,
+The integrated project and application are **OneEarth** (formerly EarthNano). Use OneEarth in new product copy,
 project documentation, PR descriptions and user communication. OpenScience / Open-Science and
 Harness² identify the upstream projects when discussing source provenance or retained modules.
 Use `APP.name` from `src/shared/app-config.ts` for renderer product labels. Preserve upstream

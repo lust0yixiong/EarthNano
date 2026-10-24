@@ -24,7 +24,7 @@ beforeEach(() => {
 
   useUpdateStore.setState({
     appInfo: {
-      name: 'EarthNano',
+      name: 'OneEarth',
       version: '0.2.0',
       copyright: '© 2026 AIPOCH. All rights reserved.'
     },
@@ -57,7 +57,7 @@ describe('AppVersionSection', () => {
       root.render(<AppVersionSection />)
     })
 
-    expect(container.textContent).toContain('EarthNano')
+    expect(container.textContent).toContain('OneEarth')
     expect(container.textContent).toContain('v0.2.0')
     expect(container.textContent).not.toContain('© 2026 AIPOCH')
   })
