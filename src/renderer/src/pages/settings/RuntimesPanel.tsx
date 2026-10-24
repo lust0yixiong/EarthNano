@@ -824,7 +824,7 @@ const RuntimesPanel = ({
                       'Authorize an existing personal R library. Installation may change packages used by other projects. Environment restoration requires a matching interpreter.'
                     )
                   : t(
-                      'Lets Open-Science install packages into this environment. Installs go to your own environment, not the app-managed storage.'
+                      'Lets OneEarth install packages into this environment. Installs go to your own environment, not the app-managed storage.'
                     )
               }
             >

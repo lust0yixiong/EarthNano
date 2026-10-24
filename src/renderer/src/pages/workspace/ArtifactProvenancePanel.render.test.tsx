@@ -1033,7 +1033,7 @@ describe('ArtifactProvenancePanel', () => {
     )
     await flush()
 
-    expect(container.textContent).toContain('Edited in Open-Science')
+    expect(container.textContent).toContain('Edited in OneEarth')
     expect(container.textContent).toContain('Frozen edited reference')
     expect(container.querySelectorAll('[role="tab"]')).toHaveLength(1)
     expect(getVersionProvenance).not.toHaveBeenCalled()
@@ -1106,7 +1106,7 @@ describe('ArtifactProvenancePanel', () => {
     )
     await flush()
 
-    expect(container.textContent).toContain('Edited in Open-Science')
+    expect(container.textContent).toContain('Edited in OneEarth')
     expect(container.textContent).toContain('View source provenance · v1')
     expect(container.textContent).toContain('This edited version has no new agent execution.')
     expect(container.querySelector('[role="tablist"]')).toBeNull()
@@ -1194,7 +1194,7 @@ describe('ArtifactProvenancePanel', () => {
     expect(onVersionChange).toHaveBeenCalledWith(
       expect.objectContaining({ selectedVersionId: 'version-1', versionNumber: 1 })
     )
-    expect(container.textContent).toContain('Edited in Open-Science')
+    expect(container.textContent).toContain('Edited in OneEarth')
     expect(container.textContent).toContain('View source provenance · v1')
   })
 
@@ -1739,7 +1739,7 @@ describe('ArtifactProvenancePanel', () => {
     await flush()
 
     expect(container.textContent).toContain(
-      'This message snapshot was created by a newer version of Open-Science. Update the app to view it.'
+      'This message snapshot was created by a newer version of OneEarth. Update the app to view it.'
     )
     expect(container.textContent).not.toContain('(message-snapshot-unsupported)')
   })

@@ -1,6 +1,6 @@
-# Open-Science CLI
+# OneEarth CLI
 
-The `open-science` command controls the local Open-Science service and submits research tasks without
+The `open-science` command controls the local OneEarth service and submits research tasks without
 requiring browser interaction.
 
 The [release compatibility policy](https://github.com/aipoch/open-science/blob/main/docs/compatibility.md)
@@ -46,7 +46,7 @@ Debian-owned system entry; remove the Debian package to remove that entry.
 
 ### From other application packages
 
-Open **Settings > General > Command line tool** in Open-Science and choose **Install command**. This
+Open **Settings > General > Command line tool** in OneEarth and choose **Install command**. This
 adds an `open-science` launcher to your PATH (`~/.local/bin` on macOS and Linux, or a per-user
 directory added to PATH on Windows). The launcher uses the application's bundled runtime, so it does
 not require a separate Node.js installation.
@@ -227,8 +227,8 @@ For desktop packages without an automatically registered command, use **Settings
 Command line tool > Install command**. To invoke the bundled ordinary Node CLI directly on macOS:
 
 ```bash
-"/Applications/Open-Science.app/Contents/Resources/node-runtime/node" \
-  "/Applications/Open-Science.app/Contents/Resources/backend/cli.mjs" start --no-open
+"/Applications/OneEarth.app/Contents/Resources/node-runtime/node" \
+  "/Applications/OneEarth.app/Contents/Resources/backend/cli.mjs" start --no-open
 ```
 
 The native Settings controls own launcher installation/removal. `cli install`/`cli uninstall` over
@@ -265,7 +265,7 @@ Installation recovery may require the original installer when file integrity can
 
 ## Codex subscription sign-in
 
-Sign the Open-Science Codex profile in from a terminal without opening Settings:
+Sign the OneEarth Codex profile in from a terminal without opening Settings:
 
 ```bash
 open-science codex login
@@ -318,7 +318,7 @@ open-science project list --json
 Commands that accept `--project` allow either a project ID or an exact project name. The CLI resolves
 a unique display name to its ID before calling the Task API; use the ID when names are duplicated.
 
-Project Agent Context contains persistent instructions that are added when Open-Science sets up an
+Project Agent Context contains persistent instructions that are added when OneEarth sets up an
 agent Session. Supply it directly with `--agent-context <text>` or read multiline instructions from a
 strict UTF-8 file with `--agent-context-file <path>`; the two options are mutually exclusive. The
 existing 16,000-character limit applies to both forms.
@@ -394,14 +394,14 @@ Enabled hosts. JSON output uses the server's compatibility-named
 When the selection is non-empty, the agent is instructed to run tool-backed task work on one of
 those hosts and not silently fall back to local execution or another Available Compute Host. Pure answers
 and lightweight orchestration do not require remote execution. Each provider ID must refer to a
-host already configured in Open-Science. This option does not create a host, configure SSH or
+host already configured in OneEarth. This option does not create a host, configure SSH or
 credentials, probe a connection, or pin scratch storage.
 
 `--cwd <path>` selects an externally owned working directory for the Session. The CLI resolves a
-relative path from the directory where the command is invoked. Open-Science then resolves the real
+relative path from the directory where the command is invoked. OneEarth then resolves the real
 path, verifies that it exists, is a directory, and is readable and writable, and persists that
-canonical path on a newly created Session. Open-Science does not take ownership of or remove an
-external working directory. Without `--cwd`, Open-Science allocates its usual managed workspace.
+canonical path on a newly created Session. OneEarth does not take ownership of or remove an
+external working directory. Without `--cwd`, OneEarth allocates its usual managed workspace.
 
 The working directory is a Session boundary, not a per-Run override. When `--session` and `--cwd`
 are used together, the requested path must resolve to the Session's recorded working directory. A
@@ -424,7 +424,7 @@ CLI wait and returns exit code `1`; it does not cancel the run, which can still 
 the timeout; the command still reports the original timeout and returns exit code `1`. Explicit
 cancellation waits for provider work and application finalization to drain, and preserves partial
 output and successfully finalized artifacts. When the `ask` approval profile needs permission,
-human-readable output directs the user to approve the request in Open-Science Desktop or the Web UI.
+human-readable output directs the user to approve the request in OneEarth Desktop or the Web UI.
 
 Pass an existing session ID to continue a conversation. Approval profiles are `ask`, `auto`, and
 `full`; `--skill` is repeatable:
@@ -728,7 +728,7 @@ creates files and temporary replacements with POSIX mode `0600`. Keep the config
 private; anyone who can read these files can recover the secrets. Do not copy them into images,
 repositories, logs, or support reports. A disposable container filesystem discards them when the
 container is removed; a persistent volume retains them. A tmpfs mount can be used when disk
-persistence is unwanted. Open-Science does not delete configuration automatically on shutdown.
+persistence is unwanted. OneEarth does not delete configuration automatically on shutdown.
 
 Specify the option at every startup, including after updates. It is a startup choice, not a saved
 preference. The default (or `--credential-store=os`) requires OS protection. An already-running

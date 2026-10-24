@@ -236,7 +236,7 @@ function Get-ResetPlan([string]$Profile, [string]$AppData, [string]$ExplicitData
     [string]$Identity, [string]$PublicRoot, [string[]]$TempRoots) {
   $Profile = Get-ResetPath $Profile
   $config = Assert-ResetTarget (Join-Path $Profile '.open-science') $Profile
-  $defaults = @('Open-Science', 'OpenScience') | ForEach-Object {
+  $defaults = @('OneEarth', 'EarthNano', 'Open-Science', 'OpenScience') | ForEach-Object {
     Assert-ResetTarget (Join-Path $Profile $_) $Profile
   }
   $electronProfiles = @('Open-Science', 'Open Science') | ForEach-Object {
@@ -270,8 +270,8 @@ function Get-ResetPlan([string]$Profile, [string]$AppData, [string]$ExplicitData
   $dataRoots = @($defaults) + @($config)
   if ($selected) {
     $selected = Assert-ResetTarget $selected $Profile
-    if ($selected -ne $config -and @('Open-Science', 'OpenScience') -notcontains [IO.Path]::GetFileName($selected)) {
-      throw 'Custom data must be an Open-Science or legacy OpenScience folder. Nonstandard historical paths require manual review.'
+    if ($selected -ne $config -and @('OneEarth', 'EarthNano', 'Open-Science', 'OpenScience') -notcontains [IO.Path]::GetFileName($selected)) {
+      throw 'Custom data must be a OneEarth, EarthNano, Open-Science or legacy OpenScience folder. Nonstandard historical paths require manual review.'
     }
     $dataRoots += $selected
   }
@@ -332,7 +332,7 @@ function Assert-OpenScienceStopped($Plan) {
         $blocked = $true
       }
     }
-    if ($blocked) { throw "Close Open-Science and its runtime processes, then retry. Detected: $name (PID $($process.ProcessId))." }
+    if ($blocked) { throw "Close OneEarth and its runtime processes, then retry. Detected: $name (PID $($process.ProcessId))." }
   }
 }
 
@@ -365,9 +365,9 @@ function Remove-ResetTree([string]$Path, [string]$Boundary) {
 
 function Invoke-Reset($Plan, [string]$Profile, [string]$Identity, [switch]$PreviewOnly) {
   Assert-OpenScienceStopped $Plan
-  Write-Host 'Open-Science - reset all local application data'
+  Write-Host 'OneEarth - reset all local application data'
   Write-Host 'This permanently deletes settings, conversations, managed files, models and runtimes.'
-  Write-Host 'Back up needed files first. Keep Open-Science closed throughout this operation.'
+  Write-Host 'Back up needed files first. Keep OneEarth closed throughout this operation.'
   Write-Host 'External projects/runtimes and Windows sandbox ownership records are preserved.'
   Write-Host ''
   foreach ($target in $Plan) {
@@ -391,7 +391,7 @@ function Invoke-Reset($Plan, [string]$Profile, [string]$Identity, [switch]$Previ
     Remove-ResetTree $path $path
     if (Test-Path -LiteralPath $path) { throw "Directory remains: $path" }
   }
-  Write-Host 'Reset completed. Start Open-Science and configure it again. Managed runtimes will need installation.'
+  Write-Host 'Reset completed. Start OneEarth and configure it again. Managed runtimes will need installation.'
 }
 
 # Dot-sourcing exposes the same functions to isolated fixture tests without running a reset.

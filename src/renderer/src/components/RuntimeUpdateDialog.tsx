@@ -206,7 +206,7 @@ export const RuntimeUpdateDialog = ({ active = true }: { active?: boolean }): Re
         >
           <div className={`${dialogHeaderClassName} flex-wrap gap-y-1`}>
             <Dialog.Title className={dialogTitleClassName}>
-              {confirming ? t('Update Open-Science now?') : t('Update')}
+              {confirming ? t('Update OneEarth now?') : t('Update')}
             </Dialog.Title>
             <Dialog.Description className="text-xs text-muted-foreground tabular-nums">
               {status.latest
@@ -269,7 +269,7 @@ export const RuntimeUpdateDialog = ({ active = true }: { active?: boolean }): Re
                 <p>
                   {legacyOpen
                     ? t(
-                        'Open-Science cannot verify whether commands from an earlier session are still running. If they are, their results may be lost during the update. Back up the old launch records and retry?'
+                        'OneEarth cannot verify whether commands from an earlier session are still running. If they are, their results may be lost during the update. Back up the old launch records and retry?'
                       )
                     : t(
                         'Updating will interrupt running tasks. Unsaved work may be lost. Interrupted tasks will not restart automatically.'
@@ -322,7 +322,7 @@ export const RuntimeUpdateDialog = ({ active = true }: { active?: boolean }): Re
                     description={
                       legacyRecords
                         ? t(
-                            'Open-Science cannot verify whether commands from an earlier session are still running. If they are, their results may be lost during the update. Back up the old launch records and retry?'
+                            'OneEarth cannot verify whether commands from an earlier session are still running. If they are, their results may be lost during the update. Back up the old launch records and retry?'
                           )
                         : copy.description
                     }

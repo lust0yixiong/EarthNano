@@ -206,7 +206,7 @@ bare JSX text nodes left unwrapped.
 
 ### ErrorNotice (`src/renderer/src/components/error-notice.tsx`)
 
-The generic error facade delegates to `Notice`. The flask brand mark appears only with
+The generic error facade delegates to `Notice`. The shared OneEarth brand mark appears only with
 `fullPage`; ordinary notices stay in their owning region. Optional presentation props include
 `fullPage`, `inline`, `role`, `level`, `content`, `children`, `diagnosticsLabel`, and `dismissButton`.
 Levels are `info`, `success`, `warning`, and `error`; an explicit level overrides the legacy tone.

@@ -413,7 +413,7 @@ describe('OpenScienceClient', () => {
       await vi.advanceTimersByTimeAsync(100)
       expect(await Promise.race([outcome, Promise.resolve('pending')])).toMatchObject({
         code: 'timeout',
-        message: 'Open-Science request timed out after 100 milliseconds.'
+        message: 'OneEarth request timed out after 100 milliseconds.'
       })
       expect(fetch).toHaveBeenCalledOnce()
     } finally {
@@ -914,7 +914,7 @@ describe('OpenScienceClient', () => {
 
     await expect(events.ready).rejects.toMatchObject({
       code: 'event_stream_failed',
-      message: 'Open-Science event stream failed.'
+      message: 'OneEarth event stream failed.'
     })
   })
 
@@ -1043,7 +1043,7 @@ describe('OpenScienceClient', () => {
 
     await expect(next).rejects.toMatchObject({
       code: 'event_stream_failed',
-      message: 'Open-Science event stream access was revoked.'
+      message: 'OneEarth event stream access was revoked.'
     })
     expect(TrackingWebSocket.instances).toHaveLength(1)
   })
@@ -1077,7 +1077,7 @@ describe('OpenScienceClient', () => {
 
       expect(outcome).toMatchObject({
         code: 'timeout',
-        message: 'Open-Science event stream timed out after 25 milliseconds.'
+        message: 'OneEarth event stream timed out after 25 milliseconds.'
       })
       expect(ControllableWebSocket.instance.closed).toBe(true)
     } finally {

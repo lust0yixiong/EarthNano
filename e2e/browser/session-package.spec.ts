@@ -623,7 +623,7 @@ for (const locale of ['en', 'zh-Hans']) {
       const dialog = page.getByRole('dialog')
       const message =
         locale === 'en'
-          ? 'This Session package requires a newer version of Open Science. Update Open Science, then try importing it again.'
+          ? 'This Session package requires a newer version of OneEarth. Update OneEarth, then try importing it again.'
           : '此会话研究包需要更新版本的 Open Science。请更新 Open Science 后重新导入。'
       await expect(dialog.getByRole('alert')).toHaveText(message)
       await expect(dialog.getByRole('button', { name: /^(Import|导入)$/ })).toHaveCount(0)

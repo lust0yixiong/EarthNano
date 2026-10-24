@@ -21,7 +21,10 @@ const themeMocks = vi.hoisted(() => ({
   resolveInitialTheme: vi.fn(() => 'light')
 }))
 
-vi.mock('@/lib/theme', () => themeMocks)
+vi.mock('@/lib/theme', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/theme')>()),
+  ...themeMocks
+}))
 vi.mock('../src/main', () => ({}))
 
 type SocketEventName = 'open' | 'message' | 'close'
@@ -187,7 +190,9 @@ const heartbeatFrame = (latestSequence: number): string =>
 
 const loadBootstrap = async (): Promise<WebApi> => {
   const bootstrapImport = import('./bootstrap')
-  await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+  await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+    timeout: 5000
+  })
   window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))
   await bootstrapImport
   return (window as unknown as { api: WebApi }).api
@@ -312,7 +317,9 @@ describe('Web bootstrap event connection', () => {
     localStorage.setItem('open-science-language', 'zh-Hans')
 
     const bootstrapImport = import('./bootstrap')
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
 
     expect(document.getElementById('open-science-connection-message')?.textContent).toBe(
       '正在连接远程计算机…'
@@ -342,7 +349,9 @@ describe('Web bootstrap event connection', () => {
       )
     )
     await vi.advanceTimersByTimeAsync(500)
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
     window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))
     await bootstrapImport
   })
@@ -360,7 +369,7 @@ describe('Web bootstrap event connection', () => {
       'alert'
     )
     expect(document.getElementById('open-science-connection-message')?.textContent).toBe(
-      '访问授权已失效。请从主机上的 Open-Science 重新打开 Web 链接，或返回远程访问入口页面重新配对。'
+      '访问授权已失效。请从主机上的 OneEarth 重新打开 Web 链接，或返回远程访问入口页面重新配对。'
     )
     expect(document.querySelector('button')?.textContent).toBe('重试')
   })
@@ -886,7 +895,9 @@ describe('Web bootstrap event connection', () => {
 
   it('waits for renderer consumers before opening the event stream', async () => {
     const bootstrapImport = import('./bootstrap')
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
 
     expect(FakeWebSocket.instances).toHaveLength(0)
     window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))

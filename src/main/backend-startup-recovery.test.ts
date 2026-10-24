@@ -89,7 +89,7 @@ describe('backend startup recovery', () => {
     })
     await recoverDesktopBackendStartup(error)
     expect(host.dialog.mock.calls[0][0]).toMatchObject({
-      message: 'Open-Science 无法启动后端。',
+      message: 'OneEarth 无法启动后端。',
       buttons: ['重试启动', '打开启动日志', '退出'],
       detail: expect.stringContaining('CREDENTIAL_IDENTITY: decryption-failed')
     })

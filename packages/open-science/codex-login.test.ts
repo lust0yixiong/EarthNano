@@ -65,7 +65,7 @@ describe('Codex CLI login', () => {
     await codexLoginCommand({ configRoot }, deps)
     expect(deps.runCodex).toHaveBeenCalledOnce()
     expect(bootstrap).toHaveBeenCalledOnce()
-    expect(deps.log.mock.calls.flat().join(' ')).toContain('updated Open-Science daemon')
+    expect(deps.log.mock.calls.flat().join(' ')).toContain('updated OneEarth daemon')
   })
 
   it('requests a daemon update for an empty profile on an older daemon', async () => {
@@ -98,7 +98,7 @@ describe('Codex CLI login', () => {
     )
     await codexLoginCommand({ configRoot }, deps)
     expect(deps.runCodex).toHaveBeenCalledOnce()
-    expect(deps.log.mock.calls.flat().join(' ')).toContain('updated Open-Science daemon')
+    expect(deps.log.mock.calls.flat().join(' ')).toContain('updated OneEarth daemon')
   })
 
   it.each([401, 403, 500])(
@@ -276,7 +276,7 @@ describe('Codex CLI login', () => {
         })
       })
     )
-    expect(deps.log).toHaveBeenLastCalledWith('Codex is signed in for Open-Science.')
+    expect(deps.log).toHaveBeenLastCalledWith('Codex is signed in for OneEarth.')
   })
 
   it('starts a replacement login without checking status when forced', async () => {

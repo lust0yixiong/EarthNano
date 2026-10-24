@@ -234,6 +234,29 @@ describe('EarthNano original-baseline gates', () => {
       )
     }
   })
+  it('requires passing replacements for the new data-folder and migration-button names', () => {
+    for (const [path, before, after] of [
+      [
+        'src/main/storage-root.test.ts',
+        'dataFolderName is Open-Science when packaged',
+        'dataFolderName is OneEarth when packaged'
+      ],
+      [
+        'src/renderer/src/components/LegacyDataMoveDialog.render.test.tsx',
+        'LegacyDataMoveDialog "Move to Open-Science" hands off to the migration flow (detects sessions first)',
+        'LegacyDataMoveDialog "Move to OneEarth" hands off to the migration flow (detects sessions first)'
+      ]
+    ]) {
+      const old = [{ path, name: before, id: `${path} :: ${before} :: 0`, status: 'passed' }]
+      const current = [{ path, name: after, id: `${path} :: ${after} :: 0`, status: 'passed' }]
+      expect(compareInventories(old, current).conclusion).toBe('no-new-regressions')
+      expect(compareInventories(old, []).conclusion).toBe('new-regressions')
+      for (const status of ['failed', 'pending'])
+        expect(compareInventories(old, [{ ...current[0], status }]).conclusion).toBe(
+          'new-regressions'
+        )
+    }
+  })
   it('keeps the requested About-line removal tied to one passing replacement assertion', () => {
     const path = 'src/renderer/src/pages/settings/AppVersionSection.render.test.tsx'
     const before = 'AppVersionSection shows the app name, version, and copyright'

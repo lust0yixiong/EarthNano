@@ -289,6 +289,45 @@ export function compareInventories(baseline, candidate) {
       'Windows icon assets keeps the packaged default synchronized with the V3 light icon',
       'Windows icon assets keeps the packaged default synchronized with the EarthNano light icon'
     ],
+    // Exact display/default-folder test renames only. Every candidate assertion is still required.
+    ...[
+      ['dataFolderName is Open-Science when packaged', 'dataFolderName is OneEarth when packaged'],
+      [
+        'dataFolderName is Open-Science-DEV in dev (not packaged)',
+        'dataFolderName is OneEarth-DEV in dev (not packaged)'
+      ],
+      [
+        'computeDefaultDataRoot defaults to <home>/Open-Science for a fresh config root',
+        'computeDefaultDataRoot defaults to <home>/OneEarth for a fresh config root'
+      ],
+      [
+        'computeDefaultDataRoot does not treat a config root with an Open-Science subdir as legacy',
+        'computeDefaultDataRoot does not treat a config root with a OneEarth subdir as legacy'
+      ],
+      [
+        'computeDefaultDataRoot treats an explicitly configured <home>/Open-Science as the committed default',
+        'computeDefaultDataRoot treats an explicitly configured <home>/OneEarth as the committed default'
+      ],
+      [
+        'computeDefaultDataRoot (dev mode) defaults to <home>/Open-Science-DEV for a fresh (dev) config root',
+        'computeDefaultDataRoot (dev mode) defaults to <home>/OneEarth-DEV for a fresh (dev) config root'
+      ],
+      [
+        'computeDefaultDataRoot (dev mode) prefers an explicitly configured <home>/Open-Science-DEV over legacy data',
+        'computeDefaultDataRoot (dev mode) prefers an explicitly configured <home>/OneEarth-DEV over legacy data'
+      ]
+    ].map(([before, after]) => [
+      'src/main/storage-root.test.ts',
+      before,
+      after,
+      'approved-oneearth-display-and-new-folder-name'
+    ]),
+    [
+      'src/renderer/src/components/LegacyDataMoveDialog.render.test.tsx',
+      'LegacyDataMoveDialog "Move to Open-Science" hands off to the migration flow (detects sessions first)',
+      'LegacyDataMoveDialog "Move to OneEarth" hands off to the migration flow (detects sessions first)',
+      'approved-oneearth-display-and-new-folder-name'
+    ],
     ...['build/icon.ico', 'resources/icon-light.ico', 'resources/icon-dark.ico'].map((path) => [
       'src/main/windows-icon-assets.test.ts',
       `Windows icon assets keeps the V3 ring recognizable in the small frames of '${path}'`,

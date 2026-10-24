@@ -37,10 +37,10 @@ export type StorageStatus = {
   defaultParent: string
   // True only when settings.dataRoot is explicitly configured but the resolved directory is gone
   // (deleted, or an unmounted external/network drive). False for a fresh install whose default
-  // `~/Open-Science` simply hasn't been created yet.
+  // `~/OneEarth` simply hasn't been created yet.
   dataRootMissing: boolean
   // True when this is a pre-§20 legacy install whose data still lives in the hidden config root and
-  // the user hasn't yet answered the one-time "move it into the visible Open-Science folder" prompt.
+  // the user hasn't yet answered the one-time "move it into the visible OneEarth folder" prompt.
   // Drives the first-run LegacyDataMoveDialog; once answered (moved/relocated/declined) it stays false.
   legacyDataMovePrompt: boolean
   // True while a committed move still has verified old-root files to remove. Main retries the

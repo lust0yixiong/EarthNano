@@ -54,7 +54,7 @@ describe('remote notification delivery', () => {
     expect(native).toHaveBeenCalledWith({
       operation: 'notification-test',
       title: 'Test notification',
-      body: 'System notifications from Open-Science are working.'
+      body: 'System notifications from OneEarth are working.'
     })
   })
 })

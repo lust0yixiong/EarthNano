@@ -76,9 +76,7 @@ class ReviewerModelRuntimeOwner {
   admit(): Promise<ReviewerModelRuntimeAdmission> {
     if (this.options.isDataRootHandoffActive?.()) {
       return Promise.reject(
-        new Error(
-          'Reviewer cannot start while Open-Science is moving data. Retry after it finishes.'
-        )
+        new Error('Reviewer cannot start while OneEarth is moving data. Retry after it finishes.')
       )
     }
     if (this.updateGatePromise) {

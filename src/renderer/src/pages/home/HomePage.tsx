@@ -520,7 +520,7 @@ const HomePage = ({
         )
       }
       if (effectiveCatalogRecovery.kind === 'unsupported-version') {
-        return t('Update Open-Science before archiving this project.')
+        return t('Update OneEarth before archiving this project.')
       }
       return t('Repair the project index before archiving.')
     }
@@ -965,7 +965,7 @@ const HomePage = ({
                 {loadError ? (
                   <ErrorNotice
                     role="alert"
-                    description={t('Open-Science could not load projects. Retry to continue.')}
+                    description={t('OneEarth could not load projects. Retry to continue.')}
                     primaryButton={{
                       label: isRetryingProjects ? t('Retrying...') : t('Retry'),
                       loading: isRetryingProjects,

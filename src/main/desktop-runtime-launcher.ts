@@ -51,7 +51,7 @@ export class DesktopRuntimeStoppingError extends Error {
     readonly pid: number,
     readonly generation: string
   ) {
-    super('The running Open-Science server is already shutting down.')
+    super('The running OneEarth server is already shutting down.')
     this.name = 'DesktopRuntimeStoppingError'
   }
 }
@@ -122,7 +122,7 @@ export async function discoverDesktopBackend(
         canStop: true,
         canRecover: true
       },
-      'An older Open-Science app is running. It must be closed before opening this version.',
+      'An older OneEarth app is running. It must be closed before opening this version.',
       () =>
         terminateVerifiedLegacyRuntime(
           {
@@ -159,7 +159,7 @@ export async function discoverDesktopBackend(
     }
     throw new DesktopRuntimeStartupError(
       issue,
-      'The running Open-Science server has a different version. Stop it explicitly before opening this desktop version.',
+      'The running OneEarth server has a different version. Stop it explicitly before opening this desktop version.',
       async () => {
         // The service may have exited while its confirmation was open. Confirm the
         // released directory and, for modern services, the exact clean-exit receipt.

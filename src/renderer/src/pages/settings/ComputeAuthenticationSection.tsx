@@ -31,7 +31,7 @@ const SshConfigAuthenticationFields = (props: AuthenticationFieldProps): React.J
     <>
       <p className="text-xs text-muted-foreground">
         <Trans
-          i18nKey="By default Open-Science resolves connection details by running <code>ssh -G</code> against the alias in your <path>~/.ssh/config</path>. Set these only if you need to override that."
+          i18nKey="By default OneEarth resolves connection details by running <code>ssh -G</code> against the alias in your <path>~/.ssh/config</path>. Set these only if you need to override that."
           components={{
             code: <code className="font-mono" />,
             path: <code className="font-mono" />

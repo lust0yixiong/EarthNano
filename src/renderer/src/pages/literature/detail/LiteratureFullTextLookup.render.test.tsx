@@ -335,9 +335,7 @@ describe('LiteratureFullTextLookup', () => {
   it('explains a missing main-process handler instead of suggesting provider retries', async () => {
     fullText.mockRejectedValue(new Error("No handler registered for 'literature:full-text'"))
     render(<LiteratureFullTextLookup {...props} />)
-    expect(
-      await screen.findByText('Restart Open-Science to enable full-text search.')
-    ).not.toBeNull()
+    expect(await screen.findByText('Restart OneEarth to enable full-text search.')).not.toBeNull()
     expect(screen.queryByText('Full-text search failed. Try again.')).toBeNull()
     fireEvent.click(screen.getByText('Search sources'))
     fireEvent.click(screen.getByRole('button', { name: 'Configure OpenAlex' }))

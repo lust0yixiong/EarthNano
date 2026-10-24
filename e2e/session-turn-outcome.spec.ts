@@ -18,7 +18,7 @@ const HOLD_PROMPT = 'Hold the turn outcome fixture.'
 const ARTIFACT_PROMPT = 'Create the turn outcome retry artifact.'
 const FAILURE = 'Synthetic turn outcome failure.'
 const SAVE_WARNING =
-  'Open-Science could not save the latest conversation changes. Retry before closing the app.'
+  'OneEarth could not save the latest conversation changes. Retry before closing the app.'
 
 const sessionForPrompt = async (page: Page, prompt: string): Promise<PersistedChatSession> => {
   let session: PersistedChatSession | undefined

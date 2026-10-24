@@ -21,8 +21,8 @@ for (const mode of ['fresh', 'legacy', 'custom'] as const) {
     expect(basename(initial.dataRoot)).toBe(
       mode === 'fresh'
         ? state.packaged
-          ? 'Open-Science'
-          : 'Open-Science-DEV'
+          ? 'OneEarth'
+          : 'OneEarth-DEV'
         : mode === 'legacy'
           ? state.packaged
             ? 'OpenScience'

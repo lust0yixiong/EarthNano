@@ -53,7 +53,7 @@ describe('helper host inheritance', () => {
     ).toEqual({
       code: 'command-unavailable',
       message:
-        'Choose files requires the Open-Science desktop app. It is unavailable in the Node backend.'
+        'Choose files requires the OneEarth desktop app. It is unavailable in the Node backend.'
     })
   })
   it('does not classify normal startup or partial helper flags as helper processes', () => {

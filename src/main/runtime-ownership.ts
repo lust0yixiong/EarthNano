@@ -12,7 +12,7 @@ export class RuntimeOwnershipConflict extends Error {
     readonly directory: string,
     options?: ErrorOptions
   ) {
-    super(`Open-Science is already using this directory: ${directory}`, options)
+    super(`OneEarth is already using this directory: ${directory}`, options)
     this.name = 'RuntimeOwnershipConflict'
   }
 }

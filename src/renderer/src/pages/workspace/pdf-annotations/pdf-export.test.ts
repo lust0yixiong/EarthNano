@@ -82,7 +82,7 @@ it('writes every native type and exact Unicode comments while preserving source 
   marks.forEach((entry, i) => {
     const dict = exported.context.lookup(annots.get(i + 1), PDFDict)
     expect(dict.get(PDFName.of('Subtype'))?.toString()).toBe('/' + types[i])
-    expect(dict.lookup(PDFName.of('T'), PDFHexString).decodeText()).toBe('Open-Science')
+    expect(dict.lookup(PDFName.of('T'), PDFHexString).decodeText()).toBe('OneEarth')
     expect(dict.lookup(PDFName.of('Contents'), PDFHexString).decodeText()).toBe(entry.note)
     expect(dict.lookup(PDFName.of('AP'), PDFDict).get(PDFName.of('N'))).toBeDefined()
     expect(dict.get(PDFName.of('F'))?.toString()).toBe('4')

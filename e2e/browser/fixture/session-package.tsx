@@ -36,7 +36,7 @@ import { SessionPackageImportError } from '@/components/SessionPackageImportErro
 const locale = new URLSearchParams(location.search).get('locale') === 'zh-Hans' ? 'zh-Hans' : 'en'
 const localeReady = Promise.resolve(prepareI18nLocale(locale)).then(() => initI18n(locale))
 const updateMessage =
-  'This Session package requires a newer version of Open Science. Update Open Science, then try importing it again.'
+  'This Session package requires a newer version of OneEarth. Update OneEarth, then try importing it again.'
 const empty = new URLSearchParams(location.search).has('empty')
 usePackageOperationStore.getState().receive({
   id: 'layout-fixture',

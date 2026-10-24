@@ -37,16 +37,14 @@ const start = (): void => {
   }
 
   title.textContent =
-    reason === 'update'
-      ? t('Install Open-Science before updating')
-      : t('Finish installing Open-Science')
+    reason === 'update' ? t('Install OneEarth before updating') : t('Finish installing OneEarth')
   description.textContent = t(
-    'Drag Open-Science to Applications. You can continue using this copy without installing.'
+    'Drag OneEarth to Applications. You can continue using this copy without installing.'
   )
   applicationsLabel.textContent = t('Applications')
   continueButton.textContent = t('Continue using')
   installButton.textContent = t('Install in Applications')
-  sourceIcon.setAttribute('aria-label', t('Drag Open-Science to Applications'))
+  sourceIcon.setAttribute('aria-label', t('Drag OneEarth to Applications'))
   targetItem.setAttribute('aria-label', t('Applications'))
   let primaryAction: 'install' | 'reveal' | 'restart' = 'install'
 
@@ -59,9 +57,9 @@ const start = (): void => {
     const result = await window.installationAssistant.install()
     if (result.status === 'installed') {
       motionStage.classList.add('is-installed')
-      title.textContent = t('Open-Science is installed')
+      title.textContent = t('OneEarth is installed')
       description.textContent = t(
-        'Quit this copy and reopen Open-Science from Applications to enable updates.'
+        'Quit this copy and reopen OneEarth from Applications to enable updates.'
       )
       status.textContent = t('Installed in Applications')
       installButton.disabled = false
@@ -71,7 +69,7 @@ const start = (): void => {
     }
 
     status.textContent = t(
-      'Open-Science could not be installed in Applications. Drag it there in Finder, or continue using this copy.'
+      'OneEarth could not be installed in Applications. Drag it there in Finder, or continue using this copy.'
     )
     status.dataset.tone = 'error'
     installButton.disabled = false
@@ -89,7 +87,7 @@ const start = (): void => {
     else void install()
   })
   sourceIcon.addEventListener('dragstart', (event) => {
-    event.dataTransfer?.setData('text/plain', 'Open-Science')
+    event.dataTransfer?.setData('text/plain', 'OneEarth')
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy'
   })
   targetItem.addEventListener('dragover', (event) => {

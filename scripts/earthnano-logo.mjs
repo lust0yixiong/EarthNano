@@ -28,6 +28,7 @@ export const sampleEarthNanoLogo = async (png) => {
 
 /** @param {boolean} check @returns {Promise<void>} */
 export const exportEarthNanoLogo = async (check = false) => {
+  const svg = await readFile(join(root, 'build/earthnano-logo.svg'))
   const png = await renderEarthNanoLogo()
   const points = await sampleEarthNanoLogo(png)
   const source =
@@ -36,6 +37,7 @@ export const exportEarthNanoLogo = async (check = false) => {
     points.map((point) => `  [${point.join(', ')}]`).join(',\n') +
     '\n] as const\n'
   for (const [name, content] of [
+    ['src/main/remote-access/open-science-logo.svg', svg],
     ['src/renderer/src/assets/logo.png', png],
     ['src/renderer/src/assets/logo-dark.png', png],
     ['src/renderer/src/components/earthnano-logo-points.ts', Buffer.from(source)]
@@ -51,5 +53,5 @@ export const exportEarthNanoLogo = async (check = false) => {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.slice(2).some((arg) => arg !== '--check')) throw new Error('Use [--check]')
   await exportEarthNanoLogo(process.argv.includes('--check'))
-  console.log('EarthNano renderer marks and startup particle samples are synchronized.')
+  console.log('OneEarth renderer marks and startup particle samples are synchronized.')
 }

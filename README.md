@@ -17,13 +17,13 @@ OneEarth 将 OpenScience 科研工作台与 Harness² 配置优化机制融入�
 
 普通用户下载已打包的应用即可，无需克隆仓库、安装 Node.js 或执行 `npm ci`。
 
-| 系统与架构 | 下载文件 |
-| --- | --- |
-| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.zip) |
-| macOS Intel | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.zip) |
-| Linux x64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage) |
-| Linux ARM64 | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-arm64.AppImage) |
-| Windows x64 | [EXE 安装器（未签名）](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-win-x64-setup.exe) |
+| 系统与架构                    | 下载文件                                                                                                                                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS Apple Silicon（M 系列） | [ARM64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-arm64.zip)    |
+| macOS Intel                   | [x64 DMG](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.dmg) / [ZIP](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-mac-x64.zip)          |
+| Linux x64                     | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_amd64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage) |
+| Linux ARM64                   | [DEB](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano_0.2.0-alpha.1_arm64.deb) / [AppImage](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-linux-arm64.AppImage)  |
+| Windows x64                   | [EXE 安装器（未签名）](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/EarthNano-0.2.0-alpha.1-win-x64-setup.exe)                                                                                                               |
 
 macOS ZIP、所有安装文件及[校验清单](https://github.com/lust0yixiong/EarthNano/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt)均在[同一 Release](https://github.com/lust0yixiong/EarthNano/releases/tag/v0.2.0-alpha.1)。下载后可用以下命令计算摘要，并与清单中相同文件名的完整 SHA-256 对照：
 
@@ -41,7 +41,7 @@ sha256sum EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage
 2. 将 **EarthNano.app** 拖到 **Applications（应用程序）**，从应用程序目录启动，然后弹出安装磁盘。
 3. 本版是未签名、未公证的 Alpha 预览。若提示无法验证开发者，核对下载来源及摘要后，按 [Apple 官方说明](https://support.apple.com/en-us/102445)，在 **系统设置 → 隐私与安全性 → 仍要打开** 中仅允许该应用；不需要关闭系统整体安全检查。“损坏”或“恶意软件”提示不适用此操作。
 
-已有 OpenScience 用户请先退出原应用并备份数据。EarthNano 保留原数据目录与凭据兼容身份，不要因应用改名删除或手动搬移原数据，也不要同时运行两款应用。
+已有 OpenScience 用户请先退出原应用并备份数据。OneEarth 保留原数据目录与凭据兼容身份，不要因应用改名删除或手动搬移原数据，也不要同时运行两款应用。
 
 ### Linux
 
@@ -68,12 +68,12 @@ chmod +x EarthNano-0.2.0-alpha.1-linux-x86_64.AppImage
 2. 在设置中安装或选择 **Claude Code** 并运行检测。普通任务保留原有模型配置能力；当前桌面优化使用 **Claude Code + 明确的自定义 Messages provider**。
 3. 添加自己的模型提供商与 API key。以下为已验证过的 DeepSeek 配置示例，不会自动使用个人订阅设置：
 
-   | 字段 | 示例值 |
-   | --- | --- |
+   | 字段     | 示例值                                                    |
+   | -------- | --------------------------------------------------------- |
    | API 类型 | `Messages (/v1/messages) — Claude / Anthropic-compatible` |
-   | Base URL | `https://api.deepseek.com/anthropic` |
-   | 模型 | `deepseek-flash` |
-   | API key | 自己的 DeepSeek API key，在应用提供商表单中保存 |
+   | Base URL | `https://api.deepseek.com/anthropic`                      |
+   | 模型     | `deepseek-flash`                                          |
+   | API key  | 自己的 DeepSeek API key，在应用提供商表单中保存           |
 
 4. 做 Notebook 科研计算时，在设置中安装或登记并启用需要的 **Python / R** 运行时。优化方法另需 Python 3.11+，本版本验证使用 Python 3.12。仅使用本地 Notebook 无需配置远端 Compute 主机。
 
@@ -81,7 +81,7 @@ API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git�
 
 ## 试用上游案例
 
-打开现有试用项目（或新建 EarthNano 试用项目），点击 **New** 新建会话，展开 **Try upstream examples（试用上游案例）**：
+打开现有试用项目（或新建 OneEarth 试用项目），点击 **New** 新建会话，展开 **Try upstream examples（试用上游案例）**：
 
 - **OpenScience：复跑 Case16**，自动附上原脚本和冻结登记库输入，复算两张可逐字节核对的 CSV。
 - **Harness²：带符号账本核算**，附上原 demo 的两个账本；普通运行后，可用现有 Optimize task 对同一任务比较基线与候选。
@@ -132,9 +132,9 @@ API key 由应用凭据入口管理，不写入任务、Skills、报告或 Git�
 本版安装包源码为 `ca96faed10916edde870aae47da6d70f31e55300`；后续文档更新不会改变已发布安装包。macOS 原始源码对照无新增测试或阶段回归，既有失败与跳过保留，这不代表全部测试通过。两个 Linux 全量源码 batch 及其依赖的完整比较按用户本次明确决定豁免，未作发布验收；原运行与规则保留，不计为通过。五个平台原生构建与安装验收均已按原规则通过。Windows 安装验收不代表已发布旧 Windows 安装器间升级或 Windows 配置优化已受支持；真实模型、安装包与科研工作流的验证范围分别记录。当前 Alpha 不承诺所有模型、所有科研任务或全部平台 GUI 都已验收。
 
 <details>
-<summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 EarthNano 交付）</summary>
+<summary>OpenScience 上游说明（原下载、发布、截图和性能声明不代表 OneEarth 交付）</summary>
 
-以下保留上游说明与许可。下载链接和 Homebrew 命令安装的是 OpenScience；EarthNano 的安装与使用请按本页上方说明操作。上游各语言 README 同属原项目资料。
+以下保留上游说明与许可。下载链接和 Homebrew 命令安装的是 OpenScience；OneEarth 的安装与使用请按本页上方说明操作。上游各语言 README 同属原项目资料。
 
 ---
 

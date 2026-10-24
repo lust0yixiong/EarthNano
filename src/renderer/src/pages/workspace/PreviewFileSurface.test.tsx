@@ -1436,7 +1436,7 @@ describe('PreviewFileSurface managed text versions', () => {
     },
     {
       code: 'PERMISSION_DENIED' as const,
-      message: 'Open-Science does not have permission to save this file.'
+      message: 'OneEarth does not have permission to save this file.'
     },
     {
       code: 'OUT_OF_SPACE' as const,

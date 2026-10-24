@@ -41,7 +41,7 @@ export async function locateBackend({ required = true } = {}) {
     const native = JSON.parse(await readFile(packageFile, 'utf8'))
     if (native.name !== name || native.version !== manifest.version)
       throw new Error(
-        `Open-Science native package version mismatch: expected ${name}@${manifest.version}. Reinstall the package.`
+        `OneEarth native package version mismatch: expected ${name}@${manifest.version}. Reinstall the package.`
       )
     const entry = join(dirname(packageFile), 'out/backend/index.cjs')
     await access(entry)
@@ -58,6 +58,6 @@ export async function locateBackend({ required = true } = {}) {
     }
   }
   throw new Error(
-    'The standalone Node backend is missing. Install the standalone Open-Science package, or run npm run build:backend in the repository.'
+    'The standalone Node backend is missing. Install the standalone OneEarth package, or run npm run build:backend in the repository.'
   )
 }

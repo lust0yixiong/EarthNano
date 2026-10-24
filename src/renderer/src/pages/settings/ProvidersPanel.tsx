@@ -98,7 +98,7 @@ const providerErrorCopy = (error: ProviderPanelError, t: TFunction): string => {
     case 'claude-sign-out':
       return t('Could not sign out of Claude.')
     case 'claude-disconnect':
-      return t('Could not disconnect Claude from Open-Science.')
+      return t('Could not disconnect Claude from OneEarth.')
     case 'xai-sign-in':
       return t('Could not sign in to xAI.')
     case 'xai-sign-out':
@@ -390,7 +390,7 @@ const ProvidersPanel = ({
     try {
       const result = await logoutSharedClaude()
       if (!result.ok) {
-        setProviderTestError(result.message ?? t('Could not disconnect Claude from Open-Science.'))
+        setProviderTestError(result.message ?? t('Could not disconnect Claude from OneEarth.'))
       }
     } catch (error) {
       setProviderTestError({ action: 'claude-disconnect', detail: errorDetail(error) })
@@ -655,7 +655,7 @@ const ProvidersPanel = ({
                       ) : null}
                     </>
                   ) : (
-                    t('This provider will be removed from Open-Science.')
+                    t('This provider will be removed from OneEarth.')
                   )}
                 </div>
               </AlertDialog.Description>

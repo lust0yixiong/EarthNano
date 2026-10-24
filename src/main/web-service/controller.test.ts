@@ -636,7 +636,7 @@ describe('createWebServiceController', () => {
       expect(tasks.getRun('run-interrupted')).toMatchObject({
         status: 'failed',
         failureCode: 'process_restarted',
-        error: 'Run interrupted because Open-Science restarted.'
+        error: 'Run interrupted because OneEarth restarted.'
       })
       await expect(tasks.cancelRun('run-interrupted')).resolves.toMatchObject({
         status: 'failed',

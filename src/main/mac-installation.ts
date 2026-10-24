@@ -179,7 +179,7 @@ export const showMacInstallationGuidance = (reason: 'startup' | 'update'): Promi
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    title: 'Open-Science',
+    title: 'OneEarth',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 15, y: 15 },
     backgroundColor: '#fbfcfb',

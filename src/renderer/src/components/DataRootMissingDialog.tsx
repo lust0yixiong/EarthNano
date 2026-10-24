@@ -196,10 +196,10 @@ const DataRootMissingDialog = ({
             <p className="text-xs text-muted-foreground">
               {isRemoteWebSurface
                 ? t(
-                    'To choose another location or continue with an empty folder, use Open-Science on the home computer.'
+                    'To choose another location or continue with an empty folder, use OneEarth on the home computer.'
                   )
                 : t(
-                    "Open-Science will recreate the folder as you use it. Files from the old location won't be available until it's reconnected."
+                    "OneEarth will recreate the folder as you use it. Files from the old location won't be available until it's reconnected."
                   )}
             </p>
           </div>

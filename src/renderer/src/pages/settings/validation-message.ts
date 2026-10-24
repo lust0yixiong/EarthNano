@@ -71,9 +71,9 @@ const localizeProviderResourceMessage = (message: string, t: TFunction): string 
       return t('The vendor returned a model ID longer than {{limit}} characters.', { limit: 512 })
     case 'Claude sign-in token must not exceed 16384 bytes.':
       return t('Claude token must not exceed {{limit}} bytes.', { limit: 16_384 })
-    case 'Open-Science could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which Open-Science cannot import from. Continue with the Open-Science Codex sign-in instead.':
+    case 'OneEarth could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which OneEarth cannot import from. Continue with the OneEarth Codex sign-in instead.':
       return t(
-        'Open-Science could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which Open-Science cannot import from. Continue with the Open-Science Codex sign-in instead.'
+        'OneEarth could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which OneEarth cannot import from. Continue with the OneEarth Codex sign-in instead.'
       )
     default:
       return message

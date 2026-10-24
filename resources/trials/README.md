@@ -1,4 +1,4 @@
-# EarthNano upstream trial inputs
+# OneEarth upstream trial inputs
 
 These cases use the existing Project → new Session → composer → Send path. Choosing a case
 only stages its prompt and managed attachments. It does not execute code, approve permissions,
@@ -15,7 +15,7 @@ to run them in the app. Model calls may incur provider fees.
   standalone deterministic demo remains unchanged under `vendor/harness2`.
 
 Each directory records source, license and input hashes in `SOURCE.json`. Upstream files and
-licenses are preserved. Prompt files are EarthNano instructions for the existing tools, not
+licenses are preserved. Prompt files are OneEarth instructions for the existing tools, not
 claims that upstream provides these exact desktop prompts. The prompts are supplied in English
 as reproducible task material; the example picker uses the application's translated UI.
 

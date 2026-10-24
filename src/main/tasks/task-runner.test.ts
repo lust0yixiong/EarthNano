@@ -5689,7 +5689,7 @@ describe('TaskRunner', () => {
     expect(recoveredRunner.getRun('crash-window-run')).toMatchObject({
       status: 'failed',
       failureCode: 'process_restarted',
-      error: 'Run interrupted because Open-Science restarted.'
+      error: 'Run interrupted because OneEarth restarted.'
     })
     expect(durableSession).toMatchObject({
       status: 'error',

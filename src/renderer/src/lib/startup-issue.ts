@@ -1,3 +1,4 @@
+import { APP } from '../../../shared/app-config'
 import type { DatabaseStartupError } from '../../../shared/database-startup'
 
 export type StartupIssueDetails = Omit<DatabaseStartupError, 'code'> & { code: string }
@@ -6,7 +7,7 @@ export type StartupIssueDetails = Omit<DatabaseStartupError, 'code'> & { code: s
 // whole draft (title + body) so no app-side permissions or tokens are involved; GitHub renders the
 // pre-filled form and only asks for an account when the user actually submits.
 
-const ISSUE_BASE_URL = 'https://github.com/aipoch/open-science/issues/new'
+const ISSUE_BASE_URL = `${APP.links.githubRepo}/issues/new`
 
 // GitHub's issues/new query stays reliable well under ~8KB; leave headroom for percent-encoding.
 const MAX_URL_LENGTH = 7800
@@ -36,7 +37,7 @@ const buildStartupIssueBody = (
   const sections = [
     `## What happened\n\n${error.message}`,
     `## Environment\n\n| | |\n| --- | --- |\n${environmentRows.map(([key, value]) => `| ${key} | ${value} |`).join('\n')}`,
-    '## Steps to reproduce\n\n1. Launch Open-Science\n2. The startup screen reports the error above'
+    '## Steps to reproduce\n\n1. Launch OneEarth\n2. The startup screen reports the error above'
   ]
   if (diagnostics) {
     sections.push(
