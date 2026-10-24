@@ -2,7 +2,12 @@ import { EARTHNANO_LOGO_POINTS } from './earthnano-logo-points'
 
 export const LOGO_INTRO_DURATION_MS = 3200
 export type LogoMotionFrame = { mode: 'gather' | 'hold'; progress: number }
-export type LogoCanvasMetrics = { width: number; height: number; dpr: number }
+export type LogoCanvasMetrics = {
+  width: number
+  height: number
+  dpr: number
+  markSize?: number
+}
 export type LogoParticle = {
   targetX: number
   targetY: number
@@ -18,6 +23,11 @@ const smooth = (n: number): number => {
   const t = clamp(n)
   return t * t * (3 - 2 * t)
 }
+const markSize = (metrics: LogoCanvasMetrics): number =>
+  metrics.markSize ?? Math.min(116 * metrics.dpr, Math.min(metrics.width, metrics.height) * 0.66)
+// The approved SVG's body circle is at (620, 650) inside viewBox="80 90 1120 1120".
+// Its center sits slightly left of the square canvas, leaving room for the outward droplets.
+const vortexCenterX = (metrics: LogoCanvasMetrics): number => -markSize(metrics) / 56
 const randomSource = (seed: number): (() => number) => {
   let state = seed >>> 0
   return () => {
@@ -41,28 +51,53 @@ export const resolveLogoFrame = (
 }
 export const resolveLogoPresentation = (
   frame: LogoMotionFrame
-): { imageOpacity: number; wordmarkOpacity: number; settle: number } => ({
-  imageOpacity: frame.mode === 'hold' ? 1 : smooth((frame.progress - 0.48) / 0.27),
-  wordmarkOpacity:
-    frame.mode === 'hold' ? 1 : 1 - Math.pow(1 - clamp((frame.progress - 0.35) / 0.35), 3),
-  settle: frame.mode === 'hold' ? 1 : smooth((frame.progress - 0.18) / 0.53)
+): { imageOpacity: number; wordmarkOpacity: number } => ({
+  // Every particle has reached its sampled position before the complete mark fades in.
+  imageOpacity: frame.mode === 'hold' ? 1 : smooth((frame.progress - 0.66) / 0.22),
+  wordmarkOpacity: frame.mode === 'hold' ? 1 : smooth((frame.progress - 0.44) / 0.31)
 })
 export const createLogoParticles = (
   metrics: LogoCanvasMetrics,
   seed = 0x5c1e4ce
 ): LogoParticle[] => {
   const random = randomSource(seed)
-  const size = Math.min(116 * metrics.dpr, Math.min(metrics.width, metrics.height) * 0.66)
-  return EARTHNANO_LOGO_POINTS.map(([x, y, r, g, b], index) => ({
-    targetX: (x / 96 - 0.5) * size,
-    targetY: (y / 96 - 0.5) * size,
-    angle: index * 2.399963,
-    spread: 0.5 + random() * 0.5,
-    radius: (0.6 + random() * 0.7) * metrics.dpr,
-    delay: random() * 0.12,
-    alpha: 0.45 + random() * 0.5,
-    color: `rgb(${r}, ${g}, ${b})`
-  }))
+  const size = markSize(metrics)
+  const centerX = vortexCenterX(metrics)
+  return EARTHNANO_LOGO_POINTS.map(([x, y, r, g, b]) => {
+    const targetX = (x / 96 - 0.5) * size
+    const targetY = (y / 96 - 0.5) * size
+    const distance = Math.hypot(targetX - centerX, targetY)
+    return {
+      targetX,
+      targetY,
+      angle: Math.atan2(targetY, targetX - centerX),
+      spread: 0.65 + random() * 0.35,
+      radius: (0.6 + random() * 0.5) * metrics.dpr,
+      delay: random() * 0.04 + Math.min(1, distance / (size * 0.44)) * 0.06,
+      alpha: 0.55 + random() * 0.4,
+      color: `rgb(${r}, ${g}, ${b})`
+    }
+  })
+}
+export const resolveLogoParticlePosition = (
+  particle: LogoParticle,
+  metrics: LogoCanvasMetrics,
+  progress: number
+): { x: number; y: number; local: number } => {
+  const local = smooth((progress - particle.delay) / 0.56)
+  const centerX = vortexCenterX(metrics)
+  const targetRadius = Math.hypot(particle.targetX - centerX, particle.targetY)
+  const outerRadius = Math.max(
+    targetRadius,
+    Math.min(metrics.width, metrics.height) * 0.46 * particle.spread
+  )
+  const radius = targetRadius + (outerRadius - targetRadius) * (1 - local)
+  const angle = particle.angle - (1 - local) * 1.7
+  return {
+    x: metrics.width / 2 + centerX + Math.cos(angle) * radius,
+    y: metrics.height / 2 + Math.sin(angle) * radius,
+    local
+  }
 }
 export const drawEarthNanoLogoFrame = (
   context: CanvasRenderingContext2D,
@@ -73,21 +108,10 @@ export const drawEarthNanoLogoFrame = (
   context.clearRect(0, 0, metrics.width, metrics.height)
   if (frame.mode === 'hold') return
   const reveal = resolveLogoPresentation(frame).imageOpacity
-  const spread = Math.min(metrics.width * 0.43, 236 * metrics.dpr)
   context.save()
   for (const particle of particles) {
-    const local = smooth((frame.progress - particle.delay) / 0.7)
-    const angle = particle.angle + (1 - local) * 1.35
-    const x =
-      metrics.width / 2 +
-      Math.cos(angle) * spread * particle.spread * (1 - local) +
-      particle.targetX * local
-    const y =
-      metrics.height / 2 +
-      Math.sin(angle) * 100 * metrics.dpr * particle.spread * (1 - local) +
-      particle.targetY * local
-    context.globalAlpha =
-      (0.32 + 0.68 * smooth(frame.progress / 0.14)) * (1 - reveal) * particle.alpha
+    const { x, y, local } = resolveLogoParticlePosition(particle, metrics, frame.progress)
+    context.globalAlpha = smooth(frame.progress / 0.1) * (1 - reveal) * particle.alpha
     context.fillStyle = particle.color
     context.beginPath()
     context.arc(

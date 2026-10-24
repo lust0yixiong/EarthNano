@@ -4,6 +4,7 @@ import {
   drawEarthNanoLogoFrame,
   LOGO_INTRO_DURATION_MS,
   resolveLogoFrame,
+  resolveLogoParticlePosition,
   resolveLogoPresentation
 } from './earthnano-logo-motion'
 
@@ -16,8 +17,7 @@ describe('EarthNano vortex entrance', () => {
       expect(frame).toEqual({ mode: 'hold', progress: 1 })
       expect(resolveLogoPresentation(frame)).toEqual({
         imageOpacity: 1,
-        wordmarkOpacity: 1,
-        settle: 1
+        wordmarkOpacity: 1
       })
     }
     expect(resolveLogoFrame(-100).progress).toBe(0)
@@ -37,6 +37,40 @@ describe('EarthNano vortex entrance', () => {
     expect(particles.every((p) => Math.abs(p.targetX) <= 116 && Math.abs(p.targetY) <= 116)).toBe(
       true
     )
+  })
+  it('lands on the unchanged logo before crossfading at different pixel densities and sizes', () => {
+    for (const dpr of [1, 2]) {
+      for (const size of [116, 174]) {
+        const metrics = { width: 448 * dpr, height: 224 * dpr, dpr, markSize: size * dpr }
+        const particles = createLogoParticles(metrics)
+        for (const particle of particles) {
+          for (const progress of [0.66, 0.75, 0.88]) {
+            const position = resolveLogoParticlePosition(particle, metrics, progress)
+            expect(position.x).toBeCloseTo(metrics.width / 2 + particle.targetX, 8)
+            expect(position.y).toBeCloseTo(metrics.height / 2 + particle.targetY, 8)
+          }
+        }
+      }
+    }
+    expect(resolveLogoPresentation({ mode: 'gather', progress: 0.66 }).imageOpacity).toBe(0)
+    expect(
+      resolveLogoPresentation({ mode: 'gather', progress: 0.75 }).imageOpacity
+    ).toBeGreaterThan(0)
+    expect(resolveLogoPresentation({ mode: 'gather', progress: 0.88 }).imageOpacity).toBe(1)
+  })
+  it('keeps the circular entrance inside the canvas at desktop and narrow widths', () => {
+    for (const width of [320, 448]) {
+      const metrics = { width, height: 224, dpr: 1 }
+      for (const particle of createLogoParticles(metrics)) {
+        for (const progress of [0, 0.1, 0.3, 0.5, 0.66]) {
+          const { x, y } = resolveLogoParticlePosition(particle, metrics, progress)
+          expect(x).toBeGreaterThan(particle.radius)
+          expect(x).toBeLessThan(width - particle.radius)
+          expect(y).toBeGreaterThan(particle.radius)
+          expect(y).toBeLessThan(metrics.height - particle.radius)
+        }
+      }
+    }
   })
   it('clears the particle canvas and draws nothing in the settled state', () => {
     const context = {

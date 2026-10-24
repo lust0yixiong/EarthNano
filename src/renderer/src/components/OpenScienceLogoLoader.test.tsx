@@ -200,4 +200,27 @@ describe('EarthNano loader through existing upstream entry point', () => {
     expect(container.textContent).toContain('EarthNano')
     expect(frames.size).toBe(0)
   })
+  it('tracks the rendered mark size without shifting it during the particle handoff', () => {
+    let imageWidth = 116
+    vi.spyOn(HTMLImageElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: imageWidth,
+      bottom: imageWidth,
+      width: imageWidth,
+      height: imageWidth,
+      toJSON: () => undefined
+    }))
+    mount()
+    frameAt(2200)
+    const before = vi.mocked(context.arc).mock.calls.at(-1)!
+    imageWidth = 174
+    act(() => resize?.([], {} as ResizeObserver))
+    const after = vi.mocked(context.arc).mock.calls.at(-1)!
+    expect(after[0] - 224).toBeCloseTo((before[0] - 224) * 1.5)
+    expect(after[1] - 112).toBeCloseTo((before[1] - 112) * 1.5)
+    expect(image().style.transform).toBe('')
+  })
 })

@@ -43,8 +43,7 @@ const EarthNanoLogoLoader = (): React.JSX.Element => {
       drawEarthNanoLogoFrame(context, particles, metrics, frame)
       const presentation = resolveLogoPresentation(frame)
       image.style.opacity = String(presentation.imageOpacity)
-      // Positioning belongs to the Tailwind translate property; transform only animates the mark.
-      image.style.transform = `scale(${0.93 + presentation.settle * 0.07}) rotate(${-9 * (1 - presentation.settle)}deg)`
+      // Keep the image on the same coordinates as the settled particles throughout the handoff.
       wordmark.style.opacity = String(presentation.wordmarkOpacity)
       wordmark.style.transform = `translateY(${7 * (1 - presentation.wordmarkOpacity)}px)`
     }
@@ -77,10 +76,17 @@ const EarthNanoLogoLoader = (): React.JSX.Element => {
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO)
       const width = Math.max(1, Math.round((bounds.width || 448) * dpr))
       const height = Math.max(1, Math.round((bounds.height || 224) * dpr))
-      if (canvas.width === width && canvas.height === height && particles.length) return
+      const markSize = (image.getBoundingClientRect().width || 116) * dpr
+      if (
+        canvas.width === width &&
+        canvas.height === height &&
+        metrics.markSize === markSize &&
+        particles.length
+      )
+        return
       canvas.width = width
       canvas.height = height
-      metrics = { width, height, dpr }
+      metrics = { width, height, dpr, markSize }
       particles = createLogoParticles(metrics)
       restart()
     }
@@ -100,6 +106,7 @@ const EarthNanoLogoLoader = (): React.JSX.Element => {
     const resizeObserver =
       typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(resize)
     resizeObserver?.observe(canvas)
+    resizeObserver?.observe(image)
     if (!resizeObserver) window.addEventListener('resize', resize, { passive: true })
     motionQuery?.addEventListener('change', onMotionChange)
     document.addEventListener('visibilitychange', restart)
