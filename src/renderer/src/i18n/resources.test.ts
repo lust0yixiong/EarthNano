@@ -826,7 +826,7 @@ describe('dynamic counted lookup translations', () => {
 
 const PRODUCT_TECHNICAL_TERM_LOCALES = TRANSLATED
 const RETAINED_PRODUCT_GLOSSARY = [
-  { term: 'Open-Science', source: /\bOpen-Science\b/ },
+  { term: 'OneEarth', source: /\bOneEarth\b/ },
   { term: 'Anthropic', source: /\bAnthropic\b/ },
   { term: 'Claude', source: /\bClaude\b/ },
   { term: 'Codex', source: /\bCodex\b/ },
@@ -846,12 +846,12 @@ const RETAINED_PRODUCT_GLOSSARY = [
 ]
 
 const RETAINED_PRODUCT_GLOSSARY_EXCEPTIONS = new Set([
-  'ru: Open-Science could not load Specialists. Retry to continue.: Open-Science',
-  'ru: Open-Science could not load projects. Retry to continue.: Open-Science',
-  'ru: Open-Science could not load Connectors.: Open-Science',
-  'ru: Open-Science could not load Skills.: Open-Science',
-  'ru: Open-Science could not load this Connector.: Open-Science',
-  'ru: Open-Science could not load this Skill.: Open-Science'
+  'ru: OneEarth could not load Specialists. Retry to continue.: OneEarth',
+  'ru: OneEarth could not load projects. Retry to continue.: OneEarth',
+  'ru: OneEarth could not load Connectors.: OneEarth',
+  'ru: OneEarth could not load Skills.: OneEarth',
+  'ru: OneEarth could not load this Connector.: OneEarth',
+  'ru: OneEarth could not load this Skill.: OneEarth'
 ])
 
 const retainedProductGlossaryOffenders = (
@@ -1494,14 +1494,14 @@ describe('mandatory product glossary', () => {
           'This job remains visible, but automatic result analysis is paused because its saved state is incompatible.'
         ],
       loadFailed: de.renderer['Unable to load remote jobs.'],
-      harvestPending: de.renderer['Harvest pending. Open-Science will retry automatically.'],
+      harvestPending: de.renderer['Harvest pending. OneEarth will retry automatically.'],
       harvestFailed: de.renderer['Harvest failed. Remote files were left untouched.'],
       queued: de.renderer['Waiting in queue'],
       submitting: de.renderer.Submitting,
       recoveryWarning: de.renderer['Remote job recovery needs attention'],
       recoveryDetail:
         de.renderer[
-          'Open-Science could not check saved remote jobs. Retry to restore pending result analysis.'
+          'OneEarth could not check saved remote jobs. Retry to restore pending result analysis.'
         ],
       completed: de.renderer['Remote job completed'],
       analysisStarted: de.renderer['Analysis started automatically']
@@ -1514,15 +1514,14 @@ describe('mandatory product glossary', () => {
       integrityDetail:
         'Dieser Job bleibt sichtbar, aber die automatische Ergebnisanalyse ist angehalten, da sich sein gespeicherter Zustand nicht verarbeiten lässt.',
       loadFailed: 'Remote-Jobs konnten nicht geladen werden.',
-      harvestPending:
-        'Der Ergebnisabruf steht noch aus. Open-Science versucht es automatisch erneut.',
+      harvestPending: 'Der Ergebnisabruf steht noch aus. OneEarth versucht es automatisch erneut.',
       harvestFailed:
         'Der Ergebnisabruf ist fehlgeschlagen. Die Remote-Dateien wurden nicht verändert.',
       queued: 'In der Warteschlange',
       submitting: 'Wird übermittelt',
       recoveryWarning: 'Problem bei der Wiederherstellung von Remote-Jobs',
       recoveryDetail:
-        'Open-Science konnte die gespeicherten Remote-Jobs nicht prüfen. Versuchen Sie es erneut, um die ausstehende Ergebnisanalyse fortzusetzen.',
+        'OneEarth konnte die gespeicherten Remote-Jobs nicht prüfen. Versuchen Sie es erneut, um die ausstehende Ergebnisanalyse fortzusetzen.',
       completed: 'Remote-Job abgeschlossen',
       analysisStarted: 'Analyse automatisch gestartet'
     })
@@ -1543,7 +1542,7 @@ describe('mandatory product glossary', () => {
         ],
       researchData:
         de.renderer[
-          'Your research data is in a hidden folder. Moving it into a visible Open-Science folder makes it easy to find and back up — your settings and history stay where they are.'
+          'Your research data is in a hidden folder. Moving it into a visible OneEarth folder makes it easy to find and back up — your settings and history stay where they are.'
         ],
       credentials:
         de.renderer[
@@ -1562,7 +1561,7 @@ describe('mandatory product glossary', () => {
       dataFolder:
         'Ihr Datenordner <path>{{path}}</path> wurde nicht gefunden. Möglicherweise wurde er gelöscht oder befindet sich auf einem nicht verbundenen Laufwerk.',
       researchData:
-        'Ihre Forschungsdaten befinden sich in einem versteckten Ordner. Wenn Sie sie in einen sichtbaren Open-Science-Ordner verschieben, lassen sie sich leichter finden und sichern. Ihre Einstellungen und Ihr Verlauf bleiben am bisherigen Speicherort.',
+        'Ihre Forschungsdaten befinden sich in einem versteckten Ordner. Wenn Sie sie in einen sichtbaren OneEarth-Ordner verschieben, lassen sie sich leichter finden und sichern. Ihre Einstellungen und Ihr Verlauf bleiben am bisherigen Speicherort.',
       credentials:
         'Die gespeicherten Anmeldedaten können auf diesem Gerät nicht verwendet werden. Ersetzen Sie sie und testen Sie die Verbindung erneut.',
       remoteCommand:
@@ -1629,7 +1628,7 @@ describe('mandatory product glossary', () => {
 
     expect(
       de.renderer[
-        "Open-Science will restart and use this folder as-is — <em>its contents are not merged with your current data</em>, and anything it's missing will show as unavailable. <em>Your current data folder is left untouched, so you can switch back.</em>"
+        "OneEarth will restart and use this folder as-is — <em>its contents are not merged with your current data</em>, and anything it's missing will show as unavailable. <em>Your current data folder is left untouched, so you can switch back.</em>"
       ]
     ).toContain('<em>sein Inhalt wird nicht mit Ihren aktuellen Daten zusammengeführt</em>')
     expect(
@@ -1968,7 +1967,7 @@ describe('mandatory product glossary', () => {
   })
 
   it('rejects a native Subagent compound translated as generic Agent', () => {
-    const key = 'Return to the running tasks and stop their subagents before quitting Open-Science.'
+    const key = 'Return to the running tasks and stop their subagents before quitting OneEarth.'
 
     expect(
       subagentGlossaryOffenders('zh-Hans', [[key, '请返回正在运行的任务并停止其智能体。']])
@@ -2071,8 +2070,8 @@ describe('mandatory product glossary', () => {
       'Search specialists': 'Rechercher des spécialistes',
       'Search specialists…': 'Rechercher des spécialistes…',
       'Specialist delete': 'Suppression du spécialiste',
-      'Remote.It is a third-party service. Open-Science only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.':
-        "Remote.It est un service tiers. Open-Science utilise uniquement son interface en ligne de commande (CLI) de bureau installée par l'utilisateur ; il n'inclut pas ce logiciel, ne le redistribue pas, ne l'enregistre pas et ne crée aucun compte pour ce service.",
+      'Remote.It is a third-party service. OneEarth only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.':
+        "Remote.It est un service tiers. OneEarth utilise uniquement son interface en ligne de commande (CLI) de bureau installée par l'utilisateur ; il n'inclut pas ce logiciel, ne le redistribue pas, ne l'enregistre pas et ne crée aucun compte pour ce service.",
       'No folders granted yet.': "Aucun accès à un dossier n'a encore été autorisé.",
       "Your home folder itself can't be granted — pick a subfolder.":
         "L'accès ne peut pas être accordé directement au dossier personnel ; choisissez un sous-dossier.",
@@ -2316,7 +2315,7 @@ describe('mandatory product glossary', () => {
 
   it('ko preserves executable names, API identifiers, code spans, and data directory names', () => {
     const patterns = [
-      /\bOpen-Science\b/g,
+      /\bOneEarth\b/g,
       /\b[\w.-]+\.(?:ps1|sh|mcp)\b/g,
       /<code>[^<]+<\/code>/g,
       /\bMessages(?= (?:or|또는) Chat Completions\b)/g,
@@ -2479,7 +2478,7 @@ describe('mandatory product glossary', () => {
       { source: /\bMain\b/, untranslated: /\bMain\b/ }
     ]
     const retainedIdentifiersAndNames = [
-      /\b(?:specialist\.json|open-science-specialist-template\.zip)\b/gi,
+      /\b(?:specialist\.json|oneearth-specialist-template\.zip)\b/gi,
       /Claude Connectors Directory/g,
       /Specialist Marketplace protocol/g,
       /(?:GitHub|Azure|Microsoft|Visual Studio) Marketplace/g
@@ -2716,12 +2715,12 @@ describe('Russian catalog quality', () => {
     ],
     ['Preview uploaded attachment {{name}}', 'Предпросмотр загруженного вложения {{name}}'],
     [
-      "Open-Science will recreate the folder as you use it. Files from the old location won't be available until it's reconnected.",
-      'Open-Science воссоздаст папку при следующем обращении к ней. Файлы из прежнего расположения будут недоступны, пока подключение не восстановится.'
+      "OneEarth will recreate the folder as you use it. Files from the old location won't be available until it's reconnected.",
+      'OneEarth воссоздаст папку при следующем обращении к ней. Файлы из прежнего расположения будут недоступны, пока подключение не восстановится.'
     ],
     [
-      'Open-Science could not finish recovering a previous project deletion. Retry recovery before archiving or deleting projects.',
-      'Open-Science не удалось завершить восстановление после предыдущего удаления проекта. Повторите восстановление перед архивированием или удалением проектов.'
+      'OneEarth could not finish recovering a previous project deletion. Retry recovery before archiving or deleting projects.',
+      'OneEarth не удалось завершить восстановление после предыдущего удаления проекта. Повторите восстановление перед архивированием или удалением проектов.'
     ],
     ['SSH alias', 'Псевдоним SSH'],
     [
@@ -2790,12 +2789,12 @@ describe('Russian catalog quality', () => {
       'Сохраняет файл как артефакт этого диалога.'
     ],
     [
-      'Access authorization has expired. Reopen the Web link from Open-Science on the host computer, or return to the remote access entry page to pair again.',
-      'Срок действия разрешения на доступ истёк. Снова откройте веб-ссылку из Open-Science на главном компьютере или вернитесь на страницу удалённого доступа для повторного сопряжения.'
+      'Access authorization has expired. Reopen the Web link from OneEarth on the host computer, or return to the remote access entry page to pair again.',
+      'Срок действия разрешения на доступ истёк. Снова откройте веб-ссылку из OneEarth на главном компьютере или вернитесь на страницу удалённого доступа для повторного сопряжения.'
     ],
     [
-      'That folder already contains Open-Science data. Pick an empty folder, or use the default location.',
-      'Эта папка уже содержит данные Open-Science. Выберите пустую папку или используйте расположение по умолчанию.'
+      'That folder already contains OneEarth data. Pick an empty folder, or use the default location.',
+      'Эта папка уже содержит данные OneEarth. Выберите пустую папку или используйте расположение по умолчанию.'
     ],
     [
       'This model is not supported over the Codex Chat Completions bridge. Pick another model for a Codex session.',
@@ -2814,8 +2813,8 @@ describe('Russian catalog quality', () => {
       'Настройте пароль для этого вычислительного узла и повторите попытку.'
     ],
     [
-      'Open-Science maps five relative strengths onto the exact levels accepted by this model.',
-      'Open-Science сопоставляет пять относительных уровней с точными уровнями, поддерживаемыми этой моделью.'
+      'OneEarth maps five relative strengths onto the exact levels accepted by this model.',
+      'OneEarth сопоставляет пять относительных уровней с точными уровнями, поддерживаемыми этой моделью.'
     ],
     [
       'Installed Skill · v{{version}} · include it to bundle a copy.',
@@ -2826,8 +2825,8 @@ describe('Russian catalog quality', () => {
       'Скачано артефактов: {{downloaded}} из {{total}}. Ошибок: {{failed}}.'
     ],
     [
-      'Open-Science exited before this copy finished. Your current data is untouched. Discard the incomplete copy to use this location again.',
-      'Open-Science завершил работу до окончания копирования. Текущие данные не изменены. Удалите неполную копию, чтобы снова использовать это расположение.'
+      'OneEarth exited before this copy finished. Your current data is untouched. Discard the incomplete copy to use this location again.',
+      'OneEarth завершил работу до окончания копирования. Текущие данные не изменены. Удалите неполную копию, чтобы снова использовать это расположение.'
     ],
     ['Publisher: {{publisher}}', 'Издатель: {{publisher}}'],
     ['{{agent}} cannot be accessed.', '{{agent}} недоступен.'],
@@ -2876,8 +2875,8 @@ describe('Russian catalog quality', () => {
       'Инструменты песочницы, которые запускаются без предпросмотра'
     ],
     [
-      'Your research data is in a hidden folder. Moving it into a visible Open-Science folder makes it easy to find and back up — your settings and history stay where they are.',
-      'Ваши исследовательские данные находятся в скрытой папке. Перемещение их в видимую папку Open-Science упростит поиск и резервное копирование — настройки и история останутся на прежнем месте.'
+      'Your research data is in a hidden folder. Moving it into a visible OneEarth folder makes it easy to find and back up — your settings and history stay where they are.',
+      'Ваши исследовательские данные находятся в скрытой папке. Перемещение их в видимую папку OneEarth упростит поиск и резервное копирование — настройки и история останутся на прежнем месте.'
     ],
     ['System Tags stay first', 'Системные теги всегда остаются в начале'],
     ['Reorder {{tag}}', 'Изменить порядок тега {{tag}}'],
@@ -2892,15 +2891,15 @@ describe('Russian catalog quality', () => {
       'Не удалось завершить все фоновые процессы перед обновлением. Повторите попытку.'
     ],
     [
-      'Cancel this update, then use Reveal in Settings → General → Diagnostics to locate the log file. Quit and reopen Open-Science, then try the update again. If the problem returns, review the log for local file paths and give it to a developer or <issueLink>open a GitHub issue</issueLink>.',
-      'Отмените обновление, затем в разделе «Настройки → Общие → Диагностика» нажмите «Показать», чтобы найти файл журнала. Полностью закройте Open-Science, снова откройте приложение и повторите обновление. Если ошибка повторится, проверьте, нет ли в журнале локальных путей к файлам, и передайте его разработчику или <issueLink>создайте обращение на GitHub</issueLink>.'
+      'Cancel this update, then use Reveal in Settings → General → Diagnostics to locate the log file. Quit and reopen OneEarth, then try the update again. If the problem returns, review the log for local file paths and give it to a developer or <issueLink>open a GitHub issue</issueLink>.',
+      'Отмените обновление, затем в разделе «Настройки → Общие → Диагностика» нажмите «Показать», чтобы найти файл журнала. Полностью закройте OneEarth, снова откройте приложение и повторите обновление. Если ошибка повторится, проверьте, нет ли в журнале локальных путей к файлам, и передайте его разработчику или <issueLink>создайте обращение на GitHub</issueLink>.'
     ],
     ['Why this happened', 'Почему это произошло'],
     ['How to fix', 'Как исправить'],
     ['Still stuck? Create an issue for help', 'Проблема не решена? Создать обращение'],
     [
-      'Review and edit the redacted report in Open-Science before opening GitHub.',
-      'Просмотрите и отредактируйте обезличенный отчёт в Open-Science перед открытием GitHub.'
+      'Review and edit the redacted report in OneEarth before opening GitHub.',
+      'Просмотрите и отредактируйте обезличенный отчёт в OneEarth перед открытием GitHub.'
     ],
     ['Skill import menu — 8 states', 'Меню импорта навыков — 8 состояний'],
     ['Import', 'Импортировать'],
@@ -2917,8 +2916,8 @@ describe('Russian catalog quality', () => {
     ['Refresh', 'Обновить'],
     ["Settings panel couldn't be loaded.", 'Не удалось загрузить раздел настроек.'],
     [
-      'Reload Open-Science to try loading this panel again.',
-      'Перезапустите Open-Science, чтобы снова попробовать загрузить этот раздел.'
+      'Reload OneEarth to try loading this panel again.',
+      'Перезапустите OneEarth, чтобы снова попробовать загрузить этот раздел.'
     ],
     ['{{count}} more messages_one', 'Ещё {{count}} сообщение'],
     ['{{count}} more messages_few', 'Ещё {{count}} сообщения'],
@@ -3051,7 +3050,7 @@ describe('Russian catalog quality', () => {
       /\b(?:Claude|Codex) логин/iu,
       /\bAPI ключ/iu,
       /\bMCP инструмент/iu,
-      /Open-Science долж(?:ен|на|но|ны)/iu,
+      /OneEarth долж(?:ен|на|но|ны)/iu,
       /несборн/iu,
       /живые отнош/iu,
       /шаблон вкладки/iu,
@@ -3158,8 +3157,8 @@ describe('Russian catalog quality', () => {
       'Создаёт планы и записывает решения, принятые во время проверки. Это разрешение не утверждает план: каждый план необходимо утверждать отдельно.'
     ],
     [
-      'Remote.It is a third-party service. Open-Science only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.',
-      'Remote.It — сторонний сервис. Open-Science лишь вызывает установленный пользователем настольный CLI-клиент и не включает его в поставку, не распространяет, не регистрирует и не создаёт для него учётную запись.'
+      'Remote.It is a third-party service. OneEarth only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.',
+      'Remote.It — сторонний сервис. OneEarth лишь вызывает установленный пользователем настольный CLI-клиент и не включает его в поставку, не распространяет, не регистрирует и не создаёт для него учётную запись.'
     ],
     ['Incomplete data copy found', 'Обнаружена неполная копия данных'],
     ['Verified data copy found', 'Обнаружена проверенная копия данных'],
@@ -3182,8 +3181,8 @@ describe('Russian catalog quality', () => {
       'Перезапустите приложение, чтобы перейти к новому расположению. До перезапуска ничего не изменится. Чтобы остаться в текущем расположении и удалить копию, выберите «Оставить текущее расположение».'
     ],
     [
-      'This folder already contains Open-Science data. It will be <em>used as-is (not merged)</em> — <em>your current data folder is kept, so you can switch back</em>. The app will restart.',
-      'В этой папке уже есть данные Open-Science. Она будет <em>использована без изменений (без объединения)</em> — <em>текущая папка с данными останется на месте, поэтому к ней можно будет вернуться</em>. Приложение перезапустится.'
+      'This folder already contains OneEarth data. It will be <em>used as-is (not merged)</em> — <em>your current data folder is kept, so you can switch back</em>. The app will restart.',
+      'В этой папке уже есть данные OneEarth. Она будет <em>использована без изменений (без объединения)</em> — <em>текущая папка с данными останется на месте, поэтому к ней можно будет вернуться</em>. Приложение перезапустится.'
     ],
     [
       "Your data folder <path>{{path}}</path> can't be found. It may have been deleted, or it's on a drive that isn't connected.",
@@ -3249,8 +3248,8 @@ describe('Korean safety copy', () => {
       '알림은 다른 앱을 사용하는 동안에만 표시됩니다. 사용자가 취소한 작업과 앱이 자동으로 다시 시도하는 실패는 알림을 표시하지 않습니다. 알림이 처음 표시될 때 운영 체제에서 알림 권한을 요청할 수 있습니다.'
     ],
     [
-      'Remote.It is a third-party service. Open-Science only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.',
-      'Remote.It은 제3자 서비스입니다. Open-Science는 사용자가 설치한 데스크톱 CLI를 호출할 뿐이며, 이를 포함하거나 재배포하지 않고 등록하거나 계정을 생성하지도 않습니다.'
+      'Remote.It is a third-party service. OneEarth only calls its user-installed desktop CLI and does not include, redistribute, register, or create an account for it.',
+      'Remote.It은 제3자 서비스입니다. OneEarth는 사용자가 설치한 데스크톱 CLI를 호출할 뿐이며, 이를 포함하거나 재배포하지 않고 등록하거나 계정을 생성하지도 않습니다.'
     ],
     [
       'This report is posted publicly on GitHub. Edit the error text below to remove anything sensitive before sharing. Your runtime log stays on this device and is never attached automatically.',
@@ -3261,16 +3260,16 @@ describe('Korean safety copy', () => {
       '손상된 대화 {{count}}개를 별도 위치로 옮겼습니다. 영향을 받은 프로젝트 데이터는 상태를 확인할 수 없어 계속 보관할 수 없습니다. 영향을 받은 프로젝트 데이터를 영구 삭제할 수는 있습니다.'
     ],
     [
-      'This will permanently delete "{{name}}" and all of its saved conversations, including any that could not be loaded during recovery. Generated artifacts and uploaded files stored by Open-Science will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone.',
-      '이 작업을 실행하면 복구 중에 로드하지 못한 대화를 포함하여 “{{name}}”과 저장된 모든 대화가 영구적으로 삭제됩니다. Open-Science가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
+      'This will permanently delete "{{name}}" and all of its saved conversations, including any that could not be loaded during recovery. Generated artifacts and uploaded files stored by OneEarth will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone.',
+      '이 작업을 실행하면 복구 중에 로드하지 못한 대화를 포함하여 “{{name}}”과 저장된 모든 대화가 영구적으로 삭제됩니다. OneEarth가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
     ],
     [
-      'This will permanently delete "{{name}}" and its {{count}} sessions. Generated artifacts and uploaded files stored by Open-Science will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone._other',
-      '이 작업을 실행하면 “{{name}}”과 세션 {{count}}개가 영구적으로 삭제됩니다. Open-Science가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
+      'This will permanently delete "{{name}}" and its {{count}} sessions. Generated artifacts and uploaded files stored by OneEarth will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone._other',
+      '이 작업을 실행하면 “{{name}}”과 세션 {{count}}개가 영구적으로 삭제됩니다. OneEarth가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
     ],
     [
-      'This will permanently delete "{{name}}". Generated artifacts and uploaded files stored by Open-Science will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone.',
-      '이 작업을 실행하면 “{{name}}”이 영구적으로 삭제됩니다. Open-Science가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
+      'This will permanently delete "{{name}}". Generated artifacts and uploaded files stored by OneEarth will also be deleted. Files in the project\'s working folder are not deleted. Retained managed Session workspaces remain available in Settings → Storage. This action cannot be undone.',
+      '이 작업을 실행하면 “{{name}}”이 영구적으로 삭제됩니다. OneEarth가 저장한 생성 아티팩트와 업로드 파일도 삭제됩니다. 프로젝트 작업 폴더의 파일은 삭제되지 않습니다. 보존된 관리형 세션 워크스페이스는 설정 → 저장 공간에서 계속 사용할 수 있습니다. 이 작업은 실행 취소할 수 없습니다.'
     ],
     [
       'Individual grants remain revocable; Revoke all is disabled until the complete set is known.',
@@ -3373,12 +3372,12 @@ describe('Korean native UI style', () => {
       '현재 데이터</em>과',
       '설명해주세요',
       '에이전트에 표시',
-      'Open-Science 스페셜리스트를',
-      'Open-Science 프로젝트를',
-      'Open-Science 커넥터를',
-      'Open-Science 스킬을',
-      'Open-Science는 커넥터를 로드',
-      'Open-Science는 스킬을 로드',
+      'OneEarth 스페셜리스트를',
+      'OneEarth 프로젝트를',
+      'OneEarth 커넥터를',
+      'OneEarth 스킬을',
+      'OneEarth는 커넥터를 로드',
+      'OneEarth는 스킬을 로드',
       'https://gateway.example/v1.와',
       '호출 커넥터 도구를 원합니다',
       '세션에 대해 에이전트를 중지',
@@ -3389,20 +3388,20 @@ describe('Korean native UI style', () => {
       '자체 포함된',
       '대화 사용하시면',
       '지원되지 않음 파일',
-      'Open-Science 이',
+      'OneEarth 이',
       '모두 스페셜리스트',
       '대형 파일 (',
       '서브에이전트에서 사용됩니다',
-      'Open-Science 전체 현재 보기',
+      'OneEarth 전체 현재 보기',
       '이 기존 검토에는 평가 세부정보',
       '스페셜리스트는 “',
       '새로고침할 수 없습니다 {{',
       '스페셜리스트에 구성됩니다',
       '미리보기 다시 시도해보세요',
       '이에 대한 자유 형식 메모 모델 제공업체',
-      '에이전트 Open-Science 드라이브',
-      '스캔하여 열기 Open-Science',
-      '프록시 환경 Open-Science',
+      '에이전트 OneEarth 드라이브',
+      '스캔하여 열기 OneEarth',
+      '프록시 환경 OneEarth',
       'protocol 뒤에',
       '<lnk>다운로드 Remote.It',
       '미리보기할 수',
@@ -3632,7 +3631,7 @@ describe('Korean binding terminology', () => {
       'Skills and connectors this specialist can use. Anything not chosen here stays invisible and unreachable in its sessions, even when enabled globally.',
       '이 스페셜리스트가 사용할 수 있는 스킬과 커넥터입니다. 여기에서 선택하지 않은 항목은 전역으로 활성화되어 있어도 해당 세션에서 보이지 않으며 접근할 수 없습니다.'
     ],
-    ['Move to Open-Science', 'Open-Science로 이동'],
+    ['Move to OneEarth', 'OneEarth로 이동'],
     ['Official install.ps1', '공식 install.ps1'],
     [
       'Used by host.mcp("{{name}}", …), Specialists, and the generated MCP skill.',
@@ -3714,8 +3713,8 @@ describe('Russian safety copy', () => {
       'Отдельные разрешения по-прежнему можно отзывать; действие «Отозвать все» недоступно, пока не известен полный набор.'
     ],
     [
-      'This message snapshot was created by a newer version of Open-Science. Update the app to view it.',
-      'Этот снимок сообщения создан в более новой версии Open-Science. Обновите приложение, чтобы его просмотреть.'
+      'This message snapshot was created by a newer version of OneEarth. Update the app to view it.',
+      'Этот снимок сообщения создан в более новой версии OneEarth. Обновите приложение, чтобы его просмотреть.'
     ]
   ])('preserves the scope of %s', (key, expected) => {
     expect(catalog('ru')[key]).toBe(expected)
@@ -5015,8 +5014,8 @@ const bareJsxExpressionValues = (source: string): BareCopy[] => {
 // Proper nouns, product names and literal keystrokes. These render identically in every locale, so
 // wrapping them would add a catalog entry that can only ever be copied verbatim.
 const NOT_TRANSLATABLE = new Set([
-  'Open-Science',
-  'Open-Science Remote',
+  'OneEarth',
+  'OneEarth Remote',
   'Remote.It',
   'Discord',
   'GitHub',

@@ -3,7 +3,13 @@ import { constants as fsConstants, existsSync } from 'node:fs'
 import { access } from 'node:fs/promises'
 import { promisify } from 'node:util'
 
-import type { RemoteItInstallation, RemoteItService } from '../../shared/remote-access'
+import {
+  REMOTE_IT_APP_SERVICE_NAME,
+  type RemoteItInstallation,
+  type RemoteItService
+} from '../../shared/remote-access'
+
+export { REMOTE_IT_APP_SERVICE_NAME } from '../../shared/remote-access'
 
 const execFileAsync = promisify(execFile)
 const COMMAND_TIMEOUT_MS = 15_000
@@ -12,8 +18,11 @@ const REMOTE_IT_HTTP_TYPE = 7
 const REMOTE_IT_BATCH_MARKER = '__OPEN_SCIENCE_REMOTEIT_BATCH_COMMAND_END__'
 const REMOTE_IT_STATUS_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000, 5_000] as const
 const REMOTE_IT_DEVICE_SETUP_AUTHORIZATION_MESSAGE =
-  'This computer must be added as a Remote.It Device before Open-Science can configure remote access. In Remote.It, choose +, select This system, and complete Add Device once. Then return to Open-Science and click Detect again; both Open-Science services will be created automatically.'
-export const REMOTE_IT_APP_SERVICE_NAME = 'Open-Science Remote'
+  'This computer must be added as a Remote.It Device before OneEarth can configure remote access. In Remote.It, choose +, select This system, and complete Add Device once. Then return to OneEarth and click Detect again; both OneEarth services will be created automatically.'
+// Discover and repair existing services in place instead of registering duplicates.
+const LEGACY_APP_SERVICE_NAMES = ['Open-Science Remote', 'Open Science Remote', 'EarthNano Remote']
+const hasLegacyAppServiceName = (name: unknown): boolean =>
+  typeof name === 'string' && LEGACY_APP_SERVICE_NAMES.includes(name)
 export const REMOTE_IT_BROWSER_SERVICE_NAME = 'System Service'
 
 type CommandResult = { stdout: string; stderr: string }
@@ -405,7 +414,7 @@ const readStatusAfterMutation = async (
   }
   const detail = commandError(lastError, 'Remote.It status is temporarily unavailable.').message
   throw new Error(
-    `Remote.It accepted the service changes, but its background agent is still restarting. Open-Science saved the new Service IDs and will reuse them. Wait a few seconds, then click Detect; do not add the device or switch modes again. Technical details: ${detail}`
+    `Remote.It accepted the service changes, but its background agent is still restarting. OneEarth saved the new Service IDs and will reuse them. Wait a few seconds, then click Detect; do not add the device or switch modes again. Technical details: ${detail}`
   )
 }
 
@@ -490,7 +499,7 @@ const matchingManagedService = (
       (entry) =>
         [
           serviceName,
-          ...(serviceName === REMOTE_IT_APP_SERVICE_NAME ? ['Open Science Remote'] : [])
+          ...(serviceName === REMOTE_IT_APP_SERVICE_NAME ? LEGACY_APP_SERVICE_NAMES : [])
         ].includes(stringValue(entry.name) ?? '') &&
         numberValue(entry.type) === REMOTE_IT_HTTP_TYPE &&
         isLoopbackHost(entry.addressHost) &&
@@ -591,14 +600,14 @@ const enrichWindowsServiceNames = async (
     }
     if (unresolvedIds.length > 0) {
       throw new Error(
-        'Remote.It has not reported the names of existing Windows services yet. Wait a few seconds, then try again; Open-Science did not create duplicates.'
+        'Remote.It has not reported the names of existing Windows services yet. Wait a few seconds, then try again; OneEarth did not create duplicates.'
       )
     }
     return status
   } catch (error) {
     throw commandError(
       error,
-      'Remote.It could not identify existing Windows services, so Open-Science stopped before creating duplicates.'
+      'Remote.It could not identify existing Windows services, so OneEarth stopped before creating duplicates.'
     )
   }
 }
@@ -648,7 +657,7 @@ const modifyService = async (
   } catch (error) {
     throw commandError(
       error,
-      'Remote.It could not update the Open-Science service. On macOS or Linux, service management may require administrator approval.'
+      'Remote.It could not update the OneEarth service. On macOS or Linux, service management may require administrator approval.'
     )
   }
 }
@@ -799,7 +808,7 @@ export const enableRemoteItServices = async (
     if (
       service &&
       hasExpectedServiceConfiguration(service, localPort, true) &&
-      stringValue(service.name) !== 'Open Science Remote'
+      !hasLegacyAppServiceName(service.name)
     )
       continue
     planned.push({
@@ -870,7 +879,7 @@ export const enableRemoteItServices = async (
       if (
         !entry ||
         !hasExpectedServiceConfiguration(entry, localPort, true) ||
-        stringValue(entry.name) === 'Open Science Remote'
+        hasLegacyAppServiceName(entry.name)
       )
         return false
     }
@@ -925,7 +934,7 @@ export const enableRemoteItServices = async (
     namedBrowserServiceId ??
     managed.browserServiceId
   if (!appServiceId || !browserServiceId || appServiceId === browserServiceId) {
-    throw new Error('Remote.It did not return two distinct Open-Science service identifiers.')
+    throw new Error('Remote.It did not return two distinct OneEarth service identifiers.')
   }
   await managed.onServiceIdsDiscovered?.({ appServiceId, browserServiceId })
 
@@ -952,7 +961,7 @@ export const enableRemoteItServices = async (
     !hasReadyServiceConfiguration(finalBrowser, localPort)
   ) {
     throw new Error(
-      `Remote.It did not make both Open-Science service endpoints ready at 127.0.0.1:${localPort}.`
+      `Remote.It did not make both OneEarth service endpoints ready at 127.0.0.1:${localPort}.`
     )
   }
 
@@ -987,7 +996,7 @@ export const enableRemoteItService = async (
   if (service) {
     const serviceId = stringValue(service.id)
     if (!serviceId) throw new Error('Remote.It returned an invalid service identifier.')
-    const oldBrand = stringValue(service.name) === 'Open Science Remote'
+    const oldBrand = hasLegacyAppServiceName(service.name)
     const needsRepair = oldBrand || !hasExpectedServiceConfiguration(service, localPort, true)
     if (needsRepair) {
       await modifyService(
@@ -1031,7 +1040,7 @@ export const enableRemoteItService = async (
     } catch (error) {
       throw commandError(
         error,
-        'Remote.It could not create the Open-Science service. On macOS or Linux, service management may require administrator approval.'
+        'Remote.It could not create the OneEarth service. On macOS or Linux, service management may require administrator approval.'
       )
     }
     status = await readStatus(binaryPath, run)
@@ -1057,12 +1066,10 @@ export const enableRemoteItService = async (
   if (!serviceId) {
     throw new Error('Remote.It created the service but did not report its identifier.')
   }
-  if (stringValue(finalService?.name) === 'Open Science Remote')
+  if (hasLegacyAppServiceName(finalService?.name))
     throw new Error('Remote.It did not apply the new application service name.')
   if (!finalService || !hasExpectedServiceConfiguration(finalService, localPort, true)) {
-    throw new Error(
-      `Remote.It did not apply the Open-Science service endpoint 127.0.0.1:${localPort}.`
-    )
+    throw new Error(`Remote.It did not apply the OneEarth service endpoint 127.0.0.1:${localPort}.`)
   }
   const installation = installationView(
     binaryPath,
@@ -1071,7 +1078,7 @@ export const enableRemoteItService = async (
     serviceId
   )
   if (!installation.service?.enabled) {
-    throw new Error('Remote.It created the Open-Science service but it is not enabled.')
+    throw new Error('Remote.It created the OneEarth service but it is not enabled.')
   }
   return { installation, serviceId }
 }
@@ -1102,13 +1109,13 @@ export const ensureRemoteItConnectLink = async (
     const returnedServiceId = stringValue(link?.service?.id)
     const url = stringValue(link?.url)
     if (link?.enabled !== true || returnedServiceId !== serviceId || !url) {
-      throw new Error('Remote.It did not enable a Persistent Public URL for Open-Science.')
+      throw new Error('Remote.It did not enable a Persistent Public URL for OneEarth.')
     }
     return url
   } catch (error) {
     const detail = commandError(
       error,
-      'Remote.It could not enable the Persistent Public URL for Open-Science.'
+      'Remote.It could not enable the Persistent Public URL for OneEarth.'
     ).message
     throw new Error(`Remote.It browser URL setup failed: ${detail}`)
   }

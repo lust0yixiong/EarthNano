@@ -119,7 +119,7 @@ it.each([true, false])(
     const profilePath = join(fixture, 'profile')
     const prepared = await prepareApplicationLocations(configRoot)
     expect((await prepared.repository.getSettings()).dataRoot).toBeUndefined()
-    expect(resolveDataRoot()).toBe(join(fixture, packaged ? 'Open-Science' : 'Open-Science-DEV'))
+    expect(resolveDataRoot()).toBe(join(fixture, packaged ? 'OneEarth' : 'OneEarth-DEV'))
     expect(await readdir(resolveDataRoot())).toEqual([RUNTIME_LOCK_FILE])
     expect((await prepared.repository.getSettings()).onboardingCompletedAt).toBeUndefined()
     expect(existsSync(join(configRoot, 'settings.json'))).toBe(false)
@@ -214,7 +214,7 @@ it('does not infer a root from research content in the configuration directory',
   await seed(join(fixture, 'Open-Science'))
   const repository = new SettingsRepository(configRoot)
   await initializeDataLocation(repository)
-  expect(resolveDataRoot()).toBe(join(fixture, 'Open-Science'))
+  expect(resolveDataRoot()).toBe(join(fixture, 'OneEarth'))
   expect((await repository.getSettings()).dataRoot).toBeUndefined()
   expect((await repository.getSettings()).onboardingCompletedAt).toBeUndefined()
 })
@@ -223,7 +223,7 @@ it('does not infer a data pointer from old copies when settings is absent', asyn
   await seed(join(fixture, 'OpenScience'))
   const repository = new SettingsRepository(resolveConfigRoot())
   await initializeDataLocation(repository)
-  expect(resolveDataRoot()).toBe(join(fixture, 'Open-Science'))
+  expect(resolveDataRoot()).toBe(join(fixture, 'OneEarth'))
   expect((await repository.getSettings()).dataRoot).toBeUndefined()
   expect((await repository.getSettings()).onboardingCompletedAt).toBeUndefined()
   expect(await readFile(join(fixture, 'OpenScience/workspaces/history.json'), 'utf8')).toContain(
@@ -240,7 +240,7 @@ it.each([true, false])(
     const profilePath = join(fixture, 'task-profile')
     const { repository } = await prepareApplicationLocations(configRoot)
     expect((await repository.getSettings()).dataRoot).toBeUndefined()
-    expect(resolveDataRoot()).toBe(join(configRoot, packaged ? 'Open-Science' : 'Open-Science-DEV'))
+    expect(resolveDataRoot()).toBe(join(configRoot, packaged ? 'OneEarth' : 'OneEarth-DEV'))
     expect(existsSync(join(fixture, '.open-science'))).toBe(false)
     expect(existsSync(join(fixture, '.open-science-project'))).toBe(false)
     expect(existsSync(profilePath)).toBe(false)
@@ -308,7 +308,6 @@ it.each([true, false])(
     const attachment = join(getSessionUploadDir(legacy, 'historical-session'), 'notes.txt')
     await mkdir(getSessionUploadDir(legacy, 'historical-session'), { recursive: true })
     await writeFile(attachment, 'historical attachment')
-    await seed(join(fixture, packaged ? 'Open-Science' : 'Open-Science-DEV'))
     await mkdir(configRoot, { recursive: true })
     const json = '{"version":2,"providers":[],"onboardingCompletedAt":1234}'
     await writeFile(join(configRoot, 'settings.json'), json)
@@ -391,7 +390,7 @@ it.each([null, '', '   '])(
     const json = JSON.stringify({ version: 2, dataRoot })
     await writeFile(join(configRoot, 'settings.json'), json)
     const { repository } = await prepareApplicationLocations(configRoot)
-    expect(resolveDataRoot()).toBe(join(fixture, 'Open-Science'))
+    expect(resolveDataRoot()).toBe(join(fixture, 'OneEarth'))
     expect((await repository.getSettings()).dataRoot).toBeUndefined()
     expect(await readFile(join(configRoot, 'settings.json'), 'utf8')).toBe(json)
   }
@@ -783,3 +782,40 @@ const resetOwnership = configureTestRuntimeMetadata(() => ({
   packaged: state.packaged
 }))
 const { resetOwnershipSync } = resetOwnership
+
+it.each(['OneEarth', 'EarthNano', 'Open-Science', 'OpenScience'])(
+  'resolves a completed implicit %s root without moving it',
+  async (folder) => {
+    const existing = join(fixture, folder)
+    await seed(existing)
+    initDataRoot(undefined, 1234)
+    expect(resolveDataRoot()).toBe(existing)
+    expect(dataRootForPicked(existing)).toBe(existing)
+    expect(dataRootForPicked(fixture)).toBe(existing)
+    expect(await readFile(join(existing, 'workspaces/history.json'), 'utf8')).toContain('retained')
+  }
+)
+
+it.each(['EarthNano', 'Open-Science', 'OpenScience'])(
+  'requires an explicit choice when OneEarth and %s both have research',
+  async (legacy) => {
+    await seed(join(fixture, 'OneEarth'))
+    await seed(join(fixture, legacy))
+    expect(() => initDataRoot(undefined, 1234)).toThrow(/Multiple data locations/)
+    expect(() => dataRootForPicked(fixture)).toThrow(/Multiple data locations/)
+    initDataRoot(join(fixture, legacy), 1234)
+    expect(resolveDataRoot()).toBe(join(fixture, legacy))
+  }
+)
+
+it('does not report a conflict when legacy dev spellings resolve to the same data', async () => {
+  state.packaged = false
+  const legacy = join(fixture, 'OpenScience-DEV')
+  const alias = join(fixture, 'OpenScience-dev')
+  await seed(legacy)
+  // On case-insensitive filesystems these names already refer to the same directory.
+  if (!existsSync(alias)) await symlink(legacy, alias, 'dir')
+  expect(dataRootForPicked(fixture)).toBe(legacy)
+  initDataRoot(undefined, 1234)
+  expect(resolveDataRoot()).toBe(legacy)
+})

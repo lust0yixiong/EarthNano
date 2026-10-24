@@ -734,8 +734,7 @@ export async function startDesktopRuntimeTransport(options: {
           ? [...connections].find(([, documents]) => documents.has(clientId))?.[0]
           : activeSocket()
         const requestNative = socket && nativeConnections.get(socket)
-        if (!requestNative)
-          throw new Error('This operation requires a connected Open-Science desktop.')
+        if (!requestNative) throw new Error('This operation requires a connected OneEarth desktop.')
         return requestNative(request, clientId, signal)
       },
       close: async () => {

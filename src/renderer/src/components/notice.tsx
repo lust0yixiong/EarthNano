@@ -178,7 +178,9 @@ const Notice = ({
         className
       )}
     >
-      {fullPage ? <FlaskLogo className="mb-4 size-18 self-center text-text-300" /> : null}
+      {fullPage ? (
+        <FlaskLogo aria-hidden="true" className="mb-4 size-18 self-center text-text-300" />
+      ) : null}
 
       {title !== undefined || description !== undefined || content !== undefined ? (
         <div className={cn('flex min-w-0 flex-wrap items-start', unboxed ? 'gap-2' : 'gap-3')}>

@@ -131,7 +131,7 @@ export async function resolveDesktopInstallationStartup(
         canRecover: true,
         diagnostics
       },
-      'The installation needs recovery before Open-Science can start.',
+      'The installation needs recovery before OneEarth can start.',
       undefined,
       async () => {
         const record = inspectInstallationUpdate(options)

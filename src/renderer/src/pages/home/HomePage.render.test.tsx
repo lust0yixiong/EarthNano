@@ -2108,7 +2108,7 @@ describe('HomePage activity overview', () => {
     )
     expect(retry).toBeDefined()
     expect(container.querySelector('[role="alert"] p')?.textContent).toBe(
-      'Open-Science could not load projects. Retry to continue.'
+      'OneEarth could not load projects. Retry to continue.'
     )
     expect(container.textContent).not.toContain('database is locked')
     const section = container.querySelector<HTMLElement>('[aria-label="Projects"]')!

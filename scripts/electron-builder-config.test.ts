@@ -612,9 +612,33 @@ it('registers .science as a viewable document without changing the per-user inst
   )
   expect(config.win.fileAssociations[0]).toMatchObject({
     name: 'Open Science Session package',
-    description: 'EarthNano Session package'
+    description: 'OneEarth Session package'
   })
-  expect(config.mac.fileAssociations[0].name).toBe('EarthNano Session package')
-  expect(config.linux.fileAssociations[0].name).toBe('EarthNano Session package')
+  expect(config.mac.fileAssociations[0].name).toBe('OneEarth Session package')
+  expect(config.linux.fileAssociations[0].name).toBe('OneEarth Session package')
   expect(config.nsis).toMatchObject({ perMachine: false, allowElevation: false })
+})
+
+it('preserves all branded data roots around Windows upgrades without changing legacy slots', () => {
+  const source = readFileSync(join(process.cwd(), 'build/installer.nsh'), 'utf8')
+  const preserve = source.match(/!macro preserveNestedDataRoot[\s\S]*?!macroend/)![0]
+  const restore = source.match(/!macro restoreNestedDataRoot[\s\S]*?!macroend/)![0]
+  for (const [brand, suffix, slot] of [
+    ['OpenScience', '', ''],
+    ['Open-Science', 'Branded', '-branded'],
+    ['OneEarth', 'OneEarth', '-oneearth'],
+    ['EarthNano', 'EarthNano', '-earthnano']
+  ]) {
+    expect(preserve).toContain(
+      `preserveNamedDataRoot \${DIR} \${BACKUP}${suffix} \${SLOT}${slot} ${brand}`
+    )
+    expect(restore).toContain(`restoreNamedDataRoot \${DIR} \${BACKUP}${suffix} ${brand}`)
+  }
+  for (const brand of ['OneEarth', 'EarthNano']) {
+    expect(source).toContain(`StrCpy $perMachineDataBackup${brand} $perUserDataBackup${brand}`)
+    expect(source).toContain(`preserveRetryDataRoot \${DIR} $retry${brand}DataBackup ${brand}`)
+    expect(source).toContain(
+      `restoreRetryDataRoot \${DIR} $retry${brand}DataBackup \${REGISTERED_${brand.toUpperCase()}_BACKUP} ${brand}`
+    )
+  }
 })

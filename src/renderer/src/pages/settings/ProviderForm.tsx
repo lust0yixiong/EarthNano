@@ -491,7 +491,7 @@ const ProviderForm = ({
           <p className="text-sm font-medium text-foreground">{t('One xAI login, every agent')}</p>
           <p className="text-xs text-muted-foreground">
             {t(
-              'Save this provider, then sign in from its card with a device code. Open-Science securely refreshes the login and exposes Messages, Chat Completions, and Responses locally.'
+              'Save this provider, then sign in from its card with a device code. OneEarth securely refreshes the login and exposes Messages, Chat Completions, and Responses locally.'
             )}
           </p>
           <code className="font-mono text-xs text-muted-foreground">
@@ -514,22 +514,22 @@ const ProviderForm = ({
                   <span>
                     {value.type === 'codex-shared'
                       ? t('Import existing Codex sign-in')
-                      : t('Sign in with Open-Science')}
+                      : t('Sign in with OneEarth')}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="codex-shared">{t('Import existing Codex sign-in')}</SelectItem>
-                  <SelectItem value="codex-isolated">{t('Sign in with Open-Science')}</SelectItem>
+                  <SelectItem value="codex-isolated">{t('Sign in with OneEarth')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <p className="text-xs text-muted-foreground">
               {value.type === 'codex-shared'
                 ? t(
-                    "Copies Codex authentication and, when compatible, the active provider's non-secret loopback route into Open-Science app data. Other global config, Skills and sessions are not imported."
+                    "Copies Codex authentication and, when compatible, the active provider's non-secret loopback route into OneEarth app data. Other global config, Skills and sessions are not imported."
                   )
                 : t(
-                    'Stores a separate Codex login in Open-Science app data without changing your Codex CLI profile.'
+                    'Stores a separate Codex login in OneEarth app data without changing your Codex CLI profile.'
                   )}
             </p>
           </div>
@@ -610,7 +610,7 @@ const ProviderForm = ({
                     'Recommended. Uses your existing Claude login from ~/.claude. Sign in once via browser OAuth and use across all Claude tools.'
                   )
                 : t(
-                    'Advanced. Signs in through the browser and stores a separate Claude login in Open-Science, completely isolated from your personal Claude profile.'
+                    'Advanced. Signs in through the browser and stores a separate Claude login in OneEarth, completely isolated from your personal Claude profile.'
                   )}
             </p>
             <div className="space-y-1.5 border-t border-border-200 pt-3">
@@ -883,7 +883,7 @@ const ProviderForm = ({
                           <>
                             <span className="block">
                               {t(
-                                'Open-Science maps five relative strengths onto the exact levels accepted by this model.'
+                                'OneEarth maps five relative strengths onto the exact levels accepted by this model.'
                               )}
                             </span>
                             <span className="mt-1 block">
@@ -1048,7 +1048,7 @@ const ProviderForm = ({
               </p>
               <p>
                 {t(
-                  'Open-Science keeps legacy model names after refresh so existing sessions can continue using their original model IDs.'
+                  'OneEarth keeps legacy model names after refresh so existing sessions can continue using their original model IDs.'
                 )}
               </p>
               <ExternalTextLink href="https://api-docs.deepseek.com/quick_start/pricing/">

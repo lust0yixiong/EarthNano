@@ -58,7 +58,7 @@ describe('specialist store catalog', () => {
     expect(useSpecialistStore.getState()).toMatchObject({
       items: [],
       isLoaded: false,
-      loadError: 'Open-Science could not load Specialists. Retry to continue.'
+      loadError: 'OneEarth could not load Specialists. Retry to continue.'
     })
 
     await expect(useSpecialistStore.getState().load()).resolves.toBeUndefined()

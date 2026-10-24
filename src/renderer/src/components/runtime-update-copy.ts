@@ -19,7 +19,7 @@ export const runtimeUpdateCopy = (
       }
     case 'S06':
       return {
-        title: t('Another Open-Science is using the service'),
+        title: t('Another OneEarth is using the service'),
         description: t(
           'Finish your work in the other app and quit it from its application menu, then recheck.'
         )
@@ -35,7 +35,7 @@ export const runtimeUpdateCopy = (
       return {
         title: t('The app cannot update automatically'),
         description: t(
-          'The update cannot keep your current settings. Cancel to continue working, or check again after updating Open-Science separately.'
+          'The update cannot keep your current settings. Cancel to continue working, or check again after updating OneEarth separately.'
         )
       }
     case 'S09':
@@ -77,7 +77,7 @@ export const runtimeUpdateCopy = (
       return {
         title: t('Application files are incomplete'),
         description: t(
-          'Reinstall Open-Science using its installer or package manager, then check the installation. This button checks files; it does not repair them. Keep your configuration and data folders.'
+          'Reinstall OneEarth using its installer or package manager, then check the installation. This button checks files; it does not repair them. Keep your configuration and data folders.'
         )
       }
     case 'S20':
@@ -128,7 +128,7 @@ export const runtimeUpdateCopy = (
       return {
         title: t('Manual update required'),
         description: t(
-          'Update Open-Science using its installer or package manager, then check again. You can cancel to continue working with this version.'
+          'Update OneEarth using its installer or package manager, then check again. You can cancel to continue working with this version.'
         )
       }
     case 'S33':

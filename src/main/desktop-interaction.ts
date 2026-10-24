@@ -44,7 +44,7 @@ export class DesktopCapabilityUnavailable extends ApplicationCommandError {
   constructor(capability: string) {
     super(
       'command-unavailable',
-      `${capability} requires the Open-Science desktop app. It is unavailable in the Node backend.`
+      `${capability} requires the OneEarth desktop app. It is unavailable in the Node backend.`
     )
     this.name = 'DesktopCapabilityUnavailable'
   }

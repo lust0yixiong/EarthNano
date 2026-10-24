@@ -222,7 +222,7 @@ const createMainWindow = (
     height: 960,
     minWidth: 1100,
     minHeight: 720,
-    title: 'EarthNano',
+    title: 'OneEarth',
     ...(process.platform === 'win32'
       ? { titleBarStyle: 'hidden', titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT } }
       : {}),
@@ -343,7 +343,7 @@ const createMainWindow = (
         buttons: [translate('Reload', { context: 'window' }), translate('Close window')],
         defaultId: 0,
         cancelId: 1,
-        title: 'EarthNano',
+        title: 'OneEarth',
         message: translate('The app window stopped responding repeatedly.'),
         detail: translate(
           'Automatic recovery has been paused. Reloading returns this window to the home screen; background work may still be running.'

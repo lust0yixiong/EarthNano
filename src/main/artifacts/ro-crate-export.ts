@@ -156,14 +156,14 @@ const buildArtifactVersionRoCrateMetadata = (
     dateCreated: evidence.created_at,
     version: `v${evidence.version_number}`,
     description: packagedDataPaths.has(evidence.version_id)
-      ? 'Immutable Open Science Artifact Version payload included in this RO-Crate and verified against its declared size and SHA-256 checksum.'
+      ? 'Immutable OneEarth Artifact Version payload included in this RO-Crate and verified against its declared size and SHA-256 checksum.'
       : source.contentStatus.state === 'unavailable'
-        ? `Immutable Open Science Artifact Version payload. Payload content is currently unavailable (${source.contentStatus.reason}) from the source installation; the checksum remains the authoritative identity, and the bytes are not included in this crate.`
+        ? `Immutable OneEarth Artifact Version payload. Payload content is currently unavailable (${source.contentStatus.reason}) from the source installation; the checksum remains the authoritative identity, and the bytes are not included in this crate.`
         : omittedDataReasons.has(evidence.version_id)
-          ? `Immutable Open Science Artifact Version payload. The bytes ${omittedDataReasons.get(evidence.version_id)} and are not included; the checksum remains the authoritative identity.`
+          ? `Immutable OneEarth Artifact Version payload. The bytes ${omittedDataReasons.get(evidence.version_id)} and are not included; the checksum remains the authoritative identity.`
           : profile === 'lightweight'
-            ? 'Immutable Open Science Artifact Version payload. This lightweight crate references the payload by SHA-256 checksum and does not include the bytes.'
-            : 'Immutable Open Science Artifact Version payload referenced by SHA-256 checksum; the bytes are not included in this crate.',
+            ? 'Immutable OneEarth Artifact Version payload. This lightweight crate references the payload by SHA-256 checksum and does not include the bytes.'
+            : 'Immutable OneEarth Artifact Version payload referenced by SHA-256 checksum; the bytes are not included in this crate.',
     ...(descriptor.originKind
       ? { additionalProperty: [propertyValue('originKind', descriptor.originKind)] }
       : {})
@@ -196,7 +196,7 @@ const buildArtifactVersionRoCrateMetadata = (
   const agentEntity: RoCrateEntity = {
     '@type': 'SoftwareAgent',
     '@id': agentId,
-    name: evidence.agent_name ?? 'Open Science agent',
+    name: evidence.agent_name ?? 'OneEarth agent',
     description:
       'Agent that produced the conversation branch in which this Artifact Version was published.'
   }
@@ -388,7 +388,7 @@ const buildArtifactVersionRoCrateMetadata = (
     encodingFormat: 'application/json',
     contentSize: String(Buffer.byteLength(content, 'utf8')),
     sha256: sha256(content),
-    description: 'Verbatim Open Science provenance record retained alongside the RO-Crate metadata.'
+    description: 'Verbatim OneEarth provenance record retained alongside the RO-Crate metadata.'
   }))
 
   const producerCodeEntity: RoCrateEntity | undefined =
@@ -462,10 +462,10 @@ const buildArtifactVersionRoCrateMetadata = (
     license: 'License information was not provided. This export grants no additional usage rights.',
     description:
       profile === 'lightweight'
-        ? 'Open Science Artifact Version provenance crate (lightweight profile). Serializes the provenance captured for one immutable Artifact Version — checksums, producer code, execution history, exact input references, environment inventory, message-branch context, and reviewer evidence — as RO-Crate 1.1 metadata. Provenance is an audit and traceability record, not a deterministic replay contract. Data payloads and input files are referenced by SHA-256 checksum and are not included.'
+        ? 'OneEarth Artifact Version provenance crate (lightweight profile). Serializes the provenance captured for one immutable Artifact Version — checksums, producer code, execution history, exact input references, environment inventory, message-branch context, and reviewer evidence — as RO-Crate 1.1 metadata. Provenance is an audit and traceability record, not a deterministic replay contract. Data payloads and input files are referenced by SHA-256 checksum and are not included.'
         : omittedDataReasons.size
-          ? 'Open Science Artifact Version provenance crate (complete profile). Includes every available data file that passed declared size and SHA-256 verification. Some data files could not be included and remain immutable checksum references, so this crate is not fully self-contained. Provenance is an audit and traceability record, not a deterministic replay contract.'
-          : 'Open Science Artifact Version provenance crate (complete profile). Includes the Artifact Version payload and exact input file bytes together with their provenance as RO-Crate 1.1 metadata. Provenance is an audit and traceability record, not a deterministic replay contract.',
+          ? 'OneEarth Artifact Version provenance crate (complete profile). Includes every available data file that passed declared size and SHA-256 verification. Some data files could not be included and remain immutable checksum references, so this crate is not fully self-contained. Provenance is an audit and traceability record, not a deterministic replay contract.'
+          : 'OneEarth Artifact Version provenance crate (complete profile). Includes the Artifact Version payload and exact input file bytes together with their provenance as RO-Crate 1.1 metadata. Provenance is an audit and traceability record, not a deterministic replay contract.',
     mainEntity: reference(payloadId),
     conformsTo: reference(profile === 'complete' ? COMPLETE_PROFILE : LIGHTWEIGHT_PROFILE),
     hasPart: [

@@ -27,8 +27,8 @@ export async function recoverDesktopBackendStartup(
   while (true) {
     const { response } = await dialog.showMessageBox({
       type: 'error',
-      title: 'Open-Science',
-      message: translate('Open-Science could not start the backend.'),
+      title: 'OneEarth',
+      message: translate('OneEarth could not start the backend.'),
       detail: `${detail}\n\nSTARTUP_STAGE: ${error.stage}`,
       buttons: [
         ...(error.canRetry ? [translate('Retry startup')] : []),
@@ -44,7 +44,7 @@ export async function recoverDesktopBackendStartup(
       if (failure)
         await dialog.showMessageBox({
           type: 'error',
-          title: 'Open-Science',
+          title: 'OneEarth',
           message: translate('Could not open the logs folder.'),
           detail: error.logs
         })

@@ -4,7 +4,7 @@ import { buildContributionTemplateZip } from '@aipoch/specialists/node'
 import { type ContributionTemplateExportResult } from '../../../shared/specialist'
 import { englishNativeTranslator, type NativeTranslator } from '../../locale/main-process-messages'
 
-export const CONTRIBUTION_TEMPLATE_FILENAME = 'open-science-specialist-template.zip'
+export const CONTRIBUTION_TEMPLATE_FILENAME = 'oneearth-specialist-template.zip'
 
 export const resolveContributionTemplateReadmePath = (appPath: string): string =>
   join(appPath, 'resources', 'specialists', 'template', 'v1', 'README.txt').replace(

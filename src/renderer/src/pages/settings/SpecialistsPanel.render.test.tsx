@@ -216,7 +216,7 @@ describe('SpecialistsPanel', () => {
     })
 
     expect(document.body.textContent).toContain(
-      'Open-Science could not load Specialists. Retry to continue.'
+      'OneEarth could not load Specialists. Retry to continue.'
     )
     expect(document.body.textContent).not.toContain('Loading…')
 
@@ -864,7 +864,7 @@ describe('SpecialistsPanel', () => {
     await act(async () => finishSave?.({ saved: true }))
     expect(document.body.textContent).toContain('Template saved')
     expect(document.body.textContent).toContain(
-      'open-science-specialist-template.zip is ready for contributor editing.'
+      'oneearth-specialist-template.zip is ready for contributor editing.'
     )
   })
 
@@ -1054,7 +1054,7 @@ describe('SpecialistsPanel', () => {
     },
     {
       code: 'recovery-failed' as const,
-      copy: 'Open-Science could not recover an earlier package operation. Restart the app before trying again.',
+      copy: 'OneEarth could not recover an earlier package operation. Restart the app before trying again.',
       action: 'Open data folder'
     },
     {
@@ -2471,7 +2471,7 @@ describe('S04 explicit Specialist refresh controls', () => {
       useSpecialistStore.setState(
         scenario === 'read failure'
           ? {
-              loadError: 'Open-Science could not load Specialists. Retry to continue.'
+              loadError: 'OneEarth could not load Specialists. Retry to continue.'
             }
           : {
               integrity: {

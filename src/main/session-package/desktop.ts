@@ -462,7 +462,7 @@ export class SessionPackageDesktop {
     if (detail === PACKAGE_REQUIRES_UPDATE)
       throw new Error(
         translate(
-          'This Session package requires a newer version of Open Science. Update Open Science, then try importing it again.'
+          'This Session package requires a newer version of OneEarth. Update OneEarth, then try importing it again.'
         ),
         { cause: error }
       )
@@ -654,7 +654,7 @@ export class SessionPackageDesktop {
                     const options = {
                       title: this.options.translate('Export Session package'),
                       defaultPath: `${sanitizeExportFilename(title || 'Session', 220)}-${date}.science`,
-                      filters: [{ name: 'Open-Science Session', extensions: ['science'] }]
+                      filters: [{ name: 'OneEarth Session', extensions: ['science'] }]
                     }
                     const selected = await this.nativeDialog(
                       desktopFileInteraction().chooseSavePath(options, callerId),
@@ -762,7 +762,7 @@ export class SessionPackageDesktop {
               const options = {
                 title: this.options.translate('Import Session package'),
                 properties: ['openFile'] as ['openFile'],
-                filters: [{ name: 'Open-Science Session', extensions: ['science'] }]
+                filters: [{ name: 'OneEarth Session', extensions: ['science'] }]
               }
               const selected = sourcePath
                 ? { canceled: false, filePaths: [sourcePath] }

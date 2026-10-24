@@ -470,7 +470,7 @@ describe('Connector configuration templates', () => {
     expect(result.preview).toMatchObject({
       ready: true,
       connectorId: 'local-id',
-      suggestedFileName: 'open-science-connector-example-server.json'
+      suggestedFileName: 'oneearth-connector-example-server.json'
     })
     expect(result.preview.digest).toMatch(/^[a-f0-9]{64}$/)
     expect(buildConnectorTemplateExport(source).preview.digest).toBe(result.preview.digest)

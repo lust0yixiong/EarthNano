@@ -287,7 +287,7 @@ const NetworkPanel = ({
                   {connectivity !== 'probe-failed' ? (
                     <li>
                       {t(
-                        'Check the proxy used by Open-Science. A working browser connection may use different proxy settings.'
+                        'Check the proxy used by OneEarth. A working browser connection may use different proxy settings.'
                       )}
                     </li>
                   ) : (
@@ -342,7 +342,7 @@ const NetworkPanel = ({
         <SettingsSection
           title={t('Proxy')}
           description={t(
-            'How Open-Science, ACP agents, notebook runtimes, and installers reach the internet.'
+            'How OneEarth, ACP agents, notebook runtimes, and installers reach the internet.'
           )}
           aria-label={t('Proxy')}
           data-settings-anchor="network.proxy"

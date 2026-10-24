@@ -799,7 +799,7 @@ describe('NSIS installer include (build/installer.nsh)', () => {
   })
 
   it('records actionable cleanup failure reasons in the NSIS detail log', () => {
-    expect(include).toContain('Open-Science Notebook cleanup failure code=$0')
+    expect(include).toContain('OneEarth Notebook cleanup failure code=$0')
     for (const code of [
       'parent-path-unresolved',
       'backup-already-exists',
@@ -807,7 +807,7 @@ describe('NSIS installer include (build/installer.nsh)', () => {
       'restore-destination-exists',
       'restore-rename-failed'
     ]) {
-      expect(include).toContain(`Open-Science data protection failure code=${code}`)
+      expect(include).toContain(`OneEarth data protection failure code=${code}`)
     }
   })
 })
@@ -816,7 +816,7 @@ it('protects both re-created branded data folders before retrying the old uninst
   const include = readFileSync(join(process.cwd(), 'build/installer.nsh'), 'utf8')
   const recovery =
     include.match(/!macro uninstallFailureRecoveryAt DIR[\s\S]*?!macroend/)?.[0] ?? ''
-  for (const name of ['OpenScience', 'Open-Science']) {
+  for (const name of ['OpenScience', 'Open-Science', 'OneEarth', 'EarthNano']) {
     expect(recovery).toMatch(
       new RegExp('!insertmacro preserveRetryDataRoot[^\\n]+ ' + name + '(?:\\n|$)')
     )

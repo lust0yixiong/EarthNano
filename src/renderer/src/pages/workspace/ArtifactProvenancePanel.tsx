@@ -1520,7 +1520,7 @@ const ArtifactProvenancePanel = ({
   const editSummary = isUserEdit ? (
     <div className="space-y-1.5 text-xs text-text-300">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span>{t('Edited in Open-Science')}</span>
+        <span>{t('Edited in OneEarth')}</span>
         {basedOnVersionId && basedOnVersionNumber !== undefined ? (
           <button
             type="button"
@@ -2058,7 +2058,7 @@ const ArtifactProvenancePanel = ({
               <p>
                 {provenance.messages.reason === 'message-snapshot-unsupported'
                   ? t(
-                      'This message snapshot was created by a newer version of Open-Science. Update the app to view it.'
+                      'This message snapshot was created by a newer version of OneEarth. Update the app to view it.'
                     )
                   : t(
                       'The immutable message snapshot is not available for this version ({{reason}}).',
@@ -2244,9 +2244,7 @@ const ArtifactProvenancePanel = ({
                               sha256-{lock.lockChecksum}
                             </p>
                             <p>
-                              {t(
-                                'Downloads include Open-Science metadata and tool-native lock files.'
-                              )}
+                              {t('Downloads include OneEarth metadata and tool-native lock files.')}
                             </p>
                           </div>
                         </details>

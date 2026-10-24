@@ -114,7 +114,7 @@ import {
 } from './renderer-diagnostics'
 import type { DiagnosticOperation } from '@aipoch/diagnostics/node'
 
-const APP_NAME = 'EarthNano'
+const APP_NAME = 'OneEarth'
 const APP_USER_MODEL_ID = 'com.aipoch.open-science'
 const bootstrapLog = createLogger('desktop-bootstrap')
 const webServiceLog = createLogger('web-service')
@@ -1673,7 +1673,7 @@ async function startDesktop(): Promise<void> {
               defaultId: 0,
               cancelId: 0,
               title: translate('Move in progress'),
-              message: translate('Open-Science is still moving your data.'),
+              message: translate('OneEarth is still moving your data.'),
               detail: translate(
                 'Your data is safe either way, but quitting now leaves the move unfinished — you may need to start it again. Keep the app open until it finishes.'
               )

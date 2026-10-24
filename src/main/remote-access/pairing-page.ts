@@ -36,14 +36,14 @@ export const renderPairingPage = (params: {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <title>Connect to Open-Science</title>
+    <title>Connect to OneEarth</title>
     <style>
       :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       * { box-sizing: border-box; }
       body { min-height: 100dvh; margin: 0; display: grid; place-items: center; padding: 24px; background: #f5f6f4; color: #1d211f; }
       .card { width: min(100%, 440px); padding: 30px; border: 1px solid #d9ddda; border-radius: 20px; background: #fff; box-shadow: 0 24px 70px rgba(22, 31, 27, .12); }
       .brand { display: flex; align-items: center; gap: 10px; }
-      .brand-logo { width: 42px; height: 41px; flex: none; color: #2a2a28; }
+      .brand-logo { width: 42px; height: 42px; flex: none; color: #2a2a28; }
       .brand-name { font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; font-size: 26px; font-weight: 500; line-height: 1; letter-spacing: -.02em; }
       h1 { margin: 22px 0 8px; font-size: 24px; line-height: 1.25; }
       p { margin: 0; color: #66716c; font-size: 14px; line-height: 1.6; }
@@ -69,10 +69,10 @@ export const renderPairingPage = (params: {
     <main class="card">
       <div class="brand">
         ${openScienceLogo}
-        <div class="brand-name">Open-Science</div>
+        <div class="brand-name">OneEarth</div>
       </div>
       <h1>Approve this browser</h1>
-      <p>On your home computer, open Open-Science → Settings → Remote, then verify and approve the pairing code below.</p>
+      <p>On your home computer, open OneEarth → Settings → Remote, then verify and approve the pairing code below.</p>
       <div class="code" aria-label="Pairing code">${code}</div>
       <p>Choose “Allow for up to 12 hours” or “Trust this browser for 180 days”. Do not share this pairing code with anyone.</p>
       <div class="device">${browser} · ${platform}</div>
@@ -120,7 +120,7 @@ export const renderPairingPage = (params: {
           if (Date.now() >= expiry) { expire(); return; }
           if (signal.aborted) return;
           if (result.status === 'approved') {
-            finish('approved', 'Approved. Opening Open-Science…');
+            finish('approved', 'Approved. Opening OneEarth…');
             pollTimer = window.setTimeout(() => window.location.replace('/'), 300);
             return;
           }

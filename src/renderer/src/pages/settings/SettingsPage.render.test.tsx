@@ -5035,7 +5035,7 @@ describe('SettingsPage layout', () => {
           id: 'storage' as const,
           label: 'App storage permission',
           status: 'failed' as const,
-          summary: 'Open-Science cannot write to its private data folder.'
+          summary: 'OneEarth cannot write to its private data folder.'
         }
       ],
       ready: false,
@@ -5051,7 +5051,7 @@ describe('SettingsPage layout', () => {
           id: 'storage' as const,
           label: 'App storage permission',
           status: 'passed' as const,
-          summary: 'Open-Science can write to its private data folder.'
+          summary: 'OneEarth can write to its private data folder.'
         },
         {
           id: 'agent' as const,

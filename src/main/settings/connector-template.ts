@@ -681,7 +681,7 @@ export const parseConnectorTemplate = (
           diagnostics,
           'warning',
           'connector-template.normalized-name',
-          'MCP server name was normalized for Open-Science.',
+          'MCP server name was normalized for OneEarth.',
           path
         )
       }
@@ -1127,7 +1127,7 @@ export const buildConnectorTemplateExport = (
       ...parsed,
       connectorId: source.id,
       digest,
-      suggestedFileName: `open-science-connector-${source.name}.json`,
+      suggestedFileName: `oneearth-connector-${source.name}.json`,
       mcpClientDigest,
       mcpClientSuggestedFileName: `mcp-${source.name}.json`,
       ...(mcpClientDiagnostics.length ? { mcpClientDiagnostics } : {})

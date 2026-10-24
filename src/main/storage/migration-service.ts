@@ -260,7 +260,7 @@ export const classifyDataRoot = async (
       return {
         kind: 'invalid',
         error:
-          'Network folders are not supported as the Open-Science data location on Windows. Choose a folder on a local drive.'
+          'Network folders are not supported as the OneEarth data location on Windows. Choose a folder on a local drive.'
       }
     }
     if (!capabilities.supportsHardLinks) {
@@ -356,7 +356,7 @@ export const classifyDataRoot = async (
     return {
       kind: 'invalid',
       error:
-        "Open-Science can't write to this folder. Make sure you have permission to it — on macOS, grant access when prompted, or pick a folder inside your home directory."
+        "OneEarth can't write to this folder. Make sure you have permission to it — on macOS, grant access when prompted, or pick a folder inside your home directory."
     }
   }
 
@@ -428,7 +428,7 @@ export const classifyDataRoot = async (
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
       return { kind: 'invalid', error: 'The selected folder is not usable.' }
   }
-  const branded = /^Open-?Science(?:-DEV)?$/i.test(basename(target))
+  const branded = /^(?:OneEarth|EarthNano|Open-?Science)(?:-DEV)?$/i.test(basename(target))
   const looksLikeOurData = ownedWorkspace || (branded && hasLegacyResearchData(target))
   if (looksLikeOurData) return { kind: 'adopt' }
 
@@ -445,12 +445,12 @@ export const classifyDataRoot = async (
     return {
       kind: 'invalid',
       error:
-        'The new data location contains runtime data that Open-Science cannot safely replace. Choose another location or remove that data first.'
+        'The new data location contains runtime data that OneEarth cannot safely replace. Choose another location or remove that data first.'
     }
 
   return {
     kind: 'invalid',
-    error: 'A different folder named Open-Science already exists here. Choose another location.'
+    error: 'A different data folder already exists here. Choose another location.'
   }
 }
 
@@ -469,7 +469,7 @@ export const validateNewDataRoot = async (
   if (result.kind === 'adopt') {
     return {
       ok: false,
-      error: 'The selected folder already contains Open-Science data. Pick an empty folder.'
+      error: 'The selected folder already contains OneEarth data. Pick an empty folder.'
     }
   }
   if (result.kind === 'recover') {
@@ -703,7 +703,7 @@ export const runDataRootMigration = async (
     return {
       ok: false,
       error:
-        'The new data location contains runtime data that Open-Science cannot safely replace. Choose another location or remove that data first.'
+        'The new data location contains runtime data that OneEarth cannot safely replace. Choose another location or remove that data first.'
     }
   }
   let targetRuntimeCacheClean = true
@@ -725,7 +725,7 @@ export const runDataRootMigration = async (
     return {
       ok: false,
       error:
-        'The new data location contains a Notebook cache that Open-Science cannot safely replace. Choose another location or remove that cache first.'
+        'The new data location contains a Notebook cache that OneEarth cannot safely replace. Choose another location or remove that cache first.'
     }
   }
   try {
@@ -764,7 +764,7 @@ export const runDataRootMigration = async (
     return {
       ok: false,
       error:
-        'The new data location contains runtime data that Open-Science cannot safely replace. Choose another location or remove that data first.'
+        'The new data location contains runtime data that OneEarth cannot safely replace. Choose another location or remove that data first.'
     }
   }
 

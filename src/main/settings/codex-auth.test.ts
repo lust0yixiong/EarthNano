@@ -397,7 +397,7 @@ describe('importCodexAuthentication', () => {
       await mkdir(source, { recursive: true })
 
       await expect(importCodexAuthentication(source, destination)).rejects.toThrow(
-        'Open-Science could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which Open-Science cannot import from. Continue with the Open-Science Codex sign-in instead.'
+        'OneEarth could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which OneEarth cannot import from. Continue with the OneEarth Codex sign-in instead.'
       )
     } finally {
       await rm(root, { recursive: true, force: true })

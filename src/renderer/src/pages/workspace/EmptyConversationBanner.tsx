@@ -249,12 +249,15 @@ const EmptyConversationBanner = ({
       data-testid="empty-conversation-banner"
       className="pointer-events-none absolute inset-x-0 top-[42%] flex -translate-y-1/2 flex-col items-center gap-4 px-6 text-center"
     >
-      <FlaskLogo className="size-28 text-text-300 opacity-40 md:size-32 dark:opacity-80" />
+      <FlaskLogo
+        aria-hidden="true"
+        className="size-28 text-text-300 opacity-40 md:size-32 dark:opacity-80"
+      />
       <div className="flex flex-col gap-2">
         <h2 className="text-balance text-lg font-normal text-text-000 md:text-xl">
           {researchTitle
             ? t('What would you like to understand about this research?')
-            : t('What will you research in Open-Science?')}
+            : t('What will you research in OneEarth?')}
         </h2>
         <p className="text-xs text-text-100">
           {researchTitle

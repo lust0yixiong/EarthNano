@@ -19,7 +19,7 @@ const canManagePairing = (context: CallerContext): boolean =>
 const requirePairingManager = (context: CallerContext): void => {
   if (!canManagePairing(context)) {
     throw new Error(
-      'Pairing can only be managed from the Open-Science desktop app or an approved browser.'
+      'Pairing can only be managed from the OneEarth desktop app or an approved browser.'
     )
   }
 }

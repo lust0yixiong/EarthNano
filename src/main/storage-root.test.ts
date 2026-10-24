@@ -52,21 +52,21 @@ describe('dataFolderName', () => {
     appMock.isPackaged = false
   })
 
-  it('is Open-Science when packaged', () => {
+  it('is OneEarth when packaged', () => {
     appMock.isPackaged = true
-    expect(dataFolderName()).toBe('Open-Science')
+    expect(dataFolderName()).toBe('OneEarth')
   })
 
-  it('is Open-Science-DEV in dev (not packaged)', () => {
+  it('is OneEarth-DEV in dev (not packaged)', () => {
     appMock.isPackaged = false
-    expect(dataFolderName()).toBe('Open-Science-DEV')
+    expect(dataFolderName()).toBe('OneEarth-DEV')
   })
 })
 
 describe('dataRootForParent', () => {
   it('joins the parent with the data folder name', () => {
     appMock.isPackaged = true
-    expect(dataRootForParent('/mnt/data')).toBe(join('/mnt/data', 'Open-Science'))
+    expect(dataRootForParent('/mnt/data')).toBe(join('/mnt/data', 'OneEarth'))
   })
 })
 
@@ -86,26 +86,26 @@ describe('dataRootForPicked', () => {
     const picked = '/mnt/data'
     // Expected is derived with the host's own resolve/join so the assertion holds on Windows too
     // (where resolve() prepends a drive letter and uses backslashes).
-    expect(dataRootForPicked(picked)).toBe(join(resolve(picked), 'Open-Science'))
+    expect(dataRootForPicked(picked)).toBe(join(resolve(picked), 'OneEarth'))
   })
 
   it('uses the picked folder as-is when it IS already the data folder (no doubling)', () => {
-    // Selecting the Open-Science folder itself must not derive <picked>/Open-Science/Open-Science.
+    // Selecting the OneEarth folder itself must not derive <picked>/OneEarth/OneEarth.
     appMock.isPackaged = true
-    const picked = '/mnt/data/Open-Science'
+    const picked = '/mnt/data/OneEarth'
     expect(dataRootForPicked(picked)).toBe(resolve(picked))
   })
 
   it('respects the dev folder name for the no-double check', () => {
     appMock.isPackaged = false
-    const devFolder = '/mnt/data/Open-Science-DEV'
+    const devFolder = '/mnt/data/OneEarth-DEV'
     expect(dataRootForPicked(devFolder)).toBe(resolve(devFolder))
     const parent = '/mnt/data'
-    expect(dataRootForPicked(parent)).toBe(join(resolve(parent), 'Open-Science-DEV'))
+    expect(dataRootForPicked(parent)).toBe(join(resolve(parent), 'OneEarth-DEV'))
   })
 
   it('matches the folder name case-insensitively on Windows (no doubling on differing case)', () => {
-    // Windows filesystems are case-insensitive, so a differently-cased Open-Science folder must
+    // Windows filesystems are case-insensitive, so a differently-cased OneEarth folder must
     // still be recognized as the data folder rather than getting a second one appended.
     setPlatform('win32')
     appMock.isPackaged = true
@@ -119,7 +119,7 @@ describe('dataRootForPicked', () => {
     setPlatform('linux')
     appMock.isPackaged = true
     const lower = '/mnt/data/open-science'
-    expect(dataRootForPicked(lower)).toBe(join(resolve(lower), 'Open-Science'))
+    expect(dataRootForPicked(lower)).toBe(join(resolve(lower), 'OneEarth'))
   })
 })
 
@@ -137,8 +137,8 @@ describe('samePath / isPathInsideOrEqual (platform-aware)', () => {
 
   it('compares case-insensitively on win32 (NTFS is case-insensitive)', () => {
     setPlatform('win32')
-    expect(samePath(p('Data', 'Open-Science'), p('data', 'open-science'))).toBe(true)
-    expect(isPathInsideOrEqual(p('Data'), p('data', 'Open-Science'))).toBe(true)
+    expect(samePath(p('Data', 'OneEarth'), p('data', 'oneearth'))).toBe(true)
+    expect(isPathInsideOrEqual(p('Data'), p('data', 'OneEarth'))).toBe(true)
   })
 
   it('compares case-sensitively off win32', () => {
@@ -171,9 +171,9 @@ describe('computeDefaultDataRoot', () => {
     await rm(homeDir, { recursive: true, force: true })
   })
 
-  it('defaults to <home>/Open-Science for a fresh config root', () => {
+  it('defaults to <home>/OneEarth for a fresh config root', () => {
     // resolveConfigRoot() resolves under homeDir but nothing has been created there.
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'OneEarth'))
   })
 
   it('keeps packaged E2E config and data under the disposable certification root', () => {
@@ -181,7 +181,7 @@ describe('computeDefaultDataRoot', () => {
     vi.stubEnv('OPEN_SCIENCE_E2E_STORAGE_ROOT', e2eRoot)
 
     expect(resolveConfigRoot()).toBe(e2eRoot)
-    expect(computeDefaultDataRoot()).toBe(join(e2eRoot, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(e2eRoot, 'OneEarth'))
   })
 
   it('offers the branded default regardless of data in the config root', async () => {
@@ -190,18 +190,18 @@ describe('computeDefaultDataRoot', () => {
     await writeFile(join(configRoot, 'notebooks', 'history.json'), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'OneEarth' : 'OneEarth-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('does not treat a config root with an Open-Science subdir as legacy', async () => {
+  it('does not treat a config root with a OneEarth subdir as legacy', async () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
-    await mkdir(join(configRoot, 'Open-Science'), { recursive: true })
+    await mkdir(join(configRoot, 'OneEarth'), { recursive: true })
 
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'OneEarth'))
 
     await rm(configRoot, { recursive: true, force: true })
   })
@@ -212,7 +212,7 @@ describe('computeDefaultDataRoot', () => {
       await mkdir(join(configRoot, marker), { recursive: true })
       await writeFile(join(configRoot, marker, 'history.json'), '{}')
 
-      expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+      expect(computeDefaultDataRoot()).toBe(join(homeDir, 'OneEarth'))
 
       await rm(configRoot, { recursive: true, force: true })
     }
@@ -224,7 +224,7 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'runtime'), { recursive: true })
 
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'OneEarth'))
 
     await rm(configRoot, { recursive: true, force: true })
   })
@@ -234,12 +234,12 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'OneEarth')
     await mkdir(homeDefault, { recursive: true })
     await writeFile(join(homeDefault, MIGRATION_MARKER_FILENAME), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'OneEarth' : 'OneEarth-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
@@ -249,18 +249,18 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
-    await mkdir(join(homeDir, 'Open-Science', 'artifacts'), { recursive: true })
+    await mkdir(join(homeDir, 'OneEarth', 'artifacts'), { recursive: true })
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'OneEarth' : 'OneEarth-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('treats an explicitly configured <home>/Open-Science as the committed default', async () => {
+  it('treats an explicitly configured <home>/OneEarth as the committed default', async () => {
     const configRoot = resolveConfigRoot()
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'OneEarth')
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     initDataRoot(homeDefault)
@@ -272,7 +272,7 @@ describe('computeDefaultDataRoot', () => {
 
   it('keeps an explicitly configured default committed while its cleanup marker remains', async () => {
     const configRoot = resolveConfigRoot()
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'OneEarth')
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     await writeFile(join(homeDefault, MIGRATION_MARKER_FILENAME), '{}')
@@ -303,24 +303,24 @@ describe('computeDefaultDataRoot (dev mode)', () => {
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'OneEarth' : 'OneEarth-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('defaults to <home>/Open-Science-DEV for a fresh (dev) config root', () => {
+  it('defaults to <home>/OneEarth-DEV for a fresh (dev) config root', () => {
     // resolveConfigRoot() resolves under homeDir but nothing has been created there.
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science-DEV'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'OneEarth-DEV'))
   })
 
-  it('prefers an explicitly configured <home>/Open-Science-DEV over legacy data', async () => {
+  it('prefers an explicitly configured <home>/OneEarth-DEV over legacy data', async () => {
     // A relocated legacy install: leftover markers linger in the config root, but the modern data
     // folder already exists (and is in use). It must win, or isDefault/return-to-default would keep
     // pointing at the stale legacy path.
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
-    const homeDefault = join(homeDir, 'Open-Science-DEV')
+    const homeDefault = join(homeDir, 'OneEarth-DEV')
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     initDataRoot(homeDefault)
 

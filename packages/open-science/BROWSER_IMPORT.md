@@ -2,14 +2,14 @@
 
 The `@aipoch/open-science/browser-import` entry point runs in a browser. The website downloads a
 complete `Blob` or `File`, launches the installed desktop app through `open-science://`, and sends
-the bytes to a temporary receiver on `127.0.0.1`. Open-Science never downloads a remote package URL.
-Open-Science receives the file automatically and validates the package before asking for a target.
+the bytes to a temporary receiver on `127.0.0.1`. OneEarth never downloads a remote package URL.
+OneEarth receives the file automatically and validates the package before asking for a target.
 The user then chooses the destination and confirms the final import.
 
 ## Website integration
 
 Use `@aipoch/open-science/browser-import`, not the Node SDK root. Probe the running service before
-downloading. If it is unreachable, offer **Open Open-Science** and **Check again**, as well as an
+downloading. If it is unreachable, offer **Open OneEarth** and **Check again**, as well as an
 installation link. `launchOpenScience(): void` synchronously requests `open-science://open`:
 call it directly inside a click handler, before any `await`. It only starts or shows the app; it
 needs no Blob, creates no import task, and does not download anything. Returning normally proves
@@ -23,7 +23,7 @@ routing. Older desktop builds support the import URL but may ignore the new pure
 ship a desktop build containing this contract when offering the pure-launch action.
 
 The example expects these existing DOM elements (all buttons are `type="button"`):
-`continueButton` ("Download and continue"), `openButton` ("Open Open-Science"),
+`continueButton` ("Download and continue"), `openButton` ("Open OneEarth"),
 `probeButton` ("Check again"), `reconnectButton` ("Retry connection"), `retryButton` ("Open and retry transfer"),
 `restartButton` ("Start a new transfer"), `cancelButton` ("Cancel"), `status`, and a visible
 `downloadLink` to `/open-science/download`. Keep the page open. A product can show the recovery
@@ -77,22 +77,21 @@ async function run(work, cancelTransfer = false) {
     } else if (error instanceof BrowserImportError) {
       switch (error.code) {
         case 'launch-failed':
-          status.textContent = 'Could not request opening Open-Science. Click Open and try again.'
+          status.textContent = 'Could not request opening OneEarth. Click Open and try again.'
           break
         case 'timeout':
         case 'readiness-exhausted':
           status.textContent =
-            'The receiver is not ready. Finish opening Open-Science, then click Retry connection. If the transfer expired, start a new transfer.'
+            'The receiver is not ready. Finish opening OneEarth, then click Retry connection. If the transfer expired, start a new transfer.'
           break
         case 'incompatible':
           transfer = undefined
           status.textContent =
-            'Could not verify the receiver. Update Open-Science and start a new transfer.'
+            'Could not verify the receiver. Update OneEarth and start a new transfer.'
           break
         case 'cancelled':
           transfer = undefined
-          status.textContent =
-            'Transfer cancelled in Open-Science. Start a new transfer to try again.'
+          status.textContent = 'Transfer cancelled in OneEarth. Start a new transfer to try again.'
           break
         case 'transfer-failed':
           status.textContent =
@@ -112,15 +111,15 @@ async function run(work, cancelTransfer = false) {
 }
 
 async function probe(signal) {
-  status.textContent = 'Checking Open-Science…'
+  status.textContent = 'Checking OneEarth…'
   const result = await checkBrowserImportAvailability({ signal, timeoutMs: 2000 })
   signal.throwIfAborted()
   status.textContent =
     result.status === 'available'
       ? blob
-        ? 'Open-Science is reachable. Retry the downloaded package.'
-        : 'Open-Science is reachable. You can download and continue.'
-      : 'Could not reach Open-Science. Open the app and check again, or install it first.'
+        ? 'OneEarth is reachable. Retry the downloaded package.'
+        : 'OneEarth is reachable. You can download and continue.'
+      : 'Could not reach OneEarth. Open the app and check again, or install it first.'
   return result.status === 'available'
 }
 
@@ -129,7 +128,7 @@ function openTransfer() {
   try {
     window.location.assign(transfer.url)
   } catch {
-    throw new BrowserImportError('launch-failed', 'Could not request opening Open-Science.')
+    throw new BrowserImportError('launch-failed', 'Could not request opening OneEarth.')
   }
 }
 
@@ -142,7 +141,7 @@ async function send(signal) {
     onPhase: (phase) => {
       status.textContent =
         phase === 'waiting-for-receiver'
-          ? 'Waiting for Open-Science. Allow browser permissions if prompted…'
+          ? 'Waiting for OneEarth. Allow browser permissions if prompted…'
           : 'Sending package…'
     },
     onProgress: ({ sentBytes, totalBytes }) => {
@@ -151,8 +150,7 @@ async function send(signal) {
   })
   blob = undefined
   transfer = undefined
-  status.textContent =
-    'Received by Open-Science. Select a destination and confirm the import there.'
+  status.textContent = 'Received by OneEarth. Select a destination and confirm the import there.'
 }
 
 continueButton.onclick = () =>
@@ -217,7 +215,7 @@ including the response body. It returns:
 - `unavailable`: no reachable service, including opaque network/CORS/local-network denials.
 - `unsupported-browser`, `incompatible`, `timeout`, or `aborted`.
 
-An unreachable service is **not** proof that Open-Science is uninstalled or its protocol unregistered.
+An unreachable service is **not** proof that OneEarth is uninstalled or its protocol unregistered.
 Local-network access may prompt; the probe is not guaranteed to be silent. Discovery is advisory and
 can be forged by a local port occupant. It is never used for authorization. Only the temporary
 secret-bound readiness proof authenticates the actual receiver; discovery alone permits sending
@@ -341,7 +339,7 @@ Do not scan ports or substitute the general desktop API.
 - An HTTPS website, or an HTTP loopback origin for local development. Cross-origin package
   downloads must already be permitted by the package host's CORS policy.
 - Browser support for Web Crypto, `Blob`, `fetch`, and `AbortSignal.any/timeout`. The browser may
-  ask permission to open Open-Science and to access the local network. Users must allow both.
+  ask permission to open OneEarth and to access the local network. Users must allow both.
   Browser/enterprise policies may prohibit loopback requests; offer a normal file download and
   local file-open import as the fallback. HTTPS-to-loopback compatibility is browser-dependent;
   browser behavior requires separate validation for the supported browser and OS.

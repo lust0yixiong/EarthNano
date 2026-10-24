@@ -282,7 +282,7 @@ const buildCodexConfig = (provider: {
     model_provider: CODEX_PROVIDER_ID,
     model_providers: {
       [CODEX_PROVIDER_ID]: {
-        name: 'Open-Science',
+        name: 'OneEarth',
         wire_api: 'responses',
         ...(baseUrl ? { base_url: baseUrl } : {}),
         ...(provider.key ? { requires_openai_auth: true } : {})

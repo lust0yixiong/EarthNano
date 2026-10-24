@@ -50,7 +50,7 @@ export function createRemoteNotificationDelivery(
       (await requestNative({
         operation: 'notification-test',
         title: translate('Test notification'),
-        body: translate('System notifications from Open-Science are working.')
+        body: translate('System notifications from OneEarth are working.')
       })) as NotificationTestResult,
     show: ({ title, body, onClick }) => {
       // Keep callback retention bounded even if an OS never reports that a banner closed.

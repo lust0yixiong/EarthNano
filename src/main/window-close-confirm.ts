@@ -221,10 +221,10 @@ const nativeFallback = async (
           buttons: [translate('Stay'), translate('Retry saving'), translate('Force quit')],
           defaultId: 0,
           cancelId: 0,
-          title: 'Open-Science',
+          title: 'OneEarth',
           message: translate('Saving is not finished'),
           detail: translate(
-            'Open-Science could not confirm that all recent changes were saved. Retry saving, or force quit and risk losing recent changes.'
+            'OneEarth could not confirm that all recent changes were saved. Retry saving, or force quit and risk losing recent changes.'
           )
         }
       : hasDelegatedWork
@@ -235,10 +235,10 @@ const nativeFallback = async (
             ],
             defaultId: 0,
             cancelId: 0,
-            title: 'Open-Science',
+            title: 'OneEarth',
             message: translate('Subagents are still running'),
             detail: translate(
-              'Return to the running tasks and stop their subagents before quitting Open-Science.'
+              'Return to the running tasks and stop their subagents before quitting OneEarth.'
             )
           }
         : variant === 'quit'
@@ -247,8 +247,8 @@ const nativeFallback = async (
               buttons: [translate('Cancel'), translate('Quit', { context: 'verb' })],
               defaultId: 0,
               cancelId: 0,
-              title: 'Open-Science',
-              message: translate('Quit Open-Science?'),
+              title: 'OneEarth',
+              message: translate('Quit OneEarth?'),
               detail: translate('Work is still running and will be interrupted if you quit.')
             }
           : {
@@ -256,7 +256,7 @@ const nativeFallback = async (
               buttons: [translate('Minimize to tray'), translate('Quit', { context: 'verb' })],
               defaultId: 0,
               cancelId: 0,
-              title: 'Open-Science',
+              title: 'OneEarth',
               message: translate('Minimize to tray or quit?'),
               detail: translate('Background work may still be running.'),
               checkboxLabel: translate("Don't ask again"),

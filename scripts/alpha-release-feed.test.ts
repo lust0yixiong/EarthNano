@@ -45,7 +45,7 @@ type AlphaOptions = {
 }
 
 // Synthetic bytes exercise publication transforms, not native signing or installation acceptance.
-const release = (v = version, channel = 'alpha'): ReleaseFixture => {
+const release = (v = version, channel = 'alpha', product = 'EarthNano'): ReleaseFixture => {
   const dir = fixture()
   const names = [
     `EarthNano-${v}-mac-arm64.dmg`,
@@ -57,7 +57,7 @@ const release = (v = version, channel = 'alpha'): ReleaseFixture => {
     `EarthNano_${v}_arm64.deb`,
     `EarthNano-${v}-mac-arm64.zip`,
     `EarthNano-${v}-mac-x64.zip`
-  ]
+  ].map((name) => name.replace(/^EarthNano/, product))
   const bytes = (name: string): string => `synthetic final bytes for ${name}`
   for (const name of names) writeFileSync(join(dir, name), bytes(name))
   writeFileSync(
@@ -268,17 +268,20 @@ it('passes the explicit Unix scope through the original generator CLI without a 
     expect(invoke(flags).status).not.toBe(0)
 })
 
-it('builds the complete Alpha manifest from actual bytes and the explicit immutable GitHub asset base', () => {
-  const { dir, names } = release()
-  const manifest = buildManifest(options(dir))
-  expect(buildManifest({ ...options(dir), platforms: 'mac,linux,win' })).toEqual(manifest)
-  expect(Object.keys(manifest.downloads)).toHaveLength(7)
-  expect(manifest.downloads['linux-arm64-deb'].url).toBe(`${assetBaseUrl}/${names[6]}`)
-  expect(manifest.downloads['mac-arm64'].url).toBe(`${assetBaseUrl}/${names[0]}`)
-  expect(
-    Object.values(manifest.downloads).some((entry: { url: string }) => entry.url.endsWith('.zip'))
-  ).toBe(false)
-})
+it.each(['EarthNano', 'OneEarth'])(
+  'builds the complete %s Alpha manifest from actual bytes and the explicit immutable GitHub asset base',
+  (product) => {
+    const { dir, names } = release(version, 'alpha', product)
+    const manifest = buildManifest(options(dir))
+    expect(buildManifest({ ...options(dir), platforms: 'mac,linux,win' })).toEqual(manifest)
+    expect(Object.keys(manifest.downloads)).toHaveLength(7)
+    expect(manifest.downloads['linux-arm64-deb'].url).toBe(`${assetBaseUrl}/${names[6]}`)
+    expect(manifest.downloads['mac-arm64'].url).toBe(`${assetBaseUrl}/${names[0]}`)
+    expect(
+      Object.values(manifest.downloads).some((entry: { url: string }) => entry.url.endsWith('.zip'))
+    ).toBe(false)
+  }
+)
 
 it('keeps the default stable S3 layout and all seven platform keys', () => {
   const { dir, names } = release('0.1.2', 'latest')

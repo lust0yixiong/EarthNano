@@ -144,7 +144,7 @@ const ApplicationPresentationContent = ({
           <ErrorNotice
             fullPage
             title={t('Settings could not be loaded')}
-            description={t('Open-Science could not load settings. Retry to continue.')}
+            description={t('OneEarth could not load settings. Retry to continue.')}
             errorCode={
               startup.settings.loadFailure
                 ? `SETTINGS_${startup.settings.loadFailure.toUpperCase().replaceAll('-', '_')}`
@@ -166,7 +166,7 @@ const ApplicationPresentationContent = ({
               <StartupIssueDialog
                 error={{
                   code: `SETTINGS_${(startup.settings.loadFailure ?? 'unknown').toUpperCase().replaceAll('-', '_')}`,
-                  message: 'Open-Science could not load settings. Retry to continue.',
+                  message: 'OneEarth could not load settings. Retry to continue.',
                   retryable: true,
                   diagnostics: `stage=settings-load; reason=${startup.settings.loadFailure ?? 'unknown'}; attempt=${startup.settings.loadAttempt}; revision=${startup.settings.snapshotRevision}`
                 }}

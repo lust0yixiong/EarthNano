@@ -112,7 +112,7 @@ it.each(['absent', 'existing', 'both', 'development', 'isolated'])(
     expect(inspect).toHaveBeenCalledWith(status.defaultDataRoot)
     await act(async () => {
       const button = Array.from(document.body.querySelectorAll('button')).find((b) =>
-        b.textContent?.includes('Move to Open-Science')
+        b.textContent?.includes('Move to OneEarth')
       )!
       button.click()
     })

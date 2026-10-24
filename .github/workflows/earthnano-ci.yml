@@ -248,11 +248,12 @@ jobs:
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
-          ditto -x -k "trial-package/EarthNano-$version-mac-arm64.zip" "$RUNNER_TEMP/earthnano-trial-app"
-          app="$RUNNER_TEMP/earthnano-trial-app/EarthNano.app"
-          test -x "$app/Contents/MacOS/EarthNano"
+          product=$(node -p "require('./package.json').productName")
+          ditto -x -k "trial-package/$product-$version-mac-arm64.zip" "$RUNNER_TEMP/earthnano-trial-app"
+          app="$RUNNER_TEMP/earthnano-trial-app/$product.app"
+          test -x "$app/Contents/MacOS/$product"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$version"
-          echo "OPEN_SCIENCE_E2E_EXECUTABLE=$app/Contents/MacOS/EarthNano" >> "$GITHUB_ENV"
+          echo "OPEN_SCIENCE_E2E_EXECUTABLE=$app/Contents/MacOS/$product" >> "$GITHUB_ENV"
       - name: Original isolated Keychain and real Notebook, Session, Version and Review acceptance
         env:
           OPEN_SCIENCE_E2E_ISOLATE_HOME: '1'

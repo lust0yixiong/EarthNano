@@ -80,7 +80,7 @@ const NetworkProxyForm = ({ onDone }: NetworkProxyFormProps): React.JSX.Element 
       <SettingsSection
         title={t('Proxy')}
         description={t(
-          'Choose how Open-Science reaches the internet. Changes apply to new app requests and processes.'
+          'Choose how OneEarth reaches the internet. Changes apply to new app requests and processes.'
         )}
         aria-label={t('Proxy settings')}
       >

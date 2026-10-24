@@ -90,7 +90,7 @@ function protectInstallationStartup(entryPath, configRoot, stateRoot) {
     ;({ DatabaseSync } = require('node:sqlite'))
   } catch (cause) {
     throw new Error(
-      `Open-Science startup requires Node.js 22.13 or newer (node:sqlite is unavailable on ${process.version}).`,
+      `OneEarth startup requires Node.js 22.13 or newer (node:sqlite is unavailable on ${process.version}).`,
       { cause }
     )
   }
@@ -113,7 +113,7 @@ function protectInstallationStartup(entryPath, configRoot, stateRoot) {
   try {
     coordinator.exec('PRAGMA busy_timeout = 1500; PRAGMA journal_mode = MEMORY; BEGIN EXCLUSIVE')
     if (existsSync(join(directory, 'update-in-progress.json')))
-      throw new Error('Installation update requires recovery before starting Open-Science.')
+      throw new Error('Installation update requires recovery before starting OneEarth.')
     reapStaleRegistrations(directory, DatabaseSync)
     let owner
     const helperFlags = [

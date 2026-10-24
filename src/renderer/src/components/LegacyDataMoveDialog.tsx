@@ -34,7 +34,7 @@ type LegacyDataMoveDialogProps = {
 }
 
 // One-time, non-forced upgrade prompt for a pre-§20 legacy install whose data still sits in the
-// hidden config root. Offers to move it into the visible Open-Science folder (default or a folder the
+// hidden config root. Offers to move it into the visible OneEarth folder (default or a folder the
 // user picks), or to keep it where it is - the last choice is remembered so it never re-appears.
 // Accepting reuses the ordinary relocation flow (StorageMigrationModal): a reversible copy, then a
 // restart. Moving sets settings.dataRoot, which by itself disqualifies the prompt on the next launch,
@@ -53,7 +53,7 @@ const LegacyDataMoveDialog = ({
     selection?: DataRootSelection
     recoveryStatus?: DataRootRecoveryStatus
   } | null>(null)
-  // The exact target "Move to Open-Science" would use, normally <home>/Open-Science. Resolved via
+  // The exact target "Move to OneEarth" would use, normally <home>/OneEarth. Resolved via
   // inspectDataRoot(defaultDataRoot) rather than getInfo's dataRoot, which for a legacy install is the
   // hidden config root itself.
   const [defaultInspectionState, setDefaultInspectionState] = useState<
@@ -123,7 +123,7 @@ const LegacyDataMoveDialog = ({
     setOperationError(
       defaultInspection.kind === 'adopt'
         ? t(
-            'That folder already contains Open-Science data. Pick an empty folder, or use the default location.'
+            'That folder already contains OneEarth data. Pick an empty folder, or use the default location.'
           )
         : (storageErrorMessage(defaultInspection.error, t) ??
             t('That folder can’t be used. Pick another one.'))
@@ -152,7 +152,7 @@ const LegacyDataMoveDialog = ({
       setOperationError(
         inspection.kind === 'adopt'
           ? t(
-              'That folder already contains Open-Science data. Pick an empty folder, or use the default location.'
+              'That folder already contains OneEarth data. Pick an empty folder, or use the default location.'
             )
           : (storageErrorMessage(inspection.error, t) ??
               t('That folder can’t be used. Pick another one.'))
@@ -209,7 +209,7 @@ const LegacyDataMoveDialog = ({
           <div className={cn(dialogBodyClassName, 'space-y-4')}>
             <AlertDialog.Description className={dialogDescriptionClassName}>
               {t(
-                'Your research data is in a hidden folder. Moving it into a visible Open-Science folder makes it easy to find and back up — your settings and history stay where they are.'
+                'Your research data is in a hidden folder. Moving it into a visible OneEarth folder makes it easy to find and back up — your settings and history stay where they are.'
               )}
             </AlertDialog.Description>
             <div>
@@ -254,7 +254,7 @@ const LegacyDataMoveDialog = ({
               ) : (
                 <FolderInput aria-hidden="true" />
               )}
-              {defaultInspectionFailed ? t('Try again') : t('Move to Open-Science')}
+              {defaultInspectionFailed ? t('Try again') : t('Move to OneEarth')}
             </Button>
             <Button
               type="button"

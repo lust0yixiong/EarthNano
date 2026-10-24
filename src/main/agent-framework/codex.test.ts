@@ -829,7 +829,7 @@ describe('codexFramework', () => {
           visibility: 'list',
           supported_in_api: true,
           base_instructions: expect.stringContaining(
-            'inside Open-Science through the Agent Client Protocol'
+            'inside OneEarth through the Agent Client Protocol'
           ),
           include_skills_usage_instructions: true,
           default_reasoning_level: 'none',

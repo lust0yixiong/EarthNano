@@ -12,7 +12,7 @@ import {
 
 const baseError: DatabaseStartupError = {
   code: 'database_migration_failed',
-  message: 'Open-Science could not update its database. Existing data was not reset.',
+  message: 'OneEarth could not update its database. Existing data was not reset.',
   migrationId: '0009_vision_evidence',
   retryable: true,
   environment: {
@@ -124,4 +124,12 @@ describe('buildStartupIssueUrl', () => {
     expect(decodeURIComponent(url)).toContain('stack truncated')
     expect(() => new URL(url)).not.toThrow()
   })
+})
+
+it('reports OneEarth failures to its own repository and preserves diagnostic path text', () => {
+  const diagnostic = '/Users/research/Open-Science/archive.csv'
+  const url = new URL(buildStartupIssueUrl(baseError, diagnostic))
+  expect(url.pathname).toBe('/lust0yixiong/EarthNano/issues/new')
+  expect(url.searchParams.get('body')).toContain('Launch OneEarth')
+  expect(url.searchParams.get('body')).toContain(diagnostic)
 })

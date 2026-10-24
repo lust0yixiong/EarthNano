@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
+import { APP } from './app-config'
 import { defineApplicationCommandContract, validationCodec } from './application-command-contract'
+
+export const REMOTE_IT_APP_SERVICE_NAME = `${APP.name} Remote`
 
 export type RemoteAccessLifecycle = 'disabled' | 'starting' | 'running' | 'stopping' | 'error'
 export type RemoteAccessMode = 'off' | 'remoteit' | 'remoteit-public'

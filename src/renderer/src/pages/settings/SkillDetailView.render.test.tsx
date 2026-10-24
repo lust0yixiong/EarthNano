@@ -273,7 +273,7 @@ describe('SkillDetailView', () => {
     })
 
     expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
-      'Open-Science could not load this Skill.'
+      'OneEarth could not load this Skill.'
     )
     const retry = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
       (button) => button.textContent?.trim() === 'Retry'

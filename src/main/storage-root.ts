@@ -20,10 +20,15 @@ const resolveStorageRoot = resolveConfigRoot
 
 // Visible, no-space data folder name. NO space: runtime/ holds conda/venv whose tools break on
 // spaced paths. dev gets a suffix so it never shares data with a packaged build.
-const dataFolderName = (): string =>
-  runtimeMetadata().packaged ? 'Open-Science' : 'Open-Science-DEV'
+const dataFolderName = (): string => (runtimeMetadata().packaged ? 'OneEarth' : 'OneEarth-DEV')
 const legacyDataFolderName = (): string =>
   runtimeMetadata().packaged ? 'OpenScience' : 'OpenScience-DEV'
+
+// Existing roots retain their names. These aliases only discover/adopt data; they never rename it.
+const compatibleDataFolderNames = (): string[] =>
+  runtimeMetadata().packaged
+    ? ['OneEarth', 'EarthNano', 'Open-Science', 'OpenScience']
+    : ['OneEarth-DEV', 'EarthNano-DEV', 'Open-Science-DEV', 'OpenScience-DEV', 'OpenScience-dev']
 
 // The data root the app derives from a user-picked (or default) parent directory: always
 // `<parent>/<dataFolderName()>` for a new location. Verified existing roots are adopted directly
@@ -39,15 +44,23 @@ const dataRootForPicked = (picked: string): string => {
   const resolved = resolve(picked)
   const name = basename(resolved)
   const folder = dataFolderName()
-  const isDataFolder = [folder, legacyDataFolderName()].some((candidate) =>
+  const isDataFolder = compatibleDataFolderNames().some((candidate) =>
     process.platform === 'win32'
       ? name.toLowerCase() === candidate.toLowerCase()
       : name === candidate
   )
   if (isDataFolder) return resolved
-  const candidates = [join(resolved, folder), join(resolved, legacyDataFolderName())].filter(
-    hasDataRootContent
-  )
+  const physicalLocations = new Set<string>()
+  const candidates = compatibleDataFolderNames()
+    .map((candidate) => join(resolved, candidate))
+    .filter(hasDataRootContent)
+    .filter((root) => {
+      // Case aliases (including OpenScience-DEV/dev) and symlinks can name one physical root.
+      const identity = dataLocationIdentity(root)
+      if (physicalLocations.has(identity)) return false
+      physicalLocations.add(identity)
+      return true
+    })
   // A generic models/uploads/runtime directory is common outside this application. Only saved
   // choices or application ownership receipts can make an unbranded selection a root itself.
   // The adoption owner validates receipt contents before allowing a pointer switch.
@@ -108,22 +121,16 @@ const initDataRoot = (settingsDataRoot: unknown, onboardingCompletedAt?: number)
     const legacyUsedConfig =
       MIGRATABLE_DATA_DIRS.some(
         (dir) => lstatSync(join(configRoot, dir), { throwIfNoEntry: false }) !== undefined
-      ) && !existsSync(join(configRoot, legacyDataFolderName()))
+      ) && !compatibleDataFolderNames().some((folder) => existsSync(join(configRoot, folder)))
     const candidates = [
       // The nested branded-folder guard only decides the empty-marker fallback. Older
       // research in the config root still needs conflict detection before pinning a pointer.
       configRoot,
-      homeDefault,
-      ...(!runtimeMetadata().packaged ? [join(defaultDataParent(), 'OpenScience-dev')] : []),
+      ...compatibleDataFolderNames().map((folder) => join(defaultDataParent(), folder)),
       // 0.31 ignored ordinary config overrides when resolving its implicit home root.
       // The dedicated E2E override is an isolation boundary and must never inspect real home.
       ...(!process.env.OPEN_SCIENCE_E2E_STORAGE_ROOT?.trim()
-        ? [
-            join(runtimeMetadata().homePath, legacyDataFolderName()),
-            ...(!runtimeMetadata().packaged
-              ? [join(runtimeMetadata().homePath, 'OpenScience-dev')]
-              : [])
-          ]
+        ? compatibleDataFolderNames().map((folder) => join(runtimeMetadata().homePath, folder))
         : [])
     ]
     const physicalLocations = new Set<string>()

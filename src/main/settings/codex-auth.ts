@@ -744,7 +744,7 @@ const readCodexAuthenticationSnapshot = async (
       // (macOS Keychain / Windows Credential Manager / Linux keyring). Name that boundary instead of
       // surfacing a generic import failure that reads like a required second sign-in.
       throw new Error(
-        'Open-Science could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which Open-Science cannot import from. Continue with the Open-Science Codex sign-in instead.'
+        'OneEarth could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which OneEarth cannot import from. Continue with the OneEarth Codex sign-in instead.'
       )
     }
     throw new Error('The selected Codex profile does not contain importable authentication.')

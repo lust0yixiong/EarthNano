@@ -4,6 +4,7 @@ import { afterEach, expect, it } from 'vitest'
 import { Notice, type NoticeLevel } from './notice'
 import { ErrorNotice } from './error-notice'
 import { InlineNotice } from './ui/inline-notice'
+import logoUrl from '@/assets/logo.png'
 
 afterEach(cleanup)
 
@@ -61,4 +62,6 @@ it('selects unboxed presentation only for contextual notices', () => {
   expect(screen.getByRole('alert').textContent).toBe('Local failure')
   expect(screen.getByRole('alert').getAttribute('aria-atomic')).toBe('true')
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Startup failure')
+  expect(container.querySelector('section > img')?.getAttribute('src')).toBe(logoUrl)
+  expect(container.querySelectorAll('section > img')).toHaveLength(1)
 })

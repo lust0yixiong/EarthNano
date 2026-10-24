@@ -146,3 +146,18 @@ describe('Pairing page recovery', () => {
     expect(reload).toHaveBeenCalledOnce()
   })
 })
+
+it('shows OneEarth with the same approved square vortex used by the desktop', () => {
+  const { html } = renderPairingPage({
+    code: '123456',
+    browser: 'Safari',
+    platform: 'macOS',
+    expiresAt: Date.now() + 600000
+  })
+  document.documentElement.innerHTML = html
+  expect(document.title).toBe('Connect to OneEarth')
+  expect(document.querySelector('.brand-name')?.textContent).toBe('OneEarth')
+  expect(document.querySelector('.brand-logo')?.getAttribute('viewBox')).toBe('80 90 1120 1120')
+  expect(document.querySelector('.brand-logo title')?.textContent).toContain('OneEarth')
+  expect(document.body.textContent).not.toMatch(/Open-Science|EarthNano/)
+})

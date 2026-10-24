@@ -290,7 +290,7 @@ describe('Specialist Electron surface', () => {
     })
     expect(native.save).toHaveBeenLastCalledWith({
       title: 'translated:Save contribution template',
-      defaultPath: 'open-science-specialist-template.zip',
+      defaultPath: 'oneearth-specialist-template.zip',
       filters: [{ name: 'translated:ZIP archive', extensions: ['zip'] }]
     })
     native.appPath = join(root, 'missing-app')

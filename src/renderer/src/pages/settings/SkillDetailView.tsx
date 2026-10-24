@@ -123,7 +123,7 @@ const SkillDetailView = ({
         <SettingsLoadNotice
           state={loadState === 'error' ? 'error' : 'loading'}
           loadingLabel={t('Loading Skill…')}
-          errorMessage={t('Open-Science could not load this Skill.')}
+          errorMessage={t('OneEarth could not load this Skill.')}
           onRetry={retryLoad}
         />
       </div>

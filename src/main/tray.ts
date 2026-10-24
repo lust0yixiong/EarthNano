@@ -235,7 +235,7 @@ const createAppTray = (opts: {
     trayNavigationRefreshers.set(tray, refreshNavigation)
     void refreshNavigation()
 
-    tray.setToolTip(headlessWeb ? 'Open-Science (Web)' : 'Open-Science')
+    tray.setToolTip(headlessWeb ? 'OneEarth (Web)' : 'OneEarth')
 
     const primaryAction = (): void => {
       if (headlessWeb) void opts.onOpenWeb!()
