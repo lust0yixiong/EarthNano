@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import logoUrl from '@/assets/logo.png'
 import { AppWordmark } from './AppWordmark'
 import {
@@ -18,7 +17,6 @@ const MAX_DEVICE_PIXEL_RATIO = 2
 let animationStartedAt: number | undefined
 
 const EarthNanoLogoLoader = (): React.JSX.Element => {
-  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const wordmarkRef = useRef<HTMLDivElement>(null)
@@ -139,9 +137,6 @@ const EarthNanoLogoLoader = (): React.JSX.Element => {
       </div>
       <div ref={wordmarkRef} className="flex flex-col items-center gap-3">
         <AppWordmark className="h-auto w-48" />
-        <span className="text-xs tracking-widest text-muted-foreground">
-          {t('Research workspace')}
-        </span>
       </div>
     </div>
   )
