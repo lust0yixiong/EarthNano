@@ -408,7 +408,7 @@ const StorageMigrationModal = ({
                 tone="amber"
                 className="mt-3"
                 description={t(
-                  "Don't quit Open-Science or turn off your computer until this finishes."
+                  "Don't quit OneEarth or turn off your computer until this finishes."
                 )}
               />
               <div className={cn(dialogFooterClassName, 'mt-5 border-0 p-0')}>
@@ -439,7 +439,7 @@ const StorageMigrationModal = ({
                   </Dialog.Title>
                   <Dialog.Description className={dialogDescriptionClassName}>
                     {t(
-                      "Open-Science couldn't remove the unused copy. Normal work has resumed. You can delete the copy later."
+                      "OneEarth couldn't remove the unused copy. Normal work has resumed. You can delete the copy later."
                     )}
                   </Dialog.Description>
                 </div>
@@ -467,7 +467,7 @@ const StorageMigrationModal = ({
                   </Dialog.Title>
                   <Dialog.Description className={dialogDescriptionClassName}>
                     {t(
-                      'Open-Science exited before this copy finished. Your current data is untouched. Discard the incomplete copy to use this location again.'
+                      'OneEarth exited before this copy finished. Your current data is untouched. Discard the incomplete copy to use this location again.'
                     )}
                   </Dialog.Description>
                 </div>
@@ -599,7 +599,7 @@ const StorageMigrationModal = ({
                   {isSwitchover ? (
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                       {t(
-                        'Open-Science is still using the original location. Close this dialog and try moving your data again.'
+                        'OneEarth is still using the original location. Close this dialog and try moving your data again.'
                       )}
                     </p>
                   ) : null}

@@ -43,9 +43,7 @@ export async function requestExistingRuntimeWeb(options, fetch = globalThis.fetc
       continue
     }
     if (options.credentialStore !== undefined)
-      throw new Error(
-        'Open-Science is already running. Stop it before selecting a credential store.'
-      )
+      throw new Error('OneEarth is already running. Stop it before selecting a credential store.')
     return configRoot
   }
 }

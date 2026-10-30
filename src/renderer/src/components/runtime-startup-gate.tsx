@@ -75,7 +75,7 @@ export const RuntimeStartupGate = ({ children }: { children: ReactNode }): React
         {failed ? (
           <ErrorNotice
             fullPage
-            title={t("Open-Science couldn't start")}
+            title={t("OneEarth couldn't start")}
             description={t('The app could not be checked. Try again.')}
             primaryButton={{
               label: t('Retry'),
@@ -156,14 +156,14 @@ export const RuntimeStartupGate = ({ children }: { children: ReactNode }): React
               : legacyService
                 ? t('An older version is still running')
                 : recovery
-                  ? t("Open-Science couldn't start")
+                  ? t("OneEarth couldn't start")
                   : t('Service version mismatch')
   const description =
     busy && stalled
-      ? t('Open-Science is still working on it. You can wait, try again, or save a report.')
+      ? t('OneEarth is still working on it. You can wait, try again, or save a report.')
       : stopping && legacyService
         ? forced
-          ? t('It is taking longer than usual. Open-Science is closing it for you. Please wait.')
+          ? t('It is taking longer than usual. OneEarth is closing it for you. Please wait.')
           : t('This usually takes a few seconds. Please wait.')
         : stopping
           ? t('Closing the older version and checking whether the app can open. Please wait.')
@@ -173,14 +173,14 @@ export const RuntimeStartupGate = ({ children }: { children: ReactNode }): React
               ? t('Your projects are safe. Try again, or save a report so we can help.')
               : legacyService
                 ? t(
-                    'Open-Science needs to close it before opening your projects. Finish any work in other Open-Science windows first.'
+                    'OneEarth needs to close it before opening your projects. Finish any work in other OneEarth windows first.'
                   )
                 : recovery
                   ? t(
                       'The previous session has not passed safety checks. Check again before opening the app. Interrupted tasks will not restart automatically.'
                     )
                   : t(
-                      'The running version differs from this app. Finish any work in other Open-Science windows, then stop the service to continue.'
+                      'The running version differs from this app. Finish any work in other OneEarth windows, then stop the service to continue.'
                     )
   const fallback = busy && stalled
   const actionable = !busy || fallback
@@ -201,7 +201,7 @@ export const RuntimeStartupGate = ({ children }: { children: ReactNode }): React
           icon={busy ? LoaderCircle : AlertTriangle}
           iconClassName={busy ? 'animate-spin motion-reduce:animate-none' : undefined}
           tone="amber"
-          title={confirmation ? t('Continue opening Open-Science?') : title}
+          title={confirmation ? t('Continue opening OneEarth?') : title}
           description={
             confirmation
               ? t(

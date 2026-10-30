@@ -220,7 +220,7 @@ describe('HomePage persistence recovery', () => {
     )
     expect(archive?.disabled).toBe(true)
     expect(archive?.title).toBe('')
-    expect(container.textContent).toContain('Update Open-Science before archiving this project.')
+    expect(container.textContent).toContain('Update OneEarth before archiving this project.')
   })
 
   it('keeps an unrelated project archivable when damaged authority names another project', async () => {

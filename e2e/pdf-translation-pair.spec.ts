@@ -603,7 +603,7 @@ for (const variant of [
         await expect(page.getByText('Preparing translated PDF…', { exact: true })).toBeHidden()
         await expect(panel).toBeVisible()
         await expect(
-          page.getByText("Open-Science couldn't display this page", { exact: true })
+          page.getByText("OneEarth couldn't display this page", { exact: true })
         ).toBeHidden()
         if (done === 2) {
           await page.screenshot({ path: testInfo.outputPath('translation-update-available.png') })

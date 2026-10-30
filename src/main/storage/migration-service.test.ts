@@ -76,7 +76,7 @@ const seedVerifiedMarker = async (
 }
 
 // Data folder name mirrors dataFolderName() for a packaged build (see the electron mock above).
-const dataRootFor = (parent: string): string => join(parent, 'Open-Science')
+const dataRootFor = (parent: string): string => join(parent, 'OneEarth')
 
 let currentParent: string
 let currentDataRoot: string
@@ -350,7 +350,7 @@ describe('classifyDataRoot', () => {
       expect(result).toEqual({
         kind: 'invalid',
         error:
-          'Network folders are not supported as the Open-Science data location on Windows. Choose a folder on a local drive.'
+          'Network folders are not supported as the OneEarth data location on Windows. Choose a folder on a local drive.'
       })
     } finally {
       Object.defineProperty(process, 'platform', { value: original, configurable: true })
@@ -392,7 +392,7 @@ describe('classifyDataRoot', () => {
       expect(result).toEqual({
         kind: 'invalid',
         error:
-          'Network folders are not supported as the Open-Science data location on Windows. Choose a folder on a local drive.'
+          'Network folders are not supported as the OneEarth data location on Windows. Choose a folder on a local drive.'
       })
       expect(inspectPath).toHaveBeenNthCalledWith(1, emptyParent)
       expect(inspectPath).toHaveBeenNthCalledWith(2, target)
@@ -427,7 +427,7 @@ describe('classifyDataRoot', () => {
     try {
       // Derived target length is 106; the short default env reserve is 154
       // (runtime\envs\.p + separator + the 138 conservative pack budget), totaling exactly 260.
-      const result = await classifyDataRoot(`/${'b'.repeat(93)}`, currentDataRoot)
+      const result = await classifyDataRoot(`/${'b'.repeat(97)}`, currentDataRoot)
 
       expect(result.kind).toBe('invalid')
       expect(result.error).toMatch(/too long|260/i)
@@ -580,7 +580,7 @@ describe('classifyDataRoot', () => {
 
     expect(result).toEqual({
       kind: 'invalid',
-      error: 'A different folder named Open-Science already exists here. Choose another location.'
+      error: 'A different data folder already exists here. Choose another location.'
     })
   })
 
@@ -614,7 +614,7 @@ describe('classifyDataRoot', () => {
 
     expect(result).toEqual({
       kind: 'invalid',
-      error: 'A different folder named Open-Science already exists here. Choose another location.'
+      error: 'A different data folder already exists here. Choose another location.'
     })
   })
   it('classifies a verified marker-bearing staging dir as recoverable, never adoptable', async () => {
@@ -713,7 +713,7 @@ describe('validateNewDataRoot', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: 'The selected folder already contains Open-Science data. Pick an empty folder.'
+      error: 'The selected folder already contains OneEarth data. Pick an empty folder.'
     })
   })
 })
@@ -867,7 +867,7 @@ describe('runDataRootMigration (copy phase)', () => {
     expect(result).toEqual({
       ok: false,
       error:
-        'The new data location contains a Notebook cache that Open-Science cannot safely replace. Choose another location or remove that cache first.'
+        'The new data location contains a Notebook cache that OneEarth cannot safely replace. Choose another location or remove that cache first.'
     })
     expect(deps.cleanupRuntimeCache).toHaveBeenCalledWith(join(target, 'runtime'))
     expect(copyAndVerify).not.toHaveBeenCalled()
@@ -925,7 +925,7 @@ describe('runDataRootMigration (copy phase)', () => {
         expect(result).toEqual({
           ok: false,
           error:
-            "Open-Science can't write to this folder. Make sure you have permission to it — on macOS, grant access when prompted, or pick a folder inside your home directory."
+            "OneEarth can't write to this folder. Make sure you have permission to it — on macOS, grant access when prompted, or pick a folder inside your home directory."
         })
         expect(diagnosticRecords(logger)).toContainEqual(
           expect.objectContaining({
@@ -1270,7 +1270,7 @@ describe('runDataRootMigration (copy phase)', () => {
     expect(result).toEqual({
       ok: false,
       error:
-        'The new data location contains runtime data that Open-Science cannot safely replace. Choose another location or remove that data first.'
+        'The new data location contains runtime data that OneEarth cannot safely replace. Choose another location or remove that data first.'
     })
     expect(copyAndVerify).not.toHaveBeenCalled()
     expect(deps.runtime.disconnect).not.toHaveBeenCalled()

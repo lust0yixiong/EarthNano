@@ -107,7 +107,7 @@ describe('LocationStep', () => {
   it('shows the warning callout', async () => {
     await renderStep()
 
-    expect(container.textContent).toContain('EarthNano manages this folder')
+    expect(container.textContent).toContain('OneEarth manages this folder')
     expect(container.textContent).toContain(
       "Don't move, rename, or delete files inside it — doing so can break your projects and history."
     )

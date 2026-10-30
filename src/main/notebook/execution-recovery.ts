@@ -37,7 +37,7 @@ export const executionRecoveryContext = (
       : undefined
   const prerequisite =
     retryAfter === 'cleanup-verified'
-      ? 'At failure, cleanup was unverified. The affected runtime can resume after Open-Science verifies cleanup.'
+      ? 'At failure, cleanup was unverified. The affected runtime can resume after OneEarth verifies cleanup.'
       : 'Check that the affected runtime is available before retrying.'
   const effects =
     execution === 'not-started'

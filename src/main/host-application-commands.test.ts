@@ -881,7 +881,7 @@ describe('Host application commands', () => {
         invocation([approval], ordinaryRemote)
       )
     ).rejects.toThrow(
-      'Pairing can only be managed from the Open-Science desktop app or an approved browser.'
+      'Pairing can only be managed from the OneEarth desktop app or an approved browser.'
     )
     await expect(
       router.dispatcher.invoke(
@@ -925,7 +925,7 @@ describe('Host application commands', () => {
         hostApplicationCommands.remoteAccess.detect,
         invocation([], currentManager)
       )
-    ).rejects.toThrow('This action must be approved from the Open-Science desktop app.')
+    ).rejects.toThrow('This action must be approved from the OneEarth desktop app.')
     await expect(
       router.dispatcher.invoke(
         hostApplicationCommands.remoteAccess.probe,

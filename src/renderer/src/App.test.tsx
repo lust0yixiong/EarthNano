@@ -1395,14 +1395,14 @@ describe('App startup routing', () => {
   })
 
   it('translates the settings startup failure description in Chinese', async () => {
-    mocks.settings.loadError = 'Open-Science could not load settings. Retry to continue.'
+    mocks.settings.loadError = 'OneEarth could not load settings. Retry to continue.'
     mocks.settings.load.mockResolvedValue(false)
     await i18next.changeLanguage('zh-Hans')
     try {
       await render()
       const notice = container.querySelector('[role="alert"]')
       expect(notice?.textContent).toContain('无法加载设置')
-      expect(notice?.textContent).toContain('Open-Science 无法加载设置。请重试以继续。')
+      expect(notice?.textContent).toContain('OneEarth 无法加载设置。请重试以继续。')
       expect(notice?.textContent).not.toContain('could not load settings')
     } finally {
       await act(async () => {
@@ -1440,9 +1440,9 @@ describe('App startup routing', () => {
     await render()
 
     const shell = container.querySelector('[role="alert"]')
-    expect(shell?.textContent).toContain('Open-Science could not load settings. Retry to continue.')
+    expect(shell?.textContent).toContain('OneEarth could not load settings. Retry to continue.')
     expect(shell?.textContent).not.toContain('settings IPC unavailable')
-    expect(shell?.querySelector('section > svg[aria-hidden="true"]')).not.toBeNull()
+    expect(shell?.querySelector('section > img[alt=""]')).not.toBeNull()
     expect(shell?.classList.contains('min-h-svh')).toBe(true)
     expect(shell?.classList.contains('h-screen')).toBe(false)
     expect(shell?.classList.contains('text-foreground')).toBe(true)
@@ -1892,14 +1892,14 @@ describe('App startup routing', () => {
   it('warns that in-memory conversation changes are not durable and retries them', async () => {
     mocks.settings.isLoaded = true
     mocks.sessionPersistence.writeError =
-      'Open-Science could not save the latest conversation changes. Retry before closing the app.'
+      'OneEarth could not save the latest conversation changes. Retry before closing the app.'
 
     await render()
 
     const alert = container.querySelector('[data-testid="session-persistence-alert"]')
     expect(alert?.textContent).toContain('Conversation storage needs attention')
     expect(alert?.textContent).toContain(
-      'Open-Science could not save the latest conversation changes. Retry before closing the app.'
+      'OneEarth could not save the latest conversation changes. Retry before closing the app.'
     )
     expect(alert?.textContent).not.toContain('could not confirm')
     expect(alert?.querySelector('[data-testid="session-persistence-dismiss"]')).not.toBeNull()
@@ -1970,7 +1970,7 @@ describe('App startup routing', () => {
     mocks.sessionPersistence.hasCompleteSessionCatalog = false
     mocks.sessionPersistence.catalogRecovery = { kind: 'repairable', reason: 'session-scan' }
     mocks.sessionPersistence.writeError =
-      'Open-Science could not save the latest conversation changes. Retry before closing the app.'
+      'OneEarth could not save the latest conversation changes. Retry before closing the app.'
 
     await render()
 

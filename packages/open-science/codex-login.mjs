@@ -139,12 +139,12 @@ export const resolveCodexLoginConfiguration = async (configRoot, dependencies = 
   } catch (error) {
     if (error?.code === 'ENOENT') {
       throw new CodexLoginError(
-        'Codex is not configured for this Open-Science profile. Configure the Codex runtime first.',
+        'Codex is not configured for this OneEarth profile. Configure the Codex runtime first.',
         'codex_not_configured'
       )
     }
     throw new CodexLoginError(
-      'Open-Science could not read the configured Codex runtime.',
+      'OneEarth could not read the configured Codex runtime.',
       'codex_configuration_invalid'
     )
   }
@@ -225,7 +225,7 @@ export const codexLoginCommand = async (options, dependencies = {}) => {
       await deps.resolveConfiguration(configRoot)
     } catch {
       throw new CodexLoginError(
-        'Start Open-Science first: open-science start --no-open; then retry codex login.',
+        'Start OneEarth first: open-science start --no-open; then retry codex login.',
         'daemon_unavailable'
       )
     }
@@ -244,7 +244,7 @@ export const codexLoginCommand = async (options, dependencies = {}) => {
       await deps.resolveConfiguration(configRoot)
     } catch {
       throw new CodexLoginError(
-        'Update and restart Open-Science before setting up Codex for this profile.',
+        'Update and restart OneEarth before setting up Codex for this profile.',
         'bootstrap_unavailable'
       )
     }
@@ -254,7 +254,7 @@ export const codexLoginCommand = async (options, dependencies = {}) => {
     if (client) await bootstrap('codex-complete')
     else
       deps.log(
-        'Sign-in saved. Use a running, updated Open-Science daemon and run codex login again to validate and activate the provider.'
+        'Sign-in saved. Use a running, updated OneEarth daemon and run codex login again to validate and activate the provider.'
       )
   }
   const { codexPath, networkProxy } = await deps.resolveConfiguration(configRoot)
@@ -271,12 +271,12 @@ export const codexLoginCommand = async (options, dependencies = {}) => {
     if (status.code === 0) {
       await complete()
       deps.log(
-        'Codex is already signed in for Open-Science. Use "open-science codex login --force" to sign in again.'
+        'Codex is already signed in for OneEarth. Use "open-science codex login --force" to sign in again.'
       )
       return
     }
     if (status.code !== 1 || status.signal) {
-      throw new CodexLoginError('Open-Science could not check the existing Codex sign-in.')
+      throw new CodexLoginError('OneEarth could not check the existing Codex sign-in.')
     }
   }
 
@@ -294,5 +294,5 @@ export const codexLoginCommand = async (options, dependencies = {}) => {
     )
   }
   await complete()
-  deps.log('Codex is signed in for Open-Science.')
+  deps.log('Codex is signed in for OneEarth.')
 }

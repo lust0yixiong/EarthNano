@@ -31,14 +31,11 @@ export class BrowserImportError extends Error {
 /** Request app launch synchronously from a user click; return does not prove OS delivery. */
 export function launchOpenScience() {
   if (typeof globalThis.location?.assign !== 'function')
-    throw new BrowserImportError(
-      'unsupported-browser',
-      'This environment cannot open Open-Science.'
-    )
+    throw new BrowserImportError('unsupported-browser', 'This environment cannot open OneEarth.')
   try {
     globalThis.location.assign('open-science://open')
   } catch {
-    throw new BrowserImportError('launch-failed', 'Could not request opening Open-Science.')
+    throw new BrowserImportError('launch-failed', 'Could not request opening OneEarth.')
   }
 }
 
@@ -64,9 +61,7 @@ const bounded = async (signal, timeoutMs, work) => {
   const controller = new AbortController()
   const timer = setTimeout(
     () =>
-      controller.abort(
-        new BrowserImportError('timeout', 'Open-Science did not become ready in time.')
-      ),
+      controller.abort(new BrowserImportError('timeout', 'OneEarth did not become ready in time.')),
     timeoutMs
   )
   const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
@@ -135,7 +130,7 @@ export function prepareBrowserImport(file, options = {}) {
   if (!supported())
     throw new BrowserImportError(
       'unsupported-browser',
-      'This browser cannot transfer packages to Open-Science.'
+      'This browser cannot transfer packages to OneEarth.'
     )
   validOrigin(origin)
   const filename = options.filename ?? file?.name
@@ -237,7 +232,7 @@ export function prepareBrowserImport(file, options = {}) {
             )
           cancelled = new BrowserImportError(
             'cancelled',
-            'The transfer was cancelled in Open-Science. Prepare a new transfer to try again.'
+            'The transfer was cancelled in OneEarth. Prepare a new transfer to try again.'
           )
           throw cancelled
         }
@@ -278,14 +273,11 @@ export function prepareBrowserImport(file, options = {}) {
                 )
                 attemptSignal.throwIfAborted()
                 if (Date.now() >= deadline)
-                  throw new BrowserImportError(
-                    'timeout',
-                    'Open-Science did not become ready in time.'
-                  )
+                  throw new BrowserImportError('timeout', 'OneEarth did not become ready in time.')
                 if (!response.ok || value.proof !== expected)
                   throw new BrowserImportError(
                     'incompatible',
-                    'Could not verify the local receiver identity. Prepare a new transfer and reopen Open-Science.'
+                    'Could not verify the local receiver identity. Prepare a new transfer and reopen OneEarth.'
                   )
                 return value
               })
@@ -302,7 +294,7 @@ export function prepareBrowserImport(file, options = {}) {
           }
           throw new BrowserImportError(
             'readiness-exhausted',
-            'Open-Science did not become ready. Open the app, allow local network access, and retry.'
+            'OneEarth did not become ready. Open the app, allow local network access, and retry.'
           )
         })
         verified = true
@@ -357,7 +349,7 @@ export function prepareBrowserImport(file, options = {}) {
             receipt.received !== true ||
             receipt.proof !== (await sign(`received:${file.size}`))
           )
-            throw new Error('Open-Science did not acknowledge the complete package.')
+            throw new Error('OneEarth did not acknowledge the complete package.')
         }
         received = true
         return { received: true }

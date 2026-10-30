@@ -19,40 +19,40 @@ type IcoEntry = {
 const APP_ICON_SIZES = [16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128, 256]
 const TRAY_ICON_SIZES = [16, 20, 24, 32, 40, 48, 64, 256]
 const LIGHT_SMALL_FRAME_HASHES = {
-  16: '6a96e54c3f0fcfb8da6dc4aec6f38fa89718a6539d563cab8a74dd331bfa490b',
-  20: 'acaf758b3baf594ff52d8d45598f94b3d5de90a9b9cd2676a9010f8e3d3e4ae7',
-  24: '4b09ac208997f36902b1f002120b0f0671615affc61ed260c052519c862c5d2e'
+  16: '223b94665dbbd8b826f9540259724abbca2794affc97a7100d4d79d78cb0ee7f',
+  20: '6cad1437c611e0c2edaa0b9110f82867fe62d77a1b3637f15778c80fe150be60',
+  24: '6634c2bfdc6530fc15ef215614f94d6e20e23e5808e8af885f5edf7314011540'
 }
 const DARK_SMALL_FRAME_HASHES = {
-  16: '6a96e54c3f0fcfb8da6dc4aec6f38fa89718a6539d563cab8a74dd331bfa490b',
-  20: 'acaf758b3baf594ff52d8d45598f94b3d5de90a9b9cd2676a9010f8e3d3e4ae7',
-  24: '4b09ac208997f36902b1f002120b0f0671615affc61ed260c052519c862c5d2e'
+  16: '223b94665dbbd8b826f9540259724abbca2794affc97a7100d4d79d78cb0ee7f',
+  20: '6cad1437c611e0c2edaa0b9110f82867fe62d77a1b3637f15778c80fe150be60',
+  24: '6634c2bfdc6530fc15ef215614f94d6e20e23e5808e8af885f5edf7314011540'
 }
 const ICON_ASSETS = [
   {
     relativePath: 'build/icon.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
+    expectedSha256: '7a0f21e7a487b3ed10db3272d6f0fb8689d9f86e8be62ef56771e5911013f87f'
   },
   {
     relativePath: 'resources/icon-light.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
+    expectedSha256: '7a0f21e7a487b3ed10db3272d6f0fb8689d9f86e8be62ef56771e5911013f87f'
   },
   {
     relativePath: 'resources/icon-dark.ico',
     expectedSizes: APP_ICON_SIZES,
-    expectedSha256: 'dd2f1e02a4b286bbccd1ed61ffba321a3dcfe56daf1c10517bd16290791f946e'
+    expectedSha256: '7a0f21e7a487b3ed10db3272d6f0fb8689d9f86e8be62ef56771e5911013f87f'
   },
   {
     relativePath: 'resources/tray-light.ico',
     expectedSizes: TRAY_ICON_SIZES,
-    expectedSha256: 'e5bb025fb58726f92fad76a7d8a106d4e4b204fcb1440a7340077569150b1189'
+    expectedSha256: 'ddf9dafc03906b567c810fd56a3ede0d2d857a9ac2e7752c0e37bb406c2e1de8'
   },
   {
     relativePath: 'resources/tray-dark.ico',
     expectedSizes: TRAY_ICON_SIZES,
-    expectedSha256: 'e5bb025fb58726f92fad76a7d8a106d4e4b204fcb1440a7340077569150b1189'
+    expectedSha256: 'ddf9dafc03906b567c810fd56a3ede0d2d857a9ac2e7752c0e37bb406c2e1de8'
   }
 ]
 

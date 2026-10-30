@@ -674,7 +674,7 @@ async function main(): Promise<void> {
     const serving = await web.ensureStarted(parseWebModeOptions(process.argv).port, {
       attached: false
     })
-    process.stdout.write(`Open-Science is listening on http://127.0.0.1:${serving.port}\n`)
+    process.stdout.write(`OneEarth is listening on http://127.0.0.1:${serving.port}\n`)
     void remoteAccess.restore()
     databaseStartup.complete()
     diagnostics.operation.complete()

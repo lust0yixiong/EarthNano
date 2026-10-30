@@ -1,8 +1,8 @@
-# EarthNano — Agent Notes
+# OneEarth — Agent Notes
 
 ## Project identity
 
-The integrated project and application are **EarthNano**. Use EarthNano in new product copy,
+The integrated project and application are **OneEarth** (formerly EarthNano). Use OneEarth in new product copy,
 project documentation, PR descriptions and user communication. OpenScience / Open-Science and
 Harness² identify the upstream projects when discussing source provenance or retained modules.
 Use `APP.name` from `src/shared/app-config.ts` for renderer product labels. Preserve upstream
@@ -206,7 +206,7 @@ bare JSX text nodes left unwrapped.
 
 ### ErrorNotice (`src/renderer/src/components/error-notice.tsx`)
 
-The generic error facade delegates to `Notice`. The flask brand mark appears only with
+The generic error facade delegates to `Notice`. The shared OneEarth brand mark appears only with
 `fullPage`; ordinary notices stay in their owning region. Optional presentation props include
 `fullPage`, `inline`, `role`, `level`, `content`, `children`, `diagnosticsLabel`, and `dismissButton`.
 Levels are `info`, `success`, `warning`, and `error`; an explicit level overrides the legacy tone.

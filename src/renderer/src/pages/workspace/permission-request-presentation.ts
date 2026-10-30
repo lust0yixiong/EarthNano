@@ -1,3 +1,4 @@
+import { APP } from '../../../../shared/app-config'
 import type { AcpPermissionRequest } from '../../../../shared/acp-permission-contract'
 
 import {
@@ -349,7 +350,7 @@ const humanizeMcpName = (name: string | undefined): string | undefined => {
         .filter(Boolean)
         .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
         .join(' ')
-        .replace(/^Open ?Science\b/iu, 'Open-Science')
+        .replace(/^Open[- ]?Science\b/iu, APP.name)
     )
     .filter(Boolean)
 

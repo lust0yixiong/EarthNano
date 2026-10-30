@@ -78,7 +78,7 @@ describe('WebEventRecoveryDialog', () => {
 
     await act(async () => vi.advanceTimersByTime(5000))
     const dialog = document.body.querySelector<HTMLElement>('[role="alertdialog"]')
-    expect(dialog?.textContent).toContain('Reconnecting to Open-Science')
+    expect(dialog?.textContent).toContain('Reconnecting to OneEarth')
     expect(
       Array.from(dialog?.querySelectorAll('button') ?? []).some(
         (button) => button.textContent === 'Reload'

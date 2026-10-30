@@ -88,10 +88,10 @@ it('supplies application OAuth identity, recovery text and expired callback copy
   const manager = new McpClientManager({
     ...mcpHostDependencies,
     createClient: async (_config, provider) => {
-      expect(provider?.clientMetadata.client_name).toBe('Open-Science')
+      expect(provider?.clientMetadata.client_name).toBe('OneEarth')
       const response = await fetch(`${provider!.redirectUrl}?state=unknown`)
       expect(response.status).toBe(400)
-      expect(await response.text()).toContain('Open-Science authorization expired')
+      expect(await response.text()).toContain('OneEarth authorization expired')
       await provider!.redirectToAuthorization(new URL('https://example.test/authorize'))
       throw new Error('background authorization must reject')
     }

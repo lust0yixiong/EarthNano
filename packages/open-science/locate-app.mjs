@@ -29,18 +29,22 @@ const isCurrentCli = async (candidate) => {
 
 // Standalone discovery follows current packaging defaults. Legacy/custom/mixed layouts require
 // an explicit binding; public Linux commands may be CLI wrappers and are never desktop candidates.
+// Keep previous product directories discoverable for existing desktop installations.
+const installedProductNames = ['OneEarth', 'EarthNano', 'Open-Science']
 const defaultInstalledCandidates = (env = process.env) => {
   if (process.platform === 'win32') {
     return [env.LOCALAPPDATA && join(env.LOCALAPPDATA, 'Programs'), env.PROGRAMFILES]
       .filter(Boolean)
-      .map((root) => join(root, 'Open-Science', 'open-science.exe'))
+      .flatMap((root) => installedProductNames.map((name) => join(root, name, 'open-science.exe')))
   }
   if (process.platform === 'darwin') {
     return ['/Applications', env.HOME && join(env.HOME, 'Applications')]
       .filter(Boolean)
-      .map((root) => join(root, 'Open-Science.app', 'Contents', 'MacOS', 'Open-Science'))
+      .flatMap((root) =>
+        installedProductNames.map((name) => join(root, `${name}.app`, 'Contents', 'MacOS', name))
+      )
   }
-  return ['/opt/Open-Science/open-science']
+  return installedProductNames.map((name) => `/opt/${name}/open-science`)
 }
 
 const locateDevelopmentApp = async () => {
@@ -64,7 +68,7 @@ export const locateApp = async ({ appPath, env = process.env } = {}) => {
   const explicit = appPath ?? env.OPEN_SCIENCE_APP_PATH
   if (explicit) {
     const command = resolve(explicit)
-    if (!(await exists(command))) throw new Error(`Open-Science executable not found: ${command}`)
+    if (!(await exists(command))) throw new Error(`OneEarth executable not found: ${command}`)
     return { command, args: [], packaged: true, repositoryRoot }
   }
 
@@ -79,7 +83,7 @@ export const locateApp = async ({ appPath, env = process.env } = {}) => {
 
   // When run from a packaged build's resources dir there is no package.json next to the CLI, so fall
   // back to the product name rather than letting the read mask the real "could not locate" message.
-  let productName = 'Open-Science'
+  let productName = 'OneEarth'
   try {
     productName =
       JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8')).productName ??

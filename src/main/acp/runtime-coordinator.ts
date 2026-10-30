@@ -2148,8 +2148,8 @@ class AcpRuntimeCoordinator {
   private admissionClosedError(reason: 'quit' | 'settling'): Error {
     return new Error(
       reason === 'quit'
-        ? 'Open-Science is quitting, so new messages cannot be sent.'
-        : 'Open-Science is finishing a background cleanup. Try sending again in a moment.'
+        ? 'OneEarth is quitting, so new messages cannot be sent.'
+        : 'OneEarth is finishing a background cleanup. Try sending again in a moment.'
     )
   }
 

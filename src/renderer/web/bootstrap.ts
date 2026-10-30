@@ -56,7 +56,7 @@ document.documentElement.setAttribute(WEB_EVENT_SURFACE_ATTRIBUTE, 'true')
 
 const authorizationExpiredMessage = (): string =>
   t(
-    'Access authorization has expired. Reopen the Web link from Open-Science on the host computer, or return to the remote access entry page to pair again.'
+    'Access authorization has expired. Reopen the Web link from OneEarth on the host computer, or return to the remote access entry page to pair again.'
   )
 
 class AuthorizationExpiredError extends Error {}
@@ -184,7 +184,7 @@ const fetchBootstrap = async (): Promise<unknown> => {
           throw responseError(
             response,
             await response.text(),
-            `Open-Science returned HTTP ${response.status}.`
+            `OneEarth returned HTTP ${response.status}.`
           )
         }
         return await response.json()
@@ -194,9 +194,7 @@ const fetchBootstrap = async (): Promise<unknown> => {
       lastError = error
     }
   }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Unable to initialize Open-Science Remote.')
+  throw lastError instanceof Error ? lastError : new Error('Unable to initialize OneEarth Remote.')
 }
 
 const showConnectionFailure = (error: unknown): void => {
@@ -297,7 +295,7 @@ const invokeRaw = async (
   } catch {
     if (!response.ok) throw responseError(response, body, `RPC ${channel} failed`)
     throw new Error(
-      'Open-Science returned an invalid response. Try reconnecting to the remote computer.'
+      'OneEarth returned an invalid response. Try reconnecting to the remote computer.'
     )
   }
   if (!payload.ok) {
@@ -530,7 +528,7 @@ const installWebApi = async (): Promise<EventCursor> => {
   const parsedBootstrap = webRpcBootstrapSchema.safeParse(await fetchBootstrap())
   if (!parsedBootstrap.success) {
     throw new Error(
-      `Incompatible Open-Science Web RPC protocol. Expected version ${WEB_RPC_PROTOCOL_VERSION}.`
+      `Incompatible OneEarth Web RPC protocol. Expected version ${WEB_RPC_PROTOCOL_VERSION}.`
     )
   }
   const bootstrap = parsedBootstrap.data

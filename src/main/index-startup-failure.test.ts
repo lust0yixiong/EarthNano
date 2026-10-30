@@ -277,7 +277,7 @@ it('releases credential preflight and exits without yielding or initializing the
   await import('./index')
   expect(f.app.exit).toHaveBeenCalledWith(1)
   expect(f.dialog.showErrorBox).toHaveBeenCalledWith(
-    'EarthNano',
+    'OneEarth',
     expect.stringContaining('SYSTEM_ERROR: EBUSY')
   )
   expect(f.log.error).toHaveBeenCalledWith(

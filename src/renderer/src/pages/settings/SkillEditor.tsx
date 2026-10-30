@@ -876,7 +876,7 @@ const SkillEditLoader = ({
         <SettingsLoadNotice
           state={loadState === 'error' ? 'error' : 'loading'}
           loadingLabel={t('Loading Skill…')}
-          errorMessage={t('Open-Science could not load this Skill.')}
+          errorMessage={t('OneEarth could not load this Skill.')}
           onRetry={loadDetail}
         />
       </div>
@@ -885,7 +885,7 @@ const SkillEditLoader = ({
 
   const saveDraft = async (next: SkillDraft): Promise<void> => {
     // Optional API preconditions preserve old clients; the editor never performs a blind write.
-    if (!next.etag) throw new Error(t('Open-Science could not load this Skill.'))
+    if (!next.etag) throw new Error(t('OneEarth could not load this Skill.'))
     try {
       await updateSkill({
         id: next.id ?? skillId,
@@ -898,7 +898,7 @@ const SkillEditLoader = ({
     } catch (error) {
       if (!(error instanceof Error) || !error.message.includes('This Skill changed.')) throw error
       const detail = await window.api.settings.getSkillDetail(skillId)
-      if (!detail.etag) throw new Error(t('Open-Science could not load this Skill.'))
+      if (!detail.etag) throw new Error(t('OneEarth could not load this Skill.'))
       setConflict({ draft: next, latest: toSkillDraft(detail) })
       setConflictError(null)
       return

@@ -9,7 +9,7 @@ import type {
   TrustedApplicationExecutionOwner,
   TrustedDelegatedExecutionOwner
 } from '../acp/execution-boundary-port'
-import { ExecutionCore, type ExecutionContext } from './execution-core'
+import { ExecutionCore, type ExecutionContext, type ExecutionOutcome } from './execution-core'
 import type { ScopedExecutionPort } from './execution-contract'
 import {
   currentExecutionScope,
@@ -76,6 +76,8 @@ export function createAcpExecutionBoundary({
     owned: boolean
     nativeActive: boolean
     record?: ExecutionRecord
+    reconcile?(): Promise<void>
+    reconciling?: Promise<void>
   }
   const active = new Map<string, Set<Entry>>()
   const owners = new Set<ExecutionCore>()
@@ -196,7 +198,15 @@ export function createAcpExecutionBoundary({
       }
 
       for (const previous of active.get(input.request.sessionId) ?? []) {
-        const record = previous.record ?? (await previous.core.get(previous.executionId))
+        let record = previous.record ?? (await previous.core.get(previous.executionId))
+        if (record.cleanup === 'unknown' && !previous.nativeActive && previous.reconcile) {
+          // Re-read only this entry's original owner. The next prompt cannot attest to its result.
+          previous.reconciling ??= previous.reconcile().finally(() => {
+            previous.reconciling = undefined
+          })
+          await previous.reconciling.catch(() => undefined)
+          record = previous.record ?? record
+        }
         if (record.cleanup === 'unknown' || previous.nativeActive)
           throw new Error(
             'Session execution remains owned pending original result and resource settlement'
@@ -207,6 +217,7 @@ export function createAcpExecutionBoundary({
       const native = deferred<PromptResponse>()
       let nativeFinished = false
       let admissionObserved = false
+      let readCommittedResult: ((reconciliation?: boolean) => Promise<ExecutionOutcome>) | undefined
       const core = new ExecutionCore(prepared.store, {
         async execute(_request, context) {
           const identity: ExecutionIdentity = {}
@@ -238,24 +249,28 @@ export function createAcpExecutionBoundary({
               error !== undefined && !admissionObserved
                 ? await input.retireUnadmitted?.()
                 : undefined
-            const outcome = await prepared.readResult({
-              response,
-              error,
-              context,
-              identity,
-              preAdmissionRetirement
-            })
-            // Durable owner failures outrank a superficially successful native response.
-            if (error !== undefined && outcome.phase === 'completed')
-              return {
-                ...outcome,
-                phase: 'failed' as const,
-                error: {
-                  code: 'original-owner-failed',
-                  message: error instanceof Error ? error.message : String(error)
+            readCommittedResult = async (reconciliation = false) => {
+              const outcome = await prepared.readResult({
+                response,
+                error,
+                context,
+                identity,
+                preAdmissionRetirement,
+                ...(reconciliation ? { reconciliation: true } : {})
+              })
+              // Durable owner failures outrank a superficially successful native response.
+              if (error !== undefined && outcome.phase === 'completed')
+                return {
+                  ...outcome,
+                  phase: 'failed' as const,
+                  error: {
+                    code: 'original-owner-failed',
+                    message: error instanceof Error ? error.message : String(error)
+                  }
                 }
-              }
-            return outcome
+              return outcome
+            }
+            return await readCommittedResult()
           } finally {
             releaseCancellation?.()
           }
@@ -276,7 +291,35 @@ export function createAcpExecutionBoundary({
         prepared.close()
         throw error
       }
-      const entry: Entry = { core, executionId, owned: true, nativeActive: true }
+      const release = (): void => {
+        remove(input.request.sessionId, entry)
+        owners.delete(core)
+        core.dispose()
+        prepared.close()
+      }
+      const entry: Entry = {
+        core,
+        executionId,
+        owned: true,
+        nativeActive: true,
+        async reconcile() {
+          if (!nativeFinished || !readCommittedResult || !(await core.settle(1))) return
+          const previous = await core.get(executionId)
+          // A deadline or interrupted driver needs the original restart/Resume recovery path.
+          if (previous.cleanup !== 'unknown' || previous.phase === 'interrupted') return
+          const outcome = await readCommittedResult(true)
+          if (outcome.cleanup !== 'confirmed') return
+          core.reconcileOriginal(
+            executionId,
+            { ...outcome, cleanup: 'confirmed' },
+            {
+              settledDriver: true
+            }
+          )
+          entry.record = await core.get(executionId)
+          release()
+        }
+      }
       add(input.request.sessionId, entry)
       const terminal = core.waitForTerminal(executionId)
       const settled: Promise<ExecutionRecord> = terminal.then(async (record) => {
@@ -288,10 +331,7 @@ export function createAcpExecutionBoundary({
         // Timeout may leave original owners committing. Never release their resource fence early.
         if (await core.settle()) {
           if (record.cleanup === 'confirmed') {
-            remove(input.request.sessionId, entry)
-            owners.delete(core)
-            core.dispose()
-            prepared.close()
+            release()
           }
         }
         return record

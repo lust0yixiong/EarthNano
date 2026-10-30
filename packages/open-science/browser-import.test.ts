@@ -429,9 +429,7 @@ it.each(['timeout', 'transfer-failed'])(
     elements.cancelButton.onclick()
     await vi.waitFor(() => expect(elements.cancelButton.disabled).toBe(true))
     elements.reconnectButton.onclick()
-    await vi.waitFor(() =>
-      expect(elements.status.textContent).toContain('Received by Open-Science')
-    )
+    await vi.waitFor(() => expect(elements.status.textContent).toContain('Received by OneEarth'))
     expect(prepare).toHaveBeenCalledTimes(1)
     expect(send).toHaveBeenCalledTimes(2)
     expect(assign).toHaveBeenCalledTimes(1)

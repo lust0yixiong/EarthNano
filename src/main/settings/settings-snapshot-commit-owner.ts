@@ -61,7 +61,7 @@ class SettingsSnapshotCommitOwner {
             : error instanceof Error && error.name === 'SettingsDocumentReadError'
               ? 'settings-invalid'
               : 'command-failed',
-        'Open-Science could not load settings. Retry to continue.'
+        'OneEarth could not load settings. Retry to continue.'
       )
     }
   }

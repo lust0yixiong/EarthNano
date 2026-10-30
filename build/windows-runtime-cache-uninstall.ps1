@@ -188,6 +188,8 @@ $userIdentity = $identityParts -join '\'
 $roots = [System.Collections.Generic.HashSet[string]]::new(
   [System.StringComparer]::OrdinalIgnoreCase
 )
+[void]$roots.Add((Join-Path $env:USERPROFILE 'OneEarth\runtime'))
+[void]$roots.Add((Join-Path $env:USERPROFILE 'EarthNano\runtime'))
 [void]$roots.Add((Join-Path $env:USERPROFILE 'OpenScience\runtime'))
 [void]$roots.Add((Join-Path $env:USERPROFILE 'Open-Science\runtime'))
 [void]$roots.Add((Join-Path $env:USERPROFILE '.open-science\runtime'))

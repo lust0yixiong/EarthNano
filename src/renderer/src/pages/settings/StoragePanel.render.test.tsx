@@ -649,7 +649,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.',
+          summary: 'OneEarth cannot write to its private data folder.',
           detail
         }
       ])
@@ -673,7 +673,7 @@ describe('StoragePanel', () => {
         id: 'storage',
         label: 'App storage permission',
         status: 'passed',
-        summary: 'Open-Science can write to its private data folder.',
+        summary: 'OneEarth can write to its private data folder.',
         detail: '/home/u/.open-science'
       }
     ])
@@ -687,7 +687,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.',
+          summary: 'OneEarth cannot write to its private data folder.',
           detail: '/home/u/.open-science — EACCES: permission denied'
         }
       ]),
@@ -723,7 +723,7 @@ describe('StoragePanel', () => {
         id: 'storage',
         label: 'App storage permission',
         status: 'passed',
-        summary: 'Open-Science can write to its private data folder.',
+        summary: 'OneEarth can write to its private data folder.',
         detail: '/home/u/.open-science'
       },
       {
@@ -744,7 +744,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.',
+          summary: 'OneEarth cannot write to its private data folder.',
           detail: '/home/u/.open-science — EACCES: permission denied'
         }
       ]),
@@ -778,7 +778,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.',
+          summary: 'OneEarth cannot write to its private data folder.',
           detail: '/home/u/.open-science — EACCES: permission denied'
         }
       ]),
@@ -802,7 +802,7 @@ describe('StoragePanel', () => {
         id: 'storage',
         label: 'App storage permission',
         status: 'passed',
-        summary: 'Open-Science can write to its private data folder.'
+        summary: 'OneEarth can write to its private data folder.'
       },
       {
         id: 'agent',
@@ -821,7 +821,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.'
+          summary: 'OneEarth cannot write to its private data folder.'
         }
       ]),
       checkEnvironment
@@ -841,7 +841,7 @@ describe('StoragePanel', () => {
             id: 'storage',
             label: 'App storage permission',
             status: 'passed',
-            summary: 'Open-Science can write to its private data folder.'
+            summary: 'OneEarth can write to its private data folder.'
           }
         ])
       })
@@ -857,7 +857,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.'
+          summary: 'OneEarth cannot write to its private data folder.'
         }
       ])
     })
@@ -890,7 +890,7 @@ describe('StoragePanel', () => {
           id: 'storage',
           label: 'App storage permission',
           status: 'failed',
-          summary: 'Open-Science cannot write to its private data folder.'
+          summary: 'OneEarth cannot write to its private data folder.'
         }
       ]),
       checkEnvironment
@@ -1191,7 +1191,7 @@ describe('StoragePanel', () => {
       await Promise.resolve()
     })
 
-    expect(container.textContent).toContain('already contains Open-Science data')
+    expect(container.textContent).toContain('already contains OneEarth data')
     expect(container.textContent).toContain('Data will be stored in')
     expect(container.textContent).toContain('/mnt/existing/OpenScience')
     expect(

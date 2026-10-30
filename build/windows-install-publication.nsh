@@ -62,7 +62,7 @@ Var publicationOutput
   StrCmp $publicationResult "0" 0 publication_failed
   StrCpy $publicationDirectory $publicationOutput
   SetDetailsPrint textonly
-  DetailPrint "$(^Extract)Open-Science"
+  DetailPrint "$(^Extract)OneEarth"
   SetDetailsPrint none
   # Nsis7z discards extraction errors. The CLI reports CRC, incomplete archive, write and
   # cancellation errors. Only exit 0 permits publication; a warning is not success.

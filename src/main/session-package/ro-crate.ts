@@ -301,7 +301,7 @@ export const buildSessionPackageRoCrateMetadata = async (
     datePublished: publishedAt.toISOString(),
     license: 'License information was not provided. This export grants no additional usage rights.',
     description:
-      'Open Science Session research package with captured provenance. Excluded or unavailable files retain references only. Captured evidence does not guarantee deterministic replay.',
+      'OneEarth Session research package with captured provenance. Excluded or unavailable files retain references only. Captured evidence does not guarantee deterministic replay.',
     hasPart: [...entities.values()]
       .filter((entity) => entity['@type'] === 'File')
       .map((entity) => reference(entity['@id'])),

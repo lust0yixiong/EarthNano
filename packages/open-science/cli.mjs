@@ -608,7 +608,7 @@ export const initCommand = async (options, deps = DEFAULT_DEPS) => {
   })
   await mkdir(configRoot, { recursive: true, mode: 0o700 })
   const result = { configRoot, initialized: true }
-  deps.log(options.json ? JSON.stringify(result) : `Open-Science is initialized at ${configRoot}.`)
+  deps.log(options.json ? JSON.stringify(result) : `OneEarth is initialized at ${configRoot}.`)
   return result
 }
 
@@ -760,23 +760,21 @@ export const buildBackendLaunchArgs = (backend, options, port) => [
 ]
 
 export const formatStartupFailure = (outcome, logTail) => {
-  if (outcome.kind === 'error') return `Could not start Open-Science: ${outcome.error.message}`
+  if (outcome.kind === 'error') return `Could not start OneEarth: ${outcome.error.message}`
 
   const exitStatus = outcome.signal
     ? ` after receiving ${outcome.signal}`
     : ` with exit code ${outcome.code ?? 'unknown'}`
-  return `Open-Science exited before becoming healthy${exitStatus}.${logTail ? `\n\n${logTail}` : ''}`
+  return `OneEarth exited before becoming healthy${exitStatus}.${logTail ? `\n\n${logTail}` : ''}`
 }
 
 export const startCommand = async (options, deps = DEFAULT_DEPS) => {
   const existing = await findCurrentState(options, deps)
   if (await healthCheck(existing, deps)) {
     if (options.credentialStore !== undefined)
-      throw new Error(
-        'Open-Science is already running. Stop it before selecting a credential store.'
-      )
+      throw new Error('OneEarth is already running. Stop it before selecting a credential store.')
     const url = await authenticatedUrl(existing, deps)
-    deps.log(`Open-Science is already running (PID ${existing.pid}).`)
+    deps.log(`OneEarth is already running (PID ${existing.pid}).`)
     if (options.open) openBrowser(url)
     else deps.log('Run "open-science url" to print a browser login URL.')
     return { state: existing, started: false }
@@ -790,7 +788,7 @@ export const startCommand = async (options, deps = DEFAULT_DEPS) => {
   if (reusedRoot) {
     const state = await findCurrentState({ ...options, configRoot: reusedRoot }, deps)
     if (await healthCheck(state, deps)) {
-      deps.log(`Open-Science is already running (PID ${state.pid}).`)
+      deps.log(`OneEarth is already running (PID ${state.pid}).`)
       if (options.open) openBrowser(await authenticatedUrl(state, deps))
       else deps.log('Run "open-science url" to print a browser login URL.')
       return { state, started: false }
@@ -847,12 +845,12 @@ export const startCommand = async (options, deps = DEFAULT_DEPS) => {
       throw new Error(formatStartupFailure(startup, logTail, options))
     }
     throw new Error(
-      `Open-Science did not become healthy within ${START_TIMEOUT_MS / 1000}s.${logTail ? `\n\n${logTail}` : ''}`
+      `OneEarth did not become healthy within ${START_TIMEOUT_MS / 1000}s.${logTail ? `\n\n${logTail}` : ''}`
     )
   }
   const state = startup.state
   const url = await authenticatedUrl(state, deps)
-  deps.log(`Open-Science started (PID ${state.pid}).`)
+  deps.log(`OneEarth started (PID ${state.pid}).`)
   if (options.open) openBrowser(url)
   else deps.log('Run "open-science url" to print a browser login URL.')
   return { state, started: true }
@@ -879,7 +877,7 @@ export const stopCommand = async (options, deps = DEFAULT_DEPS) => {
   const state = await findCurrentState(options, deps)
   if (!state) {
     deps.log(
-      options.json ? JSON.stringify({ result: 'already-stopped' }) : 'Open-Science is not running.'
+      options.json ? JSON.stringify({ result: 'already-stopped' }) : 'OneEarth is not running.'
     )
     return
   }
@@ -900,7 +898,7 @@ export const stopCommand = async (options, deps = DEFAULT_DEPS) => {
 
   if (!shutdownAccepted) {
     throw new Error(
-      `Could not safely stop Open-Science (PID ${state.pid}); the authenticated shutdown request was not accepted, so no process signal was sent.`
+      `Could not safely stop OneEarth (PID ${state.pid}); the authenticated shutdown request was not accepted, so no process signal was sent.`
     )
   }
 
@@ -910,13 +908,13 @@ export const stopCommand = async (options, deps = DEFAULT_DEPS) => {
     const stopped = await waitForWebServiceStopped(state, deps, STOP_TIMEOUT_MS)
     if (!stopped) {
       throw new Error(
-        `Could not stop the Open-Science web service (PID ${state.pid}); the app is still serving.`
+        `Could not stop the OneEarth web service (PID ${state.pid}); the app is still serving.`
       )
     }
     deps.log(
       options.json
         ? JSON.stringify({ result: 'web-service-stopped' })
-        : 'Open-Science web service stopped; the app is still running.'
+        : 'OneEarth web service stopped; the app is still running.'
     )
     return
   }
@@ -931,10 +929,10 @@ export const stopCommand = async (options, deps = DEFAULT_DEPS) => {
   // the state in place and fail loudly so the user isn't told it stopped when it didn't.
   if (!stopped) {
     throw new Error(
-      `Could not stop Open-Science (PID ${state.pid}); it is still running, so no process signal was sent.`
+      `Could not stop OneEarth (PID ${state.pid}); it is still running, so no process signal was sent.`
     )
   }
-  deps.log(options.json ? JSON.stringify({ result: 'daemon-stopped' }) : 'Open-Science stopped.')
+  deps.log(options.json ? JSON.stringify({ result: 'daemon-stopped' }) : 'OneEarth stopped.')
 }
 
 export const statusCommand = async (options, deps = DEFAULT_DEPS) => {
@@ -943,16 +941,16 @@ export const statusCommand = async (options, deps = DEFAULT_DEPS) => {
   if (options.json) {
     deps.log(JSON.stringify(running ? { running: true, ...state } : { running: false }, null, 2))
   } else if (running) {
-    deps.log(`Open-Science is running (PID ${state.pid}, port ${state.port}).`)
+    deps.log(`OneEarth is running (PID ${state.pid}, port ${state.port}).`)
   } else {
-    deps.log('Open-Science is not running.')
+    deps.log('OneEarth is not running.')
   }
   if (!running) process.exitCode = 1
 }
 
 export const urlCommand = async (options, deps = DEFAULT_DEPS) => {
   const state = await findCurrentState(options, deps)
-  if (!(await healthCheck(state, deps))) throw new Error('Open-Science is not running.')
+  if (!(await healthCheck(state, deps))) throw new Error('OneEarth is not running.')
   deps.log(await authenticatedUrl(state, deps))
 }
 
@@ -1090,7 +1088,7 @@ const emitRunEvent = (event, options, deps) => {
     deps.log(JSON.stringify(event))
   } else if (event.type === 'stream.resync-required') {
     deps.warn(
-      'Run event history could not be fully replayed. Final Run state will still be read from Open-Science.'
+      'Run event history could not be fully replayed. Final Run state will still be read from OneEarth.'
     )
   } else if (event.type === 'run.progress') {
     if (event.data?.heartbeat) {
@@ -1109,9 +1107,7 @@ const emitRunEvent = (event, options, deps) => {
     }[event.data?.phase]
     if (message) deps.log(message)
   } else if (event.type === 'permission.requested') {
-    deps.warn(
-      'Run is waiting for approval. Approve the request in Open-Science Desktop or the Web UI.'
-    )
+    deps.warn('Run is waiting for approval. Approve the request in OneEarth Desktop or the Web UI.')
   } else if (
     event.type === 'run.event' &&
     event.data?.planProjection?.lifecycle === 'awaiting_approval'
@@ -1618,7 +1614,7 @@ export const runTaskCommand = async (parsed, dependencies = {}) => {
             if (abortController.signal.aborted) return
             const message = error instanceof Error ? error.message : String(error)
             deps.warn(
-              `Run event stream stopped: ${message} Final Run state will still be read from Open-Science.`
+              `Run event stream stopped: ${message} Final Run state will still be read from OneEarth.`
             )
           }
         )

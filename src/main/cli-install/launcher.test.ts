@@ -257,7 +257,7 @@ describe('initial CLI installation failure recovery', () => {
 
       await expect(installCliLauncher(env)).rejects.toBe(error)
       await expect(readFile(plan.target, 'utf8')).resolves.toBe(userContent)
-      await expect(installCliLauncher(env)).rejects.toThrow(/not managed by Open-Science/)
+      await expect(installCliLauncher(env)).rejects.toThrow(/not managed by OneEarth/)
     }
   )
 })
@@ -487,7 +487,7 @@ describe.each([
     await writeFile(plan.target, userContent)
 
     await expect(installCliLauncher(env, () => true)).rejects.toThrow(
-      'because it is not managed by Open-Science'
+      'because it is not managed by OneEarth'
     )
     await expect(readFile(plan.target, 'utf8')).resolves.toBe(userContent)
   })
@@ -499,9 +499,7 @@ describe.each([
     await mkdir(plan.binDir, { recursive: true })
     await writeFile(plan.target, userContent)
 
-    await expect(uninstallCliLauncher(env)).rejects.toThrow(
-      'because it is not managed by Open-Science'
-    )
+    await expect(uninstallCliLauncher(env)).rejects.toThrow('because it is not managed by OneEarth')
     await expect(readFile(plan.target, 'utf8')).resolves.toBe(userContent)
   })
 
@@ -529,7 +527,7 @@ describe.each([
     await writeFile(plan.target, userContent)
 
     await expect(installCliLauncher(env, () => true)).rejects.toThrow(
-      'because it is not managed by Open-Science'
+      'because it is not managed by OneEarth'
     )
     await expect(readFile(plan.target, 'utf8')).resolves.toBe(userContent)
   })
@@ -588,7 +586,7 @@ symlinkDescribe('symlinked launcher safety', () => {
   it('refuses to follow a symlink during install', async () => {
     const { env, target, userFile, userContent } = await arrangeManagedTargetSymlink()
 
-    await expect(installCliLauncher(env)).rejects.toThrow('not managed by Open-Science')
+    await expect(installCliLauncher(env)).rejects.toThrow('not managed by OneEarth')
     await expect(readFile(userFile, 'utf8')).resolves.toBe(userContent)
     expect((await lstat(target)).isSymbolicLink()).toBe(true)
   })
@@ -596,7 +594,7 @@ symlinkDescribe('symlinked launcher safety', () => {
   it('refuses to remove a symlink during uninstall', async () => {
     const { env, target, userFile, userContent } = await arrangeManagedTargetSymlink()
 
-    await expect(uninstallCliLauncher(env)).rejects.toThrow('not managed by Open-Science')
+    await expect(uninstallCliLauncher(env)).rejects.toThrow('not managed by OneEarth')
     await expect(readFile(userFile, 'utf8')).resolves.toBe(userContent)
     expect((await lstat(target)).isSymbolicLink()).toBe(true)
   })
@@ -628,14 +626,14 @@ describe('hard-linked launcher safety', () => {
   it('refuses to follow a hard link during install', async () => {
     const { env, userFile, userContent } = await arrangeManagedTargetHardLink()
 
-    await expect(installCliLauncher(env)).rejects.toThrow('not managed by Open-Science')
+    await expect(installCliLauncher(env)).rejects.toThrow('not managed by OneEarth')
     await expect(readFile(userFile, 'utf8')).resolves.toBe(userContent)
   })
 
   it('refuses to remove a hard link during uninstall', async () => {
     const { env, target, userFile, userContent } = await arrangeManagedTargetHardLink()
 
-    await expect(uninstallCliLauncher(env)).rejects.toThrow('not managed by Open-Science')
+    await expect(uninstallCliLauncher(env)).rejects.toThrow('not managed by OneEarth')
     await expect(readFile(userFile, 'utf8')).resolves.toBe(userContent)
     await expect(lstat(target)).resolves.toMatchObject({ nlink: 2 })
   })
@@ -726,7 +724,7 @@ describe('installCliLauncher on Windows PATH edit', () => {
   })
 
   it.each([
-    ['unmanaged', 'because it is not managed by Open-Science'],
+    ['unmanaged', 'because it is not managed by OneEarth'],
     ['ambiguous', 'The Windows PATH ownership journal is ambiguous.']
   ] as const)('rejects an %s PATH journal before creating the shim', async (scenario, message) => {
     const env = winEnv()
@@ -767,7 +765,7 @@ describe('uninstallCliLauncher on Windows PATH edit', () => {
     const runCommand = vi.fn(() => true)
 
     await expect(uninstallCliLauncher(env, runCommand)).rejects.toThrow(
-      'because it is not managed by Open-Science'
+      'because it is not managed by OneEarth'
     )
 
     expect(runCommand).not.toHaveBeenCalled()

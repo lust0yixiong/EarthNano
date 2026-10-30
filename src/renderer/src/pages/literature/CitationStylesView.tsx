@@ -252,7 +252,7 @@ const CitationStylesView = ({
       case 'csl-dependent-style':
         return t('Dependent CSL styles are not supported yet. Import an independent style.')
       case 'csl-missing-sections':
-        return t('Open-Science requires CSL styles with both citation and bibliography sections.')
+        return t('OneEarth requires CSL styles with both citation and bibliography sections.')
       case 'csl-undefined-macro':
         if (error instanceof ApplicationCommandError && error.parameters) {
           return t('The CSL style references an undefined macro: {{macro}}', {
@@ -335,9 +335,7 @@ const CitationStylesView = ({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{style.title}</p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {style.source === 'built-in'
-                    ? t('Included with Open-Science')
-                    : t('Imported CSL')}
+                  {style.source === 'built-in' ? t('Included with OneEarth') : t('Imported CSL')}
                   {style.rights ? ` · ${style.rights}` : ''}
                 </p>
               </div>

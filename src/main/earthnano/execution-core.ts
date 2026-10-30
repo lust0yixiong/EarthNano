@@ -268,24 +268,34 @@ export class ExecutionCore implements ExecutionPort {
   }
 
   /** Trusted recovery adapter only: original durable owners attest exact turn and resource release.
+   * A live owner may recheck a finished driver; interrupted drivers still require restart recovery.
    * Reconciliation never invokes the driver, refunds a budget, or steals a live resource owner. */
   reconcileOriginal(
     id: string,
     outcome: Omit<ExecutionOutcome, 'phase' | 'cleanup'> & {
       phase: 'completed' | 'failed' | 'cancelled' | 'interrupted'
       cleanup: 'confirmed'
-    }
+    },
+    options?: { settledDriver: true }
   ): void {
     this.assertOpen()
     const record = this.require(id)
-    if (!terminal(record.phase) || record.cleanup !== 'unknown' || this.controllers.has(id))
+    const settledDriver = options?.settledDriver === true && this.drivers.size === 0
+    if (
+      !terminal(record.phase) ||
+      record.cleanup !== 'unknown' ||
+      (this.controllers.has(id) && !settledDriver) ||
+      (options?.settledDriver && (!settledDriver || record.phase === 'interrupted'))
+    )
       throw new Error('Only a recovered execution with unknown cleanup can be reconciled')
     if (
       outcome.cleanup !== 'confirmed' ||
       !['completed', 'failed', 'cancelled', 'interrupted'].includes(outcome.phase)
     )
       throw new Error('Reconciliation requires original terminal and resource-release witnesses')
-    this.finish(id, outcome)
+    this.finish(id, { ...outcome, error: outcome.error })
+    this.controllers.delete(id)
+    this.scheduleDrain()
   }
 
   async cancel(id: string): Promise<CancellationReceipt> {

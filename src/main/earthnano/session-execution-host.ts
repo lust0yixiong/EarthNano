@@ -281,6 +281,19 @@ export function createSessionExecutionHost(
             throw new Error('Original admission identity does not match prepared Session turn')
           await options.flush?.(session.id, promptId)
           const frozen = await reader.scopeSnapshot(session.projectId, session.id, promptId)
+          if (settlement.reconciliation) {
+            // Reuse restart recovery's exact original-admission witness. A resumed/rearmed turn
+            // may retain the prompt id; its newer runtime must never settle the older execution.
+            const token =
+              identity.runtimeExecutionId ?? identity.turnToken ?? identity.promptExecutionId
+            const admission = frozen.session.runtimeSessionAdmissions
+              ?.filter((entry) => entry.promptMessageId === promptId)
+              .at(-1)
+            if (!token || !admission || admission.executionId !== token)
+              throw new Error(
+                'Original execution admission is unconfirmed or superseded; Session remains fenced'
+              )
+          }
           const outcome = resolveTurnOutcome(frozen.session, promptId)
           const released =
             frozen.session.activeRun?.promptMessageId !== promptId &&

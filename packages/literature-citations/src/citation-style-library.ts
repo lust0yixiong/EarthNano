@@ -152,7 +152,7 @@ const parseCitationStyle = (
   if (!citation || !bibliography) {
     throw new CitationStyleError(
       'csl-missing-sections',
-      'Open-Science requires CSL styles with both citation and bibliography sections.'
+      'OneEarth requires CSL styles with both citation and bibliography sections.'
     )
   }
 
