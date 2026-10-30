@@ -9,6 +9,8 @@ export interface SessionExecutionSettlement {
   response?: PromptResponse
   error?: unknown
   preAdmissionRetirement?: PreAdmissionRetirement
+  /** A finished original driver is being reconciled; its durable runtime admission must still match. */
+  reconciliation?: true
   context: ExecutionContext
 }
 

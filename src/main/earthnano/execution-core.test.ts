@@ -62,6 +62,64 @@ const replay = async (core: ExecutionCore, id: string, cursor = 0): Promise<Exec
 }
 
 describe('common owner control policy', () => {
+  it('reconciles a finished driver only by explicit original-owner recheck, releasing capacity without replay or budget refund', async () => {
+    const s = setup(10, 256, 1)
+    const first = await s.core.submit({ ...request(), timeoutMs: 0 })
+    await waitStarted(s)
+    const second = await s.core.submit({ ...request('two'), timeoutMs: 0 })
+    s.completions.get('one')!({
+      phase: 'failed',
+      cleanup: 'unknown',
+      error: { code: 'original-terminal-unconfirmed', message: 'original commit pending' }
+    })
+    await s.core.waitForTerminal(first.executionId)
+    expect(await s.core.settle()).toBe(true)
+    expect((await s.core.get(second.executionId)).phase).toBe('queued')
+    expect(() =>
+      s.core.reconcileOriginal(first.executionId, {
+        phase: 'completed',
+        cleanup: 'confirmed'
+      })
+    ).toThrow('recovered')
+    const budget = structuredClone(s.store.load().budgets)
+    s.core.reconcileOriginal(
+      first.executionId,
+      {
+        phase: 'completed',
+        cleanup: 'confirmed'
+      },
+      { settledDriver: true }
+    )
+    expect((await s.core.get(first.executionId)).error).toBeUndefined()
+    expect(s.store.load().budgets).toEqual(budget)
+    await waitStarted(s, 'two')
+    expect(s.execute).toHaveBeenCalledTimes(2)
+    s.completions.get('two')!(successful)
+    await s.core.waitForTerminal(second.executionId)
+  })
+
+  it('does not use an in-process recheck to reclaim an interrupted or still-running driver', async () => {
+    const s = setup()
+    const first = await s.core.submit({ ...request(), timeoutMs: 5 })
+    await waitStarted(s)
+    expect((await s.core.waitForTerminal(first.executionId)).phase).toBe('interrupted')
+    const recheck = (): void =>
+      s.core.reconcileOriginal(
+        first.executionId,
+        {
+          phase: 'completed',
+          cleanup: 'confirmed'
+        },
+        { settledDriver: true }
+      )
+    expect(recheck).toThrow('recovered')
+    s.completions.get('one')!({ phase: 'failed', cleanup: 'unknown' })
+    await s.core.settle()
+    expect(recheck).toThrow('recovered')
+    expect((await s.core.get(first.executionId)).cleanup).toBe('unknown')
+    expect(s.execute).toHaveBeenCalledOnce()
+  })
+
   it('reconciles only recovered unknown records from original witnesses without replaying or refunding', async () => {
     const s = setup()
     const h = await s.core.submit(request())

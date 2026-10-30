@@ -242,6 +242,148 @@ it('persists ordinary usage through the real boundary and Core with one unchange
   expect(saved.records[record.executionId].usage).toEqual(expectedUsage)
   expect(dispatch.dispatch).toHaveBeenCalledOnce()
 })
+it.each(['terminal', 'lease'] as const)(
+  'continues the same Session after its original %s witness becomes durable, without reopening a branch or replaying Claude',
+  async (pending) => {
+    const { createAcpExecutionBoundary } = await import('./acp-execution-boundary')
+    const boundary = createAcpExecutionBoundary({ host: host() })
+    const links: import('../acp/execution-boundary-port').AcpExecutionLink[] = []
+    if (pending === 'terminal') {
+      delete state.session.messages[0].turnOutcome
+      state.session.status = 'running'
+    } else state.session.activeRun = { promptMessageId: 'prompt', startedAt: 1 }
+    state.session.runtimeSessionAdmissions = [
+      {
+        executionId: 'original-runtime',
+        promptMessageId: 'prompt',
+        promptRuntimeSegmentId: 'segment',
+        rootFrameId: 'frame',
+        agentFrameId: 'frame',
+        messageBranchId: 'branch',
+        runtimeSegmentId: 'segment'
+      }
+    ]
+    const firstDispatch = vi.fn<AcpExecutionDispatch['dispatch']>(async (observer) => {
+      observer.admitted({
+        sessionId: 'session',
+        promptMessageId: 'prompt',
+        runtimeExecutionId: 'original-runtime'
+      })
+      return { stopReason: 'end_turn' }
+    })
+    const firstInput: AcpExecutionDispatch = {
+      ...input(),
+      dispatch: firstDispatch,
+      ownerCompletion: { committed: Promise.resolve(), linked: (value) => links.push(value) }
+    }
+    await boundary.execute(firstInput)
+    expect((await links[0].settled).cleanup).toBe('unknown')
+    await expect(
+      boundary.execute({ ...firstInput, attemptId: 'still-unconfirmed' })
+    ).rejects.toThrow('remains owned')
+    expect(firstDispatch).toHaveBeenCalledOnce()
+
+    state.session.messages[0].turnOutcome = { kind: 'completed', settledAt: 3 }
+    state.session.status = 'idle'
+    delete state.session.activeRun
+    const nextDispatch = vi.fn<AcpExecutionDispatch['dispatch']>(async (observer) => {
+      state.session.messages.push(
+        {
+          ...state.session.messages[0],
+          id: 'next',
+          content: 'next user prompt',
+          createdAt: 4,
+          turnOutcome: { kind: 'completed', settledAt: 5 }
+        },
+        {
+          ...state.session.messages[1],
+          id: 'next-reply',
+          responseToMessageId: 'next',
+          createdAt: 5
+        }
+      )
+      observer.admitted({
+        sessionId: 'session',
+        promptMessageId: 'next',
+        runtimeExecutionId: 'next-runtime'
+      })
+      return { stopReason: 'end_turn' }
+    })
+    await expect(
+      boundary.execute({
+        ...firstInput,
+        attemptId: 'next-attempt',
+        request: { ...firstInput.request, provenanceContext: { promptMessageId: 'next' } },
+        dispatch: nextDispatch
+      })
+    ).resolves.toEqual({ stopReason: 'end_turn' })
+    await links[1].settled
+    expect(await boundary.settle()).toBe(true)
+    expect(firstDispatch).toHaveBeenCalledOnce()
+    expect(nextDispatch).toHaveBeenCalledOnce()
+    const directory = join(root, 'executions', 'session-attempts')
+    const generation = join(directory, (await readdir(directory))[0])
+    const journals = await Promise.all(
+      (await readdir(generation))
+        .filter((name) => name.endsWith('.json'))
+        .map(async (name) => JSON.parse(await readFile(join(generation, name), 'utf8')))
+    )
+    expect(journals).toHaveLength(2)
+    const original = journals
+      .flatMap((journal) => Object.values(journal.records) as ExecutionRecord[])
+      .find((record) => record.executionId === links[0].executionId)!
+    expect(original).toMatchObject({
+      phase: 'completed',
+      cleanup: 'confirmed',
+      identity: { promptMessageId: 'prompt', runtimeExecutionId: 'original-runtime' }
+    })
+    expect(original.error).toBeUndefined()
+    expect(
+      journals.every((journal) =>
+        Object.values(journal.budgets).every(
+          (budget) => (budget as { admitted: number }).admitted === 1
+        )
+      )
+    ).toBe(true)
+    expect((await readdir(generation)).filter((name) => name.endsWith('.lock'))).toEqual([])
+  }
+)
+
+it.each(['matching', 'missing-token', 'missing-admission', 'other-prompt', 'superseded'] as const)(
+  'requires the exact durable original runtime admission for an in-process recheck: %s',
+  async (witness) => {
+    const prepared = await prepare()
+    state.session.runtimeSessionAdmissions = [
+      {
+        executionId: witness === 'superseded' ? 'new-runtime' : 'original-runtime',
+        promptMessageId: witness === 'other-prompt' ? 'other' : 'prompt',
+        promptRuntimeSegmentId: 'segment',
+        rootFrameId: 'frame',
+        agentFrameId: 'frame',
+        messageBranchId: 'branch',
+        runtimeSegmentId: 'segment'
+      }
+    ]
+    if (witness === 'missing-admission') state.session.runtimeSessionAdmissions = []
+    const result = prepared.readResult(
+      settlement({
+        reconciliation: true,
+        identity: {
+          sessionId: 'session',
+          promptMessageId: 'prompt',
+          ...(witness === 'missing-token' ? {} : { runtimeExecutionId: 'original-runtime' })
+        }
+      })
+    )
+    if (witness === 'matching')
+      await expect(result).resolves.toMatchObject({ phase: 'completed', cleanup: 'confirmed' })
+    else
+      await expect(result).rejects.toThrow(
+        'Original execution admission is unconfirmed or superseded'
+      )
+  }
+)
+
 it.each(['failed', 'cancelled'] as const)(
   'does not replace original counters with zero because the outcome is %s',
   async (kind) => {

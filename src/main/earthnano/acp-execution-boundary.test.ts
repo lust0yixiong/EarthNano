@@ -96,6 +96,98 @@ function setup(): Setup {
 }
 
 describe('one ACP execution authority', () => {
+  it.each(['unconfirmed', 'read-failed', 'owner-failed'] as const)(
+    'rechecks an ended %s turn against its original owner before the next Send, without replay',
+    async (initial) => {
+      const s = setup()
+      const journals: ExecutionStore[] = []
+      s.prepare.mockImplementation(async (input) => {
+        const journal = store()
+        journals.push(journal)
+        return {
+          request: { ...request(), requestKey: input.attemptId, budgetRef: input.attemptId },
+          budgetLimit: 1,
+          store: journal,
+          readResult: s.readResult,
+          close: s.close
+        }
+      })
+      let originalCommitted = false
+      s.readResult.mockImplementation(async ({ identity }) => {
+        if (identity.promptMessageId === 'prompt' && !originalCommitted) {
+          if (initial === 'read-failed') throw new Error('temporary original evidence read failure')
+          return { phase: 'failed', cleanup: 'unknown' }
+        }
+        return { phase: 'completed', cleanup: 'confirmed' }
+      })
+      s.committed.resolve()
+      if (initial === 'owner-failed') {
+        s.input.dispatch = vi.fn(async (observer) => {
+          observer.admitted({ sessionId: 'session', promptMessageId: 'prompt' })
+          throw new Error('original native failure')
+        })
+        await expect(s.boundary.execute(s.input)).rejects.toThrow('original native failure')
+      } else await s.boundary.execute(s.input)
+      const first = s.link()
+      expect((await first.settled).cleanup).toBe('unknown')
+      originalCommitted = true
+      const nextDispatch = vi.fn<AcpExecutionDispatch['dispatch']>(async (observer) => {
+        observer.admitted({ sessionId: 'session', promptMessageId: 'next' })
+        return response
+      })
+      await expect(
+        s.boundary.execute({
+          ...s.input,
+          attemptId: 'next-attempt',
+          request: { ...s.input.request, provenanceContext: { promptMessageId: 'next' } },
+          dispatch: nextDispatch
+        })
+      ).resolves.toEqual(response)
+      await s.link().settled
+      const recovered = journals[0].load().records[first.executionId]
+      expect(recovered).toMatchObject({
+        phase: initial === 'owner-failed' ? 'failed' : 'completed',
+        cleanup: 'confirmed'
+      })
+      if (initial === 'owner-failed')
+        expect(recovered.error).toEqual({
+          code: 'original-owner-failed',
+          message: 'original native failure'
+        })
+      else expect(recovered.error).toBeUndefined()
+      expect(s.readResult.mock.calls.map(([value]) => value.identity.promptMessageId)).toEqual([
+        'prompt',
+        'prompt',
+        'next'
+      ])
+      expect(s.input.dispatch).toHaveBeenCalledOnce()
+      expect(nextDispatch).toHaveBeenCalledOnce()
+      expect(s.close).toHaveBeenCalledTimes(2)
+      expect(Object.values(journals[0].load().budgets)[0].admitted).toBe(1)
+      expect(await s.boundary.settle()).toBe(true)
+    }
+  )
+
+  it('never rechecks or replaces a provider operation that is still running', async () => {
+    const s = setup()
+    const original = deferred<PromptResponse>()
+    s.input.dispatch = vi.fn(async (observer) => {
+      observer.admitted({ sessionId: 'session', promptMessageId: 'prompt' })
+      return original.promise
+    })
+    s.committed.resolve()
+    const running = s.boundary.execute(s.input)
+    await vi.waitFor(() => expect(s.input.dispatch).toHaveBeenCalledOnce())
+    await expect(s.boundary.execute({ ...s.input, attemptId: 'next' })).rejects.toThrow(
+      'remains owned'
+    )
+    expect(s.readResult).not.toHaveBeenCalled()
+    expect(s.input.cancelOwned).not.toHaveBeenCalled()
+    original.resolve(response)
+    await running
+    await s.link().settled
+  })
+
   it('allows an original correction or next Send after native release while retaining the prior commit barrier and exact cancel target', async () => {
     const s = setup()
     s.prepare.mockImplementation(async (input) => ({
