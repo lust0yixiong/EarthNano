@@ -502,7 +502,7 @@ jobs:
           node-version: 24
       - name: Review dependency changes
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
         with:
           base-ref: ${{ needs.preflight.outputs.base }}
           fail-on-severity: high
@@ -551,7 +551,7 @@ jobs:
           "$RUNNER_TEMP/actionlint" -color -shellcheck= -pyflakes=
       - name: Audit GitHub Actions security with zizmor
         continue-on-error: true
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           advanced-security: false
           annotations: true
